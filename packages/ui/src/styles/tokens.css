@@ -1,0 +1,69 @@
+/* CMS Design System — 공통 색상·타이포·간격 토큰 */
+/* apps/admin, apps/client의 CSS에서 @import 하여 사용 */
+
+@layer base {
+  :root {
+    /* Brand */
+    --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-primary-light: #dbeafe;
+
+    --color-secondary: #64748b;
+    --color-secondary-hover: #475569;
+
+    --color-accent: #f59e0b;
+    --color-accent-hover: #d97706;
+
+    /* Semantic */
+    --color-success: #16a34a;
+    --color-success-light: #dcfce7;
+    --color-warning: #d97706;
+    --color-warning-light: #fef3c7;
+    --color-danger: #dc2626;
+    --color-danger-light: #fee2e2;
+    --color-info: #0284c7;
+    --color-info-light: #e0f2fe;
+
+    /* Surface */
+    --color-background: #ffffff;
+    --color-surface: #f8fafc;
+    --color-border: #e2e8f0;
+    --color-border-focus: #2563eb;
+
+    /* Text */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
+    --color-text-disabled: #cbd5e1;
+    --color-text-inverse: #ffffff;
+
+    /* Typography */
+    --font-heading: 'Noto Sans KR', sans-serif;
+    --font-body: 'Noto Sans KR', sans-serif;
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 700;
+
+    /* Shape */
+    --radius-sm: 4px;
+    --radius-base: 8px;
+    --radius-md: 12px;
+    --radius-card: 16px;
+    --radius-full: 9999px;
+
+    /* Shadow */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-base: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+    --shadow-modal: 0 20px 60px rgba(0, 0, 0, 0.15);
+
+    /* Spacing */
+    --spacing-section: 120px;
+    --spacing-container: 1200px;
+  }
+}

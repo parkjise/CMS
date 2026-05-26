@@ -1,0 +1,9 @@
+{
+  "name": "@cms/backend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "echo 'Run: cd apps/backend && poetry run uvicorn app.main:app --reload --port 8000'",
+    "test": "echo 'Run: cd apps/backend && poetry run pytest'"
+  }
+}

@@ -1,0 +1,69 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+*.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+.venv/
+venv/
+.Python
+*.egg-info/
+dist/
+*.egg
+
+# Poetry
+poetry.lock
+
+# Pytest
+.pytest_cache/
+htmlcov/
+.coverage
+*.cover
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker
+docker-compose.override.yml
+
+# Alembic
+apps/backend/alembic/versions/*.pyc
+
+# TypeScript
+*.tsbuildinfo
+
+# Tailwind
+.tailwindcss/
+
+# Misc
+.turbo/
+.cache/
