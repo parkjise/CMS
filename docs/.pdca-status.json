@@ -1,11 +1,13 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-05-25T23:09:48.805Z",
+  "lastUpdated": "2026-05-26T06:07:27.261Z",
   "activeFeatures": [
     "packages",
     "ui",
     "admin",
-    "superadmin"
+    "superadmin",
+    "client",
+    "backend"
   ],
   "primaryFeature": "packages",
   "features": {
@@ -60,6 +62,32 @@
         "lastUpdated": "2026-05-25T23:09:48.805Z"
       },
       "lastFile": "/Users/Js/Work/CMS/apps/superadmin/src/router.tsx"
+    },
+    "client": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-05-26T05:13:42.040Z",
+        "lastUpdated": "2026-05-26T05:15:16.718Z"
+      },
+      "lastFile": "/Users/Js/Work/CMS/apps/client/lib/editStore.ts"
+    },
+    "backend": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-05-26T06:04:00.239Z",
+        "lastUpdated": "2026-05-26T06:07:27.261Z"
+      },
+      "lastFile": "/Users/Js/Work/CMS/apps/backend/scripts/init_minio.py"
     }
   },
   "pipeline": {
@@ -70,7 +98,7 @@
   "session": {
     "startedAt": "2026-02-16T08:10:10.453Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-05-25T23:09:48.805Z"
+    "lastActivity": "2026-05-26T06:07:27.261Z"
   },
   "history": [
     {
@@ -310,6 +338,126 @@
     {
       "timestamp": "2026-05-25T23:09:48.805Z",
       "feature": "superadmin",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:13:42.040Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:16.843Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:22.948Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:30.983Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:39.532Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:46.874Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:14:55.201Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:15:05.861Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T05:15:16.718Z",
+      "feature": "client",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:00.239Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:14.423Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:21.174Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:31.520Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:38.493Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:47.556Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:04:55.211Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:05:03.407Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:05:32.613Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:05:38.259Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-05-26T06:07:27.261Z",
+      "feature": "backend",
       "phase": "do",
       "action": "updated"
     }

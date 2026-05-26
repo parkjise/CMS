@@ -1,0 +1,34 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* 템플릿 CSS 변수 — 런타임에 테넌트별 값으로 교체됨 */
+    --color-primary: #2563eb;
+    --color-secondary: #64748b;
+    --color-accent: #f59e0b;
+    --color-background: #ffffff;
+    --color-surface: #f8fafc;
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #64748b;
+
+    --font-heading: 'Noto Sans KR', sans-serif;
+    --font-body: 'Noto Sans KR', sans-serif;
+    --font-size-base: 16px;
+
+    --border-radius-base: 8px;
+    --border-radius-card: 16px;
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+
+    --spacing-section: 120px;
+    --spacing-container: 1200px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    background-color: var(--color-background);
+    -webkit-font-smoothing: antialiased;
+  }
+}

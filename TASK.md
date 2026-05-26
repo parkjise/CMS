@@ -13,7 +13,7 @@
 
 | 페이즈 | 태스크 수 | 완료 | 진행률 |
 |---|---|---|---|
-| Phase 0: 프로젝트 초기 설정 | 8 | 0 | 0% |
+| Phase 0: 프로젝트 초기 설정 | 8 | 7 | 87.5% |
 | Phase 1: 인프라 & DB | 7 | 0 | 0% |
 | Phase 2: 인증 시스템 | 5 | 0 | 0% |
 | Phase 3: 핵심 CRUD API | 10 | 0 | 0% |
@@ -27,7 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
-| **합계** | **101** | **0** | **0%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
+| **합계** | **113** | **7** | **6.2%** |
 
 ---
 
@@ -42,17 +43,17 @@
 - **담당:** 풀스택
 - **참조:** `CLAUDE.md 섹션 2 (디렉토리 구조)`
 - **작업 내용:**
-  - [ ] 루트 `package.json` 생성 (공통 스크립트: `dev`, `build`, `test`)
-  - [ ] `pnpm-workspace.yaml` 생성
+  - [x] 루트 `package.json` 생성 (공통 스크립트: `dev`, `build`, `test`)
+  - [x] `pnpm-workspace.yaml` 생성
   ```yaml
   packages:
     - 'apps/*'
     - 'packages/*'
   ```
-  - [ ] `apps/admin/`, `apps/client/`, `apps/backend/` 디렉토리 생성
-  - [ ] `packages/ui/`, `packages/types/` 디렉토리 생성
-  - [ ] 루트 `.gitignore` 생성 (node_modules, .env, __pycache__, .venv 등)
-  - [ ] 루트 `.editorconfig` 생성
+  - [x] `apps/admin/`, `apps/client/`, `apps/backend/` 디렉토리 생성
+  - [x] `packages/ui/`, `packages/types/` 디렉토리 생성
+  - [x] 루트 `.gitignore` 생성 (node_modules, .env, __pycache__, .venv 등)
+  - [x] 루트 `.editorconfig` 생성
 - **완료 조건:** `pnpm install` 명령이 에러 없이 실행됨
 
 ---
@@ -61,8 +62,8 @@
 - **담당:** 풀스택
 - **참조:** `CLAUDE.md 섹션 2`, `기획서 섹션 5 (API 스펙)`
 - **작업 내용:**
-  - [ ] `packages/types/package.json` 생성
-  - [ ] `packages/types/src/api.ts` — 공통 API 응답 타입
+  - [x] `packages/types/package.json` 생성
+  - [x] `packages/types/src/api.ts` — 공통 API 응답 타입
   ```typescript
   export interface ApiResponse<T> {
     success: boolean
@@ -79,12 +80,12 @@
     }
   }
   ```
-  - [ ] `packages/types/src/section.ts` — Section, SectionType, SectionSettings 타입
-  - [ ] `packages/types/src/inquiry.ts` — Inquiry, InquiryType, InquiryStatus 타입
-  - [ ] `packages/types/src/template.ts` — Template, CSSVariableSet, SectionLayoutConfig 타입
-  - [ ] `packages/types/src/user.ts` — User, UserRole 타입
-  - [ ] `packages/types/src/tenant.ts` — Tenant, PlanType, TemplateType 타입
-  - [ ] `packages/types/src/index.ts` — 전체 re-export
+  - [x] `packages/types/src/section.ts` — Section, SectionType, SectionSettings 타입
+  - [x] `packages/types/src/inquiry.ts` — Inquiry, InquiryType, InquiryStatus 타입
+  - [x] `packages/types/src/template.ts` — Template, CSSVariableSet, SectionLayoutConfig 타입
+  - [x] `packages/types/src/user.ts` — User, UserRole 타입
+  - [x] `packages/types/src/tenant.ts` — Tenant, PlanType, TemplateType 타입
+  - [x] `packages/types/src/index.ts` — 전체 re-export
 - **완료 조건:** `import { ApiResponse } from '@cms/types'` 정상 동작
 
 ---
@@ -93,17 +94,17 @@
 - **담당:** 프론트엔드
 - **참조:** `CLAUDE.md 섹션 3 (기술 스택)`
 - **작업 내용:**
-  - [ ] `packages/ui/package.json` 생성 (react 19 peer dependency)
-  - [ ] `packages/ui/src/Button.tsx` — variant(primary/secondary/ghost), size(sm/md/lg), loading 상태
-  - [ ] `packages/ui/src/Input.tsx` — label, error, helperText 포함
-  - [ ] `packages/ui/src/Textarea.tsx`
-  - [ ] `packages/ui/src/Modal.tsx` — Portal 기반, ESC 닫기
-  - [ ] `packages/ui/src/Toggle.tsx` — On/Off 토글 스위치
-  - [ ] `packages/ui/src/Toast.tsx` — sonner 기반 (success/error/warning/info)
-  - [ ] `packages/ui/src/Badge.tsx` — 상태 뱃지 (색상 variants)
-  - [ ] `packages/ui/src/Dropdown.tsx` — Select 컴포넌트
-  - [ ] `packages/ui/src/index.ts` — 전체 export
-  - [ ] TailwindCSS 4.x 설정 (공통 색상 토큰 정의)
+  - [x] `packages/ui/package.json` 생성 (react 19 peer dependency)
+  - [x] `packages/ui/src/Button.tsx` — variant(primary/secondary/ghost), size(sm/md/lg), loading 상태
+  - [x] `packages/ui/src/Input.tsx` — label, error, helperText 포함
+  - [x] `packages/ui/src/Textarea.tsx`
+  - [x] `packages/ui/src/Modal.tsx` — Portal 기반, ESC 닫기
+  - [x] `packages/ui/src/Toggle.tsx` — On/Off 토글 스위치
+  - [x] `packages/ui/src/Toast.tsx` — sonner 기반 (success/error/warning/info)
+  - [x] `packages/ui/src/Badge.tsx` — 상태 뱃지 (색상 variants)
+  - [x] `packages/ui/src/Dropdown.tsx` — Select 컴포넌트
+  - [x] `packages/ui/src/index.ts` — 전체 export
+  - [x] TailwindCSS 4.x 설정 (공통 색상 토큰 정의)
 - **완료 조건:** 각 컴포넌트 Storybook 또는 테스트 페이지에서 렌더링 확인
 
 ---
@@ -112,10 +113,10 @@
 - **담당:** 프론트엔드
 - **참조:** `CLAUDE.md 섹션 3`, `기획서 섹션 9`
 - **작업 내용:**
-  - [ ] Vite 7 + React 19 + TypeScript 프로젝트 초기화
-  - [ ] TailwindCSS 4.x 설정 (`@tailwindcss/vite` 플러그인)
-  - [ ] 절대경로 alias 설정: `@/` → `src/`
-  - [ ] React Router 7.x 설치 및 기본 라우터 구성
+  - [x] Vite 7 + React 19 + TypeScript 프로젝트 초기화
+  - [x] TailwindCSS 4.x 설정 (`@tailwindcss/vite` 플러그인)
+  - [x] 절대경로 alias 설정: `@/` → `src/`
+  - [x] React Router 7.x 설치 및 기본 라우터 구성
   ```
   /login              ← 로그인 페이지
   /admin/dashboard    ← 대시보드 (AD-01)
@@ -125,11 +126,11 @@
   /admin/seo          ← SEO 설정 (AD-05)
   /admin/templates    ← 템플릿 선택 (AD-06)
   ```
-  - [ ] TanStack Query 5.x QueryClient 설정 (`lib/queryClient.ts`)
-  - [ ] axios 인스턴스 설정 (`lib/api.ts`) — baseURL, 인터셉터(401 자동 refresh)
-  - [ ] Zustand authStore 설정 (`stores/authStore.ts`) — 토큰, 유저 정보
-  - [ ] PrivateRoute 컴포넌트 (비로그인 시 /login 리다이렉트)
-  - [ ] `apps/admin/.env.example` 생성
+  - [x] TanStack Query 5.x QueryClient 설정 (`lib/queryClient.ts`)
+  - [x] axios 인스턴스 설정 (`lib/api.ts`) — baseURL, 인터셉터(401 자동 refresh)
+  - [x] Zustand authStore 설정 (`stores/authStore.ts`) — 토큰, 유저 정보
+  - [x] PrivateRoute 컴포넌트 (비로그인 시 /login 리다이렉트)
+  - [x] `apps/admin/.env.example` 생성
 - **완료 조건:** `pnpm dev` 실행 시 :3001 에서 빈 화면 정상 렌더링
 
 ---
@@ -138,14 +139,14 @@
 - **담당:** 프론트엔드
 - **참조:** `CLAUDE.md 섹션 3`, `기획서 섹션 9`
 - **작업 내용:**
-  - [ ] Next.js 15 + TypeScript App Router 초기화
-  - [ ] TailwindCSS 4.x 설정
-  - [ ] 절대경로 alias 설정
-  - [ ] 동적 라우트 구조 생성: `app/[tenant_slug]/page.tsx`
-  - [ ] Public API 클라이언트 설정 (`lib/api.ts`)
-  - [ ] 편집 모드 Zustand 스토어 초기 구조 (`lib/editStore.ts`)
-  - [ ] `apps/client/.env.example` 생성
-  - [ ] `next.config.ts` — 이미지 도메인 허용 (MinIO CDN)
+  - [x] Next.js 15 + TypeScript App Router 초기화
+  - [x] TailwindCSS 4.x 설정
+  - [x] 절대경로 alias 설정
+  - [x] 동적 라우트 구조 생성: `app/[tenant_slug]/page.tsx`
+  - [x] Public API 클라이언트 설정 (`lib/api.ts`)
+  - [x] 편집 모드 Zustand 스토어 초기 구조 (`lib/editStore.ts`)
+  - [x] `apps/client/.env.example` 생성
+  - [x] `next.config.ts` — 이미지 도메인 허용 (MinIO CDN)
 - **완료 조건:** `pnpm dev` 실행 시 :3000 에서 Next.js 기본 페이지 렌더링
 
 ---
@@ -154,21 +155,21 @@
 - **담당:** 백엔드
 - **참조:** `CLAUDE.md 섹션 2, 3, 4`, `기획서 섹션 9`
 - **작업 내용:**
-  - [ ] Poetry 프로젝트 초기화 (`pyproject.toml`)
-  - [ ] 의존성 설치 (fastapi, uvicorn, sqlalchemy, alembic, asyncpg, pydantic-settings, python-jose, bcrypt, Pillow, celery, redis, boto3, httpx, langchain-openai, pytest-asyncio)
-  - [ ] `app/main.py` — FastAPI 앱 생성, CORS 설정, 라우터 등록, 헬스체크
+  - [x] Poetry 프로젝트 초기화 (`pyproject.toml`)
+  - [x] 의존성 설치 (fastapi, uvicorn, sqlalchemy, alembic, asyncpg, pydantic-settings, python-jose, bcrypt, Pillow, celery, redis, boto3, httpx, langchain-openai, pytest-asyncio)
+  - [x] `app/main.py` — FastAPI 앱 생성, CORS 설정, 라우터 등록, 헬스체크
   ```python
   @app.get("/health")
   async def health(): return {"status": "ok"}
   ```
-  - [ ] `app/core/config.py` — pydantic-settings Settings 클래스 (모든 환경변수)
-  - [ ] `app/core/security.py` — JWT 생성/검증 함수
-  - [ ] `app/core/deps.py` — `get_db`, `get_db_with_rls`, `get_current_user`, `get_super_admin` 의존성
-  - [ ] `app/core/redis.py` — Redis 연결 풀
-  - [ ] `app/db/session.py` — AsyncSession 팩토리, RLS 컨텍스트 설정 함수
-  - [ ] `app/db/base.py` — SQLAlchemy Base, 공통 컬럼 Mixin
-  - [ ] `apps/backend/.env.example` 생성 (기획서 섹션 9.3 기준)
-  - [ ] `app/api/v1/router.py` — 전체 라우터 통합 파일 (엔드포인트는 이후 태스크에서 추가)
+  - [x] `app/core/config.py` — pydantic-settings Settings 클래스 (모든 환경변수)
+  - [x] `app/core/security.py` — JWT 생성/검증 함수
+  - [x] `app/core/deps.py` — `get_db`, `get_db_with_rls`, `get_current_user`, `get_super_admin` 의존성
+  - [x] `app/core/redis.py` — Redis 연결 풀
+  - [x] `app/db/session.py` — AsyncSession 팩토리, RLS 컨텍스트 설정 함수
+  - [x] `app/db/base.py` — SQLAlchemy Base, 공통 컬럼 Mixin
+  - [x] `apps/backend/.env.example` 생성 (기획서 섹션 9.3 기준)
+  - [x] `app/api/v1/router.py` — 전체 라우터 통합 파일 (엔드포인트는 이후 태스크에서 추가)
 - **완료 조건:** `uvicorn app.main:app --reload` 실행 후 `/health` 200 응답 확인
 
 ---
@@ -177,7 +178,7 @@
 - **담당:** 백엔드/인프라
 - **참조:** `기획서 섹션 9`, `CLAUDE.md 섹션 9`
 - **작업 내용:**
-  - [ ] `docker-compose.yml` 작성
+  - [x] `docker-compose.yml` 작성
   ```yaml
   services:
     postgres:
@@ -202,8 +203,8 @@
       ports: ["9000:9000", "9001:9001"]
       volumes: [minio_data:/data]
   ```
-  - [ ] MinIO 버킷 자동 생성 스크립트 (`scripts/init_minio.py`)
-  - [ ] `docker-compose.prod.yml` 기본 구조 (실제 값은 추후 채움)
+  - [x] MinIO 버킷 자동 생성 스크립트 (`scripts/init_minio.py`)
+  - [x] `docker-compose.prod.yml` 기본 구조 (실제 값은 추후 채움)
 - **완료 조건:** `docker compose up -d` 후 3개 서비스 모두 healthy 상태
 
 ---
@@ -1541,6 +1542,8 @@ T-074~T-077 (SEO & 분석)
 T-078~T-083 (테스트 & 배포)
     ↓
 T-084~T-094 (슈퍼 어드민 시스템)
+    ↓
+T-095~T-106 (SaaS 운영 시스템 — 결제·온보딩·도메인)
 ```
 
 ### Claude에게 지시하는 예시 문장 모음
@@ -1812,7 +1815,211 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **완료 조건:** 2FA 없이 슈퍼 어드민 로그인 불가, 대리 접속 시 audit_log 기록 확인
 
 
+
+---
+
+## Phase 14: SaaS 운영 시스템
+
+> **목표:** 결제(토스페이먼츠 정기결제)·온보딩·도메인 자동화·구독 관리 완성
+> **예상 소요:** 5일
+> **선행 조건:** T-023 (슈퍼 어드민 API), T-012 (인증 API) 완료
+> **참조:** `기획서 섹션 15 전체`
+
+---
+
+### T-095: 결제 DB 스키마 + 마이그레이션
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 15.2 (DB 스키마)`
+- **작업 내용:**
+  - [ ] `app/models/billing.py` — Subscription, PaymentHistory, PlanChangeHistory 모델
+  - [ ] `app/models/domain.py` — TenantDomain 모델
+  - [ ] Alembic 마이그레이션 생성 및 적용
+  - [ ] `scripts/seed.py`에 테스트용 구독 데이터 추가
+  - [ ] `app/schemas/billing.py` — Pydantic 스키마 전체
+- **완료 조건:** `alembic upgrade head` 성공, 모델 import 에러 없음
+
+---
+
+### T-096: 토스페이먼츠 결제 서비스 구현
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 15.2 (토스페이먼츠 연동 핵심 코드)`
+- **작업 내용:**
+  - [ ] `app/services/payment.py`
+    - `issue_billing_key(customer_key, auth_key)` — 빌링키 발급
+    - `charge_billing(billing_key, customer_key, amount, order_id, order_name)` — 자동 결제
+    - `cancel_payment(payment_key, reason)` — 결제 취소·환불
+    - `get_payment_status(payment_key)` — 결제 상태 조회
+  - [ ] 토스페이먼츠 테스트 환경 설정 (test_ 키 사용)
+  - [ ] `app/api/v1/endpoints/billing.py`
+    - `POST /api/v1/billing/register-card` — 빌링키 발급 (카드 등록)
+    - `GET  /api/v1/billing/subscription` — 현재 구독 정보
+    - `GET  /api/v1/billing/history` — 결제 이력
+    - `POST /api/v1/billing/cancel` — 구독 해지 신청
+    - `POST /api/v1/billing/change-plan` — 플랜 변경
+  - [ ] `POST /api/webhook/tosspayments` — 웹훅 수신 (HMAC 서명 검증 필수)
+  - [ ] 환경변수 추가: `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY`, `TOSS_WEBHOOK_SECRET`
+- **완료 조건:** 테스트 카드로 빌링키 발급 → 수동 결제 → 결제 이력 조회 성공
+
+---
+
+### T-097: 정기결제 Celery 태스크 구현
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 15.2 (Celery 정기결제 태스크)`
+- **작업 내용:**
+  - [ ] `app/workers/billing.py`
+    - `process_monthly_billing` — 매일 00:05 오늘 결제일 구독 자동 결제
+    - `retry_billing` — 결제 실패 재시도 (24시간 간격, 최대 3회)
+    - `check_expiring_subscriptions` — 매일 09:00 D-7, D-3 만료 예정 알림
+    - `suspend_expired_subscriptions` — 매일 00:10 만료 구독 접근 차단
+    - `delete_cancelled_tenant_data` — 매일 03:00 해지 후 30일 데이터 삭제
+  - [ ] Celery Beat 스케줄 등록 (5개 태스크)
+  - [ ] 결제 실패 3회 시 슈퍼 어드민에게 알림 발송
+- **완료 조건:** Celery Beat 실행 후 스케줄 태스크 정상 등록, 테스트 결제 실행 확인
+
+---
+
+### T-098: 이메일 발송 서비스 구현
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 15.4 (온보딩 이메일 자동화)`
+- **작업 내용:**
+  - [ ] `app/services/email.py` — AWS SES 기반 이메일 발송
+    - `send_email(to, subject, template, variables)` — 기본 발송 함수
+    - `send_welcome_email(tenant, temp_password)` — 환영 메일
+    - `send_payment_receipt(tenant, payment)` — 영수증
+    - `send_payment_failed(tenant, attempt_count)` — 결제 실패 알림
+    - `send_expiring_notice(tenant, days_left)` — 만료 예정 알림
+    - `send_cancellation_confirmed(tenant)` — 해지 확인
+    - `send_data_deleted(email)` — 데이터 삭제 완료
+  - [ ] 이메일 HTML 템플릿 작성 (Jinja2, 7종)
+  - [ ] 환경변수 추가: `AWS_SES_REGION`, `AWS_SES_FROM_EMAIL`
+  - [ ] Celery 태스크로 비동기 처리 (`send_email_async`)
+- **완료 조건:** 환영 메일 실제 수신 확인, 영수증 이메일 수신 확인
+
+---
+
+### T-099: 무료 체험(Trial) 시스템 구현
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 15.6 (Trial 시스템)`
+- **작업 내용:**
+  - [ ] 테넌트 생성 시 Trial 구독 자동 생성 (14일, STANDARD 기능)
+  - [ ] Trial 기간 중 카드 등록 없이 전 기능 사용 가능
+  - [ ] Trial D-3 알림 Celery 태스크
+  - [ ] Trial 종료 처리 (카드 등록 여부에 따라 분기)
+  - [ ] `GET /api/v1/billing/trial-status` — 체험 남은 일수 반환
+  - [ ] 관리자 페이지 상단에 Trial 남은 일수 배너 표시
+- **완료 조건:** 신규 테넌트 생성 → 14일 Trial → 종료 시 접근 차단 시나리오 테스트
+
+---
+
+### T-100: 커스텀 도메인 서비스 구현
+- **담당:** 백엔드/인프라
+- **참조:** `기획서 섹션 15.3 (커스텀 도메인 자동화)`
+- **작업 내용:**
+  - [ ] `app/services/domain.py`
+    - `verify_dns(domain, expected_cname)` — DNS CNAME 전파 확인 (dnspython)
+    - `issue_ssl_certificate(domain)` — Let's Encrypt SSL 발급 (certbot)
+    - `add_nginx_config(domain, tenant_slug)` — Nginx 가상 호스트 추가
+    - `remove_nginx_config(domain)` — Nginx 설정 제거
+    - `renew_ssl_certificate(domain)` — SSL 갱신
+  - [ ] `app/api/v1/endpoints/domain.py`
+    - `POST /api/v1/domain/register` — 커스텀 도메인 등록 신청
+    - `GET  /api/v1/domain/status` — 도메인 연결 상태 확인
+    - `POST /api/v1/domain/verify` — DNS 전파 수동 확인
+    - `DELETE /api/v1/domain` — 도메인 연결 해제
+  - [ ] `app/api/super/endpoints/domains.py`
+    - `GET  /api/super/v1/domains` — 전체 도메인 목록
+    - `POST /api/super/v1/domains/{id}/ssl-renew` — SSL 수동 갱신
+  - [ ] DNS 확인 Celery 태스크 (도메인 등록 후 1분마다 폴링, 최대 24시간)
+  - [ ] SSL 만료 D-30 자동 갱신 Celery Beat 태스크
+  - [ ] 의존성 추가: `dnspython`, `subprocess` (certbot 호출)
+- **완료 조건:** 실제 도메인으로 CNAME 설정 → 자동 DNS 확인 → SSL 발급 → 접속 성공
+
+---
+
+### T-101: 도메인 관리 UI 구현 (AD-08 탭)
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 15.5 (AD-08 도메인 탭)`
+- **작업 내용:**
+  - [ ] `apps/admin/src/pages/BillingPage.tsx` 탭 확장
+    - [구독 현황] 탭: 현재 플랜, 다음 결제일, 업그레이드/해지 버튼
+    - [결제 수단] 탭: 등록된 카드 표시, 카드 변경
+    - [결제 내역] 탭: 결제 이력 테이블, 영수증 다운로드
+    - **[도메인] 탭**: 현재 도메인 상태, 커스텀 도메인 변경
+  - [ ] 토스페이먼츠 결제 위젯 연동 (카드 등록 UI)
+    - `@tosspayments/payment-widget` 패키지 설치
+    - 카드 등록 모달
+  - [ ] 도메인 연결 상태 실시간 확인 (30초 폴링)
+    - PENDING → DNS_CHECKING → SSL_ISSUING → ACTIVE 단계 표시
+  - [ ] Trial 배너 컴포넌트 (남은 일수 + 카드 등록 CTA)
+- **완료 조건:** 카드 등록 → 결제 내역 표시, 도메인 등록 → 상태 변화 실시간 표시
+
+---
+
+### T-102: 구독 해지 플로우 UI 구현
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 15.7 (구독 해지 처리)`
+- **작업 내용:**
+  - [ ] 해지 신청 다이얼로그
+    - 해지 사유 선택 (5가지 옵션)
+    - "현재 기간까지 서비스 유지" 안내
+    - "30일 후 데이터 완전 삭제" 경고
+    - [해지 취소] [해지 확인] 버튼
+  - [ ] 해지 완료 후 페이지에 재구독 CTA 배너 표시
+  - [ ] 구독 만료 후 접속 시 → 만료 안내 페이지 + 재구독 버튼
+- **완료 조건:** 해지 신청 → 기간 종료 후 접근 차단 → 재구독 CTA 표시
+
+---
+
+### T-103: 슈퍼 어드민 결제 현황 UI (SA-06)
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 15.5 (SA-06)`
+- **작업 내용:**
+  - [ ] `apps/superadmin/src/pages/BillingOverviewPage.tsx`
+  - [ ] 통계 카드 (MRR, 연체 수, 해지 수, 신규 수)
+  - [ ] 연체 테넌트 즉시 처리 (수동 결제, 유예 처리)
+  - [ ] 환불 처리 UI
+  - [ ] MRR 추이 차트 (Recharts)
+  - [ ] 플랜별 테넌트 수 도넛 차트
+- **완료 조건:** 결제 현황 정상 표시, 수동 결제 실행 가능
+
+---
+
+### T-104: 온보딩 자동화 통합 테스트
+- **담당:** 전체
+- **작업 내용:**
+  - [ ] 신규 테넌트 생성 → 환영 메일 수신 시나리오 E2E 테스트
+  - [ ] 카드 등록 → 자동 결제 → 영수증 수신 시나리오 테스트
+  - [ ] 결제 실패 → 재시도 → 3회 실패 → 서비스 중단 시나리오 테스트
+  - [ ] Trial → 만료 → 카드 등록 → ACTIVE 전환 시나리오 테스트
+  - [ ] 커스텀 도메인 등록 → DNS 확인 → SSL 발급 → 접속 확인 테스트
+  - [ ] 구독 해지 → 기간 종료 → 데이터 삭제 시나리오 테스트
+- **완료 조건:** 6개 시나리오 전체 통과
+
+---
+
+### T-105: SSL 자동 갱신 + 도메인 모니터링
+- **담당:** 백엔드/인프라
+- **작업 내용:**
+  - [ ] SSL 만료 D-30 자동 갱신 Celery Beat 태스크
+  - [ ] SSL 갱신 실패 시 슈퍼 어드민 긴급 알림
+  - [ ] `GET /api/super/v1/domains` 에 SSL 만료일 표시
+  - [ ] 슈퍼 어드민 대시보드에 SSL 만료 예정 도메인 경고 위젯
+- **완료 조건:** SSL 만료 30일 전 자동 갱신 실행 확인
+
+---
+
+### T-106: 결제 + 온보딩 보안 강화
+- **담당:** 백엔드
+- **작업 내용:**
+  - [ ] 토스페이먼츠 웹훅 HMAC-SHA256 서명 검증 필수 구현
+  - [ ] 빌링키 암호화 저장 (AES-256, 환경변수 키)
+  - [ ] 결제 관련 모든 API Rate Limiting (결제 API 분당 5회)
+  - [ ] 결제 이상 탐지 (동일 테넌트 단기간 중복 결제 차단)
+  - [ ] PCI DSS 준수 확인 (카드번호·CVV 서버 미저장 검증)
+- **완료 조건:** 위변조 웹훅 요청 차단, 빌링키 암호화 저장 확인
+
+
 ---
 
 *최종 업데이트: 2026-05-24*
-*총 101개 태스크 | 예상 총 개발 기간: 약 10~12주 (1~2인 팀 기준)*
+*총 113개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*

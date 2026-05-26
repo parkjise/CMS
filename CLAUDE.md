@@ -29,8 +29,8 @@
 
 ## 0. 문서 버전 관리 (자동 동기화)
 
-**현재 문서 버전:** `v1.4`
-**연동 기획서:** `docs/CMS_Admin_Specification_v1.4.md`
+**현재 문서 버전:** `v1.5`
+**연동 기획서:** `docs/CMS_Admin_Specification_v1.5.md`
 
 ### 문서 버전 확인 규칙
 
@@ -78,7 +78,7 @@ cms-project/                          ← 프로젝트 루트 (여기서 모든 
 ├── CLAUDE.md                         ← 이 파일 (Claude 가이드)
 ├── TASK.md                           ← 전체 개발 태스크 체크리스트
 ├── docs/
-│   └── CMS_Admin_Specification_v1.4.md  ← 상세 기획서
+│   └── CMS_Admin_Specification_v1.5.md  ← 상세 기획서
 ├── docker-compose.yml                ← 로컬 인프라 (PostgreSQL, Redis, MinIO)
 ├── docker-compose.prod.yml           ← 프로덕션 인프라
 ├── pnpm-workspace.yaml               ← pnpm 모노레포 설정
@@ -707,10 +707,9 @@ await log_action(db, current_user,
 ### 로컬 개발 환경변수 파일 위치
 
 ```
-apps/backend/.env              ← Python 환경변수 (git ignore)
-apps/admin/.env.local          ← Vite 환경변수 (git ignore)
-apps/superadmin/.env.local     ← Vite 환경변수 - 슈퍼어드민 (git ignore)
-apps/client/.env.local         ← Next.js 환경변수 (git ignore)
+apps/backend/.env          ← Python 환경변수 (git ignore)
+apps/admin/.env.local      ← Vite 환경변수 (git ignore)
+apps/client/.env.local     ← Next.js 환경변수 (git ignore)
 ```
 
 ### 환경변수 추가 시 반드시 함께 수정
@@ -878,7 +877,7 @@ feat(scope): 설명
   fix(backend): 문의 접수 시 알림톡 미발송 버그 수정
   test(backend): 섹션 CRUD API 단위 테스트 추가
   db: tenant_features 테이블 마이그레이션 추가
-  docs(claude): 기획서 v1.4 반영 CLAUDE.md 버전 동기화
+  docs(claude): 기획서 v1.5 반영 CLAUDE.md 버전 동기화
   refactor(client): EditableText 컴포넌트 훅 분리
 
 ❌ 잘못된 예시:
@@ -1207,7 +1206,7 @@ TASK.md에서 T-XXX를 [x]로 체크하고 완료 선언해줘.
 
 | 필요한 정보 | 파일 경로 |
 |---|---|
-| 전체 기획·API 스펙 | `docs/CMS_Admin_Specification_v1.4.md` |
+| 전체 기획·API 스펙 | `docs/CMS_Admin_Specification_v1.5.md` |
 | 개발 태스크 목록 | `TASK.md` |
 | 환경변수 목록 | `apps/backend/.env.example` |
 | DB 마이그레이션 | `apps/backend/alembic/versions/` |

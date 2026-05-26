@@ -1,9 +1,9 @@
 # 멀티 테넌트 대응형 가변 CMS 관리자 시스템
 ## 상세 기술 기획서 (Technical Product Specification)
 
-**문서 버전:** v1.4  
+**문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-05-24 (v1.4: 슈퍼 어드민 시스템 전체 기획 추가 — 섹션 14)  
+**최종 수정:** 2026-05-24 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -25,6 +25,7 @@
 12. [인라인 편집 모드](#12-인라인-편집-모드-live-edit-mode)
 13. [AI 편집 어시스턴트](#13-ai-편집-어시스턴트-ai-edit-assistant)
 14. [슈퍼 어드민 시스템](#14-슈퍼-어드민-시스템-super-admin-system)
+15. [SaaS 운영 시스템](#15-saas-운영-시스템-결제-온보딩-도메인-구독-관리)
 
 ---
 
@@ -2909,6 +2910,649 @@ CREATE INDEX idx_audit_logs_target ON audit_logs(target_type, target_id);
 | 12 | 대리 접속 알림 | 테넌트에게 알림 발송 | 로그만 기록 | 2주차 | PM |
 | 13 | 기능 플래그 캐싱 | Redis 5분 캐시 | 실시간 DB 조회 | 1주차 | 백엔드 |
 | 14 | AI 비용 추적 방식 | OpenAI Usage API 연동 | 자체 토큰 카운팅 | 2주차 | 백엔드 |
+
+
+---
+
+## 15. SaaS 운영 시스템 (결제·온보딩·도메인·구독 관리)
+
+### 15.1 전체 고객 온보딩 플로우
+
+```
+[영업/계약 완료]
+       ↓
+[슈퍼 어드민: 테넌트 생성]
+  - 업종, 플랜, 도메인 방식 설정
+  - 기본 섹션 자동 생성
+  - 관리자 계정 자동 생성
+       ↓
+[온보딩 이메일 자동 발송]
+  - 환영 메일 (관리자 접속 URL + 임시 비밀번호)
+  - 사용 가이드 링크
+       ↓
+[도메인 연결]
+  - BASIC: 서브도메인 즉시 제공 (고객명.우리서비스.com)
+  - STANDARD/PREMIUM: 커스텀 도메인 연결 (DNS + SSL 자동화)
+       ↓
+[결제 등록]
+  - 토스페이먼츠 정기결제 카드 등록
+  - 매월 자동 결제
+       ↓
+[초기 콘텐츠 세팅]
+  - BASIC: 고객 직접 (관리자 가이드 제공)
+  - STANDARD: 운영사 1회 대행
+  - PREMIUM: 전담 온보딩 (화상 교육 포함)
+       ↓
+[운영 시작]
+```
+
+---
+
+### 15.2 결제 시스템 (토스페이먼츠 정기결제)
+
+#### 결제 플로우
+
+```
+[고객: 플랜 선택]
+       ↓
+[토스페이먼츠 빌링키 발급]
+  - 카드 정보 입력 (우리 서버에 저장 안 됨)
+  - 토스페이먼츠가 빌링키 발급 → 우리 DB에 빌링키만 저장
+       ↓
+[매월 자동 결제 (Celery Beat)]
+  - 결제일 도래 → 빌링키로 자동 결제 API 호출
+  - 성공: 구독 기간 연장 + 영수증 이메일 발송
+  - 실패: 3일간 재시도 → 최종 실패 시 서비스 일시 중단 + 알림
+       ↓
+[구독 만료 처리]
+  - D-7: 만료 예정 알림 (이메일 + 카카오)
+  - D-3: 2차 알림
+  - D-0: 만료 → 사이트 접근 차단 (데이터는 30일 보관)
+  - D+30: 데이터 완전 삭제
+```
+
+#### DB 스키마
+
+```sql
+-- 구독 정보
+CREATE TABLE subscriptions (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           UUID UNIQUE NOT NULL REFERENCES tenants(id),
+    plan_type           VARCHAR(20) NOT NULL,
+    status              VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
+                        -- ACTIVE, PAST_DUE, SUSPENDED, CANCELLED, TRIAL
+    billing_key         VARCHAR(200),           -- 토스페이먼츠 빌링키
+    billing_email       VARCHAR(255),           -- 결제 영수증 수신 이메일
+    billing_name        VARCHAR(100),           -- 카드 소유자명
+    monthly_amount      INTEGER NOT NULL,       -- 월 결제 금액 (원)
+    trial_ends_at       TIMESTAMPTZ,            -- 무료 체험 종료일
+    current_period_start TIMESTAMPTZ NOT NULL,  -- 현재 구독 시작일
+    current_period_end  TIMESTAMPTZ NOT NULL,   -- 현재 구독 종료일 (다음 결제일)
+    cancelled_at        TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 결제 이력
+CREATE TABLE payment_history (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           UUID NOT NULL REFERENCES tenants(id),
+    subscription_id     UUID NOT NULL REFERENCES subscriptions(id),
+    payment_key         VARCHAR(200),           -- 토스페이먼츠 paymentKey
+    order_id            VARCHAR(200) UNIQUE NOT NULL, -- 우리가 생성한 주문번호
+    amount              INTEGER NOT NULL,       -- 결제 금액
+    status              VARCHAR(20) NOT NULL,
+                        -- SUCCESS, FAILED, CANCELLED, REFUNDED
+    failure_reason      TEXT,                  -- 실패 사유
+    receipt_url         VARCHAR(500),          -- 영수증 URL
+    paid_at             TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 플랜 변경 이력
+CREATE TABLE plan_change_history (
+    id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id           UUID NOT NULL REFERENCES tenants(id),
+    from_plan           VARCHAR(20) NOT NULL,
+    to_plan             VARCHAR(20) NOT NULL,
+    changed_by          UUID REFERENCES users(id), -- 슈퍼 어드민 or 자동
+    reason              TEXT,
+    effective_at        TIMESTAMPTZ NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_subscriptions_status ON subscriptions(status);
+CREATE INDEX idx_subscriptions_period_end ON subscriptions(current_period_end);
+CREATE INDEX idx_payment_history_tenant ON payment_history(tenant_id, created_at DESC);
+```
+
+#### API 스펙
+
+```
+# 결제 관련 (테넌트용)
+POST /api/v1/billing/register-card      빌링키 발급 (토스페이먼츠 위젯)
+GET  /api/v1/billing/subscription       현재 구독 정보 조회
+GET  /api/v1/billing/history            결제 이력 조회
+POST /api/v1/billing/cancel             구독 해지 신청
+POST /api/v1/billing/change-plan        플랜 변경 신청
+
+# 결제 웹훅 (토스페이먼츠 → 우리 서버)
+POST /api/webhook/tosspayments          결제 결과 수신 (서명 검증 필수)
+
+# 결제 관련 (슈퍼 어드민용)
+GET  /api/super/v1/billing/overview     전체 결제 현황 (MRR, 연체, 해지)
+POST /api/super/v1/billing/manual-charge/{tenant_id}  수동 결제
+POST /api/super/v1/billing/refund/{payment_id}        환불 처리
+```
+
+#### 토스페이먼츠 연동 핵심 코드
+
+```python
+# app/services/payment.py
+import httpx
+from app.core.config import settings
+
+TOSS_BASE_URL = "https://api.tosspayments.com/v1"
+
+async def issue_billing_key(customer_key: str, auth_key: str) -> str:
+    """빌링키 발급 (카드 등록)"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{TOSS_BASE_URL}/billing/authorizations/issue",
+            auth=(settings.TOSS_SECRET_KEY, ""),
+            json={"authKey": auth_key, "customerKey": customer_key}
+        )
+    data = response.json()
+    return data["billingKey"]
+
+async def charge_billing(
+    billing_key: str,
+    customer_key: str,
+    amount: int,
+    order_id: str,
+    order_name: str
+) -> dict:
+    """빌링키로 자동 결제 실행"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{TOSS_BASE_URL}/billing/{billing_key}",
+            auth=(settings.TOSS_SECRET_KEY, ""),
+            json={
+                "customerKey": customer_key,
+                "amount": amount,
+                "orderId": order_id,
+                "orderName": order_name,
+            }
+        )
+    return response.json()
+
+async def cancel_payment(payment_key: str, reason: str) -> dict:
+    """결제 취소 (환불)"""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{TOSS_BASE_URL}/payments/{payment_key}/cancel",
+            auth=(settings.TOSS_SECRET_KEY, ""),
+            json={"cancelReason": reason}
+        )
+    return response.json()
+```
+
+```python
+# app/workers/billing.py — Celery 정기결제 태스크
+from celery import shared_task
+from datetime import datetime, timezone
+
+@shared_task
+def process_monthly_billing():
+    """매일 00:05 실행 — 오늘 결제일인 구독 자동 결제"""
+    today = datetime.now(timezone.utc).date()
+
+    with get_sync_session() as db:
+        # 오늘 결제일인 활성 구독 조회
+        due_subscriptions = db.query(Subscription).filter(
+            Subscription.status == "ACTIVE",
+            func.date(Subscription.current_period_end) == today
+        ).all()
+
+        for sub in due_subscriptions:
+            try:
+                order_id = f"SUB-{sub.tenant_id}-{today.strftime('%Y%m%d')}"
+                result = await charge_billing(
+                    billing_key=sub.billing_key,
+                    customer_key=str(sub.tenant_id),
+                    amount=sub.monthly_amount,
+                    order_id=order_id,
+                    order_name=f"CMS {sub.plan_type} 플랜 월 구독"
+                )
+
+                if result.get("status") == "DONE":
+                    # 결제 성공: 다음 달로 구독 기간 연장
+                    sub.current_period_start = sub.current_period_end
+                    sub.current_period_end = add_one_month(sub.current_period_end)
+                    record_payment(db, sub, result, "SUCCESS")
+                    send_receipt_email.delay(sub.tenant_id, result)
+
+            except Exception as e:
+                # 결제 실패: 재시도 큐에 등록
+                record_payment(db, sub, {}, "FAILED", str(e))
+                retry_billing.apply_async(
+                    args=[str(sub.id)],
+                    countdown=60 * 60 * 24  # 24시간 후 재시도
+                )
+
+@shared_task(max_retries=3)
+def retry_billing(subscription_id: str):
+    """결제 실패 재시도 (최대 3회, 3일간)"""
+    # 3회 모두 실패 시 → 서비스 일시 중단 + 알림
+    pass
+
+@shared_task
+def check_expiring_subscriptions():
+    """매일 09:00 실행 — 만료 예정 구독 알림"""
+    # D-7, D-3 알림 발송
+    pass
+
+@shared_task
+def suspend_expired_subscriptions():
+    """매일 00:10 실행 — 만료된 구독 사이트 접근 차단"""
+    pass
+
+@shared_task
+def delete_cancelled_tenant_data():
+    """매일 03:00 실행 — 해지 후 30일 지난 테넌트 데이터 삭제"""
+    pass
+```
+
+---
+
+### 15.3 커스텀 도메인 자동화
+
+#### 도메인 연결 방식별 처리
+
+```
+BASIC 플랜: 서브도메인 즉시 제공
+  → {slug}.우리서비스.com
+  → DNS 설정 불필요, 즉시 접속 가능
+  → Nginx wildcard 설정으로 자동 처리
+
+STANDARD/PREMIUM: 커스텀 도메인
+  → 고객이 보유한 도메인 사용 (www.병원이름.com)
+  → 고객 DNS에 CNAME 레코드 추가 필요
+  → 우리 서버에서 SSL 자동 발급
+```
+
+#### 커스텀 도메인 등록 프로세스
+
+```
+[고객: 관리자 페이지에서 도메인 입력]
+  www.oo-hospital.com
+       ↓
+[우리 서버: DNS 확인 안내]
+  고객에게 CNAME 설정 가이드 표시:
+  "www → cms.우리서비스.com 으로 CNAME 설정해주세요"
+       ↓
+[고객: DNS 설정 완료]
+       ↓
+[우리 서버: DNS 전파 확인 (자동)]
+  dig www.oo-hospital.com → cms.우리서비스.com 확인
+       ↓
+[Nginx 설정 자동 추가]
+  server { server_name www.oo-hospital.com; ... }
+       ↓
+[Let's Encrypt SSL 자동 발급]
+  certbot --nginx -d www.oo-hospital.com --non-interactive
+       ↓
+[DB 업데이트]
+  tenants.custom_domain = "www.oo-hospital.com"
+       ↓
+[완료 알림 발송]
+  "도메인 연결이 완료되었습니다 ✅"
+```
+
+#### DB 스키마 추가
+
+```sql
+-- 도메인 관리
+CREATE TABLE tenant_domains (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    domain          VARCHAR(255) UNIQUE NOT NULL,   -- www.oo-hospital.com
+    domain_type     VARCHAR(20) NOT NULL,
+                    -- SUBDOMAIN (서비스 제공), CUSTOM (고객 소유)
+    status          VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                    -- PENDING, DNS_CHECKING, SSL_ISSUING, ACTIVE, FAILED
+    ssl_expires_at  TIMESTAMPTZ,                    -- SSL 만료일
+    verified_at     TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (tenant_id)                              -- 테넌트당 도메인 1개
+);
+```
+
+#### API 스펙
+
+```
+POST /api/v1/domain/register         커스텀 도메인 등록 신청
+GET  /api/v1/domain/status           도메인 연결 상태 확인
+POST /api/v1/domain/verify           DNS 전파 수동 확인 요청
+DELETE /api/v1/domain                도메인 연결 해제
+
+# 슈퍼 어드민
+GET  /api/super/v1/domains           전체 도메인 목록
+POST /api/super/v1/domains/{id}/ssl-renew  SSL 수동 갱신
+```
+
+#### 핵심 구현 코드
+
+```python
+# app/services/domain.py
+import subprocess
+import dns.resolver
+
+async def verify_dns(domain: str, expected_cname: str) -> bool:
+    """DNS CNAME 전파 확인"""
+    try:
+        answers = dns.resolver.resolve(domain, 'CNAME')
+        for answer in answers:
+            if str(answer.target).rstrip('.') == expected_cname:
+                return True
+        return False
+    except Exception:
+        return False
+
+async def issue_ssl_certificate(domain: str) -> bool:
+    """Let's Encrypt SSL 발급"""
+    result = subprocess.run([
+        "certbot", "--nginx",
+        "-d", domain,
+        "--non-interactive",
+        "--agree-tos",
+        "--email", settings.SSL_ADMIN_EMAIL
+    ], capture_output=True)
+    return result.returncode == 0
+
+async def add_nginx_config(domain: str, tenant_slug: str):
+    """Nginx 가상 호스트 설정 자동 추가"""
+    config = f"""
+server {{
+    listen 80;
+    server_name {domain};
+    return 301 https://$host$request_uri;
+}}
+
+server {{
+    listen 443 ssl;
+    server_name {domain};
+
+    ssl_certificate /etc/letsencrypt/live/{domain}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/{domain}/privkey.pem;
+
+    location / {{
+        proxy_pass http://client:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Tenant-Slug {tenant_slug};
+    }}
+}}
+"""
+    config_path = f"/etc/nginx/sites-enabled/{domain}.conf"
+    with open(config_path, 'w') as f:
+        f.write(config)
+
+    # Nginx 설정 검증 및 리로드
+    subprocess.run(["nginx", "-t"], check=True)
+    subprocess.run(["nginx", "-s", "reload"], check=True)
+```
+
+---
+
+### 15.4 온보딩 이메일 자동화
+
+#### 이메일 발송 시나리오
+
+| 시점 | 이메일 종류 | 수신자 |
+|---|---|---|
+| 테넌트 생성 완료 | 환영 메일 + 접속 정보 | 테넌트 어드민 |
+| 도메인 연결 완료 | 도메인 활성화 알림 | 테넌트 어드민 |
+| 결제 성공 | 영수증 | 결제 담당자 |
+| 결제 실패 | 결제 실패 + 카드 확인 요청 | 테넌트 어드민 |
+| 구독 만료 D-7 | 만료 예정 안내 | 테넌트 어드민 |
+| 구독 만료 D-3 | 재안내 | 테넌트 어드민 |
+| 구독 만료 D-0 | 서비스 중단 안내 | 테넌트 어드민 |
+| 구독 해지 완료 | 해지 확인 + 데이터 보관 안내 | 테넌트 어드민 |
+| SSL 만료 D-30 | SSL 갱신 예정 안내 | 슈퍼 어드민 |
+
+#### 환영 이메일 템플릿
+
+```
+제목: [CMS 서비스] OO의원님, 환영합니다 🎉
+
+안녕하세요, OO의원 담당자님!
+
+CMS 서비스 가입을 환영합니다.
+아래 정보로 관리자 페이지에 접속하실 수 있습니다.
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+관리자 페이지: https://admin.우리서비스.com
+이메일: admin@oo-hospital.com
+임시 비밀번호: TempPass1234!
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚠️ 보안을 위해 첫 로그인 후 반드시 비밀번호를 변경해주세요.
+
+현재 플랜: STANDARD
+구독 시작일: 2026년 5월 24일
+다음 결제일: 2026년 6월 24일 (89,000원)
+
+[관리자 페이지 바로가기]  [사용 가이드 보기]
+```
+
+#### 기술 구현
+
+```python
+# app/services/email.py
+# AWS SES 또는 Mailgun 사용
+
+async def send_welcome_email(tenant: Tenant, temp_password: str):
+    await send_email(
+        to=tenant.admin_email,
+        subject=f"[CMS] {tenant.name}님, 환영합니다 🎉",
+        template="welcome",
+        variables={
+            "tenant_name": tenant.name,
+            "admin_url": f"{settings.ADMIN_BASE_URL}",
+            "email": tenant.admin_email,
+            "temp_password": temp_password,
+            "plan_type": tenant.plan_type,
+            "next_billing_date": format_kr_date(tenant.subscription.current_period_end),
+            "monthly_amount": f"{tenant.subscription.monthly_amount:,}원"
+        }
+    )
+
+async def send_payment_receipt(tenant: Tenant, payment: PaymentHistory):
+    await send_email(
+        to=tenant.subscription.billing_email,
+        subject=f"[CMS] {format_kr_date(payment.paid_at)} 결제 영수증",
+        template="receipt",
+        variables={
+            "tenant_name": tenant.name,
+            "amount": f"{payment.amount:,}원",
+            "paid_at": format_kr_date(payment.paid_at),
+            "receipt_url": payment.receipt_url,
+            "plan_type": tenant.subscription.plan_type
+        }
+    )
+```
+
+---
+
+### 15.5 화면 설계 (관리자 추가 화면)
+
+#### AD-08: 구독 및 결제 관리 페이지
+
+**URL:** `/admin/billing`
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  구독 및 결제 관리                                                   │
+│  [TAB: 구독 현황] [TAB: 결제 수단] [TAB: 결제 내역] [TAB: 도메인]    │
+├──────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ── [TAB: 구독 현황] ───────────────────────────────────────────  │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  현재 플랜: STANDARD                                         │  │
+│  │  월 89,000원 · 다음 결제일: 2026년 6월 24일                   │  │
+│  │  구독 상태: ✅ 정상                                            │  │
+│  │                                                              │  │
+│  │  [PREMIUM으로 업그레이드]  [구독 해지]                         │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ── [TAB: 결제 수단] ───────────────────────────────────────────  │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  💳 신한카드 **** **** **** 1234                              │  │
+│  │  유효기간: 12/28    [삭제]                                    │  │
+│  │                                                              │  │
+│  │  [+ 새 카드 등록]                                             │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                    │
+│  ── [TAB: 결제 내역] ───────────────────────────────────────────  │
+│  ┌──────┬────────────┬────────┬────────┬──────────────────────┐   │
+│  │ 날짜 │ 플랜       │ 금액   │ 상태   │ 영수증               │   │
+│  ├──────┼────────────┼────────┼────────┼──────────────────────┤   │
+│  │05/24 │ STANDARD   │89,000원│ ✅성공 │ [영수증 다운로드]    │   │
+│  │04/24 │ STANDARD   │89,000원│ ✅성공 │ [영수증 다운로드]    │   │
+│  └──────┴────────────┴────────┴────────┴──────────────────────┘   │
+│                                                                    │
+│  ── [TAB: 도메인] ──────────────────────────────────────────────  │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  현재 도메인: www.oo-hospital.com                            │  │
+│  │  상태: ✅ 연결됨  SSL: 유효 (만료: 2026.08.21)               │  │
+│  │                                                              │  │
+│  │  기본 도메인: oo-hospital.우리서비스.com (항상 유지)           │  │
+│  │                                                              │  │
+│  │  커스텀 도메인 변경: [INP: 새 도메인 입력    ] [연결 신청]    │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+#### SA-06: 슈퍼 어드민 결제 현황
+
+**URL:** `system.도메인.com/billing`
+
+```
+┌────────────────────────────────────────────────────────────────────┐
+│  결제 현황 및 수익 관리                                              │
+├──────────────────────────────────────────────────────────────────┤
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────────┐  │
+│  │이번달 MRR│  │ 연체 테넌│  │이번달 해지│  │  이번달 신규     │  │
+│  │2,190만원 │  │   3개 🔴 │  │   2개    │  │   8개            │  │
+│  └──────────┘  └──────────┘  └──────────┘  └──────────────────┘  │
+│                                                                    │
+│  연체 테넌트 즉시 처리:                                              │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │  🔴 OO의원 — 3일째 연체 (89,000원)   [수동결제] [유예처리]   │  │
+│  │  🔴 강원펜션 — 1일째 연체 (39,000원) [수동결제] [유예처리]   │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+└────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 15.6 무료 체험(Trial) 시스템
+
+```
+신규 가입 시 14일 무료 체험 제공 (STANDARD 기능 기준)
+
+[가입]
+  → trial 상태로 테넌트 생성
+  → 카드 등록 없이 14일간 전 기능 사용
+  → trial_ends_at = NOW() + 14일
+
+[Trial D-3]
+  → "체험 기간이 3일 남았습니다. 카드를 등록해주세요" 알림
+
+[Trial 종료]
+  → 카드 등록 O: ACTIVE 전환 + 첫 결제
+  → 카드 등록 X: 사이트 접근 차단 (데이터 7일 보관)
+```
+
+```sql
+-- subscriptions 테이블 status 값
+-- TRIAL     → 무료 체험 중
+-- ACTIVE    → 정상 구독
+-- PAST_DUE  → 결제 실패 (재시도 중)
+-- SUSPENDED → 서비스 중단 (결제 3회 실패 or Trial 종료)
+-- CANCELLED → 해지 완료 (데이터 보관 기간)
+```
+
+---
+
+### 15.7 구독 해지 처리
+
+```
+[고객: 해지 신청]
+       ↓
+해지 사유 선택 (선택사항):
+  - 가격이 비쌈
+  - 원하는 기능 없음
+  - 사업 종료
+  - 다른 서비스로 이동
+  - 기타
+       ↓
+해지 확인 다이얼로그:
+  "해지 시 [현재 구독 기간] 까지는 계속 사용 가능합니다.
+   데이터는 30일간 보관 후 완전 삭제됩니다."
+       ↓
+[구독 상태: CANCELLED]
+  - 현재 기간 종료까지 서비스 유지
+  - 이후 결제 없음
+  - 해지 확인 이메일 발송
+       ↓
+[기간 종료 후]
+  - 사이트 접근 차단
+  - "구독이 종료되었습니다. 재구독하시겠습니까?" 페이지 표시
+       ↓
+[D+30]
+  - 모든 데이터 완전 삭제 (Celery 태스크)
+  - 삭제 완료 이메일 발송
+```
+
+---
+
+### 15.8 환경변수 추가
+
+```env
+# apps/backend/.env
+
+# 토스페이먼츠
+TOSS_CLIENT_KEY=test_ck_...       # 클라이언트 키 (프론트엔드용)
+TOSS_SECRET_KEY=test_sk_...       # 시크릿 키 (백엔드 전용, 절대 노출 금지)
+TOSS_WEBHOOK_SECRET=...           # 웹훅 서명 검증 키
+
+# 이메일 (AWS SES)
+AWS_SES_REGION=ap-northeast-2
+AWS_SES_FROM_EMAIL=noreply@우리서비스.com
+AWS_SES_FROM_NAME=CMS 서비스
+
+# 도메인 자동화
+SSL_ADMIN_EMAIL=admin@우리서비스.com   # Let's Encrypt 관리자 이메일
+SERVICE_BASE_DOMAIN=우리서비스.com     # 서브도메인 기준 도메인
+NGINX_SITES_PATH=/etc/nginx/sites-enabled
+
+# 무료 체험
+TRIAL_DAYS=14                          # 무료 체험 기간 (일)
+```
+
+---
+
+### 15.9 오픈 이슈 추가
+
+| # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
+|---|---|---|---|---|---|
+| 15 | 이메일 발송 서비스 | AWS SES | Mailgun | 1주차 | 백엔드 |
+| 16 | 결제 실패 유예 기간 | 3일 재시도 | 7일 재시도 | 1주차 | PM |
+| 17 | 플랜 업그레이드 즉시 적용 | 즉시 + 차액 결제 | 다음 달부터 적용 | 2주차 | PM |
+| 18 | 해지 후 데이터 보관 기간 | 30일 | 90일 | 1주차 | PM |
+| 19 | 무료 체험 카드 등록 필요 여부 | 카드 없이 체험 | 카드 등록 후 체험 | 1주차 | PM |
+| 20 | Nginx 설정 자동화 방식 | Python subprocess | Nginx API | 2주차 | 인프라 |
 
 
 ---
