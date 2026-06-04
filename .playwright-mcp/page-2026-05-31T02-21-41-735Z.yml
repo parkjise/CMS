@@ -1,0 +1,49 @@
+- generic [ref=e2]:
+  - generic [ref=e22]:
+    - complementary [ref=e24]:
+      - generic [ref=e26]: CMS Admin
+      - navigation [ref=e27]:
+        - link "대시보드" [ref=e28] [cursor=pointer]:
+          - /url: /admin/dashboard
+          - img [ref=e29]
+          - text: 대시보드
+        - link "콘텐츠 편집" [ref=e34] [cursor=pointer]:
+          - /url: /admin/content
+          - img [ref=e35]
+          - text: 콘텐츠 편집
+        - link "SNS 설정" [ref=e38] [cursor=pointer]:
+          - /url: /admin/sns
+          - img [ref=e39]
+          - text: SNS 설정
+        - link "문의 관리" [ref=e45] [cursor=pointer]:
+          - /url: /admin/inquiries
+          - img [ref=e46]
+          - text: 문의 관리
+        - link "SEO 설정" [ref=e48] [cursor=pointer]:
+          - /url: /admin/seo
+          - img [ref=e49]
+          - text: SEO 설정
+        - link "템플릿" [ref=e52] [cursor=pointer]:
+          - /url: /admin/templates
+          - img [ref=e53]
+          - text: 템플릿
+      - generic [ref=e57]:
+        - link "내 홈페이지 바로가기" [ref=e58] [cursor=pointer]:
+          - /url: http://localhost:3000/test-tenant
+          - img [ref=e59]
+          - text: 내 홈페이지 바로가기
+        - paragraph [ref=e64]: admin@test-tenant.com
+        - button "로그아웃" [ref=e65]:
+          - img [ref=e66]
+          - text: 로그아웃
+    - generic [ref=e69]:
+      - banner [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e72]: test-tenant
+          - generic [ref=e73]: Free
+        - generic [ref=e74]: 관리자
+      - main [ref=e75]:
+        - generic [ref=e76]:
+          - heading "대시보드" [level=1] [ref=e77]
+          - paragraph [ref=e78]: "[AD-01] 방문자 통계 · 문의 현황 — Phase 6에서 구현"
+  - region "Notifications alt+T"

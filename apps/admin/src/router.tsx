@@ -1,6 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router'
 import { PrivateRoute } from '@/components/PrivateRoute'
-import { AdminLayout } from '@/components/AdminLayout'
+import { AdminLayout } from '@/components/layout/AdminLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ContentPage } from '@/pages/ContentPage'

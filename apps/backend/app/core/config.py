@@ -43,13 +43,31 @@ class Settings(BaseSettings):
     kakao_api_key: str = ""
     kakao_sender_key: str = ""
 
+    # 쿠키 & URL
+    cookie_domain: str = ""          # 로컬: "" → None, 프로덕션: ".mysite.com"
+    admin_base_url: str = "http://localhost:3001"
+    client_base_url: str = "http://localhost:3000"
+
     # 슈퍼 어드민
     super_admin_email: str = "admin@cms.io"
     super_admin_password: str = ""
 
+    # reCAPTCHA (없으면 검증 스킵)
+    recaptcha_secret_key: str = ""
+    recaptcha_min_score: float = 0.5
+
     @property
     def cors_origins(self) -> list[str]:
-        return [origin.strip() for origin in self.allowed_origins.split(",")]
+        origins = [o.strip() for o in self.allowed_origins.split(",")]
+        # admin/client URL이 allowed_origins에 없으면 자동 추가
+        for url in (self.admin_base_url, self.client_base_url):
+            if url and url not in origins:
+                origins.append(url)
+        return origins
+
+    @property
+    def cookie_domain_value(self) -> str | None:
+        return self.cookie_domain or None
 
 
 settings = Settings()

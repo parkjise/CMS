@@ -13,10 +13,10 @@
 
 | 페이즈 | 태스크 수 | 완료 | 진행률 |
 |---|---|---|---|
-| Phase 0: 프로젝트 초기 설정 | 8 | 7 | 87.5% |
-| Phase 1: 인프라 & DB | 7 | 0 | 0% |
-| Phase 2: 인증 시스템 | 5 | 0 | 0% |
-| Phase 3: 핵심 CRUD API | 10 | 0 | 0% |
+| Phase 0: 프로젝트 초기 설정 | 8 | 8 | 100% |
+| Phase 1: 인프라 & DB | 7 | 3 | 42.9% |
+| Phase 2: 인증 시스템 | 5 | 5 | 100% |
+| Phase 3: 핵심 CRUD API | 10 | 5 | 50% |
 | Phase 4: 파일 업로드 & 이미지 | 4 | 0 | 0% |
 | Phase 5: 알림 시스템 | 5 | 0 | 0% |
 | Phase 6: 관리자 프론트엔드 | 12 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **7** | **6.2%** |
+| **합계** | **113** | **16** | **14.2%** |
 
 ---
 
@@ -213,18 +213,18 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 6 (DB 스키마)`, `CLAUDE.md 섹션 6`
 - **작업 내용:**
-  - [ ] `alembic init alembic` 실행
-  - [ ] `alembic/env.py` — async 엔진 설정, 모든 모델 import
-  - [ ] `alembic.ini` — DB URL 환경변수 참조로 수정
-  - [ ] 초기 마이그레이션 생성 (모든 테이블 한번에):
+  - [x] `alembic init alembic` 실행
+  - [x] `alembic/env.py` — async 엔진 설정, 모든 모델 import
+  - [x] `alembic.ini` — DB URL 환경변수 참조로 수정
+  - [x] 초기 마이그레이션 생성 (모든 테이블 한번에):
     - `tenants`, `users`, `sections`, `section_settings`
     - `inquiries`, `inquiry_attachments`
     - `sns_channel_settings`, `notification_settings`
     - `seo_settings`, `site_analytics`, `uploaded_files`
     - `templates`, `tenant_template_overrides`, `template_change_history`
     - `ai_usage_log`
-  - [ ] 각 테이블에 RLS 정책 적용 SQL 포함
-  - [ ] `scripts/seed.py` — 초기 데이터 삽입
+  - [x] 각 테이블에 RLS 정책 적용 SQL 포함
+  - [x] `scripts/seed.py` — 초기 데이터 삽입
     - 슈퍼 어드민 계정 (환경변수에서 읽기)
     - 기본 템플릿 6종 데이터
     - 테스트용 테넌트 1개 + 어드민 계정
@@ -244,18 +244,18 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 6 (전체 DDL)`
 - **작업 내용:**
-  - [ ] `app/db/base.py` — Base Mixin (id, created_at, updated_at, tenant_id)
-  - [ ] `app/models/tenant.py` — Tenant 모델
-  - [ ] `app/models/user.py` — User 모델 (password_hash bcrypt)
-  - [ ] `app/models/section.py` — Section + SectionSettings 모델 (relationship 포함)
-  - [ ] `app/models/inquiry.py` — Inquiry + InquiryAttachment 모델
-  - [ ] `app/models/sns.py` — SnsChannelSettings + NotificationSettings 모델
-  - [ ] `app/models/seo.py` — SeoSettings 모델
-  - [ ] `app/models/analytics.py` — SiteAnalytics 모델
-  - [ ] `app/models/file.py` — UploadedFile 모델
-  - [ ] `app/models/template.py` — Template + TenantTemplateOverride + TemplateChangeHistory 모델
-  - [ ] `app/models/ai.py` — AiUsageLog 모델
-  - [ ] `app/models/__init__.py` — 전체 export
+  - [x] `app/db/base.py` — Base Mixin (id, created_at, updated_at, tenant_id)
+  - [x] `app/models/tenant.py` — Tenant 모델
+  - [x] `app/models/user.py` — User 모델 (password_hash bcrypt)
+  - [x] `app/models/section.py` — Section + SectionSettings 모델 (relationship 포함)
+  - [x] `app/models/inquiry.py` — Inquiry + InquiryAttachment 모델
+  - [x] `app/models/sns.py` — SnsChannelSettings + NotificationSettings 모델
+  - [x] `app/models/seo.py` — SeoSettings 모델
+  - [x] `app/models/analytics.py` — SiteAnalytics 모델
+  - [x] `app/models/file.py` — UploadedFile 모델
+  - [x] `app/models/template.py` — Template + TenantTemplateOverride + TemplateChangeHistory 모델
+  - [x] `app/models/ai.py` — AiUsageLog 모델
+  - [x] `app/models/__init__.py` — 전체 export
 - **완료 조건:** `alembic revision --autogenerate` 실행 시 변경사항 없음 (모델과 DB 일치)
 
 ---
@@ -264,16 +264,16 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5 (API 스펙 요청/응답)`, `packages/types`
 - **작업 내용:**
-  - [ ] `app/schemas/common.py` — 공통 응답 래퍼 (ApiResponse, ApiError, PaginationMeta)
-  - [ ] `app/schemas/auth.py` — LoginRequest, TokenResponse, UserResponse
-  - [ ] `app/schemas/section.py` — SectionResponse, SectionUpdate, SectionOrderUpdate, SectionSettingsUpdate
-  - [ ] `app/schemas/inquiry.py` — InquiryCreate(Public), InquiryResponse, InquiryUpdate, InquiryListResponse
-  - [ ] `app/schemas/sns.py` — SnsSettingsUpdate, SnsSettingsResponse
-  - [ ] `app/schemas/seo.py` — SeoSettingsUpdate, SeoSettingsResponse
-  - [ ] `app/schemas/template.py` — TemplateResponse, TemplateApplyRequest, TemplateCssOverrideUpdate
-  - [ ] `app/schemas/upload.py` — UploadResponse
-  - [ ] `app/schemas/ai.py` — CopySuggestRequest, CopySuggestResponse, ChatEditRequest
-  - [ ] `app/schemas/__init__.py`
+  - [x] `app/schemas/common.py` — 공통 응답 래퍼 (ApiResponse, ApiError, PaginationMeta)
+  - [x] `app/schemas/auth.py` — LoginRequest, TokenResponse, UserResponse
+  - [x] `app/schemas/section.py` — SectionResponse, SectionUpdate, SectionOrderUpdate, SectionSettingsUpdate
+  - [x] `app/schemas/inquiry.py` — InquiryCreate(Public), InquiryResponse, InquiryUpdate, InquiryListResponse
+  - [x] `app/schemas/sns.py` — SnsSettingsUpdate, SnsSettingsResponse
+  - [x] `app/schemas/seo.py` — SeoSettingsUpdate, SeoSettingsResponse
+  - [x] `app/schemas/template.py` — TemplateResponse, TemplateApplyRequest, TemplateCssOverrideUpdate
+  - [x] `app/schemas/upload.py` — UploadResponse
+  - [x] `app/schemas/ai.py` — CopySuggestRequest, CopySuggestResponse, ChatEditRequest
+  - [x] `app/schemas/__init__.py`
 - **완료 조건:** 모든 스키마 import 에러 없이 동작
 
 ---
@@ -290,14 +290,14 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 2.3 (인증 아키텍처)`, `CLAUDE.md 섹션 7`
 - **작업 내용:**
-  - [ ] `app/services/auth.py` 작성
+  - [x] `app/services/auth.py` 작성
     - `authenticate_user(db, email, password, tenant_slug)` — 이메일+비밀번호+테넌트 슬러그 검증
     - `create_access_token(user)` → JWT (15분)
     - `create_refresh_token(user)` → JWT (7일)
     - `verify_token(token)` → payload 또는 예외
     - `get_user_by_id(db, user_id)`
-  - [ ] `app/core/security.py` — bcrypt 해싱/검증 함수
-  - [ ] `app/core/deps.py` 완성
+  - [x] `app/core/security.py` — bcrypt 해싱/검증 함수
+  - [x] `app/core/deps.py` 완성
     - `get_current_user` — Authorization 헤더 JWT 검증 → User 반환
     - `get_db_with_rls` — RLS 컨텍스트 설정
     - `get_super_admin` — role 검증 추가
@@ -309,27 +309,15 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.2 (인증 API)`, `CLAUDE.md 섹션 7.2 (공유 도메인 쿠키)`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/auth.py` 작성
+  - [x] `app/api/v1/endpoints/auth.py` 작성
     - `POST /api/v1/auth/login` — Access Token JSON 반환 + Refresh Token HttpOnly Cookie 발급
-      ```python
-      # 쿠키 설정 핵심: domain을 환경변수로 분리
-      response.set_cookie(
-          key="refresh_token",
-          value=refresh_token,
-          httponly=True,
-          secure=settings.ENVIRONMENT != "development",
-          samesite="lax",
-          domain=settings.COOKIE_DOMAIN or None,  # 로컬: None, 프로덕션: ".mysite.com"
-          max_age=60 * 60 * 24 * 7
-      )
-      ```
-    - `POST /api/v1/auth/refresh` — Cookie의 Refresh Token으로 새 Access Token 발급
+    - `POST /api/v1/auth/refresh` — Cookie의 Refresh Token으로 새 Access Token 발급 (rotation)
     - `POST /api/v1/auth/logout` — Refresh Token Cookie 삭제 + Redis 블랙리스트 등록
-    - `GET /api/v1/auth/me` — 현재 유저 정보 반환 (쿠키 기반 자동 인증 확인용)
-  - [ ] `app/core/config.py`에 `COOKIE_DOMAIN`, `ADMIN_BASE_URL`, `CLIENT_BASE_URL` 추가
-  - [ ] Rate Limiting 적용: 로그인 IP당 10회/분
-  - [ ] CORS 설정: `ADMIN_BASE_URL` + `CLIENT_BASE_URL` 모두 허용 (`allow_credentials=True` 필수)
-  - [ ] `app/api/v1/router.py`에 auth 라우터 등록
+    - `GET /api/v1/auth/me` — Bearer 우선, fallback 쿠키 자동 인증
+  - [x] `app/core/config.py`에 `COOKIE_DOMAIN`, `ADMIN_BASE_URL`, `CLIENT_BASE_URL` 추가
+  - [x] Rate Limiting 적용: 로그인 IP당 10회/분
+  - [x] CORS 설정: `ADMIN_BASE_URL` + `CLIENT_BASE_URL` 모두 허용 (`allow_credentials=True` 필수)
+  - [x] `app/api/v1/router.py`에 auth 라우터 등록
 - **완료 조건:** 관리자 로그인 후 고객 홈페이지에서 `/api/v1/auth/me` 호출 시 유저 정보 반환 (쿠키 공유 확인)
 
 ---
@@ -338,8 +326,8 @@
 - **담당:** 백엔드
 - **참조:** `CLAUDE.md 섹션 10 (테스트 규칙)`
 - **작업 내용:**
-  - [ ] `tests/conftest.py` — DB 픽스처, 테스트 테넌트/유저 생성 픽스처
-  - [ ] `tests/test_auth.py`
+  - [x] `tests/conftest.py` — DB 픽스처, 테스트 테넌트/유저 생성 픽스처
+  - [x] `tests/test_auth.py`
     - 정상 로그인 테스트
     - 잘못된 비밀번호 테스트 (401)
     - 존재하지 않는 테넌트 테스트 (401)
@@ -353,18 +341,18 @@
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 4`, `CLAUDE.md 섹션 7.1, 7.5`
 - **작업 내용:**
-  - [ ] `apps/admin/src/pages/LoginPage.tsx` 작성
+  - [x] `apps/admin/src/pages/LoginPage.tsx` 작성
     - 이메일, 비밀번호, 테넌트 슬러그 입력 폼
     - react-hook-form + zod 유효성 검사
     - 로그인 실패 시 에러 메시지 표시
     - 로그인 성공 시 `/admin/dashboard` 리다이렉트
-  - [ ] `apps/admin/src/stores/authStore.ts` 완성
+  - [x] `apps/admin/src/stores/authStore.ts` 완성
     - accessToken, user 상태
     - `login()`, `logout()`, `refreshToken()` 액션
     - `initialize()` — 앱 시작 시 `/api/v1/auth/me` 호출로 쿠키 기반 자동 로그인 확인
-  - [ ] axios 인터셉터 완성 — 401 응답 시 자동 토큰 refresh 후 재요청
-  - [ ] `apps/admin/src/hooks/useAuth.ts` — authStore 래퍼 훅
-  - [ ] 관리자 헤더에 [내 홈페이지 바로가기 ↗] 버튼 추가
+  - [x] axios 인터셉터 완성 — 401 응답 시 자동 토큰 refresh 후 재요청
+  - [x] `apps/admin/src/hooks/useAuth.ts` — authStore 래퍼 훅
+  - [x] 관리자 헤더에 [내 홈페이지 바로가기 ↗] 버튼 추가
     - 클릭 시 `CLIENT_BASE_URL/{tenant_slug}` 새 탭 오픈
     - 이미 로그인된 쿠키가 공유되므로 홈페이지에서 편집 버튼 바로 노출
 - **완료 조건:** 관리자 로그인 성공 후 [내 홈페이지 바로가기] 클릭 시 홈페이지에서 ✏️ 편집 버튼 자동 노출
@@ -375,13 +363,13 @@
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 4 (AD-01 화면 설계)`
 - **작업 내용:**
-  - [ ] `apps/admin/src/components/layout/AdminLayout.tsx`
+  - [x] `apps/admin/src/components/layout/AdminLayout.tsx`
     - 사이드바 네비게이션 (아이콘 + 레이블)
     - 상단 헤더 (테넌트명, 플랜 표시, 로그아웃)
     - 메인 콘텐츠 영역
     - 모바일 반응형 (햄버거 메뉴)
-  - [ ] `apps/admin/src/components/layout/Sidebar.tsx` — 메뉴 항목 active 상태
-  - [ ] PrivateRoute로 AdminLayout 감싸기
+  - [x] `apps/admin/src/components/layout/Sidebar.tsx` — 메뉴 항목 active 상태
+  - [x] PrivateRoute로 AdminLayout 감싸기
 - **완료 조건:** 모든 관리자 페이지에서 사이드바/헤더 정상 노출
 
 ---
@@ -394,103 +382,94 @@
 
 ---
 
-### T-016: 섹션 서비스 + API 구현
+### T-016: 섹션 서비스 + API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.3 (섹션/콘텐츠 API)`
 - **작업 내용:**
-  - [ ] `app/services/section.py`
+  - [x] `app/services/section.py`
     - `get_sections(db, tenant_id)` — 순서 정렬하여 반환
     - `get_section_by_id(db, section_id)`
     - `update_section_settings(db, section_id, data)` — section_settings Key-Value 업데이트
     - `update_sections_order(db, tenant_id, order_list)` — 순서 일괄 변경
     - `toggle_section(db, section_id, is_active)`
     - `create_default_sections(db, tenant_id, template_type)` — 신규 테넌트 기본 섹션 생성
-  - [ ] `app/api/v1/endpoints/sections.py`
+  - [x] `app/api/v1/endpoints/sections.py`
     - `GET /api/v1/sections` — 목록 조회
     - `GET /api/v1/sections/{id}` — 단건 조회
     - `PATCH /api/v1/sections/{id}` — 설정 수정 (Validation: main_title 40자 등)
     - `PATCH /api/v1/sections/order` — 순서 일괄 변경
     - `PATCH /api/v1/sections/{id}/toggle` — 활성화/비활성화
-  - [ ] Redis 캐시 적용 (섹션 조회 5분 캐시, 수정 시 캐시 무효화)
+  - [x] Redis 캐시 적용 (섹션 조회 5분 캐시, 수정 시 캐시 무효화)
 - **완료 조건:** `tests/test_sections.py` 전체 통과, Swagger UI 동작 확인
 
 ---
 
-### T-017: 문의 서비스 + API 구현
+### T-017: 문의 서비스 + API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.5 (문의 API)`
 - **작업 내용:**
-  - [ ] `app/services/inquiry.py`
+  - [x] `app/services/inquiry.py`
     - `create_inquiry(db, tenant_id, data)` — 문의 생성 + 알림 트리거
     - `get_inquiries(db, tenant_id, filters, pagination)` — 필터·페이지네이션
     - `get_inquiry_by_id(db, inquiry_id)`
     - `update_inquiry(db, inquiry_id, data)` — 상태 변경, 메모 저장
     - `get_pending_count(db, tenant_id)` — 대기 중 문의 수
-  - [ ] `app/api/v1/endpoints/inquiries.py`
+  - [x] `app/api/v1/endpoints/inquiries.py`
     - `POST /api/public/inquiries` — 공개 문의 접수 (인증 불필요, reCAPTCHA 검증)
     - `GET /api/v1/inquiries` — 관리자 목록 조회 (필터, 페이지네이션)
     - `GET /api/v1/inquiries/{id}` — 상세 조회
     - `PATCH /api/v1/inquiries/{id}` — 상태/메모 수정
     - `DELETE /api/v1/inquiries/{id}` — 소프트 삭제
     - `GET /api/v1/inquiries/export` — 엑셀 다운로드 (openpyxl)
-  - [ ] IP 기반 Rate Limiting (1분 3회)
-  - [ ] 스팸 방지: reCAPTCHA v3 검증 함수
+  - [x] IP 기반 Rate Limiting (1분 3회)
+  - [x] 스팸 방지: reCAPTCHA v3 검증 함수
 - **완료 조건:** `tests/test_inquiries.py` 전체 통과
 
 ---
 
-### T-018: SNS 설정 API 구현
+### T-018: SNS 설정 API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.6 (SNS 설정 API)`
 - **작업 내용:**
-  - [ ] `app/services/sns.py`
+  - [x] `app/services/sns.py`
     - `get_sns_settings(db, tenant_id)`
     - `update_sns_settings(db, tenant_id, data)`
     - `test_url_validity(url)` — httpx로 HEAD 요청, 3초 타임아웃
-  - [ ] `app/api/v1/endpoints/sns.py`
+  - [x] `app/api/v1/endpoints/sns.py`
     - `GET /api/v1/sns-settings`
     - `PUT /api/v1/sns-settings`
     - `POST /api/v1/sns-settings/test-url`
-  - [ ] 플랜별 채널 수 제한 (BASIC: 2개, STANDARD: 4개, PREMIUM: 무제한)
+  - [x] 플랜별 채널 수 제한 (BASIC: 2개, STANDARD: 4개, PREMIUM: 무제한)
 - **완료 조건:** Swagger UI에서 SNS 설정 저장/조회 동작 확인
 
 ---
 
-### T-019: SEO 설정 API 구현
+### T-019: SEO 설정 API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.7 (SEO API)`
 - **작업 내용:**
-  - [ ] `app/services/seo.py`
+  - [x] `app/services/seo.py`
     - `get_seo_settings(db, tenant_id)`
     - `update_seo_settings(db, tenant_id, data)`
     - `generate_sitemap_xml(tenant_id)` — 사이트맵 XML 자동 생성
-  - [ ] `app/api/v1/endpoints/seo.py`
+  - [x] `app/api/v1/endpoints/seo.py`
     - `GET /api/v1/seo-settings`
     - `PUT /api/v1/seo-settings`
     - `GET /api/public/sitemap/{tenant_slug}.xml` — 사이트맵 공개 엔드포인트
-  - [ ] 페이지 제목 60자, 메타 설명 160자 Validation
+  - [x] 페이지 제목 60자, 메타 설명 160자 Validation
 - **완료 조건:** SEO 설정 저장 후 사이트맵 XML 정상 반환 확인
 
 ---
 
-### T-020: 공개 사이트 API 구현
+### T-020: 공개 사이트 API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 2.1 (Public Site API Server)`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/public.py`
+  - [x] `app/api/v1/endpoints/public.py`
     - `GET /api/public/site/{tenant_slug}` — 테넌트 전체 사이트 데이터 반환
-      ```json
-      {
-        "tenant": {...},
-        "sections": [...],
-        "seo_settings": {...},
-        "sns_settings": [...],
-        "template": {...}
-      }
-      ```
     - `GET /api/public/site/{tenant_slug}/sections` — 섹션 데이터만
-  - [ ] Redis 캐시 10분 (고객 홈페이지 로딩 최적화)
-  - [ ] 비활성 테넌트 접근 시 404 처리
+  - [x] Redis 캐시 10분 (고객 홈페이지 로딩 최적화)
+  - [x] 비활성 테넌트 접근 시 404 처리
 - **완료 조건:** `/api/public/site/{slug}` 호출 시 전체 사이트 데이터 반환
 
 ---

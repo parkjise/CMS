@@ -1,3 +1,4 @@
+import uuid as _uuid
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
@@ -19,14 +20,14 @@ def verify_password(plain: str, hashed: str) -> bool:
 
 def create_access_token(
     user_id: UUID,
-    tenant_id: UUID,
+    tenant_id: UUID | None,
     role: str,
     is_super_admin: bool = False,
 ) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {
         "sub": str(user_id),
-        "tenant_id": str(tenant_id),
+        "tenant_id": str(tenant_id) if tenant_id else None,
         "role": role,
         "is_super_admin": is_super_admin,
         "exp": expire,
@@ -36,7 +37,12 @@ def create_access_token(
 
 def create_refresh_token(user_id: UUID) -> str:
     expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
-    payload = {"sub": str(user_id), "type": "refresh", "exp": expire}
+    payload = {
+        "sub": str(user_id),
+        "type": "refresh",
+        "jti": str(_uuid.uuid4()),
+        "exp": expire,
+    }
     return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
 
 

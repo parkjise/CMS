@@ -1,0 +1,26 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "CMS 관리자" [level=1] [ref=e6]
+      - paragraph [ref=e7]: 로그인하여 관리자 페이지에 접속하세요.
+    - generic [ref=e8]:
+      - generic [ref=e9]:
+        - generic [ref=e10]: 이메일
+        - textbox "이메일" [ref=e11]:
+          - /placeholder: admin@example.com
+          - text: admin@test-tenant.com
+      - generic [ref=e12]:
+        - generic [ref=e13]: 비밀번호
+        - textbox "비밀번호" [ref=e14]:
+          - /placeholder: ••••••••
+          - text: wrong-password
+      - generic [ref=e15]:
+        - generic [ref=e16]: 사이트 슬러그
+        - generic [ref=e17]:
+          - generic [ref=e18]: site.com/
+          - textbox "사이트 슬러그" [ref=e19]:
+            - /placeholder: my-store
+            - text: test-tenant
+      - generic [ref=e21]: 이메일, 비밀번호 또는 슬러그를 확인하세요.
+      - button "로그인" [ref=e20]
+  - region "Notifications alt+T"

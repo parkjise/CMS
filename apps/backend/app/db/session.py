@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 from uuid import UUID
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.core.config import settings
@@ -31,7 +32,9 @@ async def set_rls_context(
     is_super_admin: bool = False,
 ) -> None:
     await session.execute(
-        "SELECT set_config('app.current_tenant_id', :tid, true), "
-        "set_config('app.is_super_admin', :sa, true)",
+        text(
+            "SELECT set_config('app.current_tenant_id', :tid, true), "
+            "set_config('app.is_super_admin', :sa, true)"
+        ),
         {"tid": str(tenant_id), "sa": str(is_super_admin).lower()},
     )

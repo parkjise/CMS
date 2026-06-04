@@ -1,0 +1,53 @@
+- generic [ref=e2]:
+  - generic [ref=e22]:
+    - complementary [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e85]: CMS Admin
+        - button "사이드바 닫기" [ref=e86]:
+          - img [ref=e87]
+      - navigation [ref=e90]:
+        - link "대시보드" [ref=e91] [cursor=pointer]:
+          - /url: /admin/dashboard
+          - img [ref=e92]
+          - text: 대시보드
+        - link "콘텐츠 편집" [ref=e97] [cursor=pointer]:
+          - /url: /admin/content
+          - img [ref=e98]
+          - text: 콘텐츠 편집
+        - link "SNS 설정" [ref=e101] [cursor=pointer]:
+          - /url: /admin/sns
+          - img [ref=e102]
+          - text: SNS 설정
+        - link "문의 관리" [ref=e108] [cursor=pointer]:
+          - /url: /admin/inquiries
+          - img [ref=e109]
+          - text: 문의 관리
+        - link "SEO 설정" [ref=e111] [cursor=pointer]:
+          - /url: /admin/seo
+          - img [ref=e112]
+          - text: SEO 설정
+        - link "템플릿" [ref=e115] [cursor=pointer]:
+          - /url: /admin/templates
+          - img [ref=e116]
+          - text: 템플릿
+      - generic [ref=e120]:
+        - link "내 홈페이지 바로가기" [ref=e121] [cursor=pointer]:
+          - /url: http://localhost:3000/test-tenant
+          - img [ref=e122]
+          - text: 내 홈페이지 바로가기
+        - paragraph [ref=e127]: admin@test-tenant.com
+        - button "로그아웃" [ref=e128]:
+          - img [ref=e129]
+          - text: 로그아웃
+    - generic [ref=e69]:
+      - banner [ref=e70]:
+        - button "메뉴 열기" [active] [ref=e79]:
+          - img [ref=e80]
+        - generic [ref=e71]:
+          - generic [ref=e72]: test-tenant
+          - generic [ref=e73]: Free
+      - main [ref=e75]:
+        - generic [ref=e76]:
+          - heading "대시보드" [level=1] [ref=e77]
+          - paragraph [ref=e78]: "[AD-01] 방문자 통계 · 문의 현황 — Phase 6에서 구현"
+  - region "Notifications alt+T"
