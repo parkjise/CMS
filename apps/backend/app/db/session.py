@@ -33,8 +33,8 @@ async def set_rls_context(
 ) -> None:
     await session.execute(
         text(
-            "SELECT set_config('app.current_tenant_id', :tid, true), "
-            "set_config('app.is_super_admin', :sa, true)"
+            "SELECT set_config('app.current_tenant_id', :tid, false), "
+            "set_config('app.is_super_admin', :sa, false)"
         ),
         {"tid": str(tenant_id), "sa": str(is_super_admin).lower()},
     )

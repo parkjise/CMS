@@ -51,6 +51,7 @@ async def _verify_recaptcha(token: str | None) -> None:
 
 # ── Public ──────────────────────────────────────────────────────────────────
 
+
 @public_router.post("", response_model=ApiResponse[dict])
 @_limiter.limit("3/minute")
 async def submit_inquiry(
@@ -81,6 +82,7 @@ async def submit_inquiry(
 
 # ── Admin ────────────────────────────────────────────────────────────────────
 
+
 @router.get("", response_model=ApiResponse[InquiryListResponse])
 async def list_inquiries(
     page: int = Query(1, ge=1),
@@ -94,6 +96,7 @@ async def list_inquiries(
 ):
     result = await inquiry_service.get_inquiries(
         db,
+        tenant_id=current_user.tenant_id,
         page=page,
         limit=limit,
         status=status_filter,
@@ -109,7 +112,7 @@ async def export_inquiries(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    inquiries = await inquiry_service.get_all_for_export(db)
+    inquiries = await inquiry_service.get_all_for_export(db, current_user.tenant_id)
     xlsx_bytes = inquiry_service.export_to_excel(inquiries)
     return Response(
         content=xlsx_bytes,
@@ -124,7 +127,9 @@ async def get_inquiry(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    inquiry = await inquiry_service.get_inquiry_by_id(db, inquiry_id)
+    inquiry = await inquiry_service.get_inquiry_by_id(
+        db, inquiry_id, current_user.tenant_id
+    )
     if not inquiry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(InquiryResponse.model_validate(inquiry))
@@ -138,7 +143,9 @@ async def update_inquiry(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        inquiry = await inquiry_service.update_inquiry(db, inquiry_id, body)
+        inquiry = await inquiry_service.update_inquiry(
+            db, inquiry_id, current_user.tenant_id, body
+        )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -153,7 +160,9 @@ async def delete_inquiry(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    deleted = await inquiry_service.delete_inquiry(db, inquiry_id)
+    deleted = await inquiry_service.delete_inquiry(
+        db, inquiry_id, current_user.tenant_id
+    )
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(None)

@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     # 슈퍼 어드민
     super_admin_email: str = "admin@cms.io"
     super_admin_password: str = ""
+    # 빈 문자열 = 모든 IP 허용 / 쉼표 구분: "1.2.3.4,5.6.7.8"
+    super_admin_allowed_ips: str = ""
 
     # reCAPTCHA (없으면 검증 스킵)
     recaptcha_secret_key: str = ""

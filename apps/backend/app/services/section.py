@@ -48,20 +48,26 @@ _DEFAULT_SECTIONS: dict[str, list[tuple[str, str]]] = {
 MAIN_TITLE_MAX_LEN = 40
 
 
-async def get_sections(db: AsyncSession) -> list[Section]:
+async def get_sections(db: AsyncSession, tenant_id: UUID) -> list[Section]:
     result = await db.execute(
         select(Section)
-        .where(Section.deleted_at.is_(None))
+        .where(Section.tenant_id == tenant_id, Section.deleted_at.is_(None))
         .order_by(Section.display_order)
         .options(selectinload(Section.settings))
     )
     return list(result.scalars().all())
 
 
-async def get_section_by_id(db: AsyncSession, section_id: UUID) -> Section | None:
+async def get_section_by_id(
+    db: AsyncSession, section_id: UUID, tenant_id: UUID
+) -> Section | None:
     result = await db.execute(
         select(Section)
-        .where(Section.id == section_id, Section.deleted_at.is_(None))
+        .where(
+            Section.id == section_id,
+            Section.tenant_id == tenant_id,
+            Section.deleted_at.is_(None),
+        )
         .options(selectinload(Section.settings))
     )
     return result.scalar_one_or_none()
@@ -73,7 +79,7 @@ async def update_section_settings(
     tenant_id: UUID,
     data: SectionUpdate,
 ) -> Section | None:
-    section = await get_section_by_id(db, section_id)
+    section = await get_section_by_id(db, section_id, tenant_id)
     if not section:
         return None
 
@@ -81,7 +87,7 @@ async def update_section_settings(
     if data.label is not None:
         await db.execute(
             update(Section)
-            .where(Section.id == section_id)
+            .where(Section.id == section_id, Section.tenant_id == tenant_id)
             .values(label=data.label, updated_at=datetime.now(UTC))
         )
 
@@ -116,7 +122,7 @@ async def update_section_settings(
 
     await db.commit()
     db.expire_all()
-    return await get_section_by_id(db, section_id)
+    return await get_section_by_id(db, section_id, tenant_id)
 
 
 def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
@@ -129,11 +135,16 @@ def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
 async def update_sections_order(
     db: AsyncSession,
     order_items: list[SectionOrderItem],
+    tenant_id: UUID,
 ) -> None:
     for item in order_items:
         await db.execute(
             update(Section)
-            .where(Section.id == item.id, Section.deleted_at.is_(None))
+            .where(
+                Section.id == item.id,
+                Section.tenant_id == tenant_id,
+                Section.deleted_at.is_(None),
+            )
             .values(display_order=item.display_order, updated_at=datetime.now(UTC))
         )
     await db.commit()
@@ -143,17 +154,22 @@ async def toggle_section(
     db: AsyncSession,
     section_id: UUID,
     is_active: bool,
+    tenant_id: UUID,
 ) -> Section | None:
     result = await db.execute(
         update(Section)
-        .where(Section.id == section_id, Section.deleted_at.is_(None))
+        .where(
+            Section.id == section_id,
+            Section.tenant_id == tenant_id,
+            Section.deleted_at.is_(None),
+        )
         .values(is_active=is_active, updated_at=datetime.now(UTC))
         .returning(Section.id)
     )
     if not result.scalar_one_or_none():
         return None
     await db.commit()
-    return await get_section_by_id(db, section_id)
+    return await get_section_by_id(db, section_id, tenant_id)
 
 
 async def create_default_sections(

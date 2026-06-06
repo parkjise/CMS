@@ -1,6 +1,16 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, inquiries, sections, seo, sns
+from app.api.v1.endpoints import (
+    analytics,
+    auth,
+    dashboard,
+    edit,
+    inquiries,
+    notifications,
+    sections,
+    seo,
+    sns,
+)
 
 api_router = APIRouter()
 
@@ -9,6 +19,10 @@ api_router.include_router(sections.router)
 api_router.include_router(inquiries.router)
 api_router.include_router(sns.router)
 api_router.include_router(seo.router)
+api_router.include_router(dashboard.router)
+api_router.include_router(notifications.router)
+api_router.include_router(edit.router)
+api_router.include_router(analytics.router)
 
 # 헬스체크 (인증 불필요)
 @api_router.get("/health", tags=["system"])

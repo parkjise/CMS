@@ -188,3 +188,119 @@ class TestExportInquiries:
     async def test_export_unauthenticated(self, client: AsyncClient):
         resp = await client.get("/api/v1/inquiries/export")
         assert resp.status_code == 401
+
+
+class TestInquiryFilters:
+    async def test_filter_by_is_read_false(
+        self, client: AsyncClient, auth_headers: dict, test_inquiry: dict
+    ):
+        resp = await client.get(
+            "/api/v1/inquiries", params={"is_read": "false"}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        items = resp.json()["data"]["items"]
+        assert all(item["is_read"] is False for item in items)
+
+    async def test_filter_by_inquiry_type(
+        self, client: AsyncClient, auth_headers: dict, test_inquiry: dict
+    ):
+        resp = await client.get(
+            "/api/v1/inquiries",
+            params={"inquiry_type": "GENERAL"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        items = resp.json()["data"]["items"]
+        assert all(item["inquiry_type"] == "GENERAL" for item in items)
+
+    async def test_search_by_name(
+        self, client: AsyncClient, auth_headers: dict, test_inquiry: dict
+    ):
+        resp = await client.get(
+            "/api/v1/inquiries", params={"search": "테스트문의자"}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        ids = [item["id"] for item in resp.json()["data"]["items"]]
+        assert test_inquiry["id"] in ids
+
+    async def test_search_no_match_returns_empty(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        resp = await client.get(
+            "/api/v1/inquiries",
+            params={"search": "절대존재하지않는이름XYZ"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["data"]["total"] == 0
+
+
+class TestInquiryStatusCycle:
+    async def test_full_status_cycle(
+        self, client: AsyncClient, auth_headers: dict, test_inquiry: dict
+    ):
+        iid = test_inquiry["id"]
+        for s in ("IN_PROGRESS", "DONE"):
+            resp = await client.patch(
+                f"/api/v1/inquiries/{iid}",
+                json={"status": s},
+                headers=auth_headers,
+            )
+            assert resp.status_code == 200
+            assert resp.json()["data"]["status"] == s
+
+    async def test_mark_as_spam(
+        self, client: AsyncClient, auth_headers: dict, test_inquiry: dict
+    ):
+        resp = await client.patch(
+            f"/api/v1/inquiries/{test_inquiry['id']}",
+            json={"status": "SPAM"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        assert resp.json()["data"]["status"] == "SPAM"
+
+
+class TestInquiryValidation:
+    async def test_submit_name_too_long(
+        self, client: AsyncClient, test_tenant: dict
+    ):
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": test_tenant["slug"]},
+            json={
+                "name": "a" * 101,
+                "phone": "010-1234-5678",
+                "message": "테스트 문의입니다. 답변 부탁드립니다.",
+            },
+        )
+        assert resp.status_code == 422
+
+    async def test_submit_message_too_long(
+        self, client: AsyncClient, test_tenant: dict
+    ):
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": test_tenant["slug"]},
+            json={
+                "name": "홍길동",
+                "phone": "010-1234-5678",
+                "message": "a" * 1001,
+            },
+        )
+        assert resp.status_code == 422
+
+    async def test_submit_with_email(
+        self, client: AsyncClient, test_tenant: dict
+    ):
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": test_tenant["slug"]},
+            json={
+                "name": "이메일포함",
+                "phone": "010-5555-6666",
+                "email": "test@example.com",
+                "message": "이메일 포함 문의 테스트입니다. 답변 주시면 감사합니다.",
+            },
+        )
+        assert resp.status_code == 200

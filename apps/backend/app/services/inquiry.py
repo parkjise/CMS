@@ -1,4 +1,5 @@
 import io
+import json
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -7,6 +8,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.core.redis import get_redis
 from app.models.inquiry import Inquiry
 from app.schemas.inquiry import InquiryCreate, InquiryListResponse, InquiryUpdate
 
@@ -33,11 +35,27 @@ async def create_inquiry(
     db.add(inquiry)
     await db.commit()
     await db.refresh(inquiry)
+
+    try:
+        redis = await get_redis()
+        payload = json.dumps(
+            {
+                "type": "new_inquiry",
+                "id": str(inquiry.id),
+                "name": inquiry.name,
+                "inquiry_type": inquiry.inquiry_type,
+            }
+        )
+        await redis.publish(f"inquiry:new:{tenant_id}", payload)
+    except Exception:
+        pass  # Redis publish failure must not block inquiry creation
+
     return inquiry
 
 
 async def get_inquiries(
     db: AsyncSession,
+    tenant_id: UUID,
     page: int = 1,
     limit: int = 20,
     status: str | None = None,
@@ -45,7 +63,10 @@ async def get_inquiries(
     is_read: bool | None = None,
     search: str | None = None,
 ) -> InquiryListResponse:
-    base = select(Inquiry).where(Inquiry.deleted_at.is_(None))
+    base = select(Inquiry).where(
+        Inquiry.tenant_id == tenant_id,
+        Inquiry.deleted_at.is_(None),
+    )
 
     if status:
         base = base.where(Inquiry.status == status)
@@ -67,19 +88,23 @@ async def get_inquiries(
     total = total_result.scalar_one()
 
     rows = await db.execute(
-        base.order_by(Inquiry.created_at.desc())
-        .offset((page - 1) * limit)
-        .limit(limit)
+        base.order_by(Inquiry.created_at.desc()).offset((page - 1) * limit).limit(limit)
     )
     items = list(rows.scalars().all())
 
     return InquiryListResponse(total=total, page=page, limit=limit, items=items)
 
 
-async def get_inquiry_by_id(db: AsyncSession, inquiry_id: UUID) -> Inquiry | None:
+async def get_inquiry_by_id(
+    db: AsyncSession, inquiry_id: UUID, tenant_id: UUID
+) -> Inquiry | None:
     result = await db.execute(
         select(Inquiry)
-        .where(Inquiry.id == inquiry_id, Inquiry.deleted_at.is_(None))
+        .where(
+            Inquiry.id == inquiry_id,
+            Inquiry.tenant_id == tenant_id,
+            Inquiry.deleted_at.is_(None),
+        )
         .options(selectinload(Inquiry.attachments))
     )
     return result.scalar_one_or_none()
@@ -88,9 +113,10 @@ async def get_inquiry_by_id(db: AsyncSession, inquiry_id: UUID) -> Inquiry | Non
 async def update_inquiry(
     db: AsyncSession,
     inquiry_id: UUID,
+    tenant_id: UUID,
     data: InquiryUpdate,
 ) -> Inquiry | None:
-    inquiry = await get_inquiry_by_id(db, inquiry_id)
+    inquiry = await get_inquiry_by_id(db, inquiry_id, tenant_id)
     if not inquiry:
         return None
 
@@ -106,13 +132,17 @@ async def update_inquiry(
     inquiry.updated_at = datetime.now(UTC)
     await db.commit()
     db.expire_all()
-    return await get_inquiry_by_id(db, inquiry_id)
+    return await get_inquiry_by_id(db, inquiry_id, tenant_id)
 
 
-async def delete_inquiry(db: AsyncSession, inquiry_id: UUID) -> bool:
+async def delete_inquiry(db: AsyncSession, inquiry_id: UUID, tenant_id: UUID) -> bool:
     result = await db.execute(
         update(Inquiry)
-        .where(Inquiry.id == inquiry_id, Inquiry.deleted_at.is_(None))
+        .where(
+            Inquiry.id == inquiry_id,
+            Inquiry.tenant_id == tenant_id,
+            Inquiry.deleted_at.is_(None),
+        )
         .values(deleted_at=datetime.now(UTC))
         .returning(Inquiry.id)
     )
@@ -120,9 +150,10 @@ async def delete_inquiry(db: AsyncSession, inquiry_id: UUID) -> bool:
     return result.scalar_one_or_none() is not None
 
 
-async def get_pending_count(db: AsyncSession) -> int:
+async def get_pending_count(db: AsyncSession, tenant_id: UUID) -> int:
     result = await db.execute(
         select(func.count()).where(
+            Inquiry.tenant_id == tenant_id,
             Inquiry.status == "PENDING",
             Inquiry.deleted_at.is_(None),
         )
@@ -137,26 +168,28 @@ def export_to_excel(inquiries: list[Inquiry]) -> bytes:
     ws.append(["ID", "유형", "이름", "연락처", "이메일", "상태", "메모", "접수일시"])
 
     for inq in inquiries:
-        ws.append([
-            str(inq.id),
-            inq.inquiry_type,
-            inq.name,
-            inq.phone,
-            inq.email or "",
-            inq.status,
-            inq.admin_memo or "",
-            inq.created_at.strftime("%Y-%m-%d %H:%M") if inq.created_at else "",
-        ])
+        ws.append(
+            [
+                str(inq.id),
+                inq.inquiry_type,
+                inq.name,
+                inq.phone,
+                inq.email or "",
+                inq.status,
+                inq.admin_memo or "",
+                inq.created_at.strftime("%Y-%m-%d %H:%M") if inq.created_at else "",
+            ]
+        )
 
     buf = io.BytesIO()
     wb.save(buf)
     return buf.getvalue()
 
 
-async def get_all_for_export(db: AsyncSession) -> list[Inquiry]:
+async def get_all_for_export(db: AsyncSession, tenant_id: UUID) -> list[Inquiry]:
     result = await db.execute(
         select(Inquiry)
-        .where(Inquiry.deleted_at.is_(None))
+        .where(Inquiry.tenant_id == tenant_id, Inquiry.deleted_at.is_(None))
         .order_by(Inquiry.created_at.desc())
     )
     return list(result.scalars().all())

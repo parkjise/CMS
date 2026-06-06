@@ -1,11 +1,14 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from app.api.super.router import super_router
+from app.api.v1.endpoints.analytics import public_router as analytics_public_router
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
 from app.api.v1.endpoints.public import router as public_site_router
 from app.api.v1.endpoints.seo import public_router as seo_public_router
@@ -41,7 +44,28 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.middleware("http")
+async def super_admin_ip_whitelist(request: Request, call_next):
+    if request.url.path.startswith("/api/super/"):
+        allowed = settings.super_admin_allowed_ips
+        if allowed:
+            allowed_set = {ip.strip() for ip in allowed.split(",")}
+            forwarded = request.headers.get("X-Forwarded-For")
+            client_ip = forwarded.split(",")[0].strip() if forwarded else (
+                request.client.host if request.client else ""
+            )
+            if client_ip not in allowed_set:
+                return JSONResponse(
+                    {"success": False, "error": {"code": "FORBIDDEN"}},
+                    status_code=403,
+                )
+    return await call_next(request)
+
+
 app.include_router(api_router, prefix="/api/v1")
+app.include_router(super_router, prefix="/api/super/v1")
+app.include_router(analytics_public_router, prefix="/api/public")
 app.include_router(inquiry_public_router, prefix="/api/public")
 app.include_router(seo_public_router, prefix="/api/public")
 app.include_router(public_site_router, prefix="/api/public")

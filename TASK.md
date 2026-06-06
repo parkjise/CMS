@@ -16,7 +16,7 @@
 | Phase 0: 프로젝트 초기 설정 | 8 | 8 | 100% |
 | Phase 1: 인프라 & DB | 7 | 3 | 42.9% |
 | Phase 2: 인증 시스템 | 5 | 5 | 100% |
-| Phase 3: 핵심 CRUD API | 10 | 5 | 50% |
+| Phase 3: 핵심 CRUD API | 10 | 6 | 60% |
 | Phase 4: 파일 업로드 & 이미지 | 4 | 0 | 0% |
 | Phase 5: 알림 시스템 | 5 | 0 | 0% |
 | Phase 6: 관리자 프론트엔드 | 12 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **16** | **14.2%** |
+| **합계** | **113** | **17** | **15.0%** |
 
 ---
 
@@ -478,12 +478,12 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 4 (AD-01 대시보드)`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/dashboard.py`
+  - [x] `app/api/v1/endpoints/dashboard.py`
     - `GET /api/v1/dashboard/stats` — 오늘 방문자, 이번주 방문자, 신규 문의 수, 미처리 문의 수
     - `GET /api/v1/dashboard/chart` — 최근 7일 방문자 Line Chart 데이터
     - `GET /api/v1/dashboard/recent-inquiries` — 최근 미확인 문의 5건
-  - [ ] SSE 엔드포인트 (`GET /api/v1/notifications/stream`) — 실시간 신규 문의 알림
-  - [ ] Redis Pub/Sub 구독/발행 로직
+  - [x] SSE 엔드포인트 (`GET /api/v1/notifications/stream`) — 실시간 신규 문의 알림
+  - [x] Redis Pub/Sub 구독/발행 로직
 - **완료 조건:** 대시보드 API 응답 데이터 형식 확인
 
 ---
@@ -492,7 +492,7 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 12.5 (POST /edit/batch-save)`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/edit.py`
+  - [x] `app/api/v1/endpoints/edit.py`
     - `POST /api/v1/edit/batch-save` — 변경사항 배열 일괄 저장
     - 각 변경사항 Validation (필드별 최대 길이 검증)
     - 부분 실패 허용 (saved_count, failed_count 반환)
@@ -505,16 +505,16 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 14.6`, `CLAUDE.md 섹션 8.1`
 - **작업 내용:**
-  - [ ] `app/api/super/` 디렉토리 생성 (일반 /api/v1/과 완전 분리)
-  - [ ] `app/api/super/router.py` — 슈퍼 어드민 라우터 통합
-  - [ ] `app/core/deps.py`에 `get_super_admin` 의존성 완성
+  - [x] `app/api/super/` 디렉토리 생성 (일반 /api/v1/과 완전 분리)
+  - [x] `app/api/super/router.py` — 슈퍼 어드민 라우터 통합
+  - [x] `app/core/deps.py`에 `get_super_admin` 의존성 완성
     - SUPER_ADMIN role 검증 + 2FA 검증 (추후 추가)
     - 모든 슈퍼 어드민 API에 자동 적용
-  - [ ] `app/core/audit.py` — 감사 로그 자동 기록 함수
+  - [x] `app/core/audit.py` — 감사 로그 자동 기록 함수
     ```python
     async def log_action(db, actor, action, target_type, target_id, before, after)
     ```
-  - [ ] `app/main.py`에 슈퍼 어드민 라우터 등록
+  - [x] `app/main.py`에 슈퍼 어드민 라우터 등록
     - prefix: `/api/super/v1`
     - 미들웨어: IP 화이트리스트 (선택, 환경변수로 관리)
 - **완료 조건:** `/api/super/v1/health` 엔드포인트 SUPER_ADMIN 토큰으로만 200 응답
@@ -525,12 +525,12 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 10 (오픈 이슈 #1)`, `기획서 AD-01`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/analytics.py`
+  - [x] `app/api/v1/endpoints/analytics.py`
     - `POST /api/public/analytics/pageview` — 페이지뷰 수집 (1px 비콘 방식)
     - UA 파싱으로 모바일/데스크톱 구분
     - IP 기반 중복 제거 (Redis로 일별 유니크 방문자)
     - 1시간마다 Redis → PostgreSQL 집계 저장 (Celery 태스크)
-  - [ ] `GET /api/v1/analytics/summary` — 대시보드용 통계 요약
+  - [x] `GET /api/v1/analytics/summary` — 대시보드용 통계 요약
 - **완료 조건:** 페이지뷰 수집 → 대시보드에서 방문자 수 정상 노출
 
 ---
@@ -539,10 +539,10 @@
 - **담당:** 백엔드
 - **참조:** `CLAUDE.md 섹션 10`
 - **작업 내용:**
-  - [ ] `tests/test_sections.py` — 섹션 CRUD, 순서 변경, 토글 전체 테스트
-  - [ ] `tests/test_inquiries.py` — 문의 접수, 조회, 상태 변경, 스팸 방지 테스트
-  - [ ] `tests/test_public.py` — 공개 API, RLS 격리 검증 테스트
-  - [ ] `tests/test_rls.py` — 테넌트 A가 테넌트 B 데이터 접근 시도 → 403 확인
+  - [x] `tests/test_sections.py` — 섹션 CRUD, 순서 변경, 토글 전체 테스트
+  - [x] `tests/test_inquiries.py` — 문의 접수, 조회, 상태 변경, 스팸 방지 테스트
+  - [x] `tests/test_public.py` — 공개 API, RLS 격리 검증 테스트
+  - [x] `tests/test_rls.py` — 테넌트 A가 테넌트 B 데이터 접근 시도 → 403 확인
 - **완료 조건:** `pytest tests/ -v` 전체 통과, 커버리지 70% 이상
 
 ---

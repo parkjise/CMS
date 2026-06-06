@@ -1,4 +1,5 @@
-import pytest
+import uuid
+
 from httpx import AsyncClient
 
 
@@ -155,9 +156,65 @@ class TestToggleSection:
         assert resp2.json()["data"]["is_active"] is True
 
     async def test_toggle_not_found(self, client: AsyncClient, auth_headers: dict):
-        import uuid
         resp = await client.patch(
             f"/api/v1/sections/{uuid.uuid4()}/toggle",
             headers=auth_headers,
         )
         assert resp.status_code == 404
+
+
+class TestSectionStructure:
+    async def test_section_response_has_required_fields(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        resp = await client.get(
+            f"/api/v1/sections/{test_section['id']}", headers=auth_headers
+        )
+        data = resp.json()["data"]
+        for field in ("id", "section_type", "label", "display_order", "is_active", "settings"):
+            assert field in data
+
+    async def test_list_sections_cached_second_call(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        r1 = await client.get("/api/v1/sections", headers=auth_headers)
+        r2 = await client.get("/api/v1/sections", headers=auth_headers)
+        assert r1.status_code == 200
+        assert r2.status_code == 200
+        ids1 = [s["id"] for s in r1.json()["data"]]
+        ids2 = [s["id"] for s in r2.json()["data"]]
+        assert ids1 == ids2
+
+    async def test_update_invalidates_cache(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        await client.patch(
+            f"/api/v1/sections/{test_section['id']}",
+            json={"label": "캐시 무효화 테스트"},
+            headers=auth_headers,
+        )
+        resp = await client.get("/api/v1/sections", headers=auth_headers)
+        labels = [s["label"] for s in resp.json()["data"]]
+        assert "캐시 무효화 테스트" in labels
+
+    async def test_reorder_changes_display_order(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        await client.patch(
+            "/api/v1/sections/order",
+            json={"sections": [{"id": test_section["id"], "display_order": 99}]},
+            headers=auth_headers,
+        )
+        resp = await client.get(
+            f"/api/v1/sections/{test_section['id']}", headers=auth_headers
+        )
+        assert resp.json()["data"]["display_order"] == 99
+
+    async def test_update_section_unauthenticated(
+        self, client: AsyncClient, test_section: dict
+    ):
+        resp = await client.patch(
+            f"/api/v1/sections/{test_section['id']}",
+            json={"label": "무단 수정"},
+        )
+        assert resp.status_code == 401

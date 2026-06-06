@@ -35,7 +35,7 @@ async def list_sections(
     if cached:
         return ApiResponse.ok(json.loads(cached))
 
-    sections = await section_service.get_sections(db)
+    sections = await section_service.get_sections(db, current_user.tenant_id)
     response_data = [SectionResponse.model_validate(s) for s in sections]
     serialized = json.dumps(
         [r.model_dump(mode="json") for r in response_data], default=str
@@ -51,7 +51,9 @@ async def get_section(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    section = await section_service.get_section_by_id(db, section_id)
+    section = await section_service.get_section_by_id(
+        db, section_id, current_user.tenant_id
+    )
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(SectionResponse.model_validate(section))
@@ -63,7 +65,9 @@ async def reorder_sections(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    await section_service.update_sections_order(db, body.sections)
+    await section_service.update_sections_order(
+        db, body.sections, current_user.tenant_id
+    )
     await _invalidate_cache(current_user.tenant_id)
     return ApiResponse.ok(None)
 
@@ -96,12 +100,14 @@ async def toggle_section(
     current_user: User = Depends(get_current_user),
 ):
     # 현재 상태를 읽어 반전
-    current = await section_service.get_section_by_id(db, section_id)
+    current = await section_service.get_section_by_id(
+        db, section_id, current_user.tenant_id
+    )
     if not current:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
     section = await section_service.toggle_section(
-        db, section_id, not current.is_active
+        db, section_id, not current.is_active, current_user.tenant_id
     )
     await _invalidate_cache(current_user.tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))
