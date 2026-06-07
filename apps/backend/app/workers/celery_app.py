@@ -7,7 +7,7 @@ celery_app = Celery(
     "cms",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.workers.analytics"],
+    include=["app.workers.analytics", "app.workers.image"],
 )
 
 celery_app.conf.update(
@@ -20,6 +20,10 @@ celery_app.conf.update(
         "flush-analytics-every-hour": {
             "task": "app.workers.analytics.flush_analytics",
             "schedule": crontab(minute=0),  # 매시 정각
+        },
+        "cleanup-orphan-files-daily-3am": {
+            "task": "app.workers.image.cleanup_orphan_files",
+            "schedule": crontab(hour=3, minute=0),  # 매일 03:00 (Asia/Seoul)
         },
     },
 )

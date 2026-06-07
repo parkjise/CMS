@@ -15,6 +15,7 @@ from app.schemas.gallery import (
 )
 from app.services import gallery as gallery_service
 from app.services import image as image_service
+from app.workers.image import generate_thumbnail
 
 router = APIRouter(tags=["gallery"])
 
@@ -91,6 +92,13 @@ async def upload_gallery(
         items_added.append(item)
 
     await db.commit()
+
+    # 각 업로드 파일에 대해 비동기 썸네일 생성 트리거
+    for item in items_added:
+        try:
+            generate_thumbnail.delay(str(item.file_id))
+        except Exception:
+            pass
 
     return ApiResponse.ok(
         GalleryUploadResponse(

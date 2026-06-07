@@ -12,6 +12,7 @@ from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.upload import ImageUploadResponse
 from app.services import image as image_service
+from app.workers.image import generate_thumbnail
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
@@ -79,6 +80,12 @@ async def upload_image(
     )
     db.add(uploaded)
     await db.commit()
+
+    # 비동기 썸네일 생성 (브로커 장애 시 업로드 자체는 성공시킴)
+    try:
+        generate_thumbnail.delay(str(file_id))
+    except Exception:
+        pass
 
     return ApiResponse.ok(
         ImageUploadResponse(
