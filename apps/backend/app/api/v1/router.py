@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     auth,
     dashboard,
     edit,
+    gallery,
     inquiries,
     notifications,
     sections,
@@ -25,6 +26,7 @@ api_router.include_router(notifications.router)
 api_router.include_router(edit.router)
 api_router.include_router(analytics.router)
 api_router.include_router(upload.router)
+api_router.include_router(gallery.router)
 
 
 # 헬스체크 (인증 불필요)

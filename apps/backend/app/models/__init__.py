@@ -1,6 +1,7 @@
 from app.models.ai import AiUsageLog
 from app.models.analytics import SiteAnalytics
 from app.models.file import UploadedFile
+from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
 from app.models.section import Section, SectionSetting
 from app.models.seo import SeoSetting
@@ -21,6 +22,7 @@ __all__ = [
     "SeoSetting",
     "SiteAnalytics",
     "UploadedFile",
+    "GalleryItem",
     "Template",
     "TenantTemplateOverride",
     "TemplateChangeHistory",
