@@ -19,3 +19,13 @@ class PresignedUrlResponse(BaseModel):
     upload_url: str
     file_url: str
     expires_in: int
+
+
+class ImageUploadResponse(BaseModel):
+    id: uuid.UUID
+    url: str
+    original_size_kb: int
+    optimized_size_kb: int
+    width: int
+    height: int
+    format: str

@@ -17,7 +17,7 @@
 | Phase 1: 인프라 & DB | 7 | 3 | 42.9% |
 | Phase 2: 인증 시스템 | 5 | 5 | 100% |
 | Phase 3: 핵심 CRUD API | 10 | 6 | 60% |
-| Phase 4: 파일 업로드 & 이미지 | 4 | 0 | 0% |
+| Phase 4: 파일 업로드 & 이미지 | 4 | 1 | 25% |
 | Phase 5: 알림 시스템 | 5 | 0 | 0% |
 | Phase 6: 관리자 프론트엔드 | 12 | 0 | 0% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **17** | **15.0%** |
+| **합계** | **113** | **18** | **15.9%** |
 
 ---
 
@@ -559,18 +559,18 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 5.4 (파일 업로드 API)`, `기획서 섹션 7 (이미지 처리 플로우)`
 - **작업 내용:**
-  - [ ] `app/services/image.py`
+  - [x] `app/services/image.py`
     - `optimize_image(file_bytes)` — Pillow WebP 변환 (quality=82, max 1920px, EXIF 회전 보정)
     - `validate_image(file)` — MIME 타입 magic bytes 검증, 20MB 제한
     - `upload_to_storage(bytes, path)` — MinIO/S3 업로드
     - `delete_from_storage(path)` — 파일 삭제
     - `get_cdn_url(path)` — CDN URL 생성
-  - [ ] `app/api/v1/endpoints/upload.py`
+  - [x] `app/api/v1/endpoints/upload.py`
     - `POST /api/v1/upload/image` — multipart/form-data 수신 → 최적화 → MinIO 업로드
     - 응답: `{url, original_size_kb, optimized_size_kb, width, height, format}`
     - 저장 경로: `/{tenant_id}/{context}/{section_id}/{uuid}.webp`
-  - [ ] `uploaded_files` 테이블 DB 기록
-  - [ ] 스토리지 용량 한도 체크 (플랜별: 1GB/5GB/20GB)
+  - [x] `uploaded_files` 테이블 DB 기록
+  - [x] 스토리지 용량 한도 체크 (플랜별: 1GB/5GB/20GB)
 - **완료 조건:** 5MB 이상 JPG 업로드 시 WebP로 변환되어 용량 감소 확인
 
 ---
