@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     edit,
     gallery,
     inquiries,
+    notification_settings,
     notifications,
     sections,
     seo,
@@ -23,6 +24,7 @@ api_router.include_router(sns.router)
 api_router.include_router(seo.router)
 api_router.include_router(dashboard.router)
 api_router.include_router(notifications.router)
+api_router.include_router(notification_settings.router)
 api_router.include_router(edit.router)
 api_router.include_router(analytics.router)
 api_router.include_router(upload.router)

@@ -1,6 +1,7 @@
 import uuid
+from datetime import date
 
-from sqlalchemy import Boolean, String
+from sqlalchemy import Boolean, Date, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -30,3 +31,7 @@ class NotificationSetting(Base, TimestampMixin):
     email_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     recipient_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
     recipient_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    monthly_kakao_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+    monthly_reset_at: Mapped[date] = mapped_column(Date, nullable=False)

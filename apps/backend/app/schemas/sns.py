@@ -1,7 +1,10 @@
+import re
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, EmailStr, field_validator
+
+_PHONE_RE = re.compile(r"^01[0-9]-?\d{3,4}-?\d{4}$")
 
 
 def _validate_url(v: str | None) -> str | None:
@@ -21,8 +24,12 @@ class SnsSettingsUpdate(BaseModel):
     naver_url: str | None = None
 
     @field_validator(
-        "kakao_url", "instagram_url", "facebook_url",
-        "youtube_url", "blog_url", "naver_url",
+        "kakao_url",
+        "instagram_url",
+        "facebook_url",
+        "youtube_url",
+        "blog_url",
+        "naver_url",
         mode="before",
     )
     @classmethod
@@ -60,12 +67,28 @@ class TestUrlResponse(BaseModel):
     is_valid: bool
 
 
+def _normalize_phone(v: str | None) -> str | None:
+    if v is None or v == "":
+        return None
+    if not _PHONE_RE.match(v):
+        raise ValueError(
+            "휴대폰 번호는 010-XXXX-XXXX 형식이어야 합니다 (예: 010-1234-5678)."
+        )
+    digits = re.sub(r"\D", "", v)
+    return f"{digits[:3]}-{digits[3:-4]}-{digits[-4:]}"
+
+
 class NotificationSettingsUpdate(BaseModel):
     alimtalk_enabled: bool | None = None
     sms_enabled: bool | None = None
     email_enabled: bool | None = None
     recipient_phone: str | None = None
-    recipient_email: str | None = None
+    recipient_email: EmailStr | None = None
+
+    @field_validator("recipient_phone", mode="before")
+    @classmethod
+    def validate_phone(cls, v: str | None) -> str | None:
+        return _normalize_phone(v)
 
 
 class NotificationSettingsResponse(BaseModel):
@@ -76,6 +99,13 @@ class NotificationSettingsResponse(BaseModel):
     email_enabled: bool
     recipient_phone: str | None
     recipient_email: str | None
+    monthly_kakao_count: int
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class NotificationTestResponse(BaseModel):
+    sent: bool
+    channels: list[str]
+    message: str
