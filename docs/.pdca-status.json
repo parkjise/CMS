@@ -1,6 +1,6 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-06-07T13:14:38.722Z",
+  "lastUpdated": "2026-06-10T14:18:43.560Z",
   "activeFeatures": [
     "packages",
     "ui",
@@ -85,9 +85,9 @@
       "documents": {},
       "timestamps": {
         "started": "2026-05-26T06:04:00.239Z",
-        "lastUpdated": "2026-06-07T13:14:38.722Z"
+        "lastUpdated": "2026-06-10T14:18:43.560Z"
       },
-      "lastFile": "/Users/Js/Work/CMS/apps/backend/app/workers/image.py"
+      "lastFile": "/Users/Js/Work/CMS/apps/backend/tests/test_notification_settings.py"
     }
   },
   "pipeline": {
@@ -98,7 +98,7 @@
   "session": {
     "startedAt": "2026-02-16T08:10:10.453Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-06-07T13:14:38.722Z"
+    "lastActivity": "2026-06-10T14:18:43.560Z"
   },
   "history": [
     {
@@ -1747,6 +1747,102 @@
     },
     {
       "timestamp": "2026-06-07T13:14:38.722Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T11:26:03.620Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T11:54:58.866Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:28:47.652Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:40:16.211Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:54:01.964Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:54:31.470Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:54:44.358Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:54:57.270Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T13:55:15.297Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:02:15.908Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:13:36.285Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:14:32.279Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:15:01.094Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:15:22.132Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:16:31.175Z",
+      "feature": "backend",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-06-10T14:18:43.560Z",
       "feature": "backend",
       "phase": "do",
       "action": "updated"
