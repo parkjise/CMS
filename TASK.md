@@ -18,7 +18,7 @@
 | Phase 2: 인증 시스템 | 5 | 5 | 100% |
 | Phase 3: 핵심 CRUD API | 10 | 6 | 60% |
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
-| Phase 5: 알림 시스템 | 5 | 1 | 20% |
+| Phase 5: 알림 시스템 | 5 | 2 | 40% |
 | Phase 6: 관리자 프론트엔드 | 12 | 0 | 0% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 0 | 0% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **21** | **18.6%** |
+| **합계** | **113** | **22** | **19.5%** |
 
 ---
 
@@ -640,14 +640,14 @@
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 7.1 (카카오 알림톡 발송)`
 - **작업 내용:**
-  - [ ] `app/services/notification.py`
+  - [x] `app/services/notification.py`
     - `send_kakao_alimtalk(to, template_code, variables)` — 네이버 클라우드 SENS API 호출
     - `send_sms(to, message)` — SMS 발송
     - `check_monthly_limit(tenant_id)` — 플랜별 월 한도 초과 체크
     - `increment_monthly_count(tenant_id)` — 발송 카운터 증가
     - `mask_phone(phone)` — 010-1234-5678 → 010-****-5678
-  - [ ] 알림톡 실패 시 SMS 자동 fallback 로직
-  - [ ] 네이버 클라우드 SENS API 연동 (테스트 모드/실제 모드 분리)
+  - [x] 알림톡 실패 시 SMS 자동 fallback 로직
+  - [x] 네이버 클라우드 SENS API 연동 (테스트 모드/실제 모드 분리)
 - **완료 조건:** 테스트 알림 발송 시 실제 카카오톡 수신 확인
 
 ---

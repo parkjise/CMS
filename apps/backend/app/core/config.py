@@ -11,7 +11,9 @@ class Settings(BaseSettings):
     # 앱
     app_env: str = "development"
     app_secret_key: str
-    allowed_origins: str = "http://localhost:3000,http://localhost:3001,http://localhost:3002"
+    allowed_origins: str = (
+        "http://localhost:3000,http://localhost:3001,http://localhost:3002"
+    )
 
     # DB
     database_url: str
@@ -43,8 +45,17 @@ class Settings(BaseSettings):
     kakao_api_key: str = ""
     kakao_sender_key: str = ""
 
+    # 네이버 클라우드 SENS (알림톡/SMS 발송)
+    ncloud_sens_service_id: str = ""
+    ncloud_sens_sms_service_id: str = ""
+    ncloud_sens_access_key: str = ""
+    ncloud_sens_secret_key: str = ""
+    ncloud_sens_from_no: str = ""
+    # "test" | "live" — test 모드는 외부 API 호출 없이 stub 응답
+    notification_mode: str = "test"
+
     # 쿠키 & URL
-    cookie_domain: str = ""          # 로컬: "" → None, 프로덕션: ".mysite.com"
+    cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
     admin_base_url: str = "http://localhost:3001"
     client_base_url: str = "http://localhost:3000"
 

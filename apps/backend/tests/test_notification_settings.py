@@ -144,6 +144,17 @@ class TestSendTest:
             await session.commit()
 
     async def test_returns_active_channels(self, client, auth_headers, test_tenant):
+        # T-031 wire-up: BASIC 플랜은 실 발송 거부되므로 STANDARD로 업그레이드
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text("UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :tid"),
+                {"tid": test_tenant["id"]},
+            )
+            await session.commit()
+
         # 알림톡 + SMS 활성화
         await client.put(
             "/api/v1/notification-settings",
@@ -161,7 +172,8 @@ class TestSendTest:
         assert resp.status_code == 200
         data = resp.json()["data"]
         assert data["sent"] is True
-        assert set(data["channels"]) == {"KAKAO", "SMS"}
+        # test 모드에서 카카오 성공 시 SMS fallback은 미동작 → KAKAO만 발송됨
+        assert "KAKAO" in data["channels"]
 
         async with _TestSession() as session:
             await session.execute(
