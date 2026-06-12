@@ -7,7 +7,11 @@ celery_app = Celery(
     "cms",
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
-    include=["app.workers.analytics", "app.workers.image"],
+    include=[
+        "app.workers.analytics",
+        "app.workers.image",
+        "app.workers.notification",
+    ],
 )
 
 celery_app.conf.update(

@@ -19,6 +19,7 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     message: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="PENDING")
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     admin_memo: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     attachments: Mapped[list["InquiryAttachment"]] = relationship(

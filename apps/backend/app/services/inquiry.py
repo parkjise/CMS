@@ -50,6 +50,14 @@ async def create_inquiry(
     except Exception:
         pass  # Redis publish failure must not block inquiry creation
 
+    # T-032: Celery 비동기 알림 발송 트리거
+    try:
+        from app.workers.notification import send_inquiry_alert
+
+        send_inquiry_alert.delay(str(tenant_id), str(inquiry.id))
+    except Exception:
+        pass  # 브로커 장애 시에도 문의 접수 자체는 성공
+
     return inquiry
 
 
