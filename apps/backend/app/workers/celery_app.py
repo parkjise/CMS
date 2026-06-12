@@ -11,6 +11,7 @@ celery_app = Celery(
         "app.workers.analytics",
         "app.workers.image",
         "app.workers.notification",
+        "app.workers.scheduled",
     ],
 )
 
@@ -28,6 +29,18 @@ celery_app.conf.update(
         "cleanup-orphan-files-daily-3am": {
             "task": "app.workers.image.cleanup_orphan_files",
             "schedule": crontab(hour=3, minute=0),  # 매일 03:00 (Asia/Seoul)
+        },
+        "reset-monthly-notification-count": {
+            "task": "app.workers.scheduled.reset_monthly_notification_count",
+            "schedule": crontab(day_of_month=1, hour=0, minute=0),  # 매월 1일 00:00
+        },
+        "cleanup-old-inquiries-daily-2am": {
+            "task": "app.workers.scheduled.cleanup_old_inquiries",
+            "schedule": crontab(hour=2, minute=0),  # 매일 02:00
+        },
+        "cleanup-old-analytics-daily-230am": {
+            "task": "app.workers.scheduled.cleanup_old_analytics",
+            "schedule": crontab(hour=2, minute=30),  # 매일 02:30
         },
     },
 )
