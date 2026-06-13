@@ -3,6 +3,7 @@ import { CSS } from '@dnd-kit/utilities'
 import {
   Briefcase,
   Calendar,
+  ChevronRight,
   FileText,
   FolderOpen,
   GripVertical,
@@ -15,6 +16,7 @@ import {
   Phone,
   Users,
 } from 'lucide-react'
+import { Link } from 'react-router'
 import { Toggle } from '@cms/ui'
 import type { Section } from '@/hooks/useSections'
 
@@ -97,13 +99,19 @@ export function SectionListItem({
         <Icon className="h-4 w-4" />
       </span>
 
-      {/* 라벨 + 타입 */}
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-sm font-medium text-slate-900">
-          {section.label}
+      {/* 라벨 + 타입 (클릭 시 상세 편집으로) */}
+      <Link
+        to={`/admin/content/${section.id}`}
+        className="group flex min-w-0 flex-1 items-center gap-2 hover:text-blue-600"
+      >
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600">
+            {section.label}
+          </div>
+          <div className="mt-0.5 text-xs text-slate-500">{typeLabel}</div>
         </div>
-        <div className="mt-0.5 text-xs text-slate-500">{typeLabel}</div>
-      </div>
+        <ChevronRight className="h-4 w-4 text-slate-300 group-hover:text-blue-500" />
+      </Link>
 
       {/* 활성화 토글 */}
       <div className="flex items-center gap-2">

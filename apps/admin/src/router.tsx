@@ -4,6 +4,7 @@ import { AdminLayout } from '@/components/layout/AdminLayout'
 import { LoginPage } from '@/pages/LoginPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { ContentPage } from '@/pages/ContentPage'
+import { SectionEditorPage } from '@/pages/SectionEditorPage'
 import { SnsPage } from '@/pages/SnsPage'
 import { InquiriesPage } from '@/pages/InquiriesPage'
 import { SeoPage } from '@/pages/SeoPage'
@@ -26,6 +27,10 @@ export const router = createBrowserRouter([
         children: [
           { path: '/admin/dashboard', element: <DashboardPage /> },
           { path: '/admin/content', element: <ContentPage /> },
+          {
+            path: '/admin/content/:sectionId',
+            element: <SectionEditorPage />,
+          },
           { path: '/admin/sns', element: <SnsPage /> },
           { path: '/admin/inquiries', element: <InquiriesPage /> },
           { path: '/admin/seo', element: <SeoPage /> },
