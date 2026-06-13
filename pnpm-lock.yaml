@@ -50,6 +50,9 @@ importers:
       react-router:
         specifier: ^7.6.0
         version: 7.15.1(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
+      recharts:
+        specifier: ^2.15.3
+        version: 2.15.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       sonner:
         specifier: ^1.7.4
         version: 1.7.4(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
