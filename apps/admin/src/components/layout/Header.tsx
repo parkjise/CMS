@@ -1,4 +1,3 @@
-import { Menu } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const PLAN_LABEL: Record<string, string> = {
@@ -8,41 +7,33 @@ const PLAN_LABEL: Record<string, string> = {
   ENTERPRISE: 'Enterprise',
 }
 
-interface HeaderProps {
-  onMenuClick: () => void
-}
-
-export function Header({ onMenuClick }: HeaderProps) {
+export function Header() {
   const user = useAuthStore((s) => s.user)
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
 
   return (
-    <header className="h-16 shrink-0 flex items-center gap-4 px-4 sm:px-6 bg-white border-b border-slate-200">
-      {/* 모바일 햄버거 */}
-      <button
-        onClick={onMenuClick}
-        className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 lg:hidden"
-        aria-label="메뉴 열기"
-      >
-        <Menu size={20} />
-      </button>
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 sm:h-16 sm:px-6">
+      {/* 모바일 로고 (사이드바가 숨겨진 경우) */}
+      <span className="text-base font-bold text-blue-600 md:hidden">
+        CMS Admin
+      </span>
 
       {/* 테넌트 정보 */}
-      <div className="flex items-center gap-2 min-w-0">
+      <div className="hidden min-w-0 items-center gap-2 md:flex">
         {tenantSlug && (
-          <span className="text-sm font-semibold text-slate-800 truncate">{tenantSlug}</span>
+          <span className="truncate text-sm font-semibold text-slate-800">
+            {tenantSlug}
+          </span>
         )}
-        {/* 플랜 뱃지 — 추후 테넌트 API 연동 시 실제 플랜으로 교체 */}
-        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500">
+        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
           {PLAN_LABEL['FREE']}
         </span>
       </div>
 
       <div className="flex-1" />
 
-      {/* 유저 역할 */}
       {user && (
-        <span className="hidden sm:block text-xs text-slate-400">
+        <span className="hidden text-xs text-slate-400 sm:block">
           {user.role === 'TENANT_ADMIN' ? '관리자' : '뷰어'}
         </span>
       )}

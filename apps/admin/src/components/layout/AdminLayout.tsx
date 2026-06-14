@@ -1,43 +1,33 @@
-import { useState, useCallback } from 'react'
 import { Outlet } from 'react-router'
-import { Sidebar } from './Sidebar'
+import { BottomTabBar } from './BottomTabBar'
+import { CollapsedSidebar } from './CollapsedSidebar'
 import { Header } from './Header'
+import { Sidebar } from './Sidebar'
 
 export function AdminLayout() {
-  const [sidebarOpen, setSidebarOpen] = useState(false)
-
-  const closeSidebar = useCallback(() => setSidebarOpen(false), [])
-  const openSidebar = useCallback(() => setSidebarOpen(true), [])
-
   return (
-    <div className="flex h-screen bg-slate-50 overflow-hidden">
-      {/* 데스크탑 사이드바 (항상 노출) */}
+    <div className="flex h-screen overflow-hidden bg-slate-50">
+      {/* 데스크톱 lg+: 전체 사이드바 */}
       <div className="hidden lg:flex lg:flex-col">
         <Sidebar />
       </div>
 
-      {/* 모바일 사이드바 오버레이 */}
-      {sidebarOpen && (
-        <>
-          {/* backdrop */}
-          <div
-            className="fixed inset-0 z-20 bg-black/40 lg:hidden"
-            onClick={closeSidebar}
-            aria-hidden="true"
-          />
-          {/* drawer */}
-          <div className="fixed inset-y-0 left-0 z-30 flex flex-col w-60 lg:hidden">
-            <Sidebar onClose={closeSidebar} />
-          </div>
-        </>
-      )}
+      {/* 태블릿 md~lg: 아이콘 사이드바 */}
+      <div className="hidden md:flex md:flex-col lg:hidden">
+        <CollapsedSidebar />
+      </div>
 
-      {/* 오른쪽 콘텐츠 영역 */}
-      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <Header onMenuClick={openSidebar} />
-        <main className="flex-1 overflow-y-auto">
+      {/* 오른쪽 콘텐츠 */}
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <Header />
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
           <Outlet />
         </main>
+      </div>
+
+      {/* 모바일 <md: 하단 탭바 */}
+      <div className="md:hidden">
+        <BottomTabBar />
       </div>
     </div>
   )

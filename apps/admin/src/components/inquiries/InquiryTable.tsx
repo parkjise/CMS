@@ -8,6 +8,7 @@ import {
   type InquiryStatus,
   useUpdateInquiry,
 } from '@/hooks/useInquiries'
+import { InquiryMobileCard } from './InquiryMobileCard'
 import { STATUS_OPTIONS, TYPE_LABELS } from './StatusBadge'
 
 interface InquiryTableProps {
@@ -44,7 +45,35 @@ export function InquiryTable({
 
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm">
-      <div className="overflow-x-auto">
+      {/* 모바일 카드 (<md) */}
+      <div className="space-y-3 p-3 md:hidden">
+        {isLoading &&
+          Array.from({ length: 4 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-lg border border-slate-200 bg-slate-50"
+            />
+          ))}
+
+        {!isLoading && (data?.items.length ?? 0) === 0 && (
+          <p className="py-8 text-center text-sm text-slate-400">
+            조회된 문의가 없습니다.
+          </p>
+        )}
+
+        {!isLoading &&
+          data?.items.map((item) => (
+            <InquiryMobileCard
+              key={item.id}
+              item={item}
+              onSelect={() => onSelect(item.id)}
+              onStatusChange={(next) => handleStatusChange(item, next)}
+            />
+          ))}
+      </div>
+
+      {/* 데스크톱 테이블 (≥md) */}
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
