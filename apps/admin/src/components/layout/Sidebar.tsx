@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { X, ExternalLink, LayoutDashboard, FileText, Share2, MessageSquare, Search, Layers, LogOut } from 'lucide-react'
+import { X, ExternalLink, LayoutDashboard, FileText, Share2, MessageSquare, Search, Layers, CreditCard, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의 관리' },
   { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },
+  { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
 
 interface SidebarProps {

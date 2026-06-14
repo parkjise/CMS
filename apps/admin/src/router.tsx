@@ -9,6 +9,7 @@ import { SnsPage } from '@/pages/SnsPage'
 import { InquiriesPage } from '@/pages/InquiriesPage'
 import { SeoPage } from '@/pages/SeoPage'
 import { TemplatesPage } from '@/pages/TemplatesPage'
+import { BillingPage } from '@/pages/BillingPage'
 
 export const router = createBrowserRouter([
   {
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: '/admin/inquiries', element: <InquiriesPage /> },
           { path: '/admin/seo', element: <SeoPage /> },
           { path: '/admin/templates', element: <TemplatesPage /> },
+          { path: '/admin/billing', element: <BillingPage /> },
         ],
       },
     ],
