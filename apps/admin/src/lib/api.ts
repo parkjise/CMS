@@ -5,7 +5,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api
 
 export const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true,   // Refresh Token HttpOnly Cookie 자동 전송
+  withCredentials: true, // Refresh Token HttpOnly Cookie 자동 전송
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -19,6 +19,7 @@ api.interceptors.request.use((config) => {
 })
 
 // ── 응답 인터셉터: 401 시 토큰 갱신 후 재시도 ──
+// 그 외 에러의 사용자 토스트는 TanStack Query의 QueryCache/MutationCache.onError가 담당.
 let isRefreshing = false
 let pendingQueue: Array<{
   resolve: (token: string) => void
