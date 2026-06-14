@@ -75,14 +75,27 @@ export function InquiryTable({
       {/* 데스크톱 테이블 (≥md) */}
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
+          <caption className="sr-only">문의 목록 테이블</caption>
           <thead className="bg-slate-50 text-xs uppercase text-slate-500">
             <tr>
-              <th className="w-10 px-3 py-2.5"></th>
-              <th className="px-3 py-2.5 text-left font-medium">이름</th>
-              <th className="px-3 py-2.5 text-left font-medium">유형</th>
-              <th className="px-3 py-2.5 text-left font-medium">연락처</th>
-              <th className="px-3 py-2.5 text-left font-medium">상태</th>
-              <th className="px-3 py-2.5 text-left font-medium">접수일시</th>
+              <th scope="col" className="w-10 px-3 py-2.5">
+                <span className="sr-only">읽음 여부</span>
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                이름
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                유형
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                연락처
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                상태
+              </th>
+              <th scope="col" className="px-3 py-2.5 text-left font-medium">
+                접수일시
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -97,7 +110,7 @@ export function InquiryTable({
 
             {!isLoading && (data?.items.length ?? 0) === 0 && (
               <tr>
-                <td colSpan={6} className="px-3 py-12 text-center text-sm text-slate-400">
+                <td colSpan={6} className="px-3 py-12 text-center text-sm text-slate-500">
                   조회된 문의가 없습니다.
                 </td>
               </tr>
@@ -107,14 +120,26 @@ export function InquiryTable({
               data?.items.map((item) => (
                 <tr
                   key={item.id}
-                  className="cursor-pointer hover:bg-slate-50"
+                  className="cursor-pointer hover:bg-slate-50 focus-within:bg-slate-50"
                   onClick={() => onSelect(item.id)}
                 >
                   <td className="px-3 py-3">
                     {item.is_read ? (
-                      <MailOpen className="h-4 w-4 text-slate-300" />
+                      <>
+                        <MailOpen
+                          className="h-4 w-4 text-slate-400"
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">읽음</span>
+                      </>
                     ) : (
-                      <Mail className="h-4 w-4 text-blue-500" />
+                      <>
+                        <Mail
+                          className="h-4 w-4 text-blue-500"
+                          aria-hidden="true"
+                        />
+                        <span className="sr-only">미확인</span>
+                      </>
                     )}
                   </td>
                   <td className="px-3 py-3 font-medium text-slate-900">
@@ -133,6 +158,7 @@ export function InquiryTable({
                       onChange={(e) =>
                         handleStatusChange(item, e.target.value as InquiryStatus)
                       }
+                      aria-label={`${item.name}님 문의 상태 변경`}
                       className="h-7 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700"
                     >
                       {STATUS_OPTIONS.map((o) => (

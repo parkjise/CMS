@@ -16,15 +16,36 @@ export function InquiryMobileCard({
 }: InquiryMobileCardProps) {
   return (
     <article
-      className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm active:bg-slate-50"
+      role="button"
+      tabIndex={0}
+      aria-label={`${item.name}님 문의 상세 보기`}
+      className="cursor-pointer rounded-lg border border-slate-200 bg-white p-4 shadow-sm active:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
       onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
     >
       <header className="mb-2 flex items-start justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           {item.is_read ? (
-            <MailOpen className="h-4 w-4 flex-shrink-0 text-slate-300" />
+            <>
+              <MailOpen
+                className="h-4 w-4 flex-shrink-0 text-slate-400"
+                aria-hidden="true"
+              />
+              <span className="sr-only">읽음</span>
+            </>
           ) : (
-            <Mail className="h-4 w-4 flex-shrink-0 text-blue-500" />
+            <>
+              <Mail
+                className="h-4 w-4 flex-shrink-0 text-blue-500"
+                aria-hidden="true"
+              />
+              <span className="sr-only">미확인</span>
+            </>
           )}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">
@@ -47,8 +68,9 @@ export function InquiryMobileCard({
           value={item.status}
           onChange={(e) => onStatusChange(e.target.value as InquiryStatus)}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
           className="h-7 rounded border border-slate-300 bg-white px-2 text-xs text-slate-700"
-          aria-label="상태 변경"
+          aria-label={`${item.name}님 문의 상태 변경`}
         >
           {STATUS_OPTIONS.map((o) => (
             <option key={o.value} value={o.value}>

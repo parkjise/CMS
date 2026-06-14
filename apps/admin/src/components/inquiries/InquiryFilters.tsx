@@ -36,6 +36,7 @@ export function InquiryFilters({ value, onChange }: InquiryFiltersProps) {
             (e.target.value || '') as InquiryFiltersValue['status']
           )
         }
+        aria-label="상태 필터"
         className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
       >
         <option value="">전체 상태</option>
@@ -54,6 +55,7 @@ export function InquiryFilters({ value, onChange }: InquiryFiltersProps) {
             (e.target.value || '') as InquiryFiltersValue['inquiry_type']
           )
         }
+        aria-label="문의 유형 필터"
         className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
       >
         <option value="">전체 유형</option>
@@ -70,6 +72,7 @@ export function InquiryFilters({ value, onChange }: InquiryFiltersProps) {
           const v = e.target.value
           update('is_read', v === '' ? undefined : v === 'true')
         }}
+        aria-label="읽음 여부 필터"
         className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
       >
         <option value="">읽음/미읽음 전체</option>
