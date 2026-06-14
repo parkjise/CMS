@@ -10,11 +10,15 @@ import { InquiriesPage } from '@/pages/InquiriesPage'
 import { SeoPage } from '@/pages/SeoPage'
 import { TemplatesPage } from '@/pages/TemplatesPage'
 import { BillingPage } from '@/pages/BillingPage'
+import { NotFoundPage } from '@/pages/NotFoundPage'
+import { ForbiddenPage } from '@/pages/ForbiddenPage'
+import { ErrorPage } from '@/pages/ErrorPage'
 
 export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+    errorElement: <ErrorPage />,
   },
   {
     path: '/',
@@ -22,9 +26,11 @@ export const router = createBrowserRouter([
   },
   {
     element: <PrivateRoute />,
+    errorElement: <ErrorPage />,
     children: [
       {
         element: <AdminLayout />,
+        errorElement: <ErrorPage />,
         children: [
           { path: '/admin/dashboard', element: <DashboardPage /> },
           { path: '/admin/content', element: <ContentPage /> },
@@ -37,8 +43,11 @@ export const router = createBrowserRouter([
           { path: '/admin/seo', element: <SeoPage /> },
           { path: '/admin/templates', element: <TemplatesPage /> },
           { path: '/admin/billing', element: <BillingPage /> },
+          { path: '/admin/403', element: <ForbiddenPage /> },
         ],
       },
     ],
   },
+  // catch-all 404
+  { path: '*', element: <NotFoundPage /> },
 ])
