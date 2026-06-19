@@ -9,7 +9,8 @@
     "preview": "vite preview --port 3001",
     "lint": "eslint src --ext .ts,.tsx",
     "type-check": "tsc -p tsconfig.app.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "analyze": "vite-bundle-visualizer"
   },
   "dependencies": {
     "@cms/types": "workspace:*",
@@ -45,6 +46,7 @@
     "tailwindcss": "^4.1.7",
     "typescript": "^5.9.2",
     "vite": "^7.0.0",
+    "vite-bundle-visualizer": "^1.2.1",
     "vitest": "^4.1.9"
   }
 }
