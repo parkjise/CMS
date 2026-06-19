@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 0 | 0% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 1 | 10% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **37** | **32.7%** |
+| **합계** | **113** | **38** | **33.6%** |
 
 ---
 
@@ -874,20 +874,20 @@
 
 ---
 
-### T-047: 고객 홈페이지 기본 구조
+### T-047: 고객 홈페이지 기본 구조 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 2.1 (앱/client)`, `기획서 섹션 11 (템플릿)`
 - **작업 내용:**
-  - [ ] `app/[tenant_slug]/page.tsx` — SSR로 Public API 데이터 fetch
-  - [ ] `app/[tenant_slug]/layout.tsx` — SEO 메타태그 동적 주입
+  - [x] `app/[tenant_slug]/page.tsx` — SSR로 Public API 데이터 fetch
+  - [x] `app/[tenant_slug]/layout.tsx` — SEO 메타태그 동적 주입
     ```typescript
     export async function generateMetadata({ params }) {
       const seo = await fetchSeoSettings(params.tenant_slug)
       return { title: seo.page_title, description: seo.meta_description, ... }
     }
     ```
-  - [ ] 비활성 테넌트 접근 시 404 페이지
-  - [ ] 로딩 스켈레톤 (`loading.tsx`)
+  - [x] 비활성 테넌트 접근 시 404 페이지
+  - [x] 로딩 스켈레톤 (`loading.tsx`)
 - **완료 조건:** `/{tenant_slug}` 접속 시 해당 테넌트 홈페이지 SSR 렌더링
 
 ---
