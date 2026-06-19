@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 3 | 30% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 4 | 40% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **40** | **35.4%** |
+| **합계** | **113** | **41** | **36.3%** |
 
 ---
 
@@ -938,19 +938,20 @@
 
 ---
 
-### T-050: CSS 변수 기반 테마 시스템 구현
+### T-050: CSS 변수 기반 테마 시스템 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 11.3 (템플릿 데이터 구조)`, `CSSVariableSet`
 - **작업 내용:**
-  - [ ] `apps/client/lib/theme.ts` — CSS 변수 → `document.documentElement.style` 주입 함수
-  - [ ] SSR 시 `<head>`에 CSS 변수 인라인 삽입 (FOUC 방지)
-  ```typescript
-  // layout.tsx에서 스타일 주입
-  const cssVarString = buildCSSVariableString(template.css_variables, overrides)
-  // <style>{`:root { ${cssVarString} }`}</style>
-  ```
-  - [ ] TailwindCSS 4.x CSS 변수 연동 (`--color-primary` → Tailwind 클래스)
-  - [ ] 섹션 컴포넌트 전체를 CSS 변수 기반으로 리팩토링
+  - [x] `apps/client/lib/theme.ts` — `buildCssVarBody` + 키 정규화 + 값 sanitize
+  - [x] SSR 시 `<head>`에 CSS 변수 인라인 삽입 (FOUC 방지)
+    ```typescript
+    // layout.tsx에서 스타일 주입
+    const cssVarBody = buildCssVarBody(site?.template?.css_variables)
+    // <style dangerouslySetInnerHTML={`:root { ${cssVarBody} }`} />
+    ```
+  - [x] TailwindCSS 4.x arbitrary 값으로 var() 연동 (`bg-[var(--color-primary)]` 등)
+  - [x] 섹션 6종 + 레이아웃 4종 전체를 CSS 변수 기반으로 리팩토링
+  - [x] globals.css에 풀 디자인 토큰 fallback 정의 (색/폰트/모서리/그림자/간격)
 - **완료 조건:** 템플릿 변경 시 CSS 변수만 교체되어 전체 디자인 변경
 
 ---

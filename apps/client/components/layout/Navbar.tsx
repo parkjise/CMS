@@ -34,8 +34,8 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
       className={[
         'sticky top-0 z-40 w-full transition-all',
         scrolled
-          ? 'border-b border-slate-200 bg-white/95 shadow-sm backdrop-blur'
-          : 'bg-white/0',
+          ? 'border-b border-[color:var(--color-border)] bg-[var(--color-background)]/95 shadow-sm backdrop-blur'
+          : 'bg-transparent',
       ].join(' ')}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -44,7 +44,7 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
           onClick={() =>
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }
-          className="text-lg font-bold text-slate-900"
+          className="text-lg font-bold text-[color:var(--color-text-primary)]"
           aria-label={`${tenantName} 홈으로 이동`}
         >
           {tenantName}
@@ -57,7 +57,7 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
                 <button
                   type="button"
                   onClick={() => handleNavClick(s.id)}
-                  className="text-sm text-slate-700 transition hover:text-slate-900"
+                  className="text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]"
                 >
                   {s.label}
                 </button>
@@ -74,16 +74,16 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
           aria-expanded={mobileOpen}
         >
           {mobileOpen ? (
-            <X className="h-6 w-6 text-slate-700" />
+            <X className="h-6 w-6 text-[color:var(--color-text-secondary)]" />
           ) : (
-            <Menu className="h-6 w-6 text-slate-700" />
+            <Menu className="h-6 w-6 text-[color:var(--color-text-secondary)]" />
           )}
         </button>
       </div>
 
       {mobileOpen && (
         <nav
-          className="border-t border-slate-200 bg-white md:hidden"
+          className="border-t border-[color:var(--color-border)] bg-[var(--color-background)] md:hidden"
           aria-label="모바일 섹션 메뉴"
         >
           <ul className="flex flex-col py-2">
@@ -92,7 +92,7 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
                 <button
                   type="button"
                   onClick={() => handleNavClick(s.id)}
-                  className="block w-full px-6 py-3 text-left text-sm text-slate-700 hover:bg-slate-50"
+                  className="block w-full px-6 py-3 text-left text-sm text-[color:var(--color-text-secondary)] hover:bg-[var(--color-surface)]"
                 >
                   {s.label}
                 </button>

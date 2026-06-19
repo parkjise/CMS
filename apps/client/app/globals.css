@@ -2,23 +2,54 @@
 
 @layer base {
   :root {
-    /* 템플릿 CSS 변수 — 런타임에 테넌트별 값으로 교체됨 */
+    /* ── 브랜드 색 (테넌트별 교체) ─────────────────────── */
     --color-primary: #2563eb;
+    --color-primary-hover: #1d4ed8;
+    --color-on-primary: #ffffff;
     --color-secondary: #64748b;
     --color-accent: #f59e0b;
+
+    /* ── 표면 / 배경 ──────────────────────────────────── */
     --color-background: #ffffff;
     --color-surface: #f8fafc;
-    --color-text-primary: #0f172a;
-    --color-text-secondary: #64748b;
+    --color-surface-strong: #f1f5f9;
 
+    /* ── 텍스트 (가독성 톤, 다크모드 시 교체) ─────────── */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748b;
+    --color-text-subtle: #94a3b8;
+
+    /* ── 경계선 ──────────────────────────────────────── */
+    --color-border: #e2e8f0;
+    --color-border-strong: #cbd5e1;
+
+    /* ── 시멘틱 ───────────────────────────────────────── */
+    --color-danger: #e11d48;
+    --color-danger-hover: #be123c;
+    --color-on-danger: #ffffff;
+    --color-warning: #f59e0b;
+    --color-on-warning: #ffffff;
+
+    /* ── 오버레이 / 특수 ─────────────────────────────── */
+    --color-overlay: rgba(0, 0, 0, 0.4);
+    --color-kakao: #fee500;
+    --color-kakao-text: #391b1b;
+
+    /* ── 폰트 ────────────────────────────────────────── */
     --font-heading: 'Noto Sans KR', sans-serif;
     --font-body: 'Noto Sans KR', sans-serif;
     --font-size-base: 16px;
+    --font-weight-heading: 700;
 
+    /* ── 모서리 / 그림자 ─────────────────────────────── */
     --border-radius-base: 8px;
     --border-radius-card: 16px;
+    --border-radius-pill: 9999px;
     --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.08);
+    --shadow-floating: 0 4px 12px rgba(0, 0, 0, 0.12);
 
+    /* ── 간격 ────────────────────────────────────────── */
     --spacing-section: 120px;
     --spacing-container: 1200px;
   }
@@ -30,5 +61,10 @@
     color: var(--color-text-primary);
     background-color: var(--color-background);
     -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: var(--font-weight-heading);
   }
 }

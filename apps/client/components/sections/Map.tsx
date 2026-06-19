@@ -81,7 +81,7 @@ export function Map({ section }: SectionProps) {
     <section
       data-section-id={section.id}
       data-section-type="MAP"
-      className="bg-white px-6 py-16 md:py-24"
+      className="bg-[var(--color-background)] px-6 py-16 md:py-24"
     >
       <div className="mx-auto max-w-5xl">
         {address && (
@@ -90,7 +90,7 @@ export function Map({ section }: SectionProps) {
               data-editable
               data-field="address"
               data-section-id={section.id}
-              className="text-base font-medium text-slate-900"
+              className="text-base font-medium text-[color:var(--color-text-primary)]"
             >
               {address}
             </p>
@@ -99,7 +99,7 @@ export function Map({ section }: SectionProps) {
                 data-editable
                 data-field="address_detail"
                 data-section-id={section.id}
-                className="mt-1 text-sm text-slate-600"
+                className="mt-1 text-sm text-[color:var(--color-text-muted)]"
               >
                 {addressDetail}
               </p>
@@ -110,18 +110,18 @@ export function Map({ section }: SectionProps) {
         {apiKey && hasCoords ? (
           <div
             ref={containerRef}
-            className="mt-6 aspect-[16/9] w-full overflow-hidden rounded-lg border border-slate-200 bg-slate-100"
+            className="mt-6 aspect-[16/9] w-full overflow-hidden rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] bg-[var(--color-surface-strong)]"
             aria-label="지도"
           >
             {!mapReady && (
-              <div className="flex h-full items-center justify-center text-sm text-slate-400">
+              <div className="flex h-full items-center justify-center text-sm text-[color:var(--color-text-subtle)]">
                 지도 로딩 중...
               </div>
             )}
           </div>
         ) : (
           address && (
-            <div className="mt-6 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
+            <div className="mt-6 rounded-[var(--border-radius-card)] border border-dashed border-[color:var(--color-border)] bg-[var(--color-surface)] px-6 py-10 text-center text-sm text-[color:var(--color-text-muted)]">
               지도는 별도 설정 후 표시됩니다.
             </div>
           )

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { fetchPublicSite } from '@/lib/publicSite'
+import { buildCssVarBody } from '@/lib/theme'
 
 interface Props {
   children: React.ReactNode
@@ -42,6 +43,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function TenantLayout({ children, params }: Props) {
-  await params
-  return <>{children}</>
+  const { tenant_slug } = await params
+  const site = await fetchPublicSite(tenant_slug)
+  const cssVarBody = buildCssVarBody(site?.template?.css_variables)
+
+  return (
+    <>
+      {cssVarBody && (
+        <style
+          dangerouslySetInnerHTML={{
+            __html: `:root { ${cssVarBody} }`,
+          }}
+        />
+      )}
+      {children}
+    </>
+  )
 }

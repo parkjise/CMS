@@ -59,9 +59,11 @@ export function Footer({ tenantName, sns }: FooterProps) {
   const links = buildSnsLinks(sns)
 
   return (
-    <footer className="border-t border-slate-200 bg-slate-50 px-6 py-10">
+    <footer className="border-t border-[color:var(--color-border)] bg-[var(--color-surface)] px-6 py-10">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 md:flex-row md:justify-between">
-        <p className="text-sm font-medium text-slate-700">{tenantName}</p>
+        <p className="text-sm font-medium text-[color:var(--color-text-secondary)]">
+          {tenantName}
+        </p>
 
         {links.length > 0 && (
           <ul className="flex items-center gap-3">
@@ -72,7 +74,7 @@ export function Footer({ tenantName, sns }: FooterProps) {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={link.label}
-                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-500 transition hover:border-slate-300 hover:text-slate-700"
+                  className="flex h-9 w-9 items-center justify-center rounded-[var(--border-radius-pill)] border border-[color:var(--color-border)] text-[color:var(--color-text-muted)] transition hover:border-[color:var(--color-border-strong)] hover:text-[color:var(--color-primary)]"
                 >
                   {link.icon}
                 </a>
@@ -81,7 +83,7 @@ export function Footer({ tenantName, sns }: FooterProps) {
           </ul>
         )}
 
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-[color:var(--color-text-subtle)]">
           © {year} {tenantName}
         </p>
       </div>
