@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 2 | 20% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 3 | 30% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **39** | **34.5%** |
+| **합계** | **113** | **40** | **35.4%** |
 
 ---
 
@@ -908,29 +908,30 @@
 
 ---
 
-### T-049: 공통 레이아웃 컴포넌트 (네비게이션, 푸터, 플로팅 버튼)
+### T-049: 공통 레이아웃 컴포넌트 (네비게이션, 푸터, 플로팅 버튼) ✅
 - **담당:** 프론트엔드
 - **참조:** `CLAUDE.md 섹션 7.3 (홈페이지 편집 모드 진입 흐름)`
 - **작업 내용:**
-  - [ ] `apps/client/components/layout/Navbar.tsx`
-    - 로고, 메뉴 항목 (섹션 앵커 링크)
+  - [x] `apps/client/components/layout/Navbar.tsx`
+    - 로고, 메뉴 항목 (섹션 앵커 링크 — JS scrollIntoView)
     - 스크롤 시 sticky 전환
     - 모바일 햄버거 메뉴
-  - [ ] `apps/client/components/layout/Footer.tsx`
+  - [x] `apps/client/components/layout/Footer.tsx`
     - SNS 채널 아이콘 (설정에 따라 동적 노출)
-    - 사업자 정보
-  - [ ] `apps/client/components/layout/FloatingButtons.tsx`
+    - 사업자 정보 (tenant.name + © 연도)
+  - [x] `apps/client/components/layout/FloatingButtons.tsx`
     - 카카오톡 채널 플로팅 버튼 (SNS 설정에서 활성화 시)
-    - 맨 위로 버튼
+    - 맨 위로 버튼 (스크롤 200px↑)
     - **인증 상태에 따라 동적 버튼 노출** ← 핵심
       ```
       isLoggedIn = false → 🔐 [관리자 로그인] 버튼 노출
-                              클릭 시 로그인 모달 오픈
+                              클릭 시 /{slug}/login 이동
       isLoggedIn = true  → ✏️ [편집 모드] 버튼 노출
-                              클릭 시 인라인 편집 모드 진입
+                              클릭 시 toggleEditMode()
       isEditMode = true  → [편집 종료] 버튼으로 교체
       ```
     - `authStore.initialize()` 호출로 쿠키 기반 자동 로그인 확인
+  - [x] `EditModeBanner.tsx` (편집 모드 진입 시 상단 배너)
 - **완료 조건:**
   - 비로그인: 🔐 로그인 버튼 노출 → 로그인 성공 → ✏️ 편집 버튼으로 교체
   - admin에서 로그인 후 홈페이지 접속: ✏️ 편집 버튼 바로 노출 (재로그인 불필요)

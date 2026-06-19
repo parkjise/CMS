@@ -1,6 +1,10 @@
 import { notFound } from 'next/navigation'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
+import { Navbar } from '@/components/layout/Navbar'
+import { Footer } from '@/components/layout/Footer'
+import { FloatingButtons } from '@/components/layout/FloatingButtons'
+import { EditModeBanner } from '@/components/layout/EditModeBanner'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -17,19 +21,31 @@ export default async function TenantHomePage({ params }: Props) {
   const activeSections = site.sections.filter((s) => s.is_active)
 
   return (
-    <main className="min-h-screen bg-white">
-      {activeSections.length === 0 ? (
-        <EmptySectionsPlaceholder />
-      ) : (
-        activeSections.map((section) => (
-          <SectionRenderer
-            key={section.id}
-            section={section}
-            tenantSlug={tenant_slug}
-          />
-        ))
-      )}
-    </main>
+    <div className="flex min-h-screen flex-col bg-white">
+      <EditModeBanner />
+      <Navbar tenantName={site.tenant.name} sections={activeSections} />
+
+      <main className="flex-1">
+        {activeSections.length === 0 ? (
+          <EmptySectionsPlaceholder />
+        ) : (
+          activeSections.map((section) => (
+            <SectionRenderer
+              key={section.id}
+              section={section}
+              tenantSlug={tenant_slug}
+            />
+          ))
+        )}
+      </main>
+
+      <Footer tenantName={site.tenant.name} sns={site.sns_settings} />
+
+      <FloatingButtons
+        tenantSlug={tenant_slug}
+        kakaoUrl={site.sns_settings?.kakao_url ?? null}
+      />
+    </div>
   )
 }
 
