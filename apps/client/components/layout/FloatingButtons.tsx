@@ -57,7 +57,7 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           aria-label="맨 위로"
-          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-md transition hover:bg-slate-50"
+          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-[var(--border-radius-pill)] border border-[color:var(--color-border)] bg-[var(--color-background)] text-[color:var(--color-text-secondary)] shadow-[var(--shadow-floating)] transition hover:bg-[var(--color-surface)]"
         >
           <ArrowUp className="h-5 w-5" />
         </button>
@@ -69,7 +69,7 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
           target="_blank"
           rel="noopener noreferrer"
           aria-label="카카오톡 채널"
-          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-[#FEE500] text-[#391B1B] shadow-md transition hover:brightness-95"
+          className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-[var(--border-radius-pill)] bg-[var(--color-kakao)] text-[color:var(--color-kakao-text)] shadow-[var(--shadow-floating)] transition hover:brightness-95"
         >
           <MessageCircle className="h-5 w-5" />
         </a>
@@ -80,12 +80,12 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
         onClick={handleAuthClick}
         aria-label={authLabel}
         className={[
-          'pointer-events-auto flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium shadow-md transition',
+          'pointer-events-auto flex items-center gap-2 rounded-[var(--border-radius-pill)] px-4 py-3 text-sm font-medium shadow-[var(--shadow-floating)] transition',
           isLoggedIn && isEditMode
-            ? 'bg-rose-600 text-white hover:bg-rose-700'
+            ? 'bg-[var(--color-danger)] text-[color:var(--color-on-danger)] hover:bg-[var(--color-danger-hover)]'
             : isLoggedIn
-              ? 'bg-slate-900 text-white hover:bg-slate-800'
-              : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50',
+              ? 'bg-[var(--color-primary)] text-[color:var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]'
+              : 'border border-[color:var(--color-border)] bg-[var(--color-background)] text-[color:var(--color-text-secondary)] hover:bg-[var(--color-surface)]',
         ].join(' ')}
       >
         <AuthIcon className="h-4 w-4" />

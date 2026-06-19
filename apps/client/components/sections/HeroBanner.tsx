@@ -12,11 +12,11 @@ export function HeroBanner({ section }: SectionProps) {
     <section
       data-section-id={section.id}
       data-section-type="HERO_BANNER"
-      className="relative flex min-h-[60vh] items-center justify-center bg-slate-900 px-6 py-24 text-center md:min-h-[80vh]"
+      className="relative flex min-h-[60vh] items-center justify-center bg-[var(--color-primary)] px-6 py-24 text-center md:min-h-[80vh]"
       style={
         bgImage
           ? {
-              backgroundImage: `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url(${bgImage})`,
+              backgroundImage: `linear-gradient(var(--color-overlay), var(--color-overlay)), url(${bgImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }
@@ -29,7 +29,7 @@ export function HeroBanner({ section }: SectionProps) {
             data-editable
             data-field="main_title"
             data-section-id={section.id}
-            className="text-3xl font-bold leading-tight text-white md:text-5xl"
+            className="text-3xl font-bold leading-tight text-[color:var(--color-on-primary)] md:text-5xl"
           >
             {mainTitle}
           </h1>
@@ -39,7 +39,7 @@ export function HeroBanner({ section }: SectionProps) {
             data-editable
             data-field="sub_copy"
             data-section-id={section.id}
-            className="mt-4 text-base text-white/90 md:text-lg"
+            className="mt-4 text-base text-[color:var(--color-on-primary)]/90 md:text-lg"
           >
             {subCopy}
           </p>
@@ -50,7 +50,7 @@ export function HeroBanner({ section }: SectionProps) {
             data-field="cta_text"
             data-section-id={section.id}
             href={ctaUrl}
-            className="mt-8 inline-flex items-center rounded-md bg-white px-6 py-3 text-sm font-medium text-slate-900 transition hover:bg-slate-100"
+            className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-6 py-3 text-sm font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface-strong)]"
           >
             {ctaText}
           </a>

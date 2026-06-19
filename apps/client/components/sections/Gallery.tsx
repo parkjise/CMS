@@ -9,7 +9,7 @@ export function Gallery({ section }: SectionProps) {
     <section
       data-section-id={section.id}
       data-section-type="GALLERY"
-      className="bg-white px-6 py-16 md:py-24"
+      className="bg-[var(--color-background)] px-6 py-16 md:py-24"
     >
       <div className="mx-auto max-w-6xl">
         {title && (
@@ -17,14 +17,14 @@ export function Gallery({ section }: SectionProps) {
             data-editable
             data-field="section_title"
             data-section-id={section.id}
-            className="text-2xl font-bold text-slate-900 md:text-3xl"
+            className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"
           >
             {title}
           </h2>
         )}
 
         {items.length === 0 ? (
-          <p className="mt-6 text-sm text-slate-500">
+          <p className="mt-6 text-sm text-[color:var(--color-text-muted)]">
             등록된 이미지가 없습니다.
           </p>
         ) : (
@@ -32,7 +32,7 @@ export function Gallery({ section }: SectionProps) {
             {items.map((item, idx) => (
               <figure
                 key={`${item.image_url}-${idx}`}
-                className="overflow-hidden rounded-lg"
+                className="overflow-hidden rounded-[var(--border-radius-card)]"
               >
                 <img
                   src={item.image_url}
@@ -40,7 +40,7 @@ export function Gallery({ section }: SectionProps) {
                   className="aspect-square w-full object-cover transition hover:scale-105"
                 />
                 {item.caption && (
-                  <figcaption className="mt-2 text-xs text-slate-500">
+                  <figcaption className="mt-2 text-xs text-[color:var(--color-text-muted)]">
                     {item.caption}
                   </figcaption>
                 )}

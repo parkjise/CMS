@@ -19,6 +19,9 @@ interface FormState {
 
 const INITIAL: FormState = { name: '', phone: '', email: '', message: '' }
 
+const INPUT_CLASS =
+  'w-full rounded-[var(--border-radius-base)] border border-[color:var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm text-[color:var(--color-text-primary)] focus:border-[color:var(--color-primary)] focus:outline-none'
+
 export function ContactForm({ section, tenantSlug }: SectionProps) {
   const title = getString(section.settings, 'section_title', '문의하기')
   const description = getString(section.settings, 'description')
@@ -77,14 +80,14 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
     <section
       data-section-id={section.id}
       data-section-type="CONTACT"
-      className="bg-slate-50 px-6 py-16 md:py-24"
+      className="bg-[var(--color-surface)] px-6 py-16 md:py-24"
     >
       <div className="mx-auto max-w-2xl">
         <h2
           data-editable
           data-field="section_title"
           data-section-id={section.id}
-          className="text-2xl font-bold text-slate-900 md:text-3xl"
+          className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"
         >
           {title}
         </h2>
@@ -93,7 +96,7 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
             data-editable
             data-field="description"
             data-section-id={section.id}
-            className="mt-3 whitespace-pre-line text-sm text-slate-600"
+            className="mt-3 whitespace-pre-line text-sm text-[color:var(--color-text-muted)]"
           >
             {description}
           </p>
@@ -105,7 +108,7 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
               type="text"
               value={form.name}
               onChange={(e) => update({ name: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+              className={INPUT_CLASS}
               maxLength={100}
             />
           </Field>
@@ -117,7 +120,7 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
                 value={form.phone}
                 onChange={(e) => update({ phone: e.target.value })}
                 placeholder="010-1234-5678"
-                className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+                className={INPUT_CLASS}
               />
             </Field>
           )}
@@ -127,7 +130,7 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
               type="email"
               value={form.email}
               onChange={(e) => update({ email: e.target.value })}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+              className={INPUT_CLASS}
             />
           </Field>
 
@@ -141,14 +144,14 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
               onChange={(e) => update({ message: e.target.value })}
               rows={5}
               maxLength={MESSAGE_MAX}
-              className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-900 focus:outline-none"
+              className={INPUT_CLASS}
             />
           </Field>
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-md bg-slate-900 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            className="w-full rounded-[var(--border-radius-base)] bg-[var(--color-primary)] px-4 py-3 text-sm font-medium text-[color:var(--color-on-primary)] transition hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? '전송 중...' : '문의 보내기'}
           </button>
@@ -171,12 +174,18 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1 flex items-center justify-between text-sm font-medium text-slate-700">
+      <span className="mb-1 flex items-center justify-between text-sm font-medium text-[color:var(--color-text-secondary)]">
         <span>
           {label}
-          {required && <span className="ml-1 text-rose-500">*</span>}
+          {required && (
+            <span className="ml-1 text-[color:var(--color-danger)]">*</span>
+          )}
         </span>
-        {hint && <span className="text-xs text-slate-400">{hint}</span>}
+        {hint && (
+          <span className="text-xs text-[color:var(--color-text-subtle)]">
+            {hint}
+          </span>
+        )}
       </span>
       {children}
     </label>
