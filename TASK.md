@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 1 | 10% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 2 | 20% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **38** | **33.6%** |
+| **합계** | **113** | **39** | **34.5%** |
 
 ---
 
@@ -892,18 +892,18 @@
 
 ---
 
-### T-048: 섹션 컴포넌트 구현 (6종)
+### T-048: 섹션 컴포넌트 구현 (6종) ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 11.2 (템플릿 목록)`, `기획서 AD-02-B`
 - **작업 내용:**
-  - [ ] `apps/client/components/sections/HeroBanner.tsx`
-  - [ ] `apps/client/components/sections/Intro.tsx`
-  - [ ] `apps/client/components/sections/Services.tsx`
-  - [ ] `apps/client/components/sections/Gallery.tsx` (이미지 갤러리)
-  - [ ] `apps/client/components/sections/ContactForm.tsx` (문의 폼 → Public API 제출)
-  - [ ] `apps/client/components/sections/Map.tsx` (카카오 지도 SDK)
-  - [ ] 각 컴포넌트 — `data-editable`, `data-field`, `data-section-id` 속성 부착
-  - [ ] `SectionRenderer.tsx` — section_type에 따라 동적 컴포넌트 렌더링
+  - [x] `apps/client/components/sections/HeroBanner.tsx`
+  - [x] `apps/client/components/sections/Intro.tsx`
+  - [x] `apps/client/components/sections/Services.tsx`
+  - [x] `apps/client/components/sections/Gallery.tsx` (이미지 갤러리)
+  - [x] `apps/client/components/sections/ContactForm.tsx` (문의 폼 → Public API 제출)
+  - [x] `apps/client/components/sections/Map.tsx` (카카오 지도 SDK)
+  - [x] 각 컴포넌트 — `data-editable`, `data-field`, `data-section-id` 속성 부착
+  - [x] `SectionRenderer.tsx` — section_type에 따라 동적 컴포넌트 렌더링
 - **완료 조건:** 모든 섹션 타입 정상 렌더링, 모바일 반응형
 
 ---
