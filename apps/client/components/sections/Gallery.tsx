@@ -1,0 +1,54 @@
+import { getJson, getString } from '@/lib/sectionSettings'
+import type { GalleryItem, SectionProps } from './types'
+
+export function Gallery({ section }: SectionProps) {
+  const title = getString(section.settings, 'section_title')
+  const items = getJson<GalleryItem[]>(section.settings, 'gallery_items', [])
+
+  return (
+    <section
+      data-section-id={section.id}
+      data-section-type="GALLERY"
+      className="bg-white px-6 py-16 md:py-24"
+    >
+      <div className="mx-auto max-w-6xl">
+        {title && (
+          <h2
+            data-editable
+            data-field="section_title"
+            data-section-id={section.id}
+            className="text-2xl font-bold text-slate-900 md:text-3xl"
+          >
+            {title}
+          </h2>
+        )}
+
+        {items.length === 0 ? (
+          <p className="mt-6 text-sm text-slate-500">
+            등록된 이미지가 없습니다.
+          </p>
+        ) : (
+          <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
+            {items.map((item, idx) => (
+              <figure
+                key={`${item.image_url}-${idx}`}
+                className="overflow-hidden rounded-lg"
+              >
+                <img
+                  src={item.image_url}
+                  alt={item.caption || `gallery-${idx}`}
+                  className="aspect-square w-full object-cover transition hover:scale-105"
+                />
+                {item.caption && (
+                  <figcaption className="mt-2 text-xs text-slate-500">
+                    {item.caption}
+                  </figcaption>
+                )}
+              </figure>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
