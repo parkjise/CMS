@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 6 | 60% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 7 | 70% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **43** | **38.1%** |
+| **합계** | **113** | **44** | **38.9%** |
 
 ---
 
@@ -987,14 +987,17 @@
 
 ---
 
-### T-053: 사이트맵 + 로봇 텍스트
+### T-053: 사이트맵 + 로봇 텍스트 ✅
 - **담당:** 프론트엔드/백엔드
 - **참조:** `기획서 섹션 5.7 (SEO)`
 - **작업 내용:**
-  - [ ] `app/sitemap.ts` — Next.js 동적 사이트맵 생성
-  - [ ] `app/robots.ts` — robots.txt 동적 생성
-  - [ ] 구조화 데이터 (JSON-LD) — LocalBusiness 스키마 (병원, 펜션 등)
-- **완료 조건:** `/sitemap.xml`, `/robots.txt` 정상 응답
+  - [x] `app/[tenant_slug]/sitemap.ts` — 테넌트별 동적 사이트맵 (멀티테넌트 격리)
+  - [x] `app/robots.ts` — robots.txt 동적 생성
+  - [x] 구조화 데이터 (JSON-LD) — LocalBusiness 스키마
+    - template_type → schema.org 매핑 (HOSPITAL→MedicalBusiness, PENSION→LodgingBusiness, STARTUP→Organization, GENERAL→LocalBusiness)
+    - MAP 섹션의 address 자동 추출 → PostalAddress
+    - SNS url 모두 → sameAs
+- **완료 조건:** `/{slug}/sitemap.xml`, `/robots.txt` 정상 응답
 
 ---
 
