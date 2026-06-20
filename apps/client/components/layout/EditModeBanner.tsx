@@ -1,6 +1,9 @@
 'use client'
 
+import { ExternalLink } from 'lucide-react'
 import { useClientAuthStore } from '@/lib/authStore'
+
+const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
 
 export function EditModeBanner() {
   const isEditMode = useClientAuthStore((s) => s.isEditMode)
@@ -10,9 +13,18 @@ export function EditModeBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="sticky top-0 z-50 w-full bg-[var(--color-warning)] px-4 py-2 text-center text-xs font-medium text-[color:var(--color-on-warning)]"
+      className="sticky top-0 z-50 flex w-full items-center justify-between gap-3 bg-[var(--color-warning)] px-4 py-2 text-xs font-medium text-[color:var(--color-on-warning)]"
     >
-      편집 모드 활성화 — 인라인 편집은 다음 페이즈에서 활성화됩니다
+      <span className="truncate">편집 모드 활성화</span>
+      <a
+        href={`${ADMIN_URL}/admin/dashboard`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex shrink-0 items-center gap-1 underline-offset-2 hover:underline"
+      >
+        <span>관리자 페이지</span>
+        <ExternalLink className="h-3 w-3" />
+      </a>
     </div>
   )
 }
