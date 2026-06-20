@@ -1,8 +1,12 @@
 'use client'
 
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { toast } from 'sonner'
 import { publicApi } from '@/lib/api'
+import { executeRecaptcha } from '@/lib/recaptcha'
 import { getBoolean, getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -10,17 +14,56 @@ const PHONE_RE = /^01[016789]-?\d{3,4}-?\d{4}$/
 const MESSAGE_MIN = 10
 const MESSAGE_MAX = 1000
 
-interface FormState {
-  name: string
-  phone: string
-  email: string
-  message: string
-}
-
-const INITIAL: FormState = { name: '', phone: '', email: '', message: '' }
+const INQUIRY_TYPES = [
+  { value: 'GENERAL', label: '일반 문의' },
+  { value: 'RESERVATION', label: '예약 문의' },
+  { value: 'SYMPTOM', label: '증상 문의' },
+] as const
 
 const INPUT_CLASS =
   'w-full rounded-[var(--border-radius-base)] border border-[color:var(--color-border-strong)] bg-[var(--color-background)] px-3 py-2 text-sm text-[color:var(--color-text-primary)] focus:border-[color:var(--color-primary)] focus:outline-none'
+
+interface SchemaContext {
+  requirePhone: boolean
+  requireEmail: boolean
+}
+
+function buildSchema({ requirePhone, requireEmail }: SchemaContext) {
+  return z.object({
+    inquiry_type: z.enum(['GENERAL', 'RESERVATION', 'SYMPTOM']),
+    name: z.string().trim().min(1, '이름을 입력해주세요.').max(100),
+    phone: requirePhone
+      ? z
+          .string()
+          .trim()
+          .regex(PHONE_RE, '올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)')
+      : z
+          .string()
+          .trim()
+          .optional()
+          .refine(
+            (v) => !v || PHONE_RE.test(v),
+            '올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)',
+          ),
+    email: requireEmail
+      ? z.string().trim().email('올바른 이메일 형식이 아닙니다.')
+      : z
+          .string()
+          .trim()
+          .optional()
+          .refine(
+            (v) => !v || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v),
+            '올바른 이메일 형식이 아닙니다.',
+          ),
+    message: z
+      .string()
+      .trim()
+      .min(MESSAGE_MIN, `문의 내용은 ${MESSAGE_MIN}자 이상 입력해주세요.`)
+      .max(MESSAGE_MAX, `문의 내용은 ${MESSAGE_MAX}자 이하로 입력해주세요.`),
+  })
+}
+
+type FormValues = z.infer<ReturnType<typeof buildSchema>>
 
 export function ContactForm({ section, tenantSlug }: SectionProps) {
   const title = getString(section.settings, 'section_title', '문의하기')
@@ -28,47 +71,46 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
   const requirePhone = getBoolean(section.settings, 'require_phone', true)
   const requireEmail = getBoolean(section.settings, 'require_email', false)
 
-  const [form, setForm] = useState<FormState>(INITIAL)
+  const schema = buildSchema({ requirePhone, requireEmail })
+  const siteKey = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY
+
   const [submitting, setSubmitting] = useState(false)
+  const {
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    formState: { errors },
+  } = useForm<FormValues>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      inquiry_type: 'GENERAL',
+      name: '',
+      phone: '',
+      email: '',
+      message: '',
+    },
+  })
+  const messageValue = watch('message') ?? ''
 
-  const update = (patch: Partial<FormState>) =>
-    setForm((prev) => ({ ...prev, ...patch }))
-
-  const validate = (): string | null => {
-    if (!form.name.trim()) return '이름을 입력해주세요.'
-    if (requirePhone && !PHONE_RE.test(form.phone))
-      return '올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)'
-    if (requireEmail && !form.email.trim())
-      return '이메일을 입력해주세요.'
-    if (form.message.trim().length < MESSAGE_MIN)
-      return `문의 내용은 ${MESSAGE_MIN}자 이상 입력해주세요.`
-    if (form.message.length > MESSAGE_MAX)
-      return `문의 내용은 ${MESSAGE_MAX}자 이하로 입력해주세요.`
-    return null
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    const error = validate()
-    if (error) {
-      toast.error(error)
-      return
-    }
+  const onSubmit = async (values: FormValues) => {
     setSubmitting(true)
     try {
+      const recaptchaToken = await executeRecaptcha(siteKey, 'contact_submit')
       await publicApi.post(
         '/inquiries',
         {
-          inquiry_type: 'GENERAL',
-          name: form.name.trim(),
-          phone: form.phone.trim(),
-          email: form.email.trim() || undefined,
-          message: form.message.trim(),
+          inquiry_type: values.inquiry_type,
+          name: values.name,
+          phone: values.phone ?? '',
+          email: values.email || undefined,
+          message: values.message,
+          recaptcha_token: recaptchaToken ?? undefined,
         },
         { params: { tenant_slug: tenantSlug } },
       )
       toast.success('문의가 접수되었습니다. 빠른 시일 내 연락드리겠습니다.')
-      setForm(INITIAL)
+      reset()
     } catch {
       toast.error('문의 접수 중 오류가 발생했습니다. 다시 시도해주세요.')
     } finally {
@@ -102,50 +144,54 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-4">
-          <Field label="이름" required>
-            <input
-              type="text"
-              value={form.name}
-              onChange={(e) => update({ name: e.target.value })}
+        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4" noValidate>
+          <Field label="문의 유형" required>
+            <select
+              {...register('inquiry_type')}
               className={INPUT_CLASS}
-              maxLength={100}
-            />
+              defaultValue="GENERAL"
+            >
+              {INQUIRY_TYPES.map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
+                </option>
+              ))}
+            </select>
+            <FieldError message={errors.inquiry_type?.message} />
           </Field>
 
-          {requirePhone && (
-            <Field label="휴대폰 번호" required>
-              <input
-                type="tel"
-                value={form.phone}
-                onChange={(e) => update({ phone: e.target.value })}
-                placeholder="010-1234-5678"
-                className={INPUT_CLASS}
-              />
-            </Field>
-          )}
+          <Field label="이름" required>
+            <input type="text" maxLength={100} {...register('name')} className={INPUT_CLASS} />
+            <FieldError message={errors.name?.message} />
+          </Field>
 
-          <Field label="이메일" required={requireEmail}>
+          <Field label="휴대폰 번호" required={requirePhone}>
             <input
-              type="email"
-              value={form.email}
-              onChange={(e) => update({ email: e.target.value })}
+              type="tel"
+              placeholder="010-1234-5678"
+              {...register('phone')}
               className={INPUT_CLASS}
             />
+            <FieldError message={errors.phone?.message} />
+          </Field>
+
+          <Field label="이메일" required={requireEmail}>
+            <input type="email" {...register('email')} className={INPUT_CLASS} />
+            <FieldError message={errors.email?.message} />
           </Field>
 
           <Field
             label="문의 내용"
             required
-            hint={`${form.message.length} / ${MESSAGE_MAX}자`}
+            hint={`${messageValue.length} / ${MESSAGE_MAX}자`}
           >
             <textarea
-              value={form.message}
-              onChange={(e) => update({ message: e.target.value })}
               rows={5}
               maxLength={MESSAGE_MAX}
+              {...register('message')}
               className={INPUT_CLASS}
             />
+            <FieldError message={errors.message?.message} />
           </Field>
 
           <button
@@ -155,6 +201,30 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
           >
             {submitting ? '전송 중...' : '문의 보내기'}
           </button>
+
+          {siteKey && (
+            <p className="text-xs text-[color:var(--color-text-subtle)]">
+              이 페이지는 reCAPTCHA로 보호되며, Google{' '}
+              <a
+                href="https://policies.google.com/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                개인정보처리방침
+              </a>
+              과{' '}
+              <a
+                href="https://policies.google.com/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline"
+              >
+                이용약관
+              </a>
+              이 적용됩니다.
+            </p>
+          )}
         </form>
       </div>
     </section>
@@ -182,12 +252,17 @@ function Field({
           )}
         </span>
         {hint && (
-          <span className="text-xs text-[color:var(--color-text-subtle)]">
-            {hint}
-          </span>
+          <span className="text-xs text-[color:var(--color-text-subtle)]">{hint}</span>
         )}
       </span>
       {children}
     </label>
+  )
+}
+
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null
+  return (
+    <p className="mt-1 text-xs text-[color:var(--color-danger)]">{message}</p>
   )
 }

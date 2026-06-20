@@ -68,3 +68,10 @@
     font-weight: var(--font-weight-heading);
   }
 }
+
+/* reCAPTCHA v3 배지 위치 — FloatingButtons(우하단)와 겹치지 않도록 좌하단 */
+.grecaptcha-badge {
+  left: 4px !important;
+  right: auto !important;
+}
+
