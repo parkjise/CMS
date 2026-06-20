@@ -64,6 +64,12 @@ apps/backend/alembic/versions/*.pyc
 # Tailwind
 .tailwindcss/
 
+
 # Misc
 .turbo/
 .cache/
+
+# Playwright
+test-results/
+playwright-report/
+playwright/.cache/

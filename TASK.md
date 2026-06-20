@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 9 | 90% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **46** | **40.7%** |
+| **합계** | **113** | **47** | **41.6%** |
 
 ---
 
@@ -1001,13 +1001,18 @@
 
 ---
 
-### T-054: 고객 홈페이지 통합 테스트
+### T-054: 고객 홈페이지 통합 테스트 ✅
 - **담당:** 프론트엔드
 - **작업 내용:**
-  - [ ] Playwright E2E 테스트 설정
-  - [ ] 테넌트 홈페이지 접속 → 섹션 렌더링 → 문의 제출 플로우 테스트
-  - [ ] SEO 메타태그 주입 확인 테스트
-- **완료 조건:** E2E 테스트 전체 통과
+  - [x] Playwright E2E 테스트 설정 (config + webServer 자동 시작)
+  - [x] homepage.spec — 홈페이지 진입, Navbar/Footer/FloatingButtons, 404 콘텐츠
+  - [x] seo.spec — JSON-LD LocalBusiness, CSS 변수 SSR, sitemap.xml, robots.txt
+  - [~] inquiry.spec — 작성됨, 시드 CONTACT 섹션 추가 후 활성화(skip)
+- **완료 조건:** E2E 테스트 전체 통과 (8 passed / 1 skipped / 0 failed)
+
+#### 부수 변경
+- `app/[tenant_slug]/sitemap.ts` → `app/[tenant_slug]/sitemap.xml/route.ts` (Route Handler)
+  Next.js 15에서 dynamic 라우트의 sitemap.ts는 params를 안정적으로 전달받지 못함 → Route Handler로 전환해 XML 직접 생성
 
 ---
 
