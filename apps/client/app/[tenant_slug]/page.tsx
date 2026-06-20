@@ -5,6 +5,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditModeBanner } from '@/components/layout/EditModeBanner'
+import { buildLocalBusinessJsonLd } from '@/lib/jsonLd'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -19,9 +20,15 @@ export default async function TenantHomePage({ params }: Props) {
   }
 
   const activeSections = site.sections.filter((s) => s.is_active)
+  const jsonLd = buildLocalBusinessJsonLd(site)
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <EditModeBanner />
       <Navbar tenantName={site.tenant.name} sections={activeSections} />
 
@@ -52,7 +59,9 @@ export default async function TenantHomePage({ params }: Props) {
 function EmptySectionsPlaceholder() {
   return (
     <section className="px-6 py-24 text-center">
-      <p className="text-base text-slate-500">아직 표시할 섹션이 없습니다.</p>
+      <p className="text-base text-[color:var(--color-text-muted)]">
+        아직 표시할 섹션이 없습니다.
+      </p>
     </section>
   )
 }
