@@ -2,7 +2,7 @@ import { ContactForm } from './ContactForm'
 import { Gallery } from './Gallery'
 import { HeroBanner } from './HeroBanner'
 import { Intro } from './Intro'
-import { Map } from './Map'
+import { MapLoader } from './MapLoader'
 import { Services } from './Services'
 import type { SectionProps } from './types'
 
@@ -19,7 +19,7 @@ export function SectionRenderer({ section, tenantSlug }: SectionProps) {
     case 'CONTACT':
       return <ContactForm section={section} tenantSlug={tenantSlug} />
     case 'MAP':
-      return <Map section={section} tenantSlug={tenantSlug} />
+      return <MapLoader section={section} tenantSlug={tenantSlug} />
     default:
       // RESERVATION, PORTFOLIO, TEAM, FAQ는 추후 페이즈에서 구현
       return null

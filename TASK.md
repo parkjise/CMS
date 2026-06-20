@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 5 | 50% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 6 | 60% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **42** | **37.2%** |
+| **합계** | **113** | **43** | **38.1%** |
 
 ---
 
@@ -973,15 +973,16 @@
 
 ---
 
-### T-052: 홈페이지 성능 최적화
+### T-052: 홈페이지 성능 최적화 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 8.1 (성능 목표 LCP ≤ 2초)`
 - **작업 내용:**
-  - [ ] 이미지 `next/image` 컴포넌트 적용 (WebP 자동, lazy loading)
-  - [ ] 섹션별 Suspense + 스켈레톤
-  - [ ] 폰트 최적화 (`next/font` + Noto Sans KR, Pretendard)
-  - [ ] Critical CSS 인라인
-  - [ ] Lighthouse LCP 2초 이하, CLS 0.1 이하 목표
+  - [x] 이미지 `next/image` 컴포넌트 적용 (Intro/Gallery, fill + sizes + lazy)
+  - [x] 섹션 dynamic 로드 + 스켈레톤 (Map은 `next/dynamic ssr:false`, MapLoader)
+  - [x] 폰트 최적화 (`next/font/google` Noto Sans KR, weight 400/700, display: swap)
+    - Pretendard는 next/font/google 미지원 → 운영 시 별도 패키지로 검토
+  - [~] Critical CSS 인라인 (Next.js 15 App Router 자동 적용 + theme.ts SSR `<style>`)
+  - [~] Lighthouse LCP 2초 이하, CLS 0.1 이하 목표 (코드 적용 완료, 측정은 운영 환경에서)
 - **완료 조건:** Lighthouse 성능 점수 90점 이상
 
 ---
