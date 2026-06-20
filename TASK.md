@@ -20,7 +20,7 @@
 | Phase 4: 파일 업로드 & 이미지 | 4 | 3 | 75% |
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
-| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 7 | 70% |
+| Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 8 | 80% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
@@ -28,7 +28,7 @@
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **44** | **38.9%** |
+| **합계** | **113** | **45** | **39.8%** |
 
 ---
 
@@ -1011,27 +1011,29 @@
 
 ---
 
-### T-054-A: 홈페이지 로그인 컴포넌트 구현 ★신규
+### T-054-A: 홈페이지 로그인 컴포넌트 구현 ★신규 ✅
 - **담당:** 프론트엔드
 - **참조:** `CLAUDE.md 섹션 7.1, 7.3, 7.7`
 - **작업 내용:**
-  - [ ] `apps/client/lib/authStore.ts` 완성 (CLAUDE.md 섹션 7.7 참조)
+  - [x] `apps/client/lib/authStore.ts` 완성 (CLAUDE.md 섹션 7.7 참조)
     - `initialize()` — 페이지 로드 시 `GET /api/v1/auth/me` 호출 (쿠키 자동 전송)
     - `login()`, `logout()`, `toggleEditMode()` 액션
-  - [ ] `apps/client/components/auth/LoginModal.tsx`
-    - 이메일, 비밀번호 입력 폼 (테넌트 슬러그는 URL에서 자동 추출)
-    - 로그인 성공 시 모달 닫기 + ✏️ 편집 버튼 노출
-    - 로그인 실패 시 에러 메시지
-    - [관리자 페이지로 이동 →] 링크 (admin URL로 이동)
-  - [ ] `apps/client/components/auth/LoginPage.tsx`
-    - `/[tenant_slug]/login` 전용 페이지 (모달 대신 전체 페이지 로그인)
-    - 모바일 UX 고려
-    - 로그인 성공 시 홈페이지(`/[tenant_slug]`)로 리다이렉트
-  - [ ] `apps/[tenant_slug]/layout.tsx`에서 `authStore.initialize()` 호출
+  - [x] `apps/client/components/auth/LoginModal.tsx`
+    - LoginForm 재사용 + 백드롭/ESC/스크롤 락
+    - 로그인 성공 시 모달 자동 닫기
+    - 로그인 실패 시 에러 분기 (네트워크/401/429/기타)
+    - [관리자 페이지로 이동 →] 링크 (`NEXT_PUBLIC_ADMIN_URL`)
+  - [x] `apps/client/components/auth/LoginForm.tsx` (공통)
+  - [x] `app/[tenant_slug]/login/page.tsx` (구 placeholder 교체)
+    - 풀페이지 레이아웃 (var 토큰 적용)
+    - 이미 로그인 시 자동 홈 리다이렉트
+    - 성공 시 `/{tenant_slug}` 리다이렉트
+  - [x] `app/[tenant_slug]/layout.tsx`에서 `AuthInitializer` 마운트
     - 페이지 로드 시 자동으로 쿠키 확인 → 로그인 상태 복원
+  - [x] `FloatingButtons` 모달 토글 전환 (navigate 제거)
 - **완료 조건:**
-  - 홈페이지에서 직접 로그인 가능
-  - admin에서 로그인 후 홈페이지 접속 시 재로그인 없이 편집 버튼 노출
+  - 홈페이지에서 직접 로그인 가능 (모달 또는 풀페이지)
+  - admin에서 로그인 후 홈페이지 접속 시 재로그인 없이 편집 버튼 노출 (쿠키 공유)
   - 로그아웃 시 양쪽(admin, client) 모두 로그인 상태 해제
 
 ---

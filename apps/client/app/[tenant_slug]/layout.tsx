@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { buildCssVarBody } from '@/lib/theme'
+import { AuthInitializer } from '@/components/auth/AuthInitializer'
 
 interface Props {
   children: React.ReactNode
@@ -56,6 +57,7 @@ export default async function TenantLayout({ children, params }: Props) {
           }}
         />
       )}
+      <AuthInitializer />
       {children}
     </>
   )
