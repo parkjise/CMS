@@ -3,7 +3,9 @@
 import { useEffect, useState } from 'react'
 import { ArrowUp, LogIn, MessageCircle, Pencil, X } from 'lucide-react'
 import { useClientAuthStore } from '@/lib/authStore'
+import { useEditStore } from '@/lib/editStore'
 import { LoginModal } from '@/components/auth/LoginModal'
+import { ExitConfirmDialog } from './ExitConfirmDialog'
 
 interface FloatingButtonsProps {
   tenantSlug: string
@@ -16,10 +18,12 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
   const isEditMode = useClientAuthStore((s) => s.isEditMode)
   const toggleEditMode = useClientAuthStore((s) => s.toggleEditMode)
+  const isDirty = useEditStore((s) => s.isDirty)
 
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+  const [exitOpen, setExitOpen] = useState(false)
 
   useEffect(() => {
     setHydrated(true)
@@ -33,11 +37,15 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
   }, [])
 
   const handleAuthClick = () => {
-    if (isLoggedIn) {
-      toggleEditMode()
-    } else {
+    if (!isLoggedIn) {
       setLoginOpen(true)
+      return
     }
+    if (isEditMode && isDirty) {
+      setExitOpen(true)
+      return
+    }
+    toggleEditMode()
   }
 
   const authLabel = !hydrated
@@ -98,6 +106,12 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
         tenantSlug={tenantSlug}
+      />
+
+      <ExitConfirmDialog
+        open={exitOpen}
+        onClose={() => setExitOpen(false)}
+        onExit={toggleEditMode}
       />
     </>
   )
