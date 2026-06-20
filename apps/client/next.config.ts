@@ -1,5 +1,7 @@
 import type { NextConfig } from 'next'
 
+const isDev = process.env.NODE_ENV !== 'production'
+
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
@@ -18,6 +20,14 @@ const nextConfig: NextConfig = {
               hostname: process.env.NEXT_PUBLIC_CDN_HOSTNAME,
               pathname: '/**',
             },
+          ]
+        : []),
+      // 개발 편의: 외부 이미지 URL(예: unsplash, picsum) 허용
+      // TODO(prod): 운영 환경에서는 실제 사용하는 도메인 목록으로 잠글 것
+      ...(isDev
+        ? [
+            { protocol: 'https' as const, hostname: '**' },
+            { protocol: 'http' as const, hostname: '**' },
           ]
         : []),
     ],

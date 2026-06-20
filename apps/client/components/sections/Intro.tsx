@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -13,14 +14,20 @@ export function Intro({ section }: SectionProps) {
     >
       <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-2 md:items-center">
         {introImage && (
-          <img
+          <div
             data-editable
             data-field="intro_image_url"
             data-section-id={section.id}
-            src={introImage}
-            alt={section.label}
-            className="w-full rounded-[var(--border-radius-card)] object-cover"
-          />
+            className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--border-radius-card)]"
+          >
+            <Image
+              src={introImage}
+              alt={section.label}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover"
+            />
+          </div>
         )}
         {introText && (
           <p

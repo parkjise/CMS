@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { GalleryItem, SectionProps } from './types'
 
@@ -34,11 +35,15 @@ export function Gallery({ section }: SectionProps) {
                 key={`${item.image_url}-${idx}`}
                 className="overflow-hidden rounded-[var(--border-radius-card)]"
               >
-                <img
-                  src={item.image_url}
-                  alt={item.caption || `gallery-${idx}`}
-                  className="aspect-square w-full object-cover transition hover:scale-105"
-                />
+                <div className="relative aspect-square w-full overflow-hidden">
+                  <Image
+                    src={item.image_url}
+                    alt={item.caption || `gallery-${idx}`}
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    className="object-cover transition hover:scale-105"
+                  />
+                </div>
                 {item.caption && (
                   <figcaption className="mt-2 text-xs text-[color:var(--color-text-muted)]">
                     {item.caption}

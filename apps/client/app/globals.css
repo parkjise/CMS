@@ -36,9 +36,9 @@
     --color-kakao: #fee500;
     --color-kakao-text: #391b1b;
 
-    /* ── 폰트 ────────────────────────────────────────── */
-    --font-heading: 'Noto Sans KR', sans-serif;
-    --font-body: 'Noto Sans KR', sans-serif;
+    /* ── 폰트 (--font-noto-kr는 next/font/google가 주입) ── */
+    --font-heading: var(--font-noto-kr), 'Noto Sans KR', sans-serif;
+    --font-body: var(--font-noto-kr), 'Noto Sans KR', sans-serif;
     --font-size-base: 16px;
     --font-weight-heading: 700;
 
