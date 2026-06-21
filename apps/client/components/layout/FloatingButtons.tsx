@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ArrowUp, LogIn, MessageCircle, Pencil, X } from 'lucide-react'
+import { ArrowUp, LogIn, MessageCircle, Pencil } from 'lucide-react'
 import { useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 import { LoginModal } from '@/components/auth/LoginModal'
-import { ExitConfirmDialog } from './ExitConfirmDialog'
 
 interface FloatingButtonsProps {
   tenantSlug: string
@@ -17,13 +16,11 @@ const SCROLL_TRIGGER = 200
 export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
   const isEditMode = useEditStore((s) => s.isEditMode)
-  const toggleEditMode = useEditStore((s) => s.toggleEditMode)
-  const isDirty = useEditStore((s) => s.isDirty)
+  const enterEditMode = useEditStore((s) => s.enterEditMode)
 
   const [showScrollTop, setShowScrollTop] = useState(false)
   const [hydrated, setHydrated] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
-  const [exitOpen, setExitOpen] = useState(false)
 
   useEffect(() => {
     setHydrated(true)
@@ -41,22 +38,20 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
       setLoginOpen(true)
       return
     }
-    if (isEditMode && isDirty) {
-      setExitOpen(true)
-      return
-    }
-    toggleEditMode()
+    enterEditMode()
   }
+
+  // 편집 모드 진입 시에는 EditToolbar가 저장/종료를 담당하므로
+  // 우하단 토글 버튼은 숨긴다 (중복 UI 제거).
+  const showAuthButton = !isEditMode
 
   const authLabel = !hydrated
     ? '로딩 중'
     : isLoggedIn
-      ? isEditMode
-        ? '편집 종료'
-        : '편집 모드'
+      ? '편집 모드'
       : '관리자 로그인'
 
-  const AuthIcon = !hydrated || !isLoggedIn ? LogIn : isEditMode ? X : Pencil
+  const AuthIcon = !hydrated || !isLoggedIn ? LogIn : Pencil
 
   return (
     <>
@@ -84,34 +79,28 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
           </a>
         )}
 
-        <button
-          type="button"
-          onClick={handleAuthClick}
-          aria-label={authLabel}
-          className={[
-            'pointer-events-auto flex items-center gap-2 rounded-[var(--border-radius-pill)] px-4 py-3 text-sm font-medium shadow-[var(--shadow-floating)] transition',
-            isLoggedIn && isEditMode
-              ? 'bg-[var(--color-danger)] text-[color:var(--color-on-danger)] hover:bg-[var(--color-danger-hover)]'
-              : isLoggedIn
+        {showAuthButton && (
+          <button
+            type="button"
+            onClick={handleAuthClick}
+            aria-label={authLabel}
+            className={[
+              'pointer-events-auto flex items-center gap-2 rounded-[var(--border-radius-pill)] px-4 py-3 text-sm font-medium shadow-[var(--shadow-floating)] transition',
+              isLoggedIn
                 ? 'bg-[var(--color-primary)] text-[color:var(--color-on-primary)] hover:bg-[var(--color-primary-hover)]'
                 : 'border border-[color:var(--color-border)] bg-[var(--color-background)] text-[color:var(--color-text-secondary)] hover:bg-[var(--color-surface)]',
-          ].join(' ')}
-        >
-          <AuthIcon className="h-4 w-4" />
-          <span className="hidden sm:inline">{authLabel}</span>
-        </button>
+            ].join(' ')}
+          >
+            <AuthIcon className="h-4 w-4" />
+            <span className="hidden sm:inline">{authLabel}</span>
+          </button>
+        )}
       </div>
 
       <LoginModal
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
         tenantSlug={tenantSlug}
-      />
-
-      <ExitConfirmDialog
-        open={exitOpen}
-        onClose={() => setExitOpen(false)}
-        onExit={toggleEditMode}
       />
     </>
   )

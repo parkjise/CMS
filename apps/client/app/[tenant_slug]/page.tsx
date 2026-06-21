@@ -4,7 +4,7 @@ import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
-import { EditModeBanner } from '@/components/layout/EditModeBanner'
+import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd } from '@/lib/jsonLd'
 
 interface Props {
@@ -29,7 +29,7 @@ export default async function TenantHomePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <EditModeBanner />
+      <EditToolbar />
       <Navbar tenantName={site.tenant.name} sections={activeSections} />
 
       <main className="flex-1">

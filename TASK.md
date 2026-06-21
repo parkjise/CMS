@@ -22,13 +22,13 @@
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
-| Phase 9: 인라인 편집 모드 | 7 | 1 | 14.3% |
+| Phase 9: 인라인 편집 모드 | 7 | 2 | 28.6% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **48** | **42.5%** |
+| **합계** | **113** | **49** | **43.4%** |
 
 ---
 
@@ -1187,17 +1187,22 @@
 
 ---
 
-### T-062: 편집 모드 진입 + 툴바 구현
+### T-062: 편집 모드 진입 + 툴바 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 12.2 (AD-07 화면 설계)`
 - **작업 내용:**
-  - [ ] `apps/client/components/edit/FloatingEditButton.tsx` — 어드민 로그인 시 노출되는 플로팅 버튼
-  - [ ] `apps/client/components/edit/EditToolbar.tsx` — 편집 모드 상단 고정 바
-    - [템플릿 변경] [미리보기] [저장하기 💾 N개 변경사항] [편집 종료]
-    - 저장 버튼: 변경사항 수 뱃지 표시
-  - [ ] 편집 모드 ON/OFF 시 body에 `edit-mode` 클래스 토글
-  - [ ] 페이지 이탈 방지 (`beforeunload` 이벤트)
-- **완료 조건:** 편집 모드 진입 시 툴바 노출, 이탈 시 경고창 표시
+  - [x] FloatingEditButton 역할 — 기존 `FloatingButtons`의 진입 버튼이 담당 (인증 상태 기반 동적 노출, 편집 모드 진입 시 숨김)
+  - [x] `apps/client/components/edit/EditToolbar.tsx` — 편집 모드 상단 고정 바
+    - 좌: [편집 모드] [템플릿 변경 ↗] [관리자 페이지 ↗]
+    - 우: [저장 💾 (N)] [편집 종료]
+    - 저장 버튼: 변경사항 수 뱃지 표시, N=0이면 disabled
+    - 저장 결과: 성공/부분 실패 sonner 토스트
+    - 편집 종료: isDirty 시 ExitConfirmDialog
+  - [x] 편집 모드 ON/OFF 시 body에 `edit-mode` 클래스 토글
+  - [x] 페이지 이탈 방지 (`beforeunload` 이벤트, isDirty 시만)
+  - [x] EditModeBanner 삭제 → EditToolbar로 통합
+  - [x] 단위 테스트 5개 (useEvent 기반)
+- **완료 조건:** 편집 모드 진입 시 툴바 노출, 이탈 시 경고창 표시 (15 tests passed)
 
 ---
 
