@@ -93,3 +93,23 @@ body.edit-mode [data-editable="text"].over-limit {
   outline: 2px solid var(--color-danger);
 }
 
+/* 인라인 이미지 편집 (T-064 EditableImage) */
+body.edit-mode [data-editable="image"] {
+  cursor: pointer;
+}
+body.edit-mode [data-editable="image"]::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: rgba(0, 0, 0, 0);
+  transition: background 0.15s ease;
+  pointer-events: none;
+}
+body.edit-mode [data-editable="image"]:hover::before {
+  background: rgba(0, 0, 0, 0.35);
+}
+body.edit-mode [data-editable="image"]:hover .image-edit-overlay {
+  opacity: 1;
+}
+

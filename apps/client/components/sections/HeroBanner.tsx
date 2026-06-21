@@ -1,4 +1,8 @@
+'use client'
+
 import { EditableText } from '@/components/edit/EditableText'
+import { HeroBgImageEditor } from '@/components/edit/HeroBgImageEditor'
+import { useEditStore } from '@/lib/editStore'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -9,21 +13,32 @@ export function HeroBanner({ section }: SectionProps) {
   const ctaText = getString(section.settings, 'cta_text')
   const ctaUrl = getString(section.settings, 'cta_url')
 
+  const pending = useEditStore(
+    (s) => s.pendingChanges[`${section.id}:bg_image_url`],
+  )
+  const currentBgImage = pending?.new_value ?? bgImage
+
   return (
     <section
       data-section-id={section.id}
       data-section-type="HERO_BANNER"
       className="relative flex min-h-[60vh] items-center justify-center bg-[var(--color-primary)] px-6 py-24 text-center md:min-h-[80vh]"
       style={
-        bgImage
+        currentBgImage
           ? {
-              backgroundImage: `linear-gradient(var(--color-overlay), var(--color-overlay)), url(${bgImage})`,
+              backgroundImage: `linear-gradient(var(--color-overlay), var(--color-overlay)), url(${currentBgImage})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }
           : undefined
       }
     >
+      <HeroBgImageEditor
+        sectionId={section.id}
+        field="bg_image_url"
+        initialUrl={bgImage}
+      />
+
       <div className="max-w-3xl">
         {mainTitle && (
           <EditableText
