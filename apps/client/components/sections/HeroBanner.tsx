@@ -1,3 +1,4 @@
+import { EditableText } from '@/components/edit/EditableText'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -25,34 +26,39 @@ export function HeroBanner({ section }: SectionProps) {
     >
       <div className="max-w-3xl">
         {mainTitle && (
-          <h1
-            data-editable
-            data-field="main_title"
-            data-section-id={section.id}
+          <EditableText
+            as="h1"
+            sectionId={section.id}
+            field="main_title"
+            initialValue={mainTitle}
+            maxLength={40}
             className="text-3xl font-bold leading-tight text-[color:var(--color-on-primary)] md:text-5xl"
-          >
-            {mainTitle}
-          </h1>
+          />
         )}
         {subCopy && (
-          <p
-            data-editable
-            data-field="sub_copy"
-            data-section-id={section.id}
-            className="mt-4 text-base text-[color:var(--color-on-primary)]/90 md:text-lg"
-          >
-            {subCopy}
-          </p>
+          <div className="mt-4">
+            <EditableText
+              as="p"
+              sectionId={section.id}
+              field="sub_copy"
+              initialValue={subCopy}
+              maxLength={80}
+              className="text-base text-[color:var(--color-on-primary)]/90 md:text-lg"
+            />
+          </div>
         )}
         {ctaText && ctaUrl && (
           <a
-            data-editable
-            data-field="cta_text"
-            data-section-id={section.id}
             href={ctaUrl}
             className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-6 py-3 text-sm font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface-strong)]"
           >
-            {ctaText}
+            <EditableText
+              as="span"
+              sectionId={section.id}
+              field="cta_text"
+              initialValue={ctaText}
+              maxLength={20}
+            />
           </a>
         )}
       </div>

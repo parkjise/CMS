@@ -75,3 +75,21 @@
   right: auto !important;
 }
 
+/* 인라인 편집 (T-063 EditableText) — 편집 모드일 때만 효과 적용 */
+body.edit-mode [data-editable="text"] {
+  cursor: pointer;
+  border-radius: 2px;
+  outline-offset: 4px;
+  transition: outline 0.15s ease;
+}
+body.edit-mode [data-editable="text"]:hover {
+  outline: 2px dashed var(--color-primary);
+}
+body.edit-mode [data-editable="text"].editing {
+  outline: 2px solid var(--color-primary);
+  cursor: text;
+}
+body.edit-mode [data-editable="text"].over-limit {
+  outline: 2px solid var(--color-danger);
+}
+

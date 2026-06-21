@@ -1,3 +1,4 @@
+import { EditableText } from '@/components/edit/EditableText'
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { SectionProps, ServicesItem } from './types'
 
@@ -13,14 +14,14 @@ export function Services({ section }: SectionProps) {
     >
       <div className="mx-auto max-w-6xl">
         {title && (
-          <h2
-            data-editable
-            data-field="section_title"
-            data-section-id={section.id}
+          <EditableText
+            as="h2"
+            sectionId={section.id}
+            field="section_title"
+            initialValue={title}
+            maxLength={40}
             className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"
-          >
-            {title}
-          </h2>
+          />
         )}
 
         {items.length === 0 ? (

@@ -8,6 +8,7 @@ import { toast } from 'sonner'
 import { publicApi } from '@/lib/api'
 import { executeRecaptcha } from '@/lib/recaptcha'
 import { getBoolean, getString } from '@/lib/sectionSettings'
+import { EditableText } from '@/components/edit/EditableText'
 import type { SectionProps } from './types'
 
 const PHONE_RE = /^01[016789]-?\d{3,4}-?\d{4}$/
@@ -125,23 +126,26 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
       className="bg-[var(--color-surface)] px-6 py-16 md:py-24"
     >
       <div className="mx-auto max-w-2xl">
-        <h2
-          data-editable
-          data-field="section_title"
-          data-section-id={section.id}
+        <EditableText
+          as="h2"
+          sectionId={section.id}
+          field="section_title"
+          initialValue={title}
+          maxLength={40}
           className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"
-        >
-          {title}
-        </h2>
+        />
         {description && (
-          <p
-            data-editable
-            data-field="description"
-            data-section-id={section.id}
-            className="mt-3 whitespace-pre-line text-sm text-[color:var(--color-text-muted)]"
-          >
-            {description}
-          </p>
+          <div className="mt-3">
+            <EditableText
+              as="p"
+              sectionId={section.id}
+              field="description"
+              initialValue={description}
+              maxLength={200}
+              multiline
+              className="whitespace-pre-line text-sm text-[color:var(--color-text-muted)]"
+            />
+          </div>
         )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4" noValidate>
