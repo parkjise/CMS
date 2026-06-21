@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { EditableImage } from '@/components/edit/EditableImage'
 import { EditableText } from '@/components/edit/EditableText'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
@@ -15,20 +15,16 @@ export function Intro({ section }: SectionProps) {
     >
       <div className="mx-auto grid max-w-5xl gap-10 md:grid-cols-2 md:items-center">
         {introImage && (
-          <div
-            data-editable
-            data-field="intro_image_url"
-            data-section-id={section.id}
-            className="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--border-radius-card)]"
-          >
-            <Image
-              src={introImage}
-              alt={section.label}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
-              className="object-cover"
-            />
-          </div>
+          <EditableImage
+            sectionId={section.id}
+            field="intro_image_url"
+            initialUrl={introImage}
+            context="intro"
+            alt={section.label}
+            sizes="(max-width: 768px) 100vw, 50vw"
+            containerClassName="relative aspect-[4/3] w-full overflow-hidden rounded-[var(--border-radius-card)]"
+            className="object-cover"
+          />
         )}
         {introText && (
           <EditableText

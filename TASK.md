@@ -22,13 +22,13 @@
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
-| Phase 9: 인라인 편집 모드 | 7 | 3 | 42.9% |
+| Phase 9: 인라인 편집 모드 | 7 | 4 | 57.1% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **50** | **44.2%** |
+| **합계** | **113** | **51** | **45.1%** |
 
 ---
 
@@ -1228,17 +1228,25 @@
 
 ---
 
-### T-064: EditableImage 컴포넌트 구현
+### T-064: EditableImage 컴포넌트 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 12.4`
 - **작업 내용:**
-  - [ ] `apps/client/components/edit/EditableImage.tsx`
-    - `data-editable="image"` 클릭 시 파일 업로드 모달 오픈
-    - 드래그앤드롭 + 파일 선택
-    - 업로드 완료 시 즉시 미리보기 교체 (optimistic update)
-    - 최적화 결과 토스트 표시
-  - [ ] 갤러리 섹션: 다중 이미지 업로드 모달
-- **완료 조건:** 이미지 클릭 → 업로드 모달 → 업로드 완료 시 즉시 화면 교체
+  - [x] `apps/client/components/edit/EditableImage.tsx`
+    - 편집모드 + 클릭 시 ImageUploadModal 오픈, hover 시 어두운 오버레이
+    - data-editable="image" + 키보드 접근(Enter/Space)
+    - 업로드 완료 시 즉시 미리보기 교체 (pendingChanges 반영, optimistic update)
+    - 최적화 결과 토스트 (`원본KB → 최적화KB, WebP`)
+  - [x] `apps/client/components/edit/ImageUploadModal.tsx`
+    - 드래그-드롭 + 파일 선택 + 미리보기 + 진행률 바
+    - 백드롭/ESC/스크롤 락/ARIA
+    - 클라이언트 검증 (20MB / image MIME)
+  - [x] `apps/client/components/edit/HeroBgImageEditor.tsx` — Hero bg(CSS background) 전용 우상단 버튼
+  - [x] `apps/client/lib/uploadImage.ts` — multipart POST + onProgress
+  - [x] Intro/HeroBanner 마이그레이션 + globals.css `data-editable="image"` hover
+  - [~] 갤러리 섹션 다중 이미지 업로드 — 별도 페이즈 분리
+    (JSON 배열 add/remove/reorder UX 필요로 단독 작업이 적합)
+- **완료 조건:** 이미지 클릭 → 업로드 모달 → 업로드 완료 시 즉시 화면 교체 (4 tests passed)
 
 ---
 
