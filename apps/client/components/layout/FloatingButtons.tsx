@@ -16,8 +16,8 @@ const SCROLL_TRIGGER = 200
 
 export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
-  const isEditMode = useClientAuthStore((s) => s.isEditMode)
-  const toggleEditMode = useClientAuthStore((s) => s.toggleEditMode)
+  const isEditMode = useEditStore((s) => s.isEditMode)
+  const toggleEditMode = useEditStore((s) => s.toggleEditMode)
   const isDirty = useEditStore((s) => s.isDirty)
 
   const [showScrollTop, setShowScrollTop] = useState(false)

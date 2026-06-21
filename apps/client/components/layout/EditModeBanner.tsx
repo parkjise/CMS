@@ -1,12 +1,12 @@
 'use client'
 
 import { ExternalLink } from 'lucide-react'
-import { useClientAuthStore } from '@/lib/authStore'
+import { useEditStore } from '@/lib/editStore'
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
 
 export function EditModeBanner() {
-  const isEditMode = useClientAuthStore((s) => s.isEditMode)
+  const isEditMode = useEditStore((s) => s.isEditMode)
   if (!isEditMode) return null
 
   return (
