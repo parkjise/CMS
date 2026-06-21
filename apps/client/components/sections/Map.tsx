@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { EditableText } from '@/components/edit/EditableText'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -86,23 +87,25 @@ export function Map({ section }: SectionProps) {
       <div className="mx-auto max-w-5xl">
         {address && (
           <div>
-            <p
-              data-editable
-              data-field="address"
-              data-section-id={section.id}
+            <EditableText
+              as="p"
+              sectionId={section.id}
+              field="address"
+              initialValue={address}
+              maxLength={100}
               className="text-base font-medium text-[color:var(--color-text-primary)]"
-            >
-              {address}
-            </p>
+            />
             {addressDetail && (
-              <p
-                data-editable
-                data-field="address_detail"
-                data-section-id={section.id}
-                className="mt-1 text-sm text-[color:var(--color-text-muted)]"
-              >
-                {addressDetail}
-              </p>
+              <div className="mt-1">
+                <EditableText
+                  as="p"
+                  sectionId={section.id}
+                  field="address_detail"
+                  initialValue={addressDetail}
+                  maxLength={100}
+                  className="text-sm text-[color:var(--color-text-muted)]"
+                />
+              </div>
             )}
           </div>
         )}

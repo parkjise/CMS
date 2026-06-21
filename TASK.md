@@ -22,13 +22,13 @@
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
-| Phase 9: 인라인 편집 모드 | 7 | 2 | 28.6% |
+| Phase 9: 인라인 편집 모드 | 7 | 3 | 42.9% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **49** | **43.4%** |
+| **합계** | **113** | **50** | **44.2%** |
 
 ---
 
@@ -1206,19 +1206,25 @@
 
 ---
 
-### T-063: EditableText 컴포넌트 구현
+### T-063: EditableText 컴포넌트 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 12.2, 12.4`
 - **작업 내용:**
-  - [ ] `apps/client/components/edit/EditableText.tsx`
-    - `data-editable="text"` 감지 후 `contenteditable` 활성화
-    - 미니 툴바: [굵게] [기울임] [색상] [글자크기]
-    - 실시간 글자 수 카운터 (maxLength prop)
-    - 초과 시 입력 차단 + 빨간 테두리
-    - 클릭 외부 시 편집 종료 + pendingChanges 업데이트
-    - hover 시 파란 테두리 + ✏️ 아이콘
-  - [ ] 섹션 컴포넌트의 모든 텍스트 필드에 EditableText 적용
-- **완료 조건:** 텍스트 클릭 → 인라인 편집 → 외부 클릭 시 변경사항 임시 저장
+  - [x] `apps/client/components/edit/EditableText.tsx`
+    - 편집 모드 + 클릭 시 `contenteditable` 활성화
+    - 글자 수 카운터 (maxLength prop, 우상단 작은 뱃지)
+    - maxLength 초과 시 빨간 outline + commit 시 truncate
+    - 외부 클릭(blur) 시 편집 종료 + `editStore.updateField` 호출
+    - hover 시 파란 점선 outline (`body.edit-mode [data-editable="text"]:hover`)
+    - multiline=false: Enter 키로 commit, Escape로 취소
+    - paste 시 plain text만 추출
+  - [x] 섹션 6종 텍스트 필드 EditableText 적용
+    - HeroBanner (main_title/sub_copy/cta_text), Intro, Services, Gallery,
+      ContactForm (section_title/description), Map (address/address_detail)
+  - [x] 단위 테스트 8개 (state-based assertions)
+  - [~] **미니 툴바 [굵게/기울임/색상/글자크기]** — plain text 저장 한계로 별도 페이즈 분리
+    (백엔드 `field_value`가 VARCHAR/TEXT, rich text 도입 시 백엔드 + 모든 섹션 렌더 흐름 재설계 필요)
+- **완료 조건:** 텍스트 클릭 → 인라인 편집 → 외부 클릭 시 변경사항 임시 저장 (23 tests passed)
 
 ---
 

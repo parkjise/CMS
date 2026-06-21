@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { EditableText } from '@/components/edit/EditableText'
 import { getString } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -30,14 +31,15 @@ export function Intro({ section }: SectionProps) {
           </div>
         )}
         {introText && (
-          <p
-            data-editable
-            data-field="intro_text"
-            data-section-id={section.id}
+          <EditableText
+            as="p"
+            sectionId={section.id}
+            field="intro_text"
+            initialValue={introText}
+            maxLength={500}
+            multiline
             className="whitespace-pre-line text-base leading-relaxed text-[color:var(--color-text-secondary)] md:text-lg"
-          >
-            {introText}
-          </p>
+          />
         )}
       </div>
     </section>
