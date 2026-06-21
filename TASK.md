@@ -22,13 +22,13 @@
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
-| Phase 9: 인라인 편집 모드 | 7 | 0 | 0% |
+| Phase 9: 인라인 편집 모드 | 7 | 1 | 14.3% |
 | Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **47** | **41.6%** |
+| **합계** | **113** | **48** | **42.5%** |
 
 ---
 
@@ -1168,25 +1168,22 @@
 
 ---
 
-### T-061: 편집 모드 Zustand 스토어 구현
+### T-061: 편집 모드 Zustand 스토어 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 12.3 (editStore.ts)`
 - **작업 내용:**
-  - [ ] `apps/client/lib/editStore.ts` 완성
-    ```typescript
-    interface EditStore {
-      isEditMode: boolean
-      pendingChanges: Map<string, PendingChange>
-      isDirty: boolean
-      toggleEditMode: () => void
-      updateField: (sectionId, field, value) => void
-      saveAll: () => Promise<SaveResult>
-      discardAll: () => void
-    }
-    ```
-  - [ ] 편집 모드 진입 조건 체크 (어드민 로그인 여부)
-  - [ ] 로컬 스토리지에 임시 저장 (새로고침 후 복구 여부는 UX 결정 후 구현)
-- **완료 조건:** 스토어 단위 테스트 통과
+  - [x] `apps/client/lib/editStore.ts` 완성 (isEditMode + pendingChanges + SaveResult)
+    - `isEditMode`, `toggleEditMode`, `enterEditMode`, `exitEditMode` 추가
+    - `pendingChanges` Record (JSON 직렬화 가능)
+    - `saveAll()`이 SaveResult 반환 + 백엔드 BatchSaveRequest 형식과 정합
+    - 부분 실패 시 pendingChanges 보존
+  - [x] 편집 모드 진입 조건 체크 (authStore.isLoggedIn 검증, 비로그인 시 no-op)
+  - [x] 로컬 스토리지 임시 저장 (zustand persist 미들웨어)
+  - [x] UX 결정: 복구 여부 묻기 (옵션 B) — `RestoreDraftDialog` 컴포넌트
+  - [x] 부수 변경: authStore에서 isEditMode 제거, consumers(FloatingButtons/EditModeBanner) 마이그레이션
+  - [x] vitest 인프라 도입 + 10개 단위 테스트 통과
+  - [x] 기존 saveAll 페이로드 버그 수정 (`sections` → `changes`)
+- **완료 조건:** 스토어 단위 테스트 통과 (10/10)
 
 ---
 

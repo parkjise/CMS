@@ -1,67 +1,110 @@
 'use client'
 
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import { authApi } from './api'
+import { useClientAuthStore } from './authStore'
 
-interface PendingChange {
+export interface PendingChange {
   section_id: string
   field: string
   original_value: string
   new_value: string
-  changed_at: Date
+  changed_at: string
+}
+
+export interface SaveResult {
+  saved_count: number
+  failed_count: number
+  cache_purged: boolean
 }
 
 interface EditStore {
-  // key 형식: "{section_id}:{field}"
+  isEditMode: boolean
   pendingChanges: Record<string, PendingChange>
   isDirty: boolean
 
-  updateField: (sectionId: string, field: string, newValue: string, originalValue: string) => void
-  saveAll: () => Promise<void>
+  toggleEditMode: () => void
+  enterEditMode: () => void
+  exitEditMode: () => void
+  updateField: (
+    sectionId: string,
+    field: string,
+    newValue: string,
+    originalValue: string,
+  ) => void
+  saveAll: () => Promise<SaveResult>
   discardAll: () => void
+  hasPersistedDraft: () => boolean
 }
 
-export const useEditStore = create<EditStore>((set, get) => ({
-  pendingChanges: {},
-  isDirty: false,
+const buildKey = (sectionId: string, field: string) => `${sectionId}:${field}`
 
-  updateField: (sectionId, field, newValue, originalValue) => {
-    const key = `${sectionId}:${field}`
-    set((state) => {
-      const updated = {
-        ...state.pendingChanges,
-        [key]: {
-          section_id: sectionId,
-          field,
-          original_value: originalValue,
-          new_value: newValue,
-          changed_at: new Date(),
-        },
-      }
-      return { pendingChanges: updated, isDirty: true }
-    })
-  },
+export const useEditStore = create<EditStore>()(
+  persist(
+    (set, get) => ({
+      isEditMode: false,
+      pendingChanges: {},
+      isDirty: false,
 
-  saveAll: async () => {
-    const { pendingChanges } = get()
+      toggleEditMode: () => {
+        const { isLoggedIn } = useClientAuthStore.getState()
+        if (!isLoggedIn) return
+        set((s) => ({ isEditMode: !s.isEditMode }))
+      },
+      enterEditMode: () => {
+        const { isLoggedIn } = useClientAuthStore.getState()
+        if (!isLoggedIn) return
+        set({ isEditMode: true })
+      },
+      exitEditMode: () => set({ isEditMode: false }),
 
-    // 섹션별로 그룹핑 후 batch-save API 호출
-    const grouped: Record<string, Array<{ field: string; value: string }>> = {}
-    for (const change of Object.values(pendingChanges)) {
-      if (!grouped[change.section_id]) grouped[change.section_id] = []
-      grouped[change.section_id].push({ field: change.field, value: change.new_value })
-    }
+      updateField: (sectionId, field, newValue, originalValue) => {
+        set((state) => ({
+          pendingChanges: {
+            ...state.pendingChanges,
+            [buildKey(sectionId, field)]: {
+              section_id: sectionId,
+              field,
+              original_value: originalValue,
+              new_value: newValue,
+              changed_at: new Date().toISOString(),
+            },
+          },
+          isDirty: true,
+        }))
+      },
 
-    const payload = Object.entries(grouped).map(([section_id, changes]) => ({
-      section_id,
-      changes,
-    }))
+      saveAll: async () => {
+        const { pendingChanges } = get()
+        const changes = Object.values(pendingChanges).map((c) => ({
+          section_id: c.section_id,
+          field: c.field,
+          value: c.new_value,
+        }))
 
-    await authApi.post('/edit/batch-save', { sections: payload })
-    set({ pendingChanges: {}, isDirty: false })
-  },
+        if (changes.length === 0) {
+          return { saved_count: 0, failed_count: 0, cache_purged: false }
+        }
 
-  discardAll: () => {
-    set({ pendingChanges: {}, isDirty: false })
-  },
-}))
+        const { data } = await authApi.post('/edit/batch-save', { changes })
+        const result = data.data as SaveResult
+        if (result.failed_count === 0) {
+          set({ pendingChanges: {}, isDirty: false })
+        }
+        return result
+      },
+
+      discardAll: () => set({ pendingChanges: {}, isDirty: false }),
+
+      hasPersistedDraft: () => Object.keys(get().pendingChanges).length > 0,
+    }),
+    {
+      name: 'cms-edit-draft',
+      partialize: (state) => ({
+        pendingChanges: state.pendingChanges,
+        isDirty: state.isDirty,
+      }),
+    },
+  ),
+)
