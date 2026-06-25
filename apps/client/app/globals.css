@@ -113,3 +113,24 @@ body.edit-mode [data-editable="image"]:hover .image-edit-overlay {
   opacity: 1;
 }
 
+/* 섹션 컨트롤 바 (T-065 SectionControls) — 편집 모드 + 섹션 hover 시 노출 */
+body.edit-mode [data-section-wrapper] {
+  position: relative;
+}
+body.edit-mode [data-section-wrapper] {
+  outline: 1px dashed transparent;
+  outline-offset: -2px;
+  transition: outline-color 0.15s ease;
+}
+body.edit-mode [data-section-wrapper]:hover {
+  outline-color: var(--color-primary);
+}
+body.edit-mode .section-controls {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+body.edit-mode [data-section-wrapper]:hover .section-controls,
+body.edit-mode .section-controls:focus-within {
+  opacity: 1;
+}
+
