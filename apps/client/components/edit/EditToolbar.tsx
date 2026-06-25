@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ExternalLink, LayoutGrid, Save, X } from 'lucide-react'
+import { ExternalLink, LayoutGrid, Loader2, Save, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEditStore } from '@/lib/editStore'
 import { ExitConfirmDialog } from '@/components/layout/ExitConfirmDialog'
@@ -103,10 +103,19 @@ export function EditToolbar() {
             type="button"
             onClick={handleSave}
             disabled={saving || changeCount === 0}
+            aria-busy={saving}
             aria-label={`저장 (${changeCount}개 변경사항)`}
             className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            <Save className="h-3.5 w-3.5" />
+            {saving ? (
+              <Loader2
+                className="h-3.5 w-3.5 animate-spin"
+                aria-hidden="true"
+                data-testid="save-spinner"
+              />
+            ) : (
+              <Save className="h-3.5 w-3.5" aria-hidden="true" />
+            )}
             <span>{saving ? '저장 중...' : '저장'}</span>
             {changeCount > 0 && (
               <span className="rounded-[var(--border-radius-pill)] bg-[var(--color-primary)] px-1.5 py-0.5 text-[10px] font-semibold text-[color:var(--color-on-primary)]">
