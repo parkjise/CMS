@@ -23,12 +23,12 @@
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
-| Phase 10: AI 어시스턴트 | 6 | 0 | 0% |
+| Phase 10: AI 어시스턴트 | 6 | 1 | 16.7% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **54** | **47.8%** |
+| **합계** | **113** | **55** | **48.7%** |
 
 ---
 
@@ -1298,20 +1298,21 @@
 
 ---
 
-### T-068: AI 문구 추천 API 구현
+### T-068: AI 문구 추천 API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 13.3 (POST /ai/suggest-copy)`
 - **작업 내용:**
-  - [ ] `app/services/ai.py`
+  - [x] `app/services/ai.py`
     - `suggest_copy(request)` — LangChain + GPT-4o-mini 프롬프트 체인
-    - 업종별 프롬프트 템플릿 분리 (HOSPITAL / PENSION / STARTUP 등)
-    - JSON 파싱 + 오류 처리 (재시도 1회)
-  - [ ] `app/api/v1/endpoints/ai.py`
-    - `POST /api/v1/ai/suggest-copy`
-    - 플랜별 월 사용량 체크 (BASIC: 20회, STANDARD: 100회)
-    - `ai_usage_log` 기록
-  - [ ] 프롬프트 버전 관리 (상수 파일로 분리)
+    - 업종별 프롬프트 템플릿 분리 (HOSPITAL / PENSION / STARTUP / GENERAL)
+    - JSON 파싱 + 오류 처리 (재시도 1회) → 실패 시 502
+  - [x] `app/api/v1/endpoints/ai.py`
+    - `POST /api/v1/ai/suggest-copy` (router 등록)
+    - 플랜별 월 사용량 체크 (FREE:5 / BASIC:20 / STANDARD:100 / PREMIUM:무제한)
+    - `ai_usage_log` 기록 (action_type=COPY_SUGGEST, tokens_used)
+  - [x] 프롬프트 버전 관리 (`app/services/ai_prompts.py`, PROMPT_VERSION)
 - **완료 조건:** 병원 업종 메인 타이틀 추천 3가지 정상 반환
+  - 주: 순수 로직/모킹 테스트 17개 통과. 엔드포인트 DB 테스트 2개는 Postgres 가동 시 실행.
 
 ---
 
