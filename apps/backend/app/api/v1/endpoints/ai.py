@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db_with_rls
 from app.models.user import User
-from app.schemas.ai import CopySuggestRequest, CopySuggestResponse
+from app.schemas.ai import ChatEditRequest, CopySuggestRequest, CopySuggestResponse
 from app.schemas.common import ApiResponse
 from app.services import ai as ai_service
 
@@ -20,3 +21,24 @@ async def suggest_copy(
         db, current_user.tenant_id, current_user.id, body
     )
     return ApiResponse.ok(result)
+
+
+@router.post("/chat-edit")
+async def chat_edit(
+    body: ChatEditRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """대화형 편집 — SSE 스트리밍. 플랜 한도 초과 시 스트림 시작 전 403/422."""
+    # 한도/컨텍스트는 스트림 시작 전에 평가해 일반 JSON 에러로 응답
+    await ai_service.ensure_chat_quota(db, current_user.tenant_id)
+    site_context = await ai_service.build_site_context(db, current_user.tenant_id)
+
+    generator = ai_service.chat_edit_stream(
+        db, current_user.tenant_id, current_user.id, body, site_context
+    )
+    return StreamingResponse(
+        generator,
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )

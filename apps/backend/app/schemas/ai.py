@@ -31,12 +31,11 @@ class CopySuggestResponse(BaseModel):
     prompt_version: str
 
 
+class ChatMessage(BaseModel):
+    role: str  # "user" | "assistant"
+    content: str = Field(..., max_length=2000)
+
+
 class ChatEditRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500)
-    context: dict = Field(default_factory=dict)
-
-
-class ChatEditResponse(BaseModel):
-    reply: str
-    applied_changes: list[dict] = Field(default_factory=list)
-    tokens_used: int
+    conversation_history: list[ChatMessage] = Field(default_factory=list)

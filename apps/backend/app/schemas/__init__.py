@@ -1,4 +1,4 @@
-from app.schemas.ai import ChatEditRequest, ChatEditResponse, CopySuggestRequest, CopySuggestResponse
+from app.schemas.ai import ChatEditRequest, ChatMessage, CopySuggestRequest, CopySuggestResponse
 from app.schemas.auth import LoginRequest, LoginResponse, RefreshResponse, TokenResponse, UserResponse
 from app.schemas.common import ApiError, ApiResponse, ErrorDetail, Meta, PaginatedResponse, PaginationMeta
 from app.schemas.inquiry import InquiryCreate, InquiryListItem, InquiryResponse, InquiryUpdate
@@ -33,5 +33,5 @@ __all__ = [
     "SeoSettingsUpdate", "SeoSettingsResponse",
     "TemplateResponse", "TemplateApplyRequest", "TemplateCssOverrideUpdate", "TenantTemplateOverrideResponse",
     "UploadResponse", "PresignedUrlResponse",
-    "CopySuggestRequest", "CopySuggestResponse", "ChatEditRequest", "ChatEditResponse",
+    "CopySuggestRequest", "CopySuggestResponse", "ChatEditRequest", "ChatMessage",
 ]

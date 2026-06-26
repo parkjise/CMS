@@ -62,6 +62,36 @@ _HUMAN_TEMPLATE = (
 )
 
 
+# ───────────────────────── 대화형 편집 (chat-edit) ─────────────────────────
+
+CHAT_SYSTEM_TEMPLATE = """당신은 한국 소상공인 홈페이지 편집을 돕는 AI 어시스턴트입니다.
+항상 한국어로 친근하고 간결하게 응답하세요.
+
+현재 사이트 정보(JSON):
+{site_context}
+
+사용자의 요청을 분석해 아래 액션 중 하나 이상을 제안하세요.
+변경 액션이 있으면 응답 끝에 반드시 ```json 코드 블록으로 액션 배열을 포함하세요.
+
+지원 액션:
+- 텍스트 변경:
+  {{"action": "update_text", "section_id": "...",
+   "field": "main_title", "new_value": "..."}}
+- 테마(색상) 변경:
+  {{"action": "update_theme", "css_overrides": {{"--color-primary": "#1a73e8"}}}}
+- 템플릿 변경: {{"action": "change_template", "template_id": "..."}}
+- 설명만: {{"action": "explain"}}
+
+규칙:
+- section_id/field 는 위 사이트 정보에 존재하는 값만 사용
+- 텍스트는 한국어, 자연스럽고 신뢰감 있게 작성
+- 액션이 필요 없으면 설명만 하고 explain 액션을 포함"""
+
+
+def build_chat_system_prompt(site_context_json: str) -> str:
+    return CHAT_SYSTEM_TEMPLATE.format(site_context=site_context_json)
+
+
 def field_max_length(field: str) -> int:
     return FIELD_MAX_LENGTH.get(field, _DEFAULT_FIELD_MAX_LENGTH)
 

@@ -23,12 +23,12 @@
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
-| Phase 10: AI 어시스턴트 | 6 | 1 | 16.7% |
+| Phase 10: AI 어시스턴트 | 6 | 2 | 33.3% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **55** | **48.7%** |
+| **합계** | **113** | **56** | **49.6%** |
 
 ---
 
@@ -1316,17 +1316,19 @@
 
 ---
 
-### T-069: AI 대화형 편집 API 구현 (SSE 스트리밍)
+### T-069: AI 대화형 편집 API 구현 (SSE 스트리밍) ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 13.3 (POST /ai/chat-edit)`
 - **작업 내용:**
-  - [ ] `app/api/v1/endpoints/ai.py`
-    - `POST /api/v1/ai/chat-edit` — SSE 스트리밍 응답
-    - 현재 테넌트 사이트 컨텍스트 주입 (섹션 데이터, 현재 템플릿)
-    - 응답에 액션 JSON 블록 포함 (update_text, update_theme, change_template)
-    - 대화 이력 유지 (요청에 conversation_history 포함)
-  - [ ] 액션 파싱 함수: AI 응답에서 JSON 블록 추출
+  - [x] `app/api/v1/endpoints/ai.py`
+    - `POST /api/v1/ai/chat-edit` — SSE 스트리밍 응답 (delta/actions/done 이벤트)
+    - 현재 테넌트 사이트 컨텍스트 주입 (`build_site_context`: 섹션/필드 + 템플릿)
+    - 응답에 액션 JSON 블록 포함 (update_text, update_theme, change_template, explain)
+    - 대화 이력 유지 (요청 `conversation_history` → system/user/assistant 메시지)
+    - 플랜 게이팅 (BASIC 미지원 403 / STANDARD 월 50회 / PREMIUM 무제한)
+  - [x] 액션 파싱 함수: `extract_actions` (코드펜스 + 균형괄호 스캔, 허용 액션만)
 - **완료 조건:** "메인 배너를 전문적으로 바꿔줘" → 스트리밍으로 추천 문구 + 적용 액션 반환
+  - 주: 순수/스트림/인증 테스트 29개 통과. 엔드포인트 DB 테스트 4개는 Postgres 가동 시 실행.
 
 ---
 
