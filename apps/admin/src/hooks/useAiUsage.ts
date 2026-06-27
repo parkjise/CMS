@@ -14,6 +14,8 @@ export interface AiUsage {
   plan_type: string
   copy_suggest: FeatureUsage
   chat_edit: FeatureUsage
+  /** 이번 달 누적 토큰 기준 추정 OpenAI 비용 (USD) */
+  estimated_cost_usd: number
 }
 
 const AI_USAGE_KEY = ['ai-usage'] as const

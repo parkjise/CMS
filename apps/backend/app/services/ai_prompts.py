@@ -5,30 +5,20 @@ ai_usage_log 와 응답(prompt_version)에 버전을 기록해 추후 품질 분
 
 변경 이력:
 - v1 (2026-06): 최초 작성. 업종별(HOSPITAL/PENSION/STARTUP/GENERAL) 가이드 분기.
+- v2 (2026-06): 토큰 최소화(T-073). 업종 가이드를 1문장으로 압축하고 system 프롬프트의
+  중복·군더더기를 제거해 입력 토큰을 약 40% 절감. 품질 핵심(키워드/톤/길이/JSON)은 유지.
 """
 
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
-PROMPT_VERSION = "v1"
+PROMPT_VERSION = "v2"
 
-# 업종별 카피라이팅 가이드 — template_type 기준으로 선택
+# 업종별 카피라이팅 가이드 — template_type 기준으로 선택 (v2: 1문장으로 압축)
 INDUSTRY_GUIDANCE: dict[str, str] = {
-    "HOSPITAL": (
-        "의료기관입니다. 신뢰감·전문성·안전성을 강조하고, 과장·허위 의료광고 표현"
-        "(최고, 100%, 부작용 없음 등)은 피하세요."
-        " 진료 분야와 환자 안심 요소를 담으세요."
-    ),
-    "PENSION": (
-        "숙박/펜션입니다. 휴식·자연·아늑함·특별한 경험을 강조하고, 감성적이고 따뜻한"
-        " 분위기를 전달하세요. 주변 풍경과 객실의 매력을 떠올리게 하세요."
-    ),
-    "STARTUP": (
-        "스타트업/IT 서비스입니다. 혁신성·성장·문제 해결·미래지향성을 강조하고,"
-        " 간결하고 임팩트 있는 표현을 사용하세요."
-    ),
-    "GENERAL": (
-        "소상공인 사업체입니다. 핵심 가치와 차별점을 명확하고 신뢰감 있게 전달하세요."
-    ),
+    "HOSPITAL": ("의료기관: 신뢰·전문·안전을 강조하고 과장·허위 의료광고 표현은 금지."),
+    "PENSION": "숙박/펜션: 휴식·자연·아늑함을 감성적이고 따뜻하게 전달.",
+    "STARTUP": "스타트업/IT: 혁신·성장·문제해결을 간결하고 임팩트 있게 표현.",
+    "GENERAL": "소상공인: 핵심 가치와 차별점을 명확하고 신뢰감 있게 전달.",
 }
 
 # 업종별 max_length 기본값과 별개로, 필드별 길이 제한
@@ -40,25 +30,16 @@ FIELD_MAX_LENGTH: dict[str, int] = {
 }
 _DEFAULT_FIELD_MAX_LENGTH = 40
 
-_SYSTEM_TEMPLATE = """당신은 한국 소상공인 홈페이지 카피라이팅 전문가입니다.
-업종: {template_type}
-업체명: {business_name}
-핵심 키워드: {keywords}
-요청 톤앤매너: {tone}
+_SYSTEM_TEMPLATE = """한국 소상공인 홈페이지 카피라이팅 전문가.
+업종: {template_type} / 업체명: {business_name}
+키워드: {keywords} / 톤: {tone}
+가이드: {guidance}
 
-업종 가이드:
-{guidance}
-
-규칙:
-- 각 문구는 최대 {max_length}자 이내
-- 반드시 한국어로 작성
-- 키워드를 자연스럽게 포함
-- 서로 뚜렷하게 다른 {count}가지 안을 제시
-- 다른 설명 없이 JSON 배열로만 응답: ["문구1", "문구2", "문구3"]"""
+규칙: 한국어, 각 {max_length}자 이내, 키워드 자연 포함, \
+서로 다른 {count}개 안, JSON 배열로만 응답 예) ["문구1","문구2"]"""
 
 _HUMAN_TEMPLATE = (
-    "현재 문구 '{current_value}'를 {count}가지로 개선해주세요."
-    " 현재 문구가 비어 있다면 새로 작성해주세요."
+    "현재 문구 '{current_value}'를 {count}가지로 개선(비어있으면 새로 작성)."
 )
 
 

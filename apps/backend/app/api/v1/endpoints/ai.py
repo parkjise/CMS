@@ -44,8 +44,9 @@ async def chat_edit(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    """대화형 편집 — SSE 스트리밍. 플랜 한도 초과 시 스트림 시작 전 403/422."""
+    """대화형 편집 — SSE 스트리밍. 플랜 한도 초과 시 스트림 시작 전 403/422/429."""
     # 한도/컨텍스트는 스트림 시작 전에 평가해 일반 JSON 에러로 응답
+    await ai_service.ensure_not_abusing(current_user.tenant_id)
     await ai_service.ensure_chat_quota(db, current_user.tenant_id)
     site_context = await ai_service.build_site_context(db, current_user.tenant_id)
 
