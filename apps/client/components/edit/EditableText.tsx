@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { CopySuggestPopover } from '@/components/ai/CopySuggestPopover'
 import { useEditStore } from '@/lib/editStore'
 
 type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span' | 'div'
@@ -118,6 +119,18 @@ export function EditableText({
     document.execCommand('insertText', false, text)
   }
 
+  const applySuggestion = (value: string) => {
+    const truncated =
+      typeof maxLength === 'number' && value.length > maxLength
+        ? value.slice(0, maxLength)
+        : value
+    if (ref.current) ref.current.innerText = truncated
+    setCurrentLength(truncated.length)
+    if (truncated !== initialValue) {
+      updateField(sectionId, field, truncated, initialValue)
+    }
+  }
+
   return (
     <span className="relative inline-block">
       <Tag
@@ -154,6 +167,14 @@ export function EditableText({
         >
           {currentLength} / {maxLength}
         </span>
+      )}
+      {!editing && (
+        <CopySuggestPopover
+          sectionId={sectionId}
+          field={field}
+          currentValue={initialValue}
+          onApply={applySuggestion}
+        />
       )}
     </span>
   )

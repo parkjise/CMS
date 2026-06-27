@@ -23,12 +23,12 @@
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
-| Phase 10: AI 어시스턴트 | 6 | 2 | 33.3% |
+| Phase 10: AI 어시스턴트 | 6 | 3 | 50% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **56** | **49.6%** |
+| **합계** | **113** | **57** | **50.4%** |
 
 ---
 
@@ -1332,17 +1332,18 @@
 
 ---
 
-### T-070: AI 문구 추천 UI 구현
+### T-070: AI 문구 추천 UI 구현 ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 13.2 (기능 1: 문구 자동 생성)`
 - **작업 내용:**
-  - [ ] `apps/client/components/ai/CopySuggestPopover.tsx`
+  - [x] `apps/client/components/ai/CopySuggestPopover.tsx`
     - EditableText 옆 [🤖 AI 추천] 버튼 (편집 모드에서만 노출)
-    - 클릭 시 팝오버: 로딩 → 3가지 추천 문구 표시
-    - [적용] 클릭 시 해당 텍스트 교체 + pendingChanges 업데이트
-    - [다시 생성] 버튼
-  - [ ] `apps/client/hooks/useCopySuggest.ts` — API 호출 훅
+    - 클릭 시 팝오버: 로딩 스피너 → 3가지 추천 문구 표시
+    - [적용] 클릭 시 해당 텍스트 교체 + pendingChanges 업데이트 (`applySuggestion`)
+    - [다시 생성] 버튼, 바깥 클릭/Escape 닫기, section_type DOM 해석
+  - [x] `apps/client/hooks/useCopySuggest.ts` — API 호출 훅 (422 한도 메시지 분기)
 - **완료 조건:** 텍스트 필드 옆 AI 추천 버튼 클릭 → 추천 문구 표시 → 적용
+  - 주: 훅/팝오버 테스트 10개 + 전체 53개 통과, type-check 클린.
 
 ---
 
