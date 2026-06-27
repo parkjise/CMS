@@ -10,7 +10,7 @@ from app.core.redis import get_redis
 from app.models.section import Section
 from app.models.seo import SeoSetting
 from app.models.sns import SnsChannelSetting
-from app.models.template import Template
+from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import (
@@ -60,22 +60,48 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
     sns_result = await db.execute(select(SnsChannelSetting))
     sns = sns_result.scalar_one_or_none()
 
-    template_result = await db.execute(
-        select(Template)
-        .where(
-            Template.template_type == tenant.template_type,
-            Template.is_active == True,  # noqa: E712
+    # 적용된 템플릿(override)을 우선 사용하고, 없으면 업종 기본 템플릿으로 폴백
+    override = (
+        await db.execute(
+            select(TenantTemplateOverride).where(
+                TenantTemplateOverride.tenant_id == tid
+            )
         )
-        .limit(1)
-    )
-    template = template_result.scalar_one_or_none()
+    ).scalar_one_or_none()
+
+    template: Template | None = None
+    css_overrides: dict = {}
+    if override is not None:
+        template = await db.get(Template, override.template_id)
+        css_overrides = dict(override.css_overrides or {})
+    if template is None:
+        template = (
+            await db.execute(
+                select(Template)
+                .where(
+                    Template.template_type == tenant.template_type,
+                    Template.is_active == True,  # noqa: E712
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+
+    template_payload: PublicTemplateResponse | None = None
+    if template is not None:
+        template_payload = PublicTemplateResponse.model_validate(template)
+        # CSS 커스터마이징을 템플릿 변수 위에 병합
+        if css_overrides:
+            template_payload.css_variables = {
+                **template_payload.css_variables,
+                **css_overrides,
+            }
 
     return PublicSiteResponse(
         tenant=PublicTenantResponse.model_validate(tenant),
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
         seo_settings=PublicSeoResponse.model_validate(seo) if seo else None,
         sns_settings=PublicSnsResponse.model_validate(sns) if sns else None,
-        template=PublicTemplateResponse.model_validate(template) if template else None,
+        template=template_payload,
     )
 
 

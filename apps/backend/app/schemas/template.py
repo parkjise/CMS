@@ -13,8 +13,20 @@ class TemplateResponse(BaseModel):
     css_variables: dict
     section_layouts: list
     is_active: bool
+    min_plan: str
 
     model_config = {"from_attributes": True}
+
+
+class TemplateListItem(TemplateResponse):
+    """목록용: 현재 테넌트 플랜 기준 잠금 여부 포함."""
+
+    locked: bool
+
+
+class TemplateListResponse(BaseModel):
+    templates: list[TemplateListItem]
+    current_template_id: uuid.UUID | None
 
 
 class TemplateApplyRequest(BaseModel):

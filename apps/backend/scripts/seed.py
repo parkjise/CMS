@@ -33,6 +33,7 @@ TEMPLATES = [
             "border_radius": "8px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "SERVICES", "TEAM", "FAQ", "CONTACT"],
+        "min_plan": "BASIC",
     },
     {
         "template_type": "HOSPITAL",
@@ -46,6 +47,7 @@ TEMPLATES = [
             "border_radius": "12px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "SERVICES", "GALLERY", "CONTACT", "MAP"],
+        "min_plan": "STANDARD",
     },
     {
         "template_type": "PENSION",
@@ -59,6 +61,7 @@ TEMPLATES = [
             "border_radius": "4px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "GALLERY", "RESERVATION", "FAQ", "MAP"],
+        "min_plan": "BASIC",
     },
     {
         "template_type": "STARTUP",
@@ -72,6 +75,7 @@ TEMPLATES = [
             "border_radius": "16px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "SERVICES", "PORTFOLIO", "TEAM", "CONTACT"],
+        "min_plan": "BASIC",
     },
     {
         "template_type": "GENERAL",
@@ -85,6 +89,7 @@ TEMPLATES = [
             "border_radius": "8px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "SERVICES", "CONTACT", "MAP"],
+        "min_plan": "BASIC",
     },
     {
         "template_type": "GENERAL",
@@ -98,6 +103,7 @@ TEMPLATES = [
             "border_radius": "10px",
         },
         "section_layouts": ["HERO_BANNER", "INTRO", "SERVICES", "PORTFOLIO", "CONTACT"],
+        "min_plan": "PREMIUM",
     },
 ]
 

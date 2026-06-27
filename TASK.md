@@ -21,14 +21,14 @@
 | Phase 5: 알림 시스템 | 5 | 5 | 100% |
 | Phase 6: 관리자 프론트엔드 | 12 | 12 | 100% |
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
-| Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
+| Phase 8: 템플릿 시스템 | 6 | 1 | 16.7% |
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **60** | **53.1%** |
+| **합계** | **113** | **61** | **54.0%** |
 
 ---
 
@@ -1072,22 +1072,22 @@
 
 ---
 
-### T-055: 템플릿 서비스 + API 구현
+### T-055: 템플릿 서비스 + API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 11.5 (템플릿 API)`
 - **작업 내용:**
-  - [ ] `app/services/template.py`
+  - [x] `app/services/template.py`
     - `get_available_templates(plan_type, industry)` — 플랜·업종 필터링
     - `apply_template(db, tenant_id, template_id)` — 스냅샷 저장 + 템플릿 적용
     - `rollback_template(db, tenant_id)` — 이전 상태 복구
     - `customize_template(db, tenant_id, css_overrides)` — CSS 변수 개별 수정
-  - [ ] `app/api/v1/endpoints/templates.py`
+  - [x] `app/api/v1/endpoints/templates.py`
     - `GET /api/v1/templates` — 목록 조회
     - `POST /api/v1/templates/apply` — 템플릿 적용
     - `POST /api/v1/templates/rollback` — 롤백
     - `PATCH /api/v1/templates/customize` — CSS 커스터마이징
     - `GET /api/public/preview/{tenant_slug}?tpl={template_id}` — 미리보기
-  - [ ] 템플릿 변경 이력 7일 보관 후 자동 삭제 (Celery)
+  - [x] 템플릿 변경 이력 7일 보관 후 자동 삭제 (Celery)
 - **완료 조건:** 템플릿 변경 후 홈페이지 디자인 즉시 반영, 콘텐츠 유지 확인
 
 ---

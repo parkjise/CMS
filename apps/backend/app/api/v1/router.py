@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     sections,
     seo,
     sns,
+    templates,
     upload,
 )
 
@@ -31,6 +32,7 @@ api_router.include_router(analytics.router)
 api_router.include_router(upload.router)
 api_router.include_router(gallery.router)
 api_router.include_router(ai.router)
+api_router.include_router(templates.router)
 
 
 # 헬스체크 (인증 불필요)

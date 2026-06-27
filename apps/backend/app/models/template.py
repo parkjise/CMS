@@ -21,6 +21,10 @@ class Template(Base, TimestampMixin):
     css_variables: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
     section_layouts: Mapped[list] = mapped_column(JSONB, nullable=False, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # 이 템플릿을 사용하려면 필요한 최소 플랜 (FREE<BASIC<STANDARD<PREMIUM)
+    min_plan: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="BASIC", server_default="BASIC"
+    )
 
 
 class TenantTemplateOverride(Base, TimestampMixin):
