@@ -148,6 +148,23 @@ describe('editStore', () => {
     })
   })
 
+  describe('AI 패널 토글', () => {
+    it('toggleAiPanel은 isAiPanelOpen을 반전한다', () => {
+      expect(useEditStore.getState().isAiPanelOpen).toBe(false)
+      useEditStore.getState().toggleAiPanel()
+      expect(useEditStore.getState().isAiPanelOpen).toBe(true)
+      useEditStore.getState().toggleAiPanel()
+      expect(useEditStore.getState().isAiPanelOpen).toBe(false)
+    })
+
+    it('편집 종료 시 AI 패널도 닫힌다', () => {
+      useEditStore.setState({ isEditMode: true, isAiPanelOpen: true })
+      useEditStore.getState().exitEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(false)
+      expect(useEditStore.getState().isAiPanelOpen).toBe(false)
+    })
+  })
+
   describe('hasPersistedDraft', () => {
     it('pendingChanges 없으면 false', () => {
       expect(useEditStore.getState().hasPersistedDraft()).toBe(false)

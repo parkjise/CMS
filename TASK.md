@@ -23,12 +23,12 @@
 | Phase 7: 고객 홈페이지 + 홈페이지 로그인 | 10 | 10 | 100% |
 | Phase 8: 템플릿 시스템 | 6 | 0 | 0% |
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
-| Phase 10: AI 어시스턴트 | 6 | 3 | 50% |
+| Phase 10: AI 어시스턴트 | 6 | 4 | 66.7% |
 | Phase 11: SEO & 분석 | 4 | 0 | 0% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **57** | **50.4%** |
+| **합계** | **113** | **58** | **51.3%** |
 
 ---
 
@@ -1347,19 +1347,22 @@
 
 ---
 
-### T-071: AI 대화형 편집 패널 UI
+### T-071: AI 대화형 편집 패널 UI ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 13.2 (기능 2: 대화형 편집)`
 - **작업 내용:**
-  - [ ] `apps/client/components/ai/AiEditPanel.tsx`
-    - 우측 슬라이드 패널 (편집 툴바의 [AI 어시스턴트] 버튼으로 열기)
+  - [x] `apps/client/components/ai/AiEditPanel.tsx`
+    - 우측 슬라이드 패널 (편집 툴바의 [AI 어시스턴트] 버튼으로 열기, editStore.isAiPanelOpen)
     - 대화 메시지 목록 (사용자/AI 구분)
-    - SSE 스트리밍 응답 실시간 표시 (타이핑 효과)
-    - AI 응답의 액션 버튼 ([이대로 적용] [원래대로])
+    - SSE 스트리밍 응답 실시간 표시 (델타 누적 + 스트리밍 스피너)
+    - AI 응답의 액션 버튼 (update_text [적용] / update_theme [이대로 적용][원래대로])
     - 입력창 + 전송 버튼
-  - [ ] `apps/client/hooks/useAiChat.ts` — SSE 스트리밍 연결 훅
-  - [ ] 액션 처리: `update_text` → editStore 업데이트, `update_theme` → CSS 변수 변경
+  - [x] `apps/client/hooks/useAiChat.ts` + `lib/aiChatStream.ts` — fetch 기반 SSE 스트리밍
+        (POST라 EventSource 불가 → ReadableStream 파싱)
+  - [x] 액션 처리: `lib/aiActions.ts` — `update_text`→editStore.updateField + DOM,
+        `update_theme`→:root CSS 변수 (원복 지원)
 - **완료 조건:** AI 채팅으로 텍스트 변경 지시 → 홈페이지 즉시 반영
+  - 주: SSE/액션/패널/스토어 테스트 20개 + 전체 73개 통과, type-check 클린.
 
 ---
 

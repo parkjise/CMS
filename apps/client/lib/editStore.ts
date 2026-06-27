@@ -23,10 +23,13 @@ interface EditStore {
   isEditMode: boolean
   pendingChanges: Record<string, PendingChange>
   isDirty: boolean
+  isAiPanelOpen: boolean
 
   toggleEditMode: () => void
   enterEditMode: () => void
   exitEditMode: () => void
+  toggleAiPanel: () => void
+  setAiPanelOpen: (open: boolean) => void
   updateField: (
     sectionId: string,
     field: string,
@@ -46,6 +49,7 @@ export const useEditStore = create<EditStore>()(
       isEditMode: false,
       pendingChanges: {},
       isDirty: false,
+      isAiPanelOpen: false,
 
       toggleEditMode: () => {
         const { isLoggedIn } = useClientAuthStore.getState()
@@ -57,7 +61,9 @@ export const useEditStore = create<EditStore>()(
         if (!isLoggedIn) return
         set({ isEditMode: true })
       },
-      exitEditMode: () => set({ isEditMode: false }),
+      exitEditMode: () => set({ isEditMode: false, isAiPanelOpen: false }),
+      toggleAiPanel: () => set((s) => ({ isAiPanelOpen: !s.isAiPanelOpen })),
+      setAiPanelOpen: (open: boolean) => set({ isAiPanelOpen: open }),
 
       updateField: (sectionId, field, newValue, originalValue) => {
         set((state) => ({

@@ -1,9 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { ExternalLink, LayoutGrid, Loader2, Save, X } from 'lucide-react'
+import {
+  ExternalLink,
+  LayoutGrid,
+  Loader2,
+  Save,
+  Sparkles,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useEditStore } from '@/lib/editStore'
+import { AiEditPanel } from '@/components/ai/AiEditPanel'
 import { ExitConfirmDialog } from '@/components/layout/ExitConfirmDialog'
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
@@ -14,6 +22,8 @@ export function EditToolbar() {
   const isDirty = useEditStore((s) => s.isDirty)
   const saveAll = useEditStore((s) => s.saveAll)
   const exitEditMode = useEditStore((s) => s.exitEditMode)
+  const isAiPanelOpen = useEditStore((s) => s.isAiPanelOpen)
+  const toggleAiPanel = useEditStore((s) => s.toggleAiPanel)
 
   const [saving, setSaving] = useState(false)
   const [exitOpen, setExitOpen] = useState(false)
@@ -101,6 +111,17 @@ export function EditToolbar() {
         <div className="flex flex-1 items-center justify-end gap-2">
           <button
             type="button"
+            onClick={toggleAiPanel}
+            aria-label="AI 어시스턴트"
+            aria-pressed={isAiPanelOpen}
+            className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+          >
+            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">AI 어시스턴트</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleSave}
             disabled={saving || changeCount === 0}
             aria-busy={saving}
@@ -141,6 +162,8 @@ export function EditToolbar() {
         onClose={() => setExitOpen(false)}
         onExit={exitEditMode}
       />
+
+      <AiEditPanel />
     </>
   )
 }
