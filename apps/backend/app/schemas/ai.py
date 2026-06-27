@@ -55,3 +55,4 @@ class AiUsageResponse(BaseModel):
     plan_type: str
     copy_suggest: FeatureUsage
     chat_edit: FeatureUsage
+    estimated_cost_usd: float  # 이번 달 누적 토큰 기준 추정 OpenAI 비용 (USD)

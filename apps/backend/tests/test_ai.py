@@ -7,6 +7,7 @@
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
 from app.schemas.ai import CopySuggestRequest
 from app.services import ai as ai_service
 from app.services.ai_prompts import (
@@ -497,3 +498,123 @@ class TestAiUsageEndpoint:
         assert data["chat_edit"]["limit"] == 50
         assert data["chat_edit"]["supported"] is True
         assert data["copy_suggest"]["limit"] == 100
+        assert "estimated_cost_usd" in data
+
+
+# ═════════════════════ T-073 비용 최적화 ═════════════════════
+
+
+class TestEstimateCost:
+    def test_zero_tokens(self):
+        assert ai_service.estimate_cost_usd(0) == 0.0
+
+    def test_negative_clamped(self):
+        assert ai_service.estimate_cost_usd(-100) == 0.0
+
+    def test_proportional(self):
+        # 1M 토큰 = 블렌드 단가
+        assert ai_service.estimate_cost_usd(1_000_000) == ai_service.USD_PER_1M_TOKENS
+
+    def test_completion_target_100_calls_under_1_usd(self):
+        """완료 조건: 문구 추천 100회(회당 약 1,500토큰)가 $1 이하여야 한다."""
+        cost = ai_service.estimate_cost_usd(100 * 1_500)
+        assert cost < 1.0
+
+
+class TestCopyCacheKey:
+    def test_same_input_same_key(self):
+        import uuid as _uuid
+
+        from app.schemas.ai import CopySuggestRequest, TenantContext
+
+        tid = _uuid.uuid4()
+        req_a = CopySuggestRequest(
+            section_type="HERO_BANNER",
+            tenant_context=TenantContext(keywords=["강남", "통증"]),
+        )
+        req_b = CopySuggestRequest(
+            section_type="HERO_BANNER",
+            tenant_context=TenantContext(keywords=["통증", "강남"]),  # 순서만 다름
+        )
+        assert ai_service._copy_cache_key(tid, req_a) == ai_service._copy_cache_key(
+            tid, req_b
+        )
+
+    def test_different_input_different_key(self):
+        import uuid as _uuid
+
+        from app.schemas.ai import CopySuggestRequest
+
+        tid = _uuid.uuid4()
+        a = ai_service._copy_cache_key(
+            tid, CopySuggestRequest(section_type="HERO_BANNER", tone="warm")
+        )
+        b = ai_service._copy_cache_key(
+            tid, CopySuggestRequest(section_type="HERO_BANNER", tone="energetic")
+        )
+        assert a != b
+
+
+class TestSuggestCopyCaching:
+    _url = "/api/v1/ai/suggest-copy"
+
+    async def test_second_identical_request_is_cache_hit(
+        self, client: AsyncClient, auth_headers: dict, monkeypatch
+    ):
+        calls = {"n": 0}
+
+        async def counting_call(_messages):
+            calls["n"] += 1
+            return '["문구 가", "문구 나", "문구 다"]', 100
+
+        monkeypatch.setattr(ai_service, "_call_model", counting_call)
+
+        body = {
+            "section_type": "HERO_BANNER",
+            "field": "main_title",
+            "tenant_context": {"keywords": ["강남"]},
+            "tone": "professional",
+            "count": 3,
+        }
+
+        first = await client.post(self._url, headers=auth_headers, json=body)
+        assert first.status_code == 200
+        assert first.json()["data"]["usage"]["used"] == 1
+        assert first.json()["data"]["tokens_used"] == 100
+
+        second = await client.post(self._url, headers=auth_headers, json=body)
+        assert second.status_code == 200
+        data = second.json()["data"]
+        # 캐시 히트: LLM 미호출, 토큰 0, 사용량 미증가
+        assert calls["n"] == 1
+        assert data["tokens_used"] == 0
+        assert data["usage"]["used"] == 1
+        assert data["suggestions"] == ["문구 가", "문구 나", "문구 다"]
+
+
+class TestAbuseDetection:
+    async def test_blocks_after_limit(self, monkeypatch):
+        import uuid as _uuid
+
+        from fastapi import HTTPException
+
+        monkeypatch.setattr(settings, "ai_rate_limit_per_minute", 3)
+        tid = _uuid.uuid4()  # 신규 테넌트 → 카운터 0부터 시작
+
+        # 한도(3)까지는 통과
+        for _ in range(3):
+            await ai_service.ensure_not_abusing(tid)
+
+        # 4번째 호출은 429
+        with pytest.raises(HTTPException) as exc:
+            await ai_service.ensure_not_abusing(tid)
+        assert exc.value.status_code == 429
+
+    async def test_disabled_when_limit_zero(self, monkeypatch):
+        import uuid as _uuid
+
+        monkeypatch.setattr(settings, "ai_rate_limit_per_minute", 0)
+        tid = _uuid.uuid4()
+        # 한도 0 = 비활성 → 여러 번 호출해도 예외 없음
+        for _ in range(20):
+            await ai_service.ensure_not_abusing(tid)

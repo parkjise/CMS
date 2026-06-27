@@ -40,6 +40,9 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str = ""
+    # AI 비용 최적화 (T-073)
+    ai_cache_ttl_seconds: int = 3600  # 동일 입력 문구 추천 캐시 (1시간)
+    ai_rate_limit_per_minute: int = 10  # 테넌트당 분당 AI 호출 한도 (비정상 사용 차단)
 
     # 알림톡
     kakao_api_key: str = ""
