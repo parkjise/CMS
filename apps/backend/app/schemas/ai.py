@@ -39,3 +39,19 @@ class ChatMessage(BaseModel):
 class ChatEditRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=500)
     conversation_history: list[ChatMessage] = Field(default_factory=list)
+
+
+class FeatureUsage(BaseModel):
+    """단일 AI 기능의 이번 달 사용 현황."""
+
+    used: int
+    limit: int | None  # None = 무제한
+    remaining: int | None  # None = 무제한
+    exceeded: bool  # 한도 초과 여부
+    supported: bool  # 현재 플랜에서 지원 여부 (limit == 0 이면 False)
+
+
+class AiUsageResponse(BaseModel):
+    plan_type: str
+    copy_suggest: FeatureUsage
+    chat_edit: FeatureUsage

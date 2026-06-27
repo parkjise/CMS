@@ -383,3 +383,117 @@ class TestChatEditEndpoint:
         assert '"type": "actions"' in body
         assert "update_text" in body
         assert '"type": "done"' in body
+
+
+# ═════════════════════ T-072 AI 사용량 현황 (usage) ═════════════════════
+
+
+class TestBuildFeatureUsage:
+    def test_limited_plan_not_exceeded(self):
+        usage = ai_service._build_feature_usage(used=3, limit=20)
+        assert usage.used == 3
+        assert usage.limit == 20
+        assert usage.remaining == 17
+        assert usage.exceeded is False
+        assert usage.supported is True
+
+    def test_limited_plan_exceeded(self):
+        usage = ai_service._build_feature_usage(used=20, limit=20)
+        assert usage.remaining == 0
+        assert usage.exceeded is True
+        assert usage.supported is True
+
+    def test_remaining_never_negative(self):
+        usage = ai_service._build_feature_usage(used=25, limit=20)
+        assert usage.remaining == 0
+        assert usage.exceeded is True
+
+    def test_unlimited_plan(self):
+        usage = ai_service._build_feature_usage(used=999, limit=None)
+        assert usage.limit is None
+        assert usage.remaining is None
+        assert usage.exceeded is False
+        assert usage.supported is True
+
+    def test_unsupported_feature(self):
+        # limit == 0 → 미지원 (대화형 편집 FREE/BASIC)
+        usage = ai_service._build_feature_usage(used=0, limit=0)
+        assert usage.supported is False
+        assert usage.exceeded is True
+        assert usage.remaining == 0
+
+
+class TestAiUsageEndpoint:
+    _url = "/api/v1/ai/usage"
+
+    async def test_requires_auth(self, client: AsyncClient):
+        resp = await client.get(self._url)
+        assert resp.status_code == 401
+
+    async def test_free_plan_usage(self, client: AsyncClient, auth_headers: dict):
+        # test_tenant 기본 플랜은 FREE → 문구 추천 5, 대화형 편집 미지원(0)
+        resp = await client.get(self._url, headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["plan_type"] == "FREE"
+        assert data["copy_suggest"]["limit"] == 5
+        assert data["copy_suggest"]["used"] == 0
+        assert data["copy_suggest"]["remaining"] == 5
+        assert data["copy_suggest"]["supported"] is True
+        assert data["chat_edit"]["supported"] is False
+        assert data["chat_edit"]["limit"] == 0
+
+    async def test_reflects_logged_usage(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        import uuid as _uuid
+
+        from sqlalchemy import text
+
+        from tests.conftest import _TestSession  # type: ignore
+
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            for _ in range(3):
+                await session.execute(
+                    text(
+                        "INSERT INTO ai_usage_log "
+                        "(id, tenant_id, action_type, tokens_used, created_at) "
+                        "VALUES (:id, :tid, 'COPY_SUGGEST', 0, now())"
+                    ),
+                    {"id": str(_uuid.uuid4()), "tid": test_tenant["id"]},
+                )
+            await session.commit()
+
+        resp = await client.get(self._url, headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["copy_suggest"]["used"] == 3
+        assert data["copy_suggest"]["remaining"] == 2
+
+    async def test_standard_plan_supports_chat(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        from sqlalchemy import text
+
+        from tests.conftest import _TestSession  # type: ignore
+
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text("UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :tid"),
+                {"tid": test_tenant["id"]},
+            )
+            await session.commit()
+
+        resp = await client.get(self._url, headers=auth_headers)
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["plan_type"] == "STANDARD"
+        assert data["chat_edit"]["limit"] == 50
+        assert data["chat_edit"]["supported"] is True
+        assert data["copy_suggest"]["limit"] == 100
