@@ -4,11 +4,26 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db_with_rls
 from app.models.user import User
-from app.schemas.ai import ChatEditRequest, CopySuggestRequest, CopySuggestResponse
+from app.schemas.ai import (
+    AiUsageResponse,
+    ChatEditRequest,
+    CopySuggestRequest,
+    CopySuggestResponse,
+)
 from app.schemas.common import ApiResponse
 from app.services import ai as ai_service
 
 router = APIRouter(prefix="/ai", tags=["ai"])
+
+
+@router.get("/usage", response_model=ApiResponse[AiUsageResponse])
+async def get_usage(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """이번 달 AI 기능 사용 현황(문구 추천 / 대화형 편집)을 플랜 한도와 함께 반환."""
+    result = await ai_service.get_usage(db, current_user.tenant_id)
+    return ApiResponse.ok(result)
 
 
 @router.post("/suggest-copy", response_model=ApiResponse[CopySuggestResponse])

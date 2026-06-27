@@ -23,10 +23,12 @@ from app.models.ai import AiUsageLog
 from app.models.section import Section
 from app.models.tenant import Tenant
 from app.schemas.ai import (
+    AiUsageResponse,
     ChatEditRequest,
     CopySuggestRequest,
     CopySuggestResponse,
     CopyUsageInfo,
+    FeatureUsage,
 )
 from app.services.ai_prompts import (
     PROMPT_VERSION,
@@ -386,6 +388,44 @@ async def ensure_chat_quota(db: AsyncSession, tenant_id: uuid.UUID) -> None:
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="이번 달 대화형 편집 사용 한도를 초과했습니다.",
         )
+
+
+def _build_feature_usage(used: int, limit: int | None) -> FeatureUsage:
+    """사용량과 한도로 FeatureUsage를 구성한다.
+
+    - limit is None → 무제한 (remaining None, 초과 없음)
+    - limit == 0    → 미지원 (supported False, 초과로 표시)
+    """
+    if limit is None:
+        return FeatureUsage(
+            used=used, limit=None, remaining=None, exceeded=False, supported=True
+        )
+    if limit == 0:
+        return FeatureUsage(
+            used=used, limit=0, remaining=0, exceeded=True, supported=False
+        )
+    remaining = max(limit - used, 0)
+    return FeatureUsage(
+        used=used,
+        limit=limit,
+        remaining=remaining,
+        exceeded=used >= limit,
+        supported=True,
+    )
+
+
+async def get_usage(db: AsyncSession, tenant_id: uuid.UUID) -> AiUsageResponse:
+    """테넌트의 이번 달 AI 기능 사용 현황을 플랜 한도와 함께 반환한다."""
+    tenant = await _get_tenant(db, tenant_id)
+
+    copy_used = await monthly_usage(db, tenant_id, ACTION_COPY_SUGGEST)
+    chat_used = await monthly_usage(db, tenant_id, ACTION_CHAT_EDIT)
+
+    return AiUsageResponse(
+        plan_type=tenant.plan_type,
+        copy_suggest=_build_feature_usage(copy_used, monthly_limit(tenant.plan_type)),
+        chat_edit=_build_feature_usage(chat_used, chat_monthly_limit(tenant.plan_type)),
+    )
 
 
 async def chat_edit_stream(

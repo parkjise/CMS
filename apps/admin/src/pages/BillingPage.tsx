@@ -1,7 +1,17 @@
-import { HardDrive, MessageSquare, Send } from 'lucide-react'
+import { useState } from 'react'
+import {
+  HardDrive,
+  MessageSquare,
+  MessagesSquare,
+  Send,
+  Sparkles,
+} from 'lucide-react'
 import { toast } from '@cms/ui'
+import { AiUsageCard } from '@/components/billing/AiUsageCard'
 import { PlanCard } from '@/components/billing/PlanCard'
+import { UpgradeModal } from '@/components/billing/UpgradeModal'
 import { UsageStat } from '@/components/billing/UsageStat'
+import { useAiUsage } from '@/hooks/useAiUsage'
 import { useInquiries } from '@/hooks/useInquiries'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
 import { type PlanDefinition, type PlanKey, PLANS, getPlan } from '@/lib/plans'
@@ -15,6 +25,16 @@ export function BillingPage() {
 
   const inquiriesQuery = useInquiries({ page: 1, limit: 1 })
   const notifQuery = useNotificationSettings()
+  const aiUsageQuery = useAiUsage()
+
+  const [upgradeFeature, setUpgradeFeature] = useState<string | null>(null)
+
+  const aiUsage = aiUsageQuery.data
+  const aiExceeded =
+    !!aiUsage &&
+    ((aiUsage.copy_suggest.exceeded && aiUsage.copy_suggest.supported) ||
+      !aiUsage.chat_edit.supported ||
+      aiUsage.chat_edit.exceeded)
 
   const totalInquiries = inquiriesQuery.data?.total ?? 0
   const monthlyKakao = notifQuery.data?.monthly_kakao_count ?? 0
@@ -97,6 +117,58 @@ export function BillingPage() {
         </div>
       </section>
 
+      {/* AI 사용량 현황 */}
+      <section className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-base font-semibold text-slate-900">
+            AI 어시스턴트 사용 현황
+          </h2>
+          {aiExceeded && (
+            <button
+              type="button"
+              onClick={() => setUpgradeFeature('AI 어시스턴트')}
+              className="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2.5 py-1 text-xs font-medium text-violet-700 transition hover:bg-violet-100"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              업그레이드 안내
+            </button>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <AiUsageCard
+            icon={Sparkles}
+            iconBg="bg-violet-50 text-violet-600"
+            label="이번 달 AI 문구 추천"
+            usage={
+              aiUsage?.copy_suggest ?? {
+                used: 0,
+                limit: null,
+                remaining: null,
+                exceeded: false,
+                supported: true,
+              }
+            }
+            isLoading={aiUsageQuery.isLoading}
+          />
+          <AiUsageCard
+            icon={MessagesSquare}
+            iconBg="bg-indigo-50 text-indigo-600"
+            label="이번 달 AI 대화형 편집"
+            usage={
+              aiUsage?.chat_edit ?? {
+                used: 0,
+                limit: null,
+                remaining: null,
+                exceeded: false,
+                supported: true,
+              }
+            }
+            isLoading={aiUsageQuery.isLoading}
+          />
+        </div>
+      </section>
+
       {/* 플랜 비교 */}
       <section className="space-y-4">
         <div className="flex items-baseline justify-between">
@@ -122,6 +194,19 @@ export function BillingPage() {
           주기부터 적용됩니다.
         </p>
       </section>
+
+      <UpgradeModal
+        open={upgradeFeature !== null}
+        onClose={() => setUpgradeFeature(null)}
+        featureName={upgradeFeature ?? ''}
+        recommendedPlan="Premium"
+        onUpgrade={() => {
+          setUpgradeFeature(null)
+          toast.success(
+            'Premium 플랜 업그레이드 문의가 접수되었습니다. 영업일 기준 1일 내 회신드리겠습니다.'
+          )
+        }}
+      />
     </div>
   )
 }
