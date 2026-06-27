@@ -300,3 +300,81 @@ class TestBeatSchedule:
         assert "reset-monthly-notification-count" in schedule
         assert "cleanup-old-inquiries-daily-2am" in schedule
         assert "cleanup-old-analytics-daily-230am" in schedule
+        assert "cleanup-old-template-history-daily-3am" in schedule
+
+
+# ── cleanup_old_template_history (T-055) ───────────────────────────────────
+
+
+async def _insert_template_history(
+    tenant_id: str, template_id: str, days_ago: int
+) -> str:
+    row_id = str(uuid.uuid4())
+    async with _TestSession() as session:
+        await session.execute(
+            text("SELECT set_config('app.is_super_admin', 'true', true)")
+        )
+        await session.execute(
+            text(
+                "INSERT INTO template_change_history "
+                "(id, tenant_id, template_id, after_css, changed_at) "
+                "VALUES (:id, :tid, :tpl, '{}'::jsonb, "
+                "NOW() - make_interval(days => :d))"
+            ),
+            {"id": row_id, "tid": tenant_id, "tpl": template_id, "d": days_ago},
+        )
+        await session.commit()
+    return row_id
+
+
+class TestCleanupOldTemplateHistory:
+    async def test_deletes_only_rows_older_than_7_days(self, test_tenant):
+        # 미리보기용 글로벌 템플릿 1개 생성
+        template_id = str(uuid.uuid4())
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO templates "
+                    "(id, template_type, name, css_variables, section_layouts, "
+                    " is_active, min_plan, created_at, updated_at) "
+                    "VALUES (:id, 'GENERAL', 'tmp', '{}'::jsonb, '[]'::jsonb, "
+                    "true, 'BASIC', now(), now())"
+                ),
+                {"id": template_id},
+            )
+            await session.commit()
+
+        old_id = await _insert_template_history(test_tenant["id"], template_id, 10)
+        fresh_id = await _insert_template_history(test_tenant["id"], template_id, 2)
+
+        deleted = await worker._cleanup_old_template_history()
+        assert deleted >= 1
+
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            remaining = await session.execute(
+                text(
+                    "SELECT id FROM template_change_history "
+                    "WHERE id IN (:a, :b)"
+                ),
+                {"a": old_id, "b": fresh_id},
+            )
+            ids = {str(r[0]) for r in remaining.fetchall()}
+            # 오래된 행은 삭제, 최근 행은 유지
+            assert old_id not in ids
+            assert fresh_id in ids
+
+            # 정리
+            await session.execute(
+                text("DELETE FROM template_change_history WHERE template_id = :t"),
+                {"t": template_id},
+            )
+            await session.execute(
+                text("DELETE FROM templates WHERE id = :t"), {"t": template_id}
+            )
+            await session.commit()

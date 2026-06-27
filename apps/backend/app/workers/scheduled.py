@@ -25,6 +25,9 @@ ANALYTICS_RETENTION_DAYS: dict[str, int | None] = {
     "PREMIUM": 1095,
 }
 
+# 템플릿 변경 이력 보관 기간 (일). 초과분은 하드 삭제.
+TEMPLATE_HISTORY_RETENTION_DAYS = 7
+
 
 # ── reset_monthly_notification_count ───────────────────────────────────────
 
@@ -146,3 +149,40 @@ async def _cleanup_old_analytics() -> int:
             total += result.rowcount or 0
         await db.commit()
     return total
+
+
+# ── cleanup_old_template_history ───────────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.cleanup_old_template_history",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def cleanup_old_template_history(self) -> int:
+    return asyncio.run(_cleanup_old_template_history())
+
+
+async def _cleanup_old_template_history(
+    retention_days: int = TEMPLATE_HISTORY_RETENTION_DAYS,
+) -> int:
+    """보관 기간(기본 7일) 초과 template_change_history 하드 삭제. 삭제 행 수 반환."""
+    from app.db.session import AsyncSessionLocal
+
+    if not isinstance(retention_days, int) or retention_days < 0:
+        raise ValueError("retention_days must be a non-negative integer")
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        result = await db.execute(
+            text(
+                f"""
+                DELETE FROM template_change_history
+                WHERE changed_at < NOW() - INTERVAL '{retention_days} days'
+                """
+            )
+        )
+        await db.commit()
+        return result.rowcount or 0

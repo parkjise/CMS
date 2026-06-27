@@ -12,6 +12,7 @@ from app.api.v1.endpoints.analytics import public_router as analytics_public_rou
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
 from app.api.v1.endpoints.public import router as public_site_router
 from app.api.v1.endpoints.seo import public_router as seo_public_router
+from app.api.v1.endpoints.templates import public_router as template_public_router
 from app.api.v1.router import api_router
 from app.core.config import settings
 from app.core.redis import close_redis
@@ -69,6 +70,7 @@ app.include_router(analytics_public_router, prefix="/api/public")
 app.include_router(inquiry_public_router, prefix="/api/public")
 app.include_router(seo_public_router, prefix="/api/public")
 app.include_router(public_site_router, prefix="/api/public")
+app.include_router(template_public_router, prefix="/api/public")
 
 
 @app.get("/health")

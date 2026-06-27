@@ -42,5 +42,9 @@ celery_app.conf.update(
             "task": "app.workers.scheduled.cleanup_old_analytics",
             "schedule": crontab(hour=2, minute=30),  # 매일 02:30
         },
+        "cleanup-old-template-history-daily-3am": {
+            "task": "app.workers.scheduled.cleanup_old_template_history",
+            "schedule": crontab(hour=3, minute=30),  # 매일 03:30
+        },
     },
 )
