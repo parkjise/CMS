@@ -1,8 +1,13 @@
 import type { Metadata } from 'next'
 import { fetchPublicSite } from '@/lib/publicSite'
+import { resolveOgImage } from '@/lib/socialMeta'
 import { buildCssVarBody } from '@/lib/theme'
 import { AuthInitializer } from '@/components/auth/AuthInitializer'
 import { RestoreDraftDialog } from '@/components/layout/RestoreDraftDialog'
+
+function getSiteUrl(): string {
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+}
 
 interface Props {
   children: React.ReactNode
@@ -23,7 +28,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const seo = site.seo_settings
   const title = seo?.meta_title ?? site.tenant.name
   const description = seo?.meta_description ?? undefined
-  const ogImage = seo?.og_image_url ?? undefined
+  // OG 이미지: SEO 설정 → HERO 배너 이미지 자동 폴백
+  const ogImage = resolveOgImage(site)
+  const images = ogImage ? [{ url: ogImage }] : undefined
+  const url = `${getSiteUrl()}/${site.tenant.slug}`
 
   return {
     title,
@@ -32,8 +40,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title,
       description,
-      images: ogImage ? [{ url: ogImage }] : undefined,
+      url,
+      siteName: site.tenant.name,
+      images,
+      locale: 'ko_KR',
       type: 'website',
+    },
+    twitter: {
+      card: ogImage ? 'summary_large_image' : 'summary',
+      title,
+      description,
+      images,
     },
     verification: seo?.naver_site_verification
       ? { other: { 'naver-site-verification': seo.naver_site_verification } }
