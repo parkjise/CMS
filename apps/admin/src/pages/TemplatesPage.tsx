@@ -29,6 +29,14 @@ export function TemplatesPage() {
   const currentId = data?.current_template_id ?? null
   const hasApplied = currentId !== null
 
+  const currentTemplate = data?.templates.find((t) => t.id === currentId)
+  const customizeDefaults = {
+    primary: currentTemplate?.css_variables.primary ?? '#1a73e8',
+    accent: currentTemplate?.css_variables.accent ?? '#1a73e8',
+    font_heading: currentTemplate?.css_variables.font_heading ?? 'Pretendard',
+    font_body: currentTemplate?.css_variables.font_body ?? 'Pretendard',
+  }
+
   const handlePreview = (template: TemplateItem) => {
     if (!tenantSlug) {
       toast.error('미리보기를 위한 사이트 정보를 찾을 수 없습니다.')
@@ -118,10 +126,12 @@ export function TemplatesPage() {
         </p>
       )}
 
-      {/* 커스터마이징 패널 */}
+      {/* 커스터마이징 패널 (현재 템플릿 변경 시 기본값으로 리셋되도록 key 부여) */}
       <CustomizePanel
+        key={currentId ?? 'none'}
         disabled={!hasApplied}
         isSaving={customizeMutation.isPending}
+        defaults={customizeDefaults}
         onSave={handleCustomize}
       />
 
