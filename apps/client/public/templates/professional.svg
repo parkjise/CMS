@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="480" height="300" viewBox="0 0 480 300" role="img" aria-label="프로페셔널">
+  <rect width="480" height="300" fill="#f8fafc"/>
+  <rect x="0" y="0" width="480" height="64" fill="#1e3a5f" opacity="0.18"/>
+  <circle cx="60" cy="32" r="10" fill="#1e3a5f"/>
+  <rect x="84" y="26" width="120" height="12" rx="6" fill="#1e3a5f" opacity="0.55"/>
+  <rect x="40" y="110" width="280" height="22" rx="6" fill="#1e3a5f"/>
+  <rect x="40" y="148" width="200" height="14" rx="6" fill="#1e3a5f" opacity="0.4"/>
+  <rect x="40" y="196" width="130" height="40" rx="8" fill="#1e3a5f"/>
+  <text x="40" y="276" font-family="Pretendard, sans-serif" font-size="20" font-weight="700" fill="#1e3a5f">프로페셔널</text>
+</svg>
