@@ -23,3 +23,14 @@ export function openTemplatePreview(
   const url = buildTemplatePreviewUrl(tenantSlug, templateId)
   window.open(url, '_blank', 'noopener,noreferrer')
 }
+
+/**
+ * 템플릿 썸네일 등 클라이언트 앱(public/)이 서빙하는 정적 자산 경로를 절대 URL로 변환.
+ * 이미 절대 URL이면 그대로 반환한다.
+ */
+export function resolveClientAssetUrl(path: string | null | undefined): string {
+  if (!path) return ''
+  if (/^https?:\/\//.test(path)) return path
+  const base = CLIENT_BASE_URL.replace(/\/$/, '')
+  return `${base}${path.startsWith('/') ? '' : '/'}${path}`
+}
