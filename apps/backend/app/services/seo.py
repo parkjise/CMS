@@ -42,6 +42,7 @@ async def update_seo_settings(
         "robots_txt",
         "google_analytics_id",
         "naver_site_verification",
+        "google_site_verification",
     ]
 
     if setting:

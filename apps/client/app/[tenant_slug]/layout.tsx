@@ -52,9 +52,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       images,
     },
-    verification: seo?.naver_site_verification
-      ? { other: { 'naver-site-verification': seo.naver_site_verification } }
-      : undefined,
+    verification:
+      seo?.google_site_verification || seo?.naver_site_verification
+        ? {
+            google: seo?.google_site_verification ?? undefined,
+            other: seo?.naver_site_verification
+              ? { 'naver-site-verification': seo.naver_site_verification }
+              : undefined,
+          }
+        : undefined,
     other: seo?.google_analytics_id
       ? { 'google-analytics-id': seo.google_analytics_id }
       : undefined,

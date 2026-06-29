@@ -132,3 +132,36 @@ class TestSeoSettings:
     async def test_sitemap_not_found(self, client: AsyncClient):
         resp = await client.get("/api/public/sitemap/no-such-tenant.xml")
         assert resp.status_code == 404
+
+
+class TestGoogleSiteVerification:
+    """T-077 Google 서치 콘솔 사이트 인증 코드."""
+
+    async def test_save_and_read_google_verification(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        resp = await client.put(
+            "/api/v1/seo-settings",
+            json={
+                "google_site_verification": "google-abc-123",
+                "naver_site_verification": "naver-xyz-789",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["google_site_verification"] == "google-abc-123"
+        assert data["naver_site_verification"] == "naver-xyz-789"
+
+    async def test_exposed_on_public_site(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        await client.put(
+            "/api/v1/seo-settings",
+            json={"google_site_verification": "google-public-1"},
+            headers=auth_headers,
+        )
+        pub = await client.get(f"/api/public/site/{test_tenant['slug']}")
+        assert pub.status_code == 200
+        seo = pub.json()["data"]["seo_settings"]
+        assert seo["google_site_verification"] == "google-public-1"

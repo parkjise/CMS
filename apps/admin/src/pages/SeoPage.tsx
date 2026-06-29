@@ -12,6 +12,7 @@ import { FormField } from '@/components/content/forms/FormField'
 import { ImageUrlField } from '@/components/content/forms/ImageUrlField'
 import { GoogleSnippetPreview } from '@/components/seo/GoogleSnippetPreview'
 import { KeywordTagInput } from '@/components/seo/KeywordTagInput'
+import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModal'
 import { SocialPreview } from '@/components/seo/SocialPreview'
 import { useSeoSettings, useUpdateSeo } from '@/hooks/useSeo'
 import { useAuthStore } from '@/stores/authStore'
@@ -33,7 +34,9 @@ export function SeoPage() {
   const [robots, setRobots] = useState('')
   const [gaId, setGaId] = useState('')
   const [naverCode, setNaverCode] = useState('')
+  const [googleVerify, setGoogleVerify] = useState('')
   const [keywords, setKeywords] = useState<string[]>([])
+  const [guideOpen, setGuideOpen] = useState(false)
 
   // 서버 응답 도착 시 폼 동기화
   useEffect(() => {
@@ -45,6 +48,7 @@ export function SeoPage() {
     setRobots(d.robots_txt ?? '')
     setGaId(d.google_analytics_id ?? '')
     setNaverCode(d.naver_site_verification ?? '')
+    setGoogleVerify(d.google_site_verification ?? '')
   }, [seoQuery.data])
 
   const siteUrl = useMemo(() => {
@@ -262,6 +266,19 @@ export function SeoPage() {
 
             {activeTab === 'analytics' && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-slate-800">
+                    검색엔진 연동 · 사이트 인증
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setGuideOpen(true)}
+                    className="text-xs font-medium text-blue-600 hover:underline"
+                  >
+                    등록 가이드 보기
+                  </button>
+                </div>
+
                 <FormField
                   label="Google Analytics ID"
                   hint="GA4 측정 ID (예: G-XXXXXXXXXX)"
@@ -272,6 +289,19 @@ export function SeoPage() {
                     placeholder="G-XXXXXXXXXX"
                   />
                 </FormField>
+
+                <div className="mt-5">
+                  <FormField
+                    label="Google 사이트 인증 코드"
+                    hint="서치 콘솔 HTML 태그의 content 값 (google-site-verification)"
+                  >
+                    <Input
+                      value={googleVerify}
+                      onChange={(e) => setGoogleVerify(e.target.value)}
+                      placeholder="google-site-verification 코드"
+                    />
+                  </FormField>
+                </div>
 
                 <div className="mt-5">
                   <FormField
@@ -293,6 +323,7 @@ export function SeoPage() {
                       save('분석 연동', {
                         google_analytics_id: gaId || null,
                         naver_site_verification: naverCode || null,
+                        google_site_verification: googleVerify || null,
                       })
                     }
                     disabled={updateMutation.isPending}
@@ -324,6 +355,11 @@ export function SeoPage() {
           </aside>
         </div>
       )}
+
+      <SearchConsoleGuideModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+      />
     </div>
   )
 }

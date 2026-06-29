@@ -11,6 +11,7 @@ class SeoSettingsUpdate(BaseModel):
     robots_txt: str | None = None
     google_analytics_id: str | None = None
     naver_site_verification: str | None = None
+    google_site_verification: str | None = None
 
 
 class SeoSettingsResponse(BaseModel):
@@ -22,6 +23,7 @@ class SeoSettingsResponse(BaseModel):
     robots_txt: str | None
     google_analytics_id: str | None
     naver_site_verification: str | None
+    google_site_verification: str | None
     updated_at: datetime
 
     model_config = {"from_attributes": True}

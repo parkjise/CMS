@@ -10,6 +10,7 @@ export interface SeoSettings {
   robots_txt: string | null
   google_analytics_id: string | null
   naver_site_verification: string | null
+  google_site_verification: string | null
   updated_at: string
 }
 
@@ -20,6 +21,7 @@ export interface SeoSettingsUpdate {
   robots_txt?: string | null
   google_analytics_id?: string | null
   naver_site_verification?: string | null
+  google_site_verification?: string | null
 }
 
 const SEO_KEY = ['seo-settings'] as const
