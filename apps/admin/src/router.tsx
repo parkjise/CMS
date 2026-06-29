@@ -33,6 +33,9 @@ const TemplatesPage = lazy(() =>
 const BillingPage = lazy(() =>
   import('@/pages/BillingPage').then((m) => ({ default: m.BillingPage })),
 )
+const AnalyticsPage = lazy(() =>
+  import('@/pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
+)
 const ForbiddenPage = lazy(() =>
   import('@/pages/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
 )
@@ -77,6 +80,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/templates',
             element: withSuspense(<TemplatesPage />),
+          },
+          {
+            path: '/admin/analytics',
+            element: withSuspense(<AnalyticsPage />),
           },
           { path: '/admin/billing', element: withSuspense(<BillingPage />) },
           { path: '/admin/403', element: withSuspense(<ForbiddenPage />) },

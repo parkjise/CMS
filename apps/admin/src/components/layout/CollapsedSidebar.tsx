@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router'
 import {
+  BarChart3,
   CreditCard,
   ExternalLink,
   FileText,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의' },
   { to: '/admin/seo', icon: Search, label: 'SEO' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },
+  { to: '/admin/analytics', icon: BarChart3, label: '분석' },
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
 

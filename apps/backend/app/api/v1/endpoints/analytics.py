@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.services import analytics as analytics_service
@@ -33,9 +34,10 @@ async def record_pageview(
         request.client.host if request.client else "unknown"
     )
     ua = request.headers.get("User-Agent", "")
+    referrer = request.headers.get("Referer", "")
 
     try:
-        await analytics_service.record_pageview(tenant_id, ip, ua)
+        await analytics_service.record_pageview(tenant_id, ip, ua, referrer)
     except Exception:
         pass  # 수집 실패가 서비스를 막아서는 안 됨
 
@@ -52,4 +54,19 @@ async def get_summary(
     current_user: User = Depends(get_current_user),
 ):
     result = await analytics_service.get_summary(db, current_user.tenant_id)
+    return ApiResponse.ok(result)
+
+
+@router.get("/timeseries", response_model=ApiResponse[dict])
+async def get_timeseries(
+    days: int = Query(default=7, ge=1, le=365),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """방문자 추이 + 모바일 비율 + 상위 유입 경로 (플랜별 최대 일수로 제한)."""
+    tenant = await db.get(Tenant, current_user.tenant_id)
+    plan_type = tenant.plan_type if tenant else "BASIC"
+    result = await analytics_service.get_timeseries(
+        db, current_user.tenant_id, plan_type, days
+    )
     return ApiResponse.ok(result)
