@@ -53,6 +53,29 @@ async def authenticate_user(
     return user
 
 
+async def authenticate_super_admin(
+    db: AsyncSession,
+    email: str,
+    password: str,
+) -> User:
+    """슈퍼 어드민 로그인. 테넌트 없이 email + SUPER_ADMIN 역할로 인증한다."""
+    await _bypass_rls(db)
+
+    user_result = await db.execute(
+        select(User).where(
+            User.email == email,
+            User.role == "SUPER_ADMIN",
+            User.is_active.is_(True),
+            User.deleted_at.is_(None),
+        )
+    )
+    user = user_result.scalar_one_or_none()
+    if not user or not verify_password(password, user.password_hash):
+        raise ValueError("UNAUTHORIZED")
+
+    return user
+
+
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
     result = await db.execute(
         select(User).where(
