@@ -126,6 +126,7 @@ describe('buildLocalBusinessJsonLd (T-074)', () => {
         og_image_url: 'https://cdn/og.png',
         google_analytics_id: null,
         naver_site_verification: null,
+        google_site_verification: null,
       },
       sns_settings: {
         kakao_url: 'https://pf.kakao.com/x',

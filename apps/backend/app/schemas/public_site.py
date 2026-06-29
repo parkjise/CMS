@@ -50,6 +50,7 @@ class PublicSeoResponse(BaseModel):
     og_image_url: str | None
     google_analytics_id: str | None
     naver_site_verification: str | None
+    google_site_verification: str | None
 
     model_config = {"from_attributes": True}
 

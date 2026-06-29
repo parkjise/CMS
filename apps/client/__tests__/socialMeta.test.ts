@@ -39,6 +39,7 @@ const seo = (ogImage: string | null) => ({
   og_image_url: ogImage,
   google_analytics_id: null,
   naver_site_verification: null,
+  google_site_verification: null,
 })
 
 describe('resolveOgImage (T-075)', () => {

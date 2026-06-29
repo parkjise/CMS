@@ -37,6 +37,7 @@ export interface PublicSeoSettings {
   og_image_url: string | null
   google_analytics_id: string | null
   naver_site_verification: string | null
+  google_site_verification: string | null
 }
 
 export interface PublicTemplate {

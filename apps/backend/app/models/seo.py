@@ -18,3 +18,6 @@ class SeoSetting(Base, TimestampMixin):
     robots_txt: Mapped[str | None] = mapped_column(Text, nullable=True)
     google_analytics_id: Mapped[str | None] = mapped_column(String(50), nullable=True)
     naver_site_verification: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    google_site_verification: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )
