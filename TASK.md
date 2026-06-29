@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **0** | **0%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **1** | **9.1%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **70** | **61.9%** |
+| **합계** | **113** | **71** | **62.8%** |
 
 ---
 
@@ -1611,14 +1611,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-084: 슈퍼 어드민 앱 초기 설정 (apps/superadmin)
-- **담당:** 프론트엔드
+### T-084: 슈퍼 어드민 앱 초기 설정 (apps/superadmin) ✅
+- **담당:** 프론트엔드(+백엔드 super-auth)
 - **참조:** `기획서 섹션 14.2`, `CLAUDE.md 섹션 8.1`
 - **작업 내용:**
-  - [ ] `apps/superadmin/` Vite 7 + React 19 프로젝트 초기화 (:3002 포트)
-  - [ ] `pnpm-workspace.yaml`에 `apps/superadmin` 추가
-  - [ ] TailwindCSS 4.x, TypeScript 5.9 설정
-  - [ ] React Router 라우팅 구성
+  - [x] `apps/superadmin/` Vite 7 + React 19 프로젝트 초기화 (:3002 포트)
+  - [x] `pnpm-workspace.yaml`에 `apps/superadmin` 추가 (apps/* 글롭)
+  - [x] TailwindCSS 4.x, TypeScript 5.9 설정
+  - [x] React Router 라우팅 구성 (login/dashboard/tenants/:id/features/announcements/monitoring/revenue + SuperAdminLayout)
     ```
     /super/login          ← 슈퍼 어드민 전용 로그인
     /super/dashboard      ← SA-01 운영 대시보드
@@ -1629,9 +1629,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
     /super/monitoring     ← 모니터링
     /super/revenue        ← 수익 관리
     ```
-  - [ ] 슈퍼 어드민 전용 axios 인스턴스 (`lib/superApi.ts`, baseURL: `/api/super/v1/`)
-  - [ ] `stores/superAuthStore.ts` — 슈퍼 어드민 인증 상태
-  - [ ] `apps/superadmin/.env.example` 생성
+  - [x] 슈퍼 어드민 전용 axios 인스턴스 (`lib/superApi.ts`, baseURL: `/api/super`)
+  - [x] `stores/superAuthStore.ts` — 슈퍼 어드민 인증 상태
+  - [x] `apps/superadmin/.env.example` 생성
+  - [x] (백엔드) `POST /api/super/v1/auth/login` + `GET /auth/me` (SUPER_ADMIN 전용)
+  - [x] 로그인 페이지 폼 + 검증 + 인증 연동, vitest 테스트 인프라 구축
 - **완료 조건:** `pnpm dev` 시 :3002 에서 슈퍼 어드민 로그인 페이지 렌더링
 
 ---
