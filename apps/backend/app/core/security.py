@@ -23,8 +23,15 @@ def create_access_token(
     tenant_id: UUID | None,
     role: str,
     is_super_admin: bool = False,
+    expires_minutes: int | None = None,
+    extra_claims: dict | None = None,
 ) -> str:
-    expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+    minutes = (
+        expires_minutes
+        if expires_minutes is not None
+        else settings.access_token_expire_minutes
+    )
+    expire = datetime.now(UTC) + timedelta(minutes=minutes)
     payload = {
         "sub": str(user_id),
         "tenant_id": str(tenant_id) if tenant_id else None,
@@ -32,6 +39,8 @@ def create_access_token(
         "is_super_admin": is_super_admin,
         "exp": expire,
     }
+    if extra_claims:
+        payload.update(extra_claims)
     return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
 
 

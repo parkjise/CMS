@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **1** | **9.1%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **2** | **18.2%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **71** | **62.8%** |
+| **합계** | **113** | **72** | **63.7%** |
 
 ---
 
@@ -1638,24 +1638,24 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-085: 테넌트 관리 API 구현
+### T-085: 테넌트 관리 API 구현 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 14.6 (테넌트 관리 API)`
 - **작업 내용:**
-  - [ ] `app/api/super/endpoints/tenants.py`
+  - [x] `app/api/super/endpoints/tenants.py`
     - `GET /api/super/v1/tenants` — 전체 목록 (검색·플랜·업종·상태 필터, 페이지네이션)
-    - `POST /api/super/v1/tenants` — 신규 테넌트 생성 + 기본 섹션 자동 생성 + 어드민 계정 생성
-    - `GET /api/super/v1/tenants/{id}` — 상세 조회 (기능 현황, 사용량 포함)
+    - `POST /api/super/v1/tenants` — 신규 테넌트 생성 + 기본 섹션 4종 자동 생성 + 어드민 계정 생성
+    - `GET /api/super/v1/tenants/{id}` — 상세 조회 (admin_emails 포함)
     - `PATCH /api/super/v1/tenants/{id}` — 정보 수정 + audit_log 기록
-    - `PATCH /api/super/v1/tenants/{id}/plan` — 플랜 변경 + 기능 플래그 자동 재계산
+    - `PATCH /api/super/v1/tenants/{id}/plan` — 플랜 변경 (기능 플래그 재계산은 T-086 연동)
     - `DELETE /api/super/v1/tenants/{id}` — 소프트 삭제
     - `POST /api/super/v1/tenants/{id}/reset-password` — 어드민 임시 비밀번호 발급
     - `GET /api/super/v1/tenants/{id}/stats` — 방문자·문의·AI사용량·스토리지 현황
-  - [ ] **대리 접속 API** (`POST /api/super/v1/tenants/{id}/impersonate`)
+  - [x] **대리 접속 API** (`POST /api/super/v1/tenants/{id}/impersonate`)
     - 30분짜리 단기 impersonate_token 발급
-    - `audit_logs`에 IMPERSONATE_START 기록 필수
-    - 응답: `{impersonate_token, redirect_url}`
-  - [ ] 모든 쓰기 API에 `audit.log_action()` 자동 호출
+    - `audit_logs`에 IMPERSONATE_START 기록
+    - 응답: `{impersonate_token, redirect_url, expires_in}`
+  - [x] 모든 쓰기 API에 `audit.log_action()` 자동 호출
 - **완료 조건:** 신규 테넌트 생성 → 로그인 가능, 대리 접속 토큰으로 admin 페이지 진입
 
 ---
