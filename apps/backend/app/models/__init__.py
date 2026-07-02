@@ -1,5 +1,6 @@
 from app.models.ai import AiUsageLog
 from app.models.analytics import SiteAnalytics
+from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
@@ -27,4 +28,7 @@ __all__ = [
     "TenantTemplateOverride",
     "TemplateChangeHistory",
     "AiUsageLog",
+    "Feature",
+    "TenantFeature",
+    "FeatureDeployment",
 ]

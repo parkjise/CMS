@@ -6,6 +6,7 @@ alembic upgrade head 후 한 번 실행: poetry run python scripts/seed.py
 import asyncio
 import sys
 import uuid
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -16,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
+from app.models.feature import Feature, TenantFeature
 from app.models.template import Template
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -166,6 +168,80 @@ TEMPLATES = [
 # fmt: on
 
 
+# 초기 기능 세트 (T-086). key는 UPPER_SNAKE_CASE, 클라이언트 featureStore와 일치.
+# fmt: off
+FEATURES = [
+    {"key": "SECTION_EDITOR", "name": "섹션 편집기", "category": "CONTENT",
+     "menu_path": "/admin/content", "menu_icon": "layout", "menu_label": "콘텐츠 관리",
+     "menu_position": 10, "default_enabled": True},
+    {"key": "DRAG_SECTION_ORDER", "name": "섹션 순서 변경", "category": "CONTENT",
+     "menu_position": 11, "default_enabled": True},
+    {"key": "GALLERY_SECTION", "name": "갤러리 섹션", "category": "CONTENT",
+     "menu_path": "/admin/gallery", "menu_icon": "image", "menu_label": "갤러리",
+     "menu_position": 12, "default_enabled": True},
+    {"key": "KAKAO_NOTIFICATION", "name": "카카오 알림톡", "category": "NOTIFICATION",
+     "menu_path": "/admin/notifications", "menu_icon": "bell",
+     "menu_label": "알림 설정", "menu_position": 20, "default_enabled": True},
+    {"key": "SEO_WIZARD", "name": "SEO 마법사", "category": "SEO",
+     "menu_path": "/admin/seo", "menu_icon": "search", "menu_label": "SEO 설정",
+     "menu_position": 30, "default_enabled": True},
+    {"key": "TEMPLATE_SELECT", "name": "템플릿 선택", "category": "CONTENT",
+     "menu_path": "/admin/templates", "menu_icon": "palette", "menu_label": "템플릿",
+     "menu_position": 13, "default_enabled": True},
+    {"key": "AI_COPY_SUGGEST", "name": "AI 문구 추천", "category": "AI",
+     "menu_position": 40, "default_enabled": True, "required_plan": "STANDARD"},
+    {"key": "AI_CHAT_EDIT", "name": "AI 채팅 편집", "category": "AI",
+     "menu_position": 41, "default_enabled": False, "required_plan": "STANDARD",
+     "is_beta": True},
+    {"key": "AI_MONTHLY_REPORT", "name": "AI 월간 리포트", "category": "AI",
+     "menu_path": "/admin/reports", "menu_icon": "chart-bar",
+     "menu_label": "월간 리포트", "menu_position": 42,
+     "default_enabled": False, "required_plan": "PREMIUM"},
+    {"key": "NAVER_ANALYTICS", "name": "네이버 애널리틱스", "category": "ANALYTICS",
+     "menu_position": 50, "default_enabled": False, "is_active": False},
+]
+# fmt: on
+
+
+async def seed_features(db: AsyncSession) -> None:
+    existing = await db.execute(select(Feature))
+    if existing.scalars().first():
+        print("ℹ️  기능 데이터 이미 존재 — 건너뜀")
+        return
+
+    for f in FEATURES:
+        db.add(Feature(**f))
+    await db.commit()
+    print(f"✅ 기능 {len(FEATURES)}개 삽입 완료")
+
+
+async def enable_default_features_for_tenant(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> None:
+    """default_enabled 기능을 특정 테넌트에 활성화 (테스트 편의)."""
+    features = (
+        (
+            await db.execute(
+                select(Feature).where(
+                    Feature.default_enabled.is_(True), Feature.is_active.is_(True)
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    for f in features:
+        db.add(
+            TenantFeature(
+                tenant_id=tenant_id,
+                feature_id=f.id,
+                is_enabled=True,
+                enabled_at=datetime.now(),
+            )
+        )
+    await db.commit()
+
+
 async def seed_templates(db: AsyncSession) -> None:
     existing = await db.execute(select(Template))
     if existing.scalars().first():
@@ -179,9 +255,7 @@ async def seed_templates(db: AsyncSession) -> None:
 
 
 async def seed_super_admin(db: AsyncSession) -> None:
-    existing = await db.execute(
-        select(User).where(User.role == "SUPER_ADMIN")
-    )
+    existing = await db.execute(select(User).where(User.role == "SUPER_ADMIN"))
     if existing.scalars().first():
         print("ℹ️  슈퍼 어드민 계정 이미 존재 — 건너뜀")
         return
@@ -203,9 +277,7 @@ async def seed_super_admin(db: AsyncSession) -> None:
 
 
 async def seed_test_tenant(db: AsyncSession) -> None:
-    existing = await db.execute(
-        select(Tenant).where(Tenant.slug == "test-tenant")
-    )
+    existing = await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
     if existing.scalars().first():
         print("ℹ️  테스트 테넌트 이미 존재 — 건너뜀")
         return
@@ -229,16 +301,16 @@ async def seed_test_tenant(db: AsyncSession) -> None:
         )
     )
     await db.commit()
+    await enable_default_features_for_tenant(db, tenant.id)
     print(f"✅ 테스트 테넌트 생성: {tenant.slug} (admin@test-tenant.com / password123)")
 
 
 async def main() -> None:
     # templates는 RLS 없이 super admin 컨텍스트로 삽입
     async with AsyncSessionLocal() as db:
-        await db.execute(
-            text("SELECT set_config('app.is_super_admin', 'true', true)")
-        )
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
         await seed_templates(db)
+        await seed_features(db)
         await seed_super_admin(db)
         await seed_test_tenant(db)
 
