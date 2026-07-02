@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router'
 import { X, ExternalLink, LayoutDashboard, FileText, Share2, MessageSquare, Search, Layers, BarChart3, CreditCard, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useNavBadge, useNavVisibility } from '@/lib/navItems'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
@@ -23,8 +24,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user)
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
+  const isVisible = useNavVisibility()
+  const badgeOf = useNavBadge()
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
+  const visibleItems = NAV_ITEMS.filter(({ to }) => isVisible(to))
 
   const handleLogout = async () => {
     await logout()
@@ -49,24 +53,37 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              [
-                'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-                isActive
-                  ? 'bg-blue-50 text-blue-700'
-                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-              ].join(' ')
-            }
-          >
-            <Icon size={18} aria-hidden="true" />
-            {label}
-          </NavLink>
-        ))}
+        {visibleItems.map(({ to, icon: Icon, label }) => {
+          const badge = badgeOf(to)
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                [
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
+                  isActive
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                ].join(' ')
+              }
+            >
+              <Icon size={18} aria-hidden="true" />
+              <span className="flex-1">{label}</span>
+              {badge === 'BETA' && (
+                <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+                  BETA
+                </span>
+              )}
+              {badge === 'NEW' && (
+                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                  NEW
+                </span>
+              )}
+            </NavLink>
+          )
+        })}
       </nav>
 
       {/* Footer */}

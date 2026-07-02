@@ -12,6 +12,7 @@ import {
   Share2,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useNavVisibility } from '@/lib/navItems'
 
 const CLIENT_BASE_URL =
   import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
@@ -30,8 +31,10 @@ const NAV_ITEMS = [
 export function CollapsedSidebar() {
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
+  const isVisible = useNavVisibility()
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
+  const visibleItems = NAV_ITEMS.filter(({ to }) => isVisible(to))
 
   const handleLogout = async () => {
     await logout()
@@ -45,7 +48,7 @@ export function CollapsedSidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col items-center gap-1">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {visibleItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
