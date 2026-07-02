@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **3** | **27.3%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **4** | **36.4%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **73** | **64.6%** |
+| **합계** | **113** | **74** | **65.5%** |
 
 ---
 
@@ -1702,19 +1702,19 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 14.5`, `CLAUDE.md 섹션 8.2`
 - **작업 내용:**
-  - [ ] `apps/admin/src/stores/featureStore.ts`
+  - [x] `apps/admin/src/stores/featureStore.ts`
     - 앱 초기화 시 `GET /api/v1/tenant/features` 호출
-    - `features` Map 상태 관리
+    - `features` Map 상태 관리 (flags Record + isEnabled 헬퍼)
     - `isEnabled(key)` 헬퍼 함수
-  - [ ] `apps/admin/src/components/layout/Sidebar.tsx` 동적 메뉴 렌더링
-    - `featureStore`의 `isEnabled()` 기반으로 메뉴 항목 조건부 노출
+  - [x] `apps/admin/src/components/layout/Sidebar.tsx` 동적 메뉴 렌더링
+    - `featureStore`의 `isEnabled()` 기반으로 메뉴 항목 조건부 노출 (CollapsedSidebar/BottomTabBar 동일 적용)
     - BETA 기능: 🔵 BETA 뱃지 표시
     - NEW 기능: 🆕 NEW 뱃지 표시 (7일간)
-  - [ ] `apps/admin/src/components/layout/AnnouncementBanner.tsx`
+  - [x] `apps/admin/src/components/layout/AnnouncementBanner.tsx`
     - 읽지 않은 공지 상단 배너 자동 노출
     - 공지 유형별 색상 (INFO: 파랑, WARNING: 노랑, URGENT: 빨강, FEATURE_UPDATE: 초록)
-    - [확인] 클릭 시 읽음 처리 (`POST /api/v1/announcements/{id}/read`)
-  - [ ] 비활성화된 기능 페이지 직접 URL 접근 시 → "현재 비활성화된 기능입니다" 안내 페이지
+    - [확인] 클릭 시 읽음 처리 (`POST /api/v1/announcements/{id}/read`, 읽음 API는 T-088 백엔드 연동)
+  - [x] 비활성화된 기능 페이지 직접 URL 접근 시 → "현재 비활성화된 기능입니다" 안내 페이지 (FeatureGuard)
 - **완료 조건:**
   - 슈퍼 어드민에서 기능 ON → 테넌트 관리자 페이지 새로고침 시 메뉴 자동 노출
   - 공지 발송 → 테넌트 관리자 페이지 상단 배너 즉시 노출
