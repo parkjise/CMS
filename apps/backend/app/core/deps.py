@@ -25,7 +25,9 @@ def _extract_token(
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
 ) -> str:
     if not credentials:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
     return credentials.credentials
 
 
@@ -33,7 +35,9 @@ def get_current_user_payload(token: str = Depends(_extract_token)) -> dict:
     try:
         return decode_token(token)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
 
 async def get_db_with_rls(
@@ -62,7 +66,9 @@ async def get_current_user(
         user = await get_user_by_id(db, user_id)
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
     return user
 
 
@@ -72,3 +78,24 @@ async def get_super_admin(
     if user.role != "SUPER_ADMIN":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FORBIDDEN")
     return user
+
+
+def require_feature(feature_key: str):
+    """기능 플래그가 켜진 테넌트만 접근을 허용하는 의존성 (CLAUDE.md 섹션 8.2)."""
+
+    async def checker(
+        current_user: User = Depends(get_current_user),
+        db: AsyncSession = Depends(get_db_with_rls),
+    ) -> None:
+        from app.services import feature as feature_service
+
+        enabled = await feature_service.is_enabled(
+            db, current_user.tenant_id, feature_key
+        )
+        if not enabled:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="이 기능은 현재 비활성화되어 있습니다.",
+            )
+
+    return checker
