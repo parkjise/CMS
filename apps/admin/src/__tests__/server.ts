@@ -56,5 +56,17 @@ export const server = setupServer(
         updated_at: '2026-01-01T00:00:00Z',
       },
     })
+  ),
+
+  // 기능 플래그 (T-086 백엔드 스펙)
+  http.get(`${BASE}/v1/tenant/features`, () =>
+    HttpResponse.json({
+      success: true,
+      data: { flags: {}, features: [], announcements: [] },
+    })
+  ),
+
+  http.post(`${BASE}/v1/announcements/:id/read`, () =>
+    HttpResponse.json({ success: true, data: { read: true } })
   )
 )

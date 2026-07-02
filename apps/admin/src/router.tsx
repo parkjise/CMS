@@ -2,6 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { PrivateRoute } from '@/components/PrivateRoute'
 import { AdminLayout } from '@/components/layout/AdminLayout'
+import { FeatureGuard } from '@/components/layout/FeatureGuard'
 import { PageFallback } from '@/components/layout/PageFallback'
 import { LoginPage } from '@/pages/LoginPage'
 import { ErrorPage } from '@/pages/ErrorPage'
@@ -44,6 +45,12 @@ const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<PageFallback />}>{element}</Suspense>
 )
 
+const withFeature = (feature: string, element: ReactNode) => (
+  <FeatureGuard feature={feature}>
+    <Suspense fallback={<PageFallback />}>{element}</Suspense>
+  </FeatureGuard>
+)
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -66,24 +73,30 @@ export const router = createBrowserRouter([
             path: '/admin/dashboard',
             element: withSuspense(<DashboardPage />),
           },
-          { path: '/admin/content', element: withSuspense(<ContentPage />) },
+          {
+            path: '/admin/content',
+            element: withFeature('SECTION_EDITOR', <ContentPage />),
+          },
           {
             path: '/admin/content/:sectionId',
-            element: withSuspense(<SectionEditorPage />),
+            element: withFeature('SECTION_EDITOR', <SectionEditorPage />),
           },
           { path: '/admin/sns', element: withSuspense(<SnsPage />) },
           {
             path: '/admin/inquiries',
             element: withSuspense(<InquiriesPage />),
           },
-          { path: '/admin/seo', element: withSuspense(<SeoPage />) },
+          {
+            path: '/admin/seo',
+            element: withFeature('SEO_WIZARD', <SeoPage />),
+          },
           {
             path: '/admin/templates',
-            element: withSuspense(<TemplatesPage />),
+            element: withFeature('TEMPLATE_SELECT', <TemplatesPage />),
           },
           {
             path: '/admin/analytics',
-            element: withSuspense(<AnalyticsPage />),
+            element: withFeature('NAVER_ANALYTICS', <AnalyticsPage />),
           },
           { path: '/admin/billing', element: withSuspense(<BillingPage />) },
           { path: '/admin/403', element: withSuspense(<ForbiddenPage />) },

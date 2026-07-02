@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
+import { useNavVisibility } from '@/lib/navItems'
 
 const CLIENT_BASE_URL =
   import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
@@ -35,7 +36,10 @@ export function BottomTabBar() {
   const [moreOpen, setMoreOpen] = useState(false)
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
+  const isVisible = useNavVisibility()
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
+  const primaryItems = PRIMARY.filter(({ to }) => isVisible(to))
+  const overflowItems = OVERFLOW.filter(({ to }) => isVisible(to))
 
   const handleLogout = async () => {
     await logout()
@@ -46,7 +50,7 @@ export function BottomTabBar() {
     <>
       {/* 하단 탭바 */}
       <nav className="fixed inset-x-0 bottom-0 z-20 flex h-16 items-stretch border-t border-slate-200 bg-white pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_8px_rgba(0,0,0,0.04)]">
-        {PRIMARY.map(({ to, icon: Icon, label }) => (
+        {primaryItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
@@ -93,7 +97,7 @@ export function BottomTabBar() {
             </div>
 
             <div className="space-y-0.5">
-              {OVERFLOW.map(({ to, icon: Icon, label }) => (
+              {overflowItems.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
                   to={to}
