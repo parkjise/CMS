@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **2** | **18.2%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **3** | **27.3%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **72** | **63.7%** |
+| **합계** | **113** | **73** | **64.6%** |
 
 ---
 
@@ -1664,7 +1664,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 14.3`, `CLAUDE.md 섹션 8.2, 8.3`
 - **작업 내용:**
-  - [ ] `app/services/feature.py`
+  - [x] `app/services/feature.py`
     - `get_tenant_features(db, tenant_id)` — Redis 캐시 5분 적용
     - `is_enabled(db, tenant_id, feature_key)` — 단일 기능 확인
     - `toggle_feature(db, tenant_id, feature_id, enabled)` — 개별 토글
@@ -1674,7 +1674,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
       - SELECTIVE: 특정 tenant_id 배열로 UPDATE
       - GRADUAL: 전체의 N%를 랜덤 선택하여 UPDATE
     - `rollback_deployment(db, deployment_id)` — 배포 롤백
-  - [ ] `app/api/super/endpoints/features.py`
+  - [x] `app/api/super/endpoints/features.py`
     - `GET /api/super/v1/features` — 전체 기능 목록 + 테넌트별 활성화 수
     - `POST /api/super/v1/features` — 새 기능 등록
     - `PATCH /api/super/v1/features/{id}` — 기능 정보 수정
@@ -1682,11 +1682,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
     - `POST /api/super/v1/features/{id}/rollback` — 롤백
     - `GET /api/super/v1/tenants/{id}/features` — 테넌트 기능 목록
     - `PATCH /api/super/v1/tenants/{id}/features/{fid}` — 개별 토글
-  - [ ] **테넌트용 기능 조회 API** (`GET /api/v1/tenant/features`)
-    - 로그인한 테넌트의 활성 기능 목록 + 미읽은 공지 반환
+  - [x] **테넌트용 기능 조회 API** (`GET /api/v1/tenant/features`)
+    - 로그인한 테넌트의 활성 기능 목록 + 미읽은 공지 반환 (공지는 T-088 연동 예정, 현재 빈 배열)
     - Redis 캐시 5분
-  - [ ] `require_feature()` FastAPI 의존성 구현 (CLAUDE.md 섹션 8.2 참조)
-  - [ ] 초기 기능 시드 데이터 (`scripts/seed.py`에 추가)
+  - [x] `require_feature()` FastAPI 의존성 구현 (CLAUDE.md 섹션 8.2 참조)
+  - [x] 초기 기능 시드 데이터 (`scripts/seed.py`에 추가)
     ```python
     기본 기능 세트:
     SECTION_EDITOR, DRAG_SECTION_ORDER, GALLERY_SECTION,
