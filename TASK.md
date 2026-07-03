@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **4** | **36.4%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **5** | **45.5%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **74** | **65.5%** |
+| **합계** | **113** | **75** | **66.4%** |
 
 ---
 
@@ -1725,17 +1725,18 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 14.6 (공지 API)`, `기획서 섹션 14.3 (announcements 테이블)`
 - **작업 내용:**
-  - [ ] `app/api/super/endpoints/announcements.py`
+  - [x] `app/api/super/endpoints/announcements.py`
     - `GET /api/super/v1/announcements` — 공지 목록
     - `POST /api/super/v1/announcements` — 공지 생성 + 즉시 or 예약 발송
     - `PATCH /api/super/v1/announcements/{id}` — 수정
     - `DELETE /api/super/v1/announcements/{id}` — 삭제
     - `POST /api/super/v1/announcements/{id}/send` — 즉시 발송 트리거
-  - [ ] `app/api/v1/endpoints/announcements.py` (테넌트용)
+  - [x] `app/api/v1/endpoints/announcements.py` (테넌트용)
     - `GET /api/v1/announcements` — 내 공지 목록 (미읽음 포함)
     - `POST /api/v1/announcements/{id}/read` — 읽음 처리
-  - [ ] Celery 태스크: 공지 대상 테넌트에게 카카오 알림톡/이메일 일괄 발송
-  - [ ] 만료일 지난 공지 자동 비노출 (Celery Beat 매일 체크)
+    - (tenant_features 응답에도 미읽은 공지 연결 → T-087 배너 실동작)
+  - [x] Celery 태스크: 공지 대상 테넌트에게 카카오 알림톡 일괄 발송 (이메일은 T-098 이메일 서비스로 유예), 예약 발송(5분마다)
+  - [x] 만료일 지난 공지 자동 비노출 (쿼리 필터 + Celery Beat 매일 04:00 백업)
 - **완료 조건:** 공지 생성 → 대상 테넌트 관리자 페이지에 배너 노출
 
 ---
