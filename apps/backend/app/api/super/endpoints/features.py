@@ -10,6 +10,8 @@ from app.core.deps import get_db_with_rls, get_super_admin
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.feature import (
+    DeploymentListItem,
+    DeploymentListResponse,
     DeployRequest,
     DeployResponse,
     FeatureCreateRequest,
@@ -147,6 +149,24 @@ async def rollback_deployment(
     )
     return ApiResponse.ok(
         RollbackResponse(deployment_id=deployment.id, affected_count=affected)
+    )
+
+
+@router.get(
+    "/{feature_id}/deployments",
+    response_model=ApiResponse[DeploymentListResponse],
+)
+async def list_deployments(
+    feature_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    _: User = Depends(get_super_admin),
+):
+    items, total = await svc.list_deployments(db, feature_id)
+    return ApiResponse.ok(
+        DeploymentListResponse(
+            items=[DeploymentListItem.model_validate(d) for d in items],
+            total=total,
+        )
     )
 
 

@@ -140,6 +140,40 @@ class TestFeatureCrud:
 
 
 # ── 배포 ─────────────────────────────────────────────────────────────────
+class TestDeploymentHistory:
+    async def test_deploy_appears_in_history(
+        self, client, super_headers, feature_factory, test_tenant
+    ):
+        feature = await _create_feature(client, super_headers, feature_factory)
+        await client.post(
+            f"/api/super/v1/features/{feature['id']}/deploy",
+            headers=super_headers,
+            json={
+                "deployment_type": "SELECTIVE",
+                "target_tenants": [test_tenant["id"]],
+                "notes": "첫 배포",
+            },
+        )
+        resp = await client.get(
+            f"/api/super/v1/features/{feature['id']}/deployments",
+            headers=super_headers,
+        )
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert data["total"] >= 1
+        assert data["items"][0]["deployment_type"] == "SELECTIVE"
+
+    async def test_history_requires_super_admin(
+        self, client, auth_headers, feature_factory, super_headers
+    ):
+        feature = await _create_feature(client, super_headers, feature_factory)
+        resp = await client.get(
+            f"/api/super/v1/features/{feature['id']}/deployments",
+            headers=auth_headers,
+        )
+        assert resp.status_code == 403
+
+
 class TestDeployment:
     async def test_selective_deploy_enables_tenant(
         self, client, super_headers, feature_factory, test_tenant, auth_headers
