@@ -12,6 +12,7 @@ from app.core.config import settings
 from app.core.security import create_access_token, hash_password
 from app.models.ai import AiUsageLog
 from app.models.analytics import SiteAnalytics
+from app.models.audit import AuditLog
 from app.models.file import UploadedFile
 from app.models.inquiry import Inquiry
 from app.models.section import Section
@@ -303,3 +304,32 @@ async def create_impersonate_token(
     base = settings.admin_base_url.rstrip("/")
     redirect_url = f"{base}/login?impersonate={token}&tenant={tenant.slug}"
     return token, redirect_url, IMPERSONATE_EXPIRE_MINUTES * 60
+
+
+async def list_audit_logs(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    *,
+    page: int = 1,
+    limit: int = 20,
+) -> tuple[list[AuditLog], int]:
+    """해당 테넌트를 대상으로 한 감사 로그 (기능/플랜 변경 등). 최신순."""
+    await _get_tenant(db, tenant_id)
+    target = str(tenant_id)
+    total = int(
+        (
+            await db.execute(
+                select(func.count())
+                .select_from(AuditLog)
+                .where(AuditLog.target_id == target)
+            )
+        ).scalar_one()
+    )
+    rows = await db.execute(
+        select(AuditLog)
+        .where(AuditLog.target_id == target)
+        .order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    return list(rows.scalars().all()), total
