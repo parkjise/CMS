@@ -60,9 +60,7 @@ async def _cleanup_tenant(slug: str) -> None:
             ),
             {"s": slug},
         )
-        await session.execute(
-            text("DELETE FROM tenants WHERE slug = :s"), {"s": slug}
-        )
+        await session.execute(text("DELETE FROM tenants WHERE slug = :s"), {"s": slug})
         await session.commit()
 
 
@@ -132,9 +130,7 @@ class TestCreateTenant:
                 )
                 count = (
                     await session.execute(
-                        text(
-                            "SELECT count(*) FROM sections WHERE tenant_id = :t"
-                        ),
+                        text("SELECT count(*) FROM sections WHERE tenant_id = :t"),
                         {"t": tid},
                     )
                 ).scalar_one()
@@ -311,3 +307,41 @@ class TestImpersonate:
             assert count >= 1
         finally:
             await _cleanup_tenant(slug)
+
+
+class TestAuditLogs:
+    async def _create(self, client, super_headers, slug):
+        resp = await client.post(
+            "/api/super/v1/tenants", headers=super_headers, json=_payload(slug)
+        )
+        return resp.json()["data"]["tenant"]["id"]
+
+    async def test_plan_change_appears_in_audit_logs(
+        self, client: AsyncClient, super_headers: dict
+    ):
+        slug = f"shop-{uuid.uuid4().hex[:6]}"
+        try:
+            tid = await self._create(client, super_headers, slug)
+            await client.patch(
+                f"/api/super/v1/tenants/{tid}/plan",
+                headers=super_headers,
+                json={"plan_type": "STANDARD"},
+            )
+            resp = await client.get(
+                f"/api/super/v1/tenants/{tid}/audit-logs", headers=super_headers
+            )
+            assert resp.status_code == 200
+            data = resp.json()["data"]
+            actions = [i["action"] for i in data["items"]]
+            assert "TENANT_PLAN_CHANGED" in actions
+            assert data["total"] >= 1
+        finally:
+            await _cleanup_tenant(slug)
+
+    async def test_audit_logs_requires_super_admin(
+        self, client: AsyncClient, auth_headers: dict
+    ):
+        resp = await client.get(
+            f"/api/super/v1/tenants/{uuid.uuid4()}/audit-logs", headers=auth_headers
+        )
+        assert resp.status_code == 403

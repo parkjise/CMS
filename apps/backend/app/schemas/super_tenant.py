@@ -81,3 +81,22 @@ class ImpersonateResponse(BaseModel):
     impersonate_token: str
     redirect_url: str
     expires_in: int  # seconds
+
+
+class AuditLogItem(BaseModel):
+    id: uuid.UUID
+    actor_role: str
+    action: str
+    target_type: str
+    before_value: dict | None
+    after_value: dict | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogItem]
+    total: int
+    page: int
+    limit: int

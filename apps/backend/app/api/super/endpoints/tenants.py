@@ -8,6 +8,8 @@ from app.core.deps import get_db_with_rls, get_super_admin
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.super_tenant import (
+    AuditLogItem,
+    AuditLogListResponse,
     ImpersonateResponse,
     ResetPasswordResponse,
     TenantCreateRequest,
@@ -198,6 +200,25 @@ async def get_stats(
     return ApiResponse.ok(TenantStatsResponse(**stats))
 
 
+@router.get("/{tenant_id}/audit-logs", response_model=ApiResponse[AuditLogListResponse])
+async def get_audit_logs(
+    tenant_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    limit: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db_with_rls),
+    _: User = Depends(get_super_admin),
+):
+    items, total = await svc.list_audit_logs(db, tenant_id, page=page, limit=limit)
+    return ApiResponse.ok(
+        AuditLogListResponse(
+            items=[AuditLogItem.model_validate(a) for a in items],
+            total=total,
+            page=page,
+            limit=limit,
+        )
+    )
+
+
 @router.post(
     "/{tenant_id}/impersonate", response_model=ApiResponse[ImpersonateResponse]
 )
@@ -206,9 +227,7 @@ async def impersonate(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_super_admin),
 ):
-    token, redirect_url, expires_in = await svc.create_impersonate_token(
-        db, tenant_id
-    )
+    token, redirect_url, expires_in = await svc.create_impersonate_token(db, tenant_id)
     await log_action(
         db,
         current_user,
