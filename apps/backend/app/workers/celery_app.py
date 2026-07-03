@@ -9,6 +9,7 @@ celery_app = Celery(
     backend=settings.celery_result_backend,
     include=[
         "app.workers.analytics",
+        "app.workers.announcement",
         "app.workers.image",
         "app.workers.notification",
         "app.workers.scheduled",
@@ -45,6 +46,14 @@ celery_app.conf.update(
         "cleanup-old-template-history-daily-3am": {
             "task": "app.workers.scheduled.cleanup_old_template_history",
             "schedule": crontab(hour=3, minute=30),  # 매일 03:30
+        },
+        "publish-scheduled-announcements-every-5min": {
+            "task": "app.workers.announcement.publish_scheduled_announcements",
+            "schedule": crontab(minute="*/5"),  # 5분마다 예약 공지 발행
+        },
+        "deactivate-expired-announcements-daily-4am": {
+            "task": "app.workers.announcement.deactivate_expired_announcements",
+            "schedule": crontab(hour=4, minute=0),  # 매일 04:00 만료 공지 비노출
         },
     },
 )

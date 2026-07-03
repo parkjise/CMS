@@ -3,6 +3,7 @@ from fastapi import APIRouter
 from app.api.v1.endpoints import (
     ai,
     analytics,
+    announcements,
     auth,
     dashboard,
     edit,
@@ -35,6 +36,7 @@ api_router.include_router(gallery.router)
 api_router.include_router(ai.router)
 api_router.include_router(templates.router)
 api_router.include_router(tenant_features.router)
+api_router.include_router(announcements.router)
 
 
 # 헬스체크 (인증 불필요)

@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.super.endpoints import auth, features, health, tenants
+from app.api.super.endpoints import announcements, auth, features, health, tenants
 
 super_router = APIRouter()
 
@@ -9,3 +9,4 @@ super_router.include_router(auth.router)
 super_router.include_router(tenants.router)
 super_router.include_router(features.router)
 super_router.include_router(features.tenant_router)
+super_router.include_router(announcements.router)
