@@ -105,6 +105,24 @@ class RollbackResponse(BaseModel):
     rolled_back: bool = True
 
 
+class DeploymentListItem(BaseModel):
+    id: uuid.UUID
+    deployment_type: str
+    target_plan: str | None
+    rollout_percent: int | None
+    affected_count: int | None
+    deployed_at: datetime
+    rollback_at: datetime | None
+    notes: str | None
+
+    model_config = {"from_attributes": True}
+
+
+class DeploymentListResponse(BaseModel):
+    items: list[DeploymentListItem]
+    total: int
+
+
 # ── 슈퍼 어드민: 테넌트별 기능 ────────────────────────────────────────────
 class TenantFeatureToggleRequest(BaseModel):
     is_enabled: bool

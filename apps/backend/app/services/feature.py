@@ -316,6 +316,26 @@ async def rollback_deployment(
     return deployment, len(target_ids)
 
 
+async def list_deployments(
+    db: AsyncSession, feature_id: uuid.UUID
+) -> tuple[list[FeatureDeployment], int]:
+    """기능의 배포 이력 (최신순)."""
+    await _get_feature(db, feature_id)
+    rows = (
+        (
+            await db.execute(
+                select(FeatureDeployment)
+                .where(FeatureDeployment.feature_id == feature_id)
+                .order_by(FeatureDeployment.deployed_at.desc())
+            )
+        )
+        .scalars()
+        .all()
+    )
+    items = list(rows)
+    return items, len(items)
+
+
 # ── 내부 헬퍼 ────────────────────────────────────────────────────────────
 async def _ensure_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> None:
     tenant = await db.get(Tenant, tenant_id)
