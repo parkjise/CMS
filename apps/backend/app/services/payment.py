@@ -175,6 +175,30 @@ async def register_card(
     return sub
 
 
+async def start_trial(
+    db: AsyncSession, tenant_id: uuid.UUID, plan_type: str = "STANDARD"
+) -> Subscription:
+    """신규 테넌트 무료 체험 구독 생성 (카드 없이 전 기능, 14일)."""
+    if await _get_subscription(db, tenant_id) is not None:
+        return await get_subscription(db, tenant_id)
+    now = datetime.now(UTC)
+    trial_ends = now + timedelta(days=settings.trial_days)
+    sub = Subscription(
+        id=uuid.uuid4(),
+        tenant_id=tenant_id,
+        plan_type=plan_type,
+        status="TRIAL",
+        monthly_amount=PLAN_MONTHLY_PRICE.get(plan_type, 0),
+        trial_ends_at=trial_ends,
+        current_period_start=now,
+        current_period_end=trial_ends,
+    )
+    db.add(sub)
+    await db.commit()
+    await db.refresh(sub)
+    return sub
+
+
 async def get_subscription(db: AsyncSession, tenant_id: uuid.UUID) -> Subscription:
     sub = await _get_subscription(db, tenant_id)
     if not sub:

@@ -12,6 +12,7 @@ from app.schemas.billing import (
     PaymentHistoryListResponse,
     RegisterCardRequest,
     SubscriptionResponse,
+    TrialStatusResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services import payment as svc
@@ -43,6 +44,28 @@ async def get_subscription(
 ):
     sub = await svc.get_subscription(db, current_user.tenant_id)
     return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
+
+
+@router.get("/trial-status", response_model=ApiResponse[TrialStatusResponse])
+async def get_trial_status(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    from datetime import UTC, datetime
+
+    sub = await svc.get_subscription(db, current_user.tenant_id)
+    is_trial = sub.status == "TRIAL"
+    days_left = 0
+    if is_trial and sub.trial_ends_at:
+        days_left = max(0, (sub.trial_ends_at - datetime.now(UTC)).days)
+    return ApiResponse.ok(
+        TrialStatusResponse(
+            is_trial=is_trial,
+            status=sub.status,
+            days_left=days_left,
+            trial_ends_at=sub.trial_ends_at,
+        )
+    )
 
 
 @router.get("/history", response_model=ApiResponse[PaymentHistoryListResponse])

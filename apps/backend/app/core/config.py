@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     # "test" | "live" — test 모드는 SES 호출 없이 stub 응답
     email_mode: str = "test"
 
+    # 무료 체험 (T-099)
+    trial_days: int = 14
+
     # 쿠키 & URL
     cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
     admin_base_url: str = "http://localhost:3001"
