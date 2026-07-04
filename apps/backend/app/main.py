@@ -8,6 +8,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.api.super.router import super_router
+from app.api.webhook.tosspayments import router as tosspayments_webhook_router
 from app.api.v1.endpoints.analytics import public_router as analytics_public_router
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
 from app.api.v1.endpoints.public import router as public_site_router
@@ -66,6 +67,7 @@ async def super_admin_ip_whitelist(request: Request, call_next):
 
 app.include_router(api_router, prefix="/api/v1")
 app.include_router(super_router, prefix="/api/super/v1")
+app.include_router(tosspayments_webhook_router, prefix="/api/webhook")
 app.include_router(analytics_public_router, prefix="/api/public")
 app.include_router(inquiry_public_router, prefix="/api/public")
 app.include_router(seo_public_router, prefix="/api/public")
