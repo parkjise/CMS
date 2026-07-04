@@ -64,6 +64,14 @@ class Settings(BaseSettings):
     # "test" | "live" — test 모드는 토스 API 호출 없이 stub 응답
     payment_mode: str = "test"
 
+    # 이메일 발송 (T-098, AWS SES)
+    aws_ses_region: str = "ap-northeast-2"
+    aws_ses_from_email: str = "no-reply@cms.io"
+    aws_access_key_id: str = ""
+    aws_secret_access_key: str = ""
+    # "test" | "live" — test 모드는 SES 호출 없이 stub 응답
+    email_mode: str = "test"
+
     # 쿠키 & URL
     cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
     admin_base_url: str = "http://localhost:3001"

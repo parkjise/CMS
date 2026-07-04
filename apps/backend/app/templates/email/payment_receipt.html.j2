@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="ko">
+  <body style="font-family: sans-serif; color: #1e293b;">
+    <h2>결제가 완료되었습니다</h2>
+    <p>{{ tenant_name }}님, {{ plan_type }} 플랜 월 구독 결제가 정상 처리되었습니다.</p>
+    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+      <p>주문번호: {{ order_id }}</p>
+      <p>결제 금액: <b>{{ amount }}원</b></p>
+      <p>결제일: {{ paid_at }}</p>
+      {% if receipt_url %}<p>영수증: <a href="{{ receipt_url }}">보기</a></p>{% endif %}
+    </div>
+  </body>
+</html>
