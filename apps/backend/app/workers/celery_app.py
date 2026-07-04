@@ -78,5 +78,14 @@ celery_app.conf.update(
             "task": "app.workers.billing.check_expiring_subscriptions",
             "schedule": crontab(hour=9, minute=0),  # 매일 09:00 만료 예정 알림
         },
+        # ── 무료 체험 (T-099) ─────────────────────────────────────────────
+        "process-trial-expirations-daily-0015": {
+            "task": "app.workers.billing.process_trial_expirations",
+            "schedule": crontab(hour=0, minute=15),  # 매일 00:15 체험 종료 처리
+        },
+        "notify-trial-ending-daily-0900": {
+            "task": "app.workers.billing.notify_trial_ending",
+            "schedule": crontab(hour=9, minute=0),  # 매일 09:00 체험 D-3 알림
+        },
     },
 )

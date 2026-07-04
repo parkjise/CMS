@@ -265,3 +265,118 @@ async def _delete_cancelled_tenant_data() -> int:
             deleted += result.rowcount or 0
         await db.commit()
     return deleted
+
+
+# ── notify_trial_ending (T-099) ────────────────────────────────────────────
+@celery_app.task(
+    name="app.workers.billing.notify_trial_ending",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def notify_trial_ending(self) -> int:
+    return asyncio.run(_notify_trial_ending())
+
+
+async def _notify_trial_ending() -> int:
+    """무료 체험 D-3 구독에 카드 등록 안내 공지 생성."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import announcement as announcement_service
+
+    today = datetime.now(UTC).date()
+    notified = 0
+    async with AsyncSessionLocal() as db:
+        await _bypass(db)
+        subs = (
+            (
+                await db.execute(
+                    select(Subscription).where(
+                        Subscription.status == "TRIAL",
+                        Subscription.trial_ends_at.isnot(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for sub in subs:
+            if sub.trial_ends_at is None:
+                continue
+            days_left = (sub.trial_ends_at.date() - today).days
+            if days_left != 3:
+                continue
+            await announcement_service.create_announcement(
+                db,
+                actor_id=None,
+                title="무료 체험 종료 예정 안내",
+                content=(
+                    "무료 체험이 3일 후 종료됩니다. "
+                    "서비스를 계속 이용하려면 결제 수단을 등록해 주세요."
+                ),
+                type="WARNING",
+                target_type="SELECTIVE",
+                target_plan=None,
+                target_tenants=[sub.tenant_id],
+                show_in_admin=True,
+                send_email=False,
+                send_kakao=False,
+                publish_now=True,
+                published_at=None,
+                expires_at=sub.trial_ends_at,
+            )
+            notified += 1
+    return notified
+
+
+# ── process_trial_expirations (T-099) ──────────────────────────────────────
+@celery_app.task(
+    name="app.workers.billing.process_trial_expirations",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def process_trial_expirations(self) -> dict:
+    return asyncio.run(_process_trial_expirations())
+
+
+async def _process_trial_expirations() -> dict:
+    """종료된 무료 체험 처리: 카드 O → ACTIVE+첫 결제 / 카드 X → SUSPENDED+차단."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import payment as payment_service
+
+    now = datetime.now(UTC)
+    converted = 0
+    suspended = 0
+    async with AsyncSessionLocal() as db:
+        await _bypass(db)
+        subs = (
+            (
+                await db.execute(
+                    select(Subscription).where(
+                        Subscription.status == "TRIAL",
+                        Subscription.trial_ends_at.isnot(None),
+                        Subscription.trial_ends_at < now,
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        for sub in subs:
+            if sub.billing_key:
+                sub.status = "ACTIVE"
+                await db.commit()
+                await payment_service.charge_subscription(db, sub)
+                converted += 1
+            else:
+                sub.status = "SUSPENDED"
+                await db.execute(
+                    update(Tenant)
+                    .where(Tenant.id == sub.tenant_id)
+                    .values(is_active=False)
+                )
+                await db.commit()
+                suspended += 1
+    return {"converted": converted, "suspended": suspended}

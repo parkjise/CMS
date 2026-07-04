@@ -155,6 +155,11 @@ async def create_tenant(
     await db.commit()
     await db.refresh(tenant)
 
+    # 무료 체험 구독 자동 생성 (T-099) — 카드 없이 14일 전 기능 사용
+    from app.services import payment as payment_service
+
+    await payment_service.start_trial(db, tenant.id, plan_type)
+
     # 환영 메일 발송 (T-098) — 브로커 미가용 시에도 생성 흐름을 막지 않는다.
     _enqueue_email(
         to=admin_email,

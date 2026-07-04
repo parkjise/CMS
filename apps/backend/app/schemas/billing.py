@@ -96,3 +96,10 @@ class CancelSubscriptionRequest(BaseModel):
 class RegisterDomainRequest(BaseModel):
     domain: str = Field(..., max_length=255)
     domain_type: str = Field("CUSTOM", max_length=20)
+
+
+class TrialStatusResponse(BaseModel):
+    is_trial: bool
+    status: str
+    days_left: int
+    trial_ends_at: datetime | None

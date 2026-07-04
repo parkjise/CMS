@@ -7,6 +7,7 @@ import { BottomTabBar } from './BottomTabBar'
 import { CollapsedSidebar } from './CollapsedSidebar'
 import { Header } from './Header'
 import { Sidebar } from './Sidebar'
+import { TrialBanner } from './TrialBanner'
 
 export function AdminLayout() {
   const loadFeatures = useFeatureStore((s) => s.load)
@@ -32,6 +33,7 @@ export function AdminLayout() {
       {/* 오른쪽 콘텐츠 */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
+        <TrialBanner />
         <AnnouncementBanner />
         <main
           id="main-content"

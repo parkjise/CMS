@@ -46,6 +46,14 @@ async def _cleanup_tenant(slug: str) -> None:
         await session.execute(
             text("SELECT set_config('app.is_super_admin', 'true', true)")
         )
+        # Trial 구독(T-099) 등 tenant 참조 데이터 먼저 삭제
+        await session.execute(
+            text(
+                "DELETE FROM subscriptions WHERE tenant_id IN "
+                "(SELECT id FROM tenants WHERE slug = :s)"
+            ),
+            {"s": slug},
+        )
         await session.execute(
             text(
                 "DELETE FROM sections WHERE tenant_id IN "
