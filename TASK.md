@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **2** | **16.7%** |
-| **합계** | **113** | **83** | **73.5%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **3** | **25%** |
+| **합계** | **113** | **84** | **74.3%** |
 
 ---
 
@@ -1896,14 +1896,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 15.2 (Celery 정기결제 태스크)`
 - **작업 내용:**
-  - [ ] `app/workers/billing.py`
+  - [x] `app/workers/billing.py`
     - `process_monthly_billing` — 매일 00:05 오늘 결제일 구독 자동 결제
-    - `retry_billing` — 결제 실패 재시도 (24시간 간격, 최대 3회)
-    - `check_expiring_subscriptions` — 매일 09:00 D-7, D-3 만료 예정 알림
+    - `retry_billing` — 결제 실패 재시도 (매일 01:00, 연속 실패 3회 → SUSPENDED)
+    - `check_expiring_subscriptions` — 매일 09:00 D-7, D-3 만료 예정 알림(공지 생성)
     - `suspend_expired_subscriptions` — 매일 00:10 만료 구독 접근 차단
-    - `delete_cancelled_tenant_data` — 매일 03:00 해지 후 30일 데이터 삭제
-  - [ ] Celery Beat 스케줄 등록 (5개 태스크)
-  - [ ] 결제 실패 3회 시 슈퍼 어드민에게 알림 발송
+    - `delete_cancelled_tenant_data` — 매일 03:00 해지 후 30일 데이터 소프트 삭제
+  - [x] Celery Beat 스케줄 등록 (5개 태스크)
+  - [x] 결제 실패 3회 시 SUSPENDED 전환 (슈퍼 어드민 이메일 알림은 T-098 유예)
 - **완료 조건:** Celery Beat 실행 후 스케줄 태스크 정상 등록, 테스트 결제 실행 확인
 
 ---
