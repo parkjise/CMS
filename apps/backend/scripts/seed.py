@@ -6,7 +6,7 @@ alembic upgrade head 후 한 번 실행: poetry run python scripts/seed.py
 import asyncio
 import sys
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
+from app.models.billing import Subscription
 from app.models.feature import Feature, TenantFeature
 from app.models.template import Template
 from app.models.tenant import Tenant
@@ -302,7 +303,36 @@ async def seed_test_tenant(db: AsyncSession) -> None:
     )
     await db.commit()
     await enable_default_features_for_tenant(db, tenant.id)
+    await seed_test_subscription(db, tenant.id)
     print(f"✅ 테스트 테넌트 생성: {tenant.slug} (admin@test-tenant.com / password123)")
+
+
+# 플랜별 월 요금 (원) — super_dashboard.PLAN_MONTHLY_PRICE와 일치
+PLAN_MONTHLY_PRICE = {
+    "FREE": 0,
+    "BASIC": 39_000,
+    "STANDARD": 89_000,
+    "PREMIUM": 129_000,
+}
+
+
+async def seed_test_subscription(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """테스트 테넌트에 ACTIVE 구독 1개 생성 (T-095)."""
+    now = datetime.now()
+    db.add(
+        Subscription(
+            tenant_id=tenant_id,
+            plan_type="STANDARD",
+            status="ACTIVE",
+            billing_email="admin@test-tenant.com",
+            billing_name="테스트 사업체",
+            monthly_amount=PLAN_MONTHLY_PRICE["STANDARD"],
+            current_period_start=now,
+            current_period_end=now + timedelta(days=30),
+        )
+    )
+    await db.commit()
+    print("✅ 테스트 구독 생성: STANDARD / ACTIVE")
 
 
 async def main() -> None:

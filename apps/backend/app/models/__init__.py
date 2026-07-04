@@ -1,6 +1,8 @@
 from app.models.ai import AiUsageLog
 from app.models.analytics import SiteAnalytics
 from app.models.announcement import Announcement, AnnouncementRead
+from app.models.billing import PaymentHistory, PlanChangeHistory, Subscription
+from app.models.domain import TenantDomain
 from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
@@ -34,4 +36,8 @@ __all__ = [
     "FeatureDeployment",
     "Announcement",
     "AnnouncementRead",
+    "Subscription",
+    "PaymentHistory",
+    "PlanChangeHistory",
+    "TenantDomain",
 ]
