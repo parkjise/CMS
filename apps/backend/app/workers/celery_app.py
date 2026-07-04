@@ -10,6 +10,7 @@ celery_app = Celery(
     include=[
         "app.workers.analytics",
         "app.workers.announcement",
+        "app.workers.billing",
         "app.workers.image",
         "app.workers.notification",
         "app.workers.scheduled",
@@ -54,6 +55,27 @@ celery_app.conf.update(
         "deactivate-expired-announcements-daily-4am": {
             "task": "app.workers.announcement.deactivate_expired_announcements",
             "schedule": crontab(hour=4, minute=0),  # 매일 04:00 만료 공지 비노출
+        },
+        # ── 정기결제 (T-097) ──────────────────────────────────────────────
+        "process-monthly-billing-daily-0005": {
+            "task": "app.workers.billing.process_monthly_billing",
+            "schedule": crontab(hour=0, minute=5),  # 매일 00:05 결제일 구독 결제
+        },
+        "suspend-expired-subscriptions-daily-0010": {
+            "task": "app.workers.billing.suspend_expired_subscriptions",
+            "schedule": crontab(hour=0, minute=10),  # 매일 00:10 만료 구독 차단
+        },
+        "retry-billing-daily-0100": {
+            "task": "app.workers.billing.retry_billing",
+            "schedule": crontab(hour=1, minute=0),  # 매일 01:00 연체 재청구
+        },
+        "delete-cancelled-tenant-data-daily-0300": {
+            "task": "app.workers.billing.delete_cancelled_tenant_data",
+            "schedule": crontab(hour=3, minute=0),  # 매일 03:00 해지 30일 경과 삭제
+        },
+        "check-expiring-subscriptions-daily-0900": {
+            "task": "app.workers.billing.check_expiring_subscriptions",
+            "schedule": crontab(hour=9, minute=0),  # 매일 09:00 만료 예정 알림
         },
     },
 )
