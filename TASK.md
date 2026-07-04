@@ -26,9 +26,9 @@
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
-| **Phase 13: 슈퍼 어드민 시스템** | **11** | **9** | **81.8%** |
+| **Phase 13: 슈퍼 어드민 시스템** | **11** | **10** | **90.9%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **79** | **69.9%** |
+| **합계** | **113** | **80** | **70.8%** |
 
 ---
 
@@ -1815,16 +1815,16 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 14.6 (모니터링 API)`
 - **작업 내용:**
-  - [ ] `apps/superadmin/src/pages/MonitoringPage.tsx`
-    - AI 비용 월별 차트 (OpenAI 사용량)
-    - 서버 에러 목록 (Sentry 연동)
-    - Celery 큐 대기 현황
-    - 알림톡 발송 현황 (월별 비용 추적)
-  - [ ] `apps/superadmin/src/pages/RevenuePage.tsx`
-    - MRR 추이 차트 (3개월/6개월/12개월)
+  - [x] `apps/superadmin/src/pages/MonitoringPage.tsx` (+ 백엔드 `GET /api/super/v1/monitoring`)
+    - AI 비용 월별 차트 (ai_usage_logs 토큰 기반 추정)
+    - 서버 에러 목록 (Sentry 미연동 → 안내 표기)
+    - Celery 큐 대기 현황 (inspect 베스트에포트)
+    - 알림톡 발송 현황 (월 카운트 + 추정 비용)
+  - [x] `apps/superadmin/src/pages/RevenuePage.tsx` (+ 백엔드 `GET /api/super/v1/revenue`)
+    - MRR 추이 차트 (3개월/6개월/12개월 토글)
     - 플랜별 테넌트 수 도넛 차트
-    - 만료 예정 테넌트 목록 + 갱신 유도 알림 발송 버튼
-    - 신규 가입 / 해지 / 업그레이드 / 다운그레이드 현황
+    - 만료 예정 테넌트 목록 + 갱신 유도 알림 발송(T-088 공지 연동)
+    - 신규 가입 / 해지 / 업그레이드 / 다운그레이드 현황 (audit_logs 기반)
 - **완료 조건:** 수익 현황 및 AI 비용 차트 정상 표시
 
 ---
