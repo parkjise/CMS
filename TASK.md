@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **1** | **8.3%** |
-| **합계** | **113** | **82** | **72.6%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **2** | **16.7%** |
+| **합계** | **113** | **83** | **73.5%** |
 
 ---
 
@@ -1873,20 +1873,21 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 15.2 (토스페이먼츠 연동 핵심 코드)`
 - **작업 내용:**
-  - [ ] `app/services/payment.py`
+  - [x] `app/services/payment.py`
     - `issue_billing_key(customer_key, auth_key)` — 빌링키 발급
     - `charge_billing(billing_key, customer_key, amount, order_id, order_name)` — 자동 결제
     - `cancel_payment(payment_key, reason)` — 결제 취소·환불
     - `get_payment_status(payment_key)` — 결제 상태 조회
-  - [ ] 토스페이먼츠 테스트 환경 설정 (test_ 키 사용)
-  - [ ] `app/api/v1/endpoints/billing.py`
+    - (오케스트레이션: register_card/change_plan/cancel_subscription/charge_subscription)
+  - [x] 토스페이먼츠 테스트 환경 설정 (`PAYMENT_MODE=test` stub)
+  - [x] `app/api/v1/endpoints/billing.py`
     - `POST /api/v1/billing/register-card` — 빌링키 발급 (카드 등록)
     - `GET  /api/v1/billing/subscription` — 현재 구독 정보
     - `GET  /api/v1/billing/history` — 결제 이력
     - `POST /api/v1/billing/cancel` — 구독 해지 신청
     - `POST /api/v1/billing/change-plan` — 플랜 변경
-  - [ ] `POST /api/webhook/tosspayments` — 웹훅 수신 (HMAC 서명 검증 필수)
-  - [ ] 환경변수 추가: `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY`, `TOSS_WEBHOOK_SECRET`
+  - [x] `POST /api/webhook/tosspayments` — 웹훅 수신 (HMAC-SHA256 서명 검증)
+  - [x] 환경변수 추가: `TOSS_CLIENT_KEY`, `TOSS_SECRET_KEY`, `TOSS_WEBHOOK_SECRET`, `PAYMENT_MODE`
 - **완료 조건:** 테스트 카드로 빌링키 발급 → 수동 결제 → 결제 이력 조회 성공
 
 ---
