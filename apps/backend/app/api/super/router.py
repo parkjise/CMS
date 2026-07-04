@@ -6,6 +6,7 @@ from app.api.super.endpoints import (
     dashboard,
     features,
     health,
+    monitoring,
     tenants,
 )
 
@@ -18,3 +19,4 @@ super_router.include_router(features.router)
 super_router.include_router(features.tenant_router)
 super_router.include_router(announcements.router)
 super_router.include_router(dashboard.router)
+super_router.include_router(monitoring.router)
