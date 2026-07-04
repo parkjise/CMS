@@ -11,6 +11,7 @@ celery_app = Celery(
         "app.workers.analytics",
         "app.workers.announcement",
         "app.workers.billing",
+        "app.workers.email",
         "app.workers.image",
         "app.workers.notification",
         "app.workers.scheduled",

@@ -314,7 +314,32 @@ async def charge_subscription(
     db.add(payment)
     await db.commit()
     await db.refresh(payment)
+
+    # 결제 성공 시 영수증 이메일 발송 (T-098). 브로커 미가용 시에도 결제를 막지 않는다.
+    if payment.status == "SUCCESS" and sub.billing_email:
+        _enqueue_email(
+            to=sub.billing_email,
+            subject="[CMS] 결제 영수증",
+            template="payment_receipt",
+            variables={
+                "tenant_name": sub.billing_name or sub.plan_type,
+                "plan_type": sub.plan_type,
+                "order_id": payment.order_id,
+                "amount": f"{payment.amount:,}",
+                "paid_at": now.isoformat(),
+                "receipt_url": payment.receipt_url,
+            },
+        )
     return payment
+
+
+def _enqueue_email(*, to: str, subject: str, template: str, variables: dict) -> None:
+    try:
+        from app.workers.email import send_email_async
+
+        send_email_async.delay(to, subject, template, variables)
+    except Exception:
+        pass
 
 
 async def manual_charge(db: AsyncSession, tenant_id: uuid.UUID) -> PaymentHistory:

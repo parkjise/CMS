@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="ko">
+  <body style="font-family: sans-serif; color: #1e293b;">
+    <h2>{{ tenant_name }}님, 환영합니다 🎉</h2>
+    <p>CMS 서비스 가입을 환영합니다. 아래 정보로 관리자 페이지에 접속하실 수 있습니다.</p>
+    <div style="border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px;">
+      <p>관리자 페이지: <a href="{{ admin_url }}">{{ admin_url }}</a></p>
+      <p>이메일: {{ admin_email }}</p>
+      <p>임시 비밀번호: <b>{{ temp_password }}</b></p>
+    </div>
+    <p>⚠️ 보안을 위해 첫 로그인 후 반드시 비밀번호를 변경해 주세요.</p>
+    <p>현재 플랜: <b>{{ plan_type }}</b></p>
+  </body>
+</html>

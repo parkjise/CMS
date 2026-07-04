@@ -154,7 +154,30 @@ async def create_tenant(
 
     await db.commit()
     await db.refresh(tenant)
+
+    # 환영 메일 발송 (T-098) — 브로커 미가용 시에도 생성 흐름을 막지 않는다.
+    _enqueue_email(
+        to=admin_email,
+        subject=f"[CMS] {name}님, 환영합니다 🎉",
+        template="welcome",
+        variables={
+            "tenant_name": name,
+            "admin_url": settings.admin_base_url,
+            "admin_email": admin_email,
+            "temp_password": admin_password,
+            "plan_type": plan_type,
+        },
+    )
     return tenant
+
+
+def _enqueue_email(*, to: str, subject: str, template: str, variables: dict) -> None:
+    try:
+        from app.workers.email import send_email_async
+
+        send_email_async.delay(to, subject, template, variables)
+    except Exception:
+        pass
 
 
 async def update_tenant(
