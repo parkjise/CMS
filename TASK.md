@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **0** | **0%** |
-| **합계** | **113** | **81** | **71.7%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **1** | **8.3%** |
+| **합계** | **113** | **82** | **72.6%** |
 
 ---
 
@@ -1860,11 +1860,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 15.2 (DB 스키마)`
 - **작업 내용:**
-  - [ ] `app/models/billing.py` — Subscription, PaymentHistory, PlanChangeHistory 모델
-  - [ ] `app/models/domain.py` — TenantDomain 모델
-  - [ ] Alembic 마이그레이션 생성 및 적용
-  - [ ] `scripts/seed.py`에 테스트용 구독 데이터 추가
-  - [ ] `app/schemas/billing.py` — Pydantic 스키마 전체
+  - [x] `app/models/billing.py` — Subscription, PaymentHistory, PlanChangeHistory 모델
+  - [x] `app/models/domain.py` — TenantDomain 모델
+  - [x] Alembic 마이그레이션 생성 및 적용 (0015, 4개 테이블 + RLS)
+  - [x] `scripts/seed.py`에 테스트용 구독 데이터 추가
+  - [x] `app/schemas/billing.py` — Pydantic 스키마 전체
 - **완료 조건:** `alembic upgrade head` 성공, 모델 import 에러 없음
 
 ---
