@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.api.super.endpoints import (
     announcements,
+    audit,
     auth,
     dashboard,
     features,
@@ -20,3 +21,4 @@ super_router.include_router(features.tenant_router)
 super_router.include_router(announcements.router)
 super_router.include_router(dashboard.router)
 super_router.include_router(monitoring.router)
+super_router.include_router(audit.router)

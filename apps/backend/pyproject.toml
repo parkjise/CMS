@@ -27,6 +27,7 @@ python-multipart = "*"
 slowapi = "*"
 python-dotenv = "*"
 openpyxl = "^3.1.5"
+pyotp = "^2.10.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "*"

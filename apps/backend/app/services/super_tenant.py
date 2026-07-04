@@ -294,16 +294,33 @@ async def create_impersonate_token(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="테넌트 관리자 계정이 없습니다.",
         )
+    jti = str(uuid.uuid4())
     token = create_access_token(
         user_id=admin.id,
         tenant_id=tenant_id,
         role="TENANT_ADMIN",
         expires_minutes=IMPERSONATE_EXPIRE_MINUTES,
-        extra_claims={"impersonated": True},
+        extra_claims={"impersonated": True, "jti": jti},
     )
+    # 대리 접속 토큰을 Redis에 30분 TTL로 등록 (만료 후 자동 무효화 / 추적)
+    await _register_impersonate_token(jti, tenant_id)
+
     base = settings.admin_base_url.rstrip("/")
     redirect_url = f"{base}/login?impersonate={token}&tenant={tenant.slug}"
     return token, redirect_url, IMPERSONATE_EXPIRE_MINUTES * 60
+
+
+async def _register_impersonate_token(jti: str, tenant_id: uuid.UUID) -> None:
+    try:
+        from app.core.redis import get_redis
+
+        redis = await get_redis()
+        await redis.setex(
+            f"impersonate:{jti}", IMPERSONATE_EXPIRE_MINUTES * 60, str(tenant_id)
+        )
+    except Exception:
+        # Redis 미가용은 대리 접속 자체(JWT exp 기반)를 막지 않는다.
+        pass
 
 
 async def list_audit_logs(
@@ -328,6 +345,35 @@ async def list_audit_logs(
     rows = await db.execute(
         select(AuditLog)
         .where(AuditLog.target_id == target)
+        .order_by(AuditLog.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+    )
+    return list(rows.scalars().all()), total
+
+
+async def list_all_audit_logs(
+    db: AsyncSession,
+    *,
+    action: str | None = None,
+    page: int = 1,
+    limit: int = 50,
+) -> tuple[list[AuditLog], int]:
+    """전체 감사 로그 (액션 필터 옵션). 최신순. T-094 슈퍼 어드민 감사 조회."""
+    conditions = []
+    if action:
+        conditions.append(AuditLog.action == action)
+
+    total = int(
+        (
+            await db.execute(
+                select(func.count()).select_from(AuditLog).where(*conditions)
+            )
+        ).scalar_one()
+    )
+    rows = await db.execute(
+        select(AuditLog)
+        .where(*conditions)
         .order_by(AuditLog.created_at.desc())
         .offset((page - 1) * limit)
         .limit(limit)

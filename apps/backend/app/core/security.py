@@ -3,11 +3,13 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import bcrypt
+import pyotp
 from jose import JWTError, jwt
 
 from app.core.config import settings
 
 ALGORITHM = settings.jwt_algorithm
+TOTP_ISSUER = "CMS SuperAdmin"
 
 
 def hash_password(plain: str) -> str:
@@ -60,3 +62,33 @@ def decode_token(token: str) -> dict:
         return jwt.decode(token, settings.app_secret_key, algorithms=[ALGORITHM])
     except JWTError as e:
         raise ValueError("유효하지 않은 토큰입니다.") from e
+
+
+# ── TOTP 2FA (T-094) ──────────────────────────────────────────────────────
+def generate_totp_secret() -> str:
+    return pyotp.random_base32()
+
+
+def totp_provisioning_uri(secret: str, account_name: str) -> str:
+    return pyotp.TOTP(secret).provisioning_uri(
+        name=account_name, issuer_name=TOTP_ISSUER
+    )
+
+
+def verify_totp(secret: str, code: str) -> bool:
+    """TOTP 코드 검증. 시계 오차 허용(±1 step)."""
+    if not secret or not code:
+        return False
+    return pyotp.TOTP(secret).verify(code, valid_window=1)
+
+
+def create_2fa_challenge_token(user_id: UUID, expires_minutes: int = 5) -> str:
+    """비밀번호 검증 후 2FA 대기용 단기 토큰. 액세스 권한 없음."""
+    expire = datetime.now(UTC) + timedelta(minutes=expires_minutes)
+    payload = {
+        "sub": str(user_id),
+        "pending_2fa": True,
+        "jti": str(_uuid.uuid4()),
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
