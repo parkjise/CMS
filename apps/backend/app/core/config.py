@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     super_admin_password: str = ""
     # 빈 문자열 = 모든 IP 허용 / 쉼표 구분: "1.2.3.4,5.6.7.8"
     super_admin_allowed_ips: str = ""
+    # 슈퍼 어드민 액세스 토큰 만료 (분) — 보안 강화로 짧게 유지
+    super_admin_token_expire_minutes: int = 5
 
     # reCAPTCHA (없으면 검증 스킵)
     recaptcha_secret_key: str = ""

@@ -7,8 +7,10 @@ from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
-    hash_password,
+    generate_totp_secret,
+    totp_provisioning_uri,
     verify_password,
+    verify_totp,
 )
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -76,6 +78,41 @@ async def authenticate_super_admin(
     return user
 
 
+async def setup_totp(db: AsyncSession, user: User) -> tuple[str, str]:
+    """TOTP secret 발급(미확정 저장). (secret, otpauth_uri) 반환."""
+    await _bypass_rls(db)
+    secret = generate_totp_secret()
+    await db.execute(update(User).where(User.id == user.id).values(totp_secret=secret))
+    await db.commit()
+    return secret, totp_provisioning_uri(secret, user.email)
+
+
+async def confirm_totp(db: AsyncSession, user: User, code: str) -> bool:
+    """설정 코드 검증 후 2FA 활성화."""
+    await _bypass_rls(db)
+    fresh = await get_user_by_id(db, user.id)
+    if not fresh or not fresh.totp_secret:
+        raise ValueError("2FA_NOT_INITIALIZED")
+    if not verify_totp(fresh.totp_secret, code):
+        raise ValueError("INVALID_CODE")
+    await db.execute(update(User).where(User.id == user.id).values(totp_enabled=True))
+    await db.commit()
+    return True
+
+
+async def verify_2fa_code(db: AsyncSession, user_id: UUID, code: str) -> User:
+    """로그인 2FA 단계: 저장된 secret으로 코드 검증."""
+    await _bypass_rls(db)
+    user = await get_user_by_id(db, user_id)
+    if not user or user.role != "SUPER_ADMIN":
+        raise ValueError("UNAUTHORIZED")
+    if not user.totp_enabled or not user.totp_secret:
+        raise ValueError("2FA_NOT_ENABLED")
+    if not verify_totp(user.totp_secret, code):
+        raise ValueError("INVALID_CODE")
+    return user
+
+
 async def get_user_by_id(db: AsyncSession, user_id: UUID) -> User | None:
     result = await db.execute(
         select(User).where(
@@ -91,9 +128,7 @@ async def update_last_login(db: AsyncSession, user_id: UUID) -> None:
     from datetime import UTC, datetime
 
     await db.execute(
-        update(User)
-        .where(User.id == user_id)
-        .values(last_login_at=datetime.now(UTC))
+        update(User).where(User.id == user_id).values(last_login_at=datetime.now(UTC))
     )
     await db.commit()
 

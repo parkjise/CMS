@@ -41,3 +41,28 @@ class LoginResponse(BaseModel):
 class RefreshResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+
+
+# ── 슈퍼 어드민 2FA (T-094) ───────────────────────────────────────────────
+class SuperLoginResponse(BaseModel):
+    """2FA 미사용 시 access_token 발급, 사용 시 challenge_token 반환."""
+
+    requires_2fa: bool
+    user: UserResponse | None = None
+    access_token: str | None = None
+    challenge_token: str | None = None
+    token_type: str = "bearer"
+
+
+class Verify2faRequest(BaseModel):
+    challenge_token: str
+    code: str
+
+
+class TotpSetupResponse(BaseModel):
+    secret: str
+    otpauth_uri: str
+
+
+class TotpConfirmRequest(BaseModel):
+    code: str

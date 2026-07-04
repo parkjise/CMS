@@ -88,6 +88,7 @@ class AuditLogItem(BaseModel):
     actor_role: str
     action: str
     target_type: str
+    target_id: str | None = None
     before_value: dict | None
     after_value: dict | None
     created_at: datetime
