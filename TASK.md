@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **3** | **25%** |
-| **합계** | **113** | **84** | **74.3%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **4** | **33.3%** |
+| **합계** | **113** | **85** | **75.2%** |
 
 ---
 
@@ -1912,17 +1912,18 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 15.4 (온보딩 이메일 자동화)`
 - **작업 내용:**
-  - [ ] `app/services/email.py` — AWS SES 기반 이메일 발송
+  - [x] `app/services/email.py` — AWS SES 기반 이메일 발송 (EMAIL_MODE=test stub)
     - `send_email(to, subject, template, variables)` — 기본 발송 함수
-    - `send_welcome_email(tenant, temp_password)` — 환영 메일
-    - `send_payment_receipt(tenant, payment)` — 영수증
-    - `send_payment_failed(tenant, attempt_count)` — 결제 실패 알림
-    - `send_expiring_notice(tenant, days_left)` — 만료 예정 알림
-    - `send_cancellation_confirmed(tenant)` — 해지 확인
-    - `send_data_deleted(email)` — 데이터 삭제 완료
-  - [ ] 이메일 HTML 템플릿 작성 (Jinja2, 7종)
-  - [ ] 환경변수 추가: `AWS_SES_REGION`, `AWS_SES_FROM_EMAIL`
-  - [ ] Celery 태스크로 비동기 처리 (`send_email_async`)
+    - `send_welcome_email` — 환영 메일
+    - `send_payment_receipt` — 영수증
+    - `send_payment_failed` — 결제 실패 알림
+    - `send_expiring_notice` — 만료 예정 알림
+    - `send_cancellation_confirmed` — 해지 확인
+    - `send_data_deleted` — 데이터 삭제 완료 / `send_domain_activated` — 도메인 활성화
+  - [x] 이메일 HTML 템플릿 작성 (Jinja2, 7종)
+  - [x] 환경변수 추가: `AWS_SES_REGION`, `AWS_SES_FROM_EMAIL`, `EMAIL_MODE`
+  - [x] Celery 태스크로 비동기 처리 (`send_email_async`)
+  - [x] 연동: 테넌트 생성 시 환영 메일, 결제 성공 시 영수증
 - **완료 조건:** 환영 메일 실제 수신 확인, 영수증 이메일 수신 확인
 
 ---
