@@ -103,3 +103,13 @@ class TrialStatusResponse(BaseModel):
     status: str
     days_left: int
     trial_ends_at: datetime | None
+
+
+class DomainStatusResponse(TenantDomainResponse):
+    # CNAME 설정 가이드용 타깃 (고객 DNS에 추가할 값)
+    cname_target: str
+
+
+class DomainListResponse(BaseModel):
+    items: list[TenantDomainResponse]
+    total: int
