@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **5** | **41.7%** |
-| **합계** | **113** | **86** | **76.1%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **6** | **50%** |
+| **합계** | **113** | **87** | **77%** |
 
 ---
 
@@ -1946,23 +1946,23 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 백엔드/인프라
 - **참조:** `기획서 섹션 15.3 (커스텀 도메인 자동화)`
 - **작업 내용:**
-  - [ ] `app/services/domain.py`
+  - [x] `app/services/domain.py` (domain_mode=test stub)
     - `verify_dns(domain, expected_cname)` — DNS CNAME 전파 확인 (dnspython)
-    - `issue_ssl_certificate(domain)` — Let's Encrypt SSL 발급 (certbot)
+    - `issue_ssl_certificate(domain)` — Let's Encrypt SSL 발급 (certbot subprocess)
     - `add_nginx_config(domain, tenant_slug)` — Nginx 가상 호스트 추가
     - `remove_nginx_config(domain)` — Nginx 설정 제거
     - `renew_ssl_certificate(domain)` — SSL 갱신
-  - [ ] `app/api/v1/endpoints/domain.py`
+  - [x] `app/api/v1/endpoints/domain.py`
     - `POST /api/v1/domain/register` — 커스텀 도메인 등록 신청
     - `GET  /api/v1/domain/status` — 도메인 연결 상태 확인
     - `POST /api/v1/domain/verify` — DNS 전파 수동 확인
     - `DELETE /api/v1/domain` — 도메인 연결 해제
-  - [ ] `app/api/super/endpoints/domains.py`
+  - [x] `app/api/super/endpoints/domains.py`
     - `GET  /api/super/v1/domains` — 전체 도메인 목록
     - `POST /api/super/v1/domains/{id}/ssl-renew` — SSL 수동 갱신
-  - [ ] DNS 확인 Celery 태스크 (도메인 등록 후 1분마다 폴링, 최대 24시간)
-  - [ ] SSL 만료 D-30 자동 갱신 Celery Beat 태스크
-  - [ ] 의존성 추가: `dnspython`, `subprocess` (certbot 호출)
+  - [x] DNS 확인 Celery 태스크 (poll_domain_dns, 60초 폴링, 최대 24시간)
+  - [x] SSL 만료 D-30 자동 갱신 Celery Beat 태스크 (renew_expiring_ssl)
+  - [x] 의존성 추가: `dnspython` (certbot은 subprocess)
 - **완료 조건:** 실제 도메인으로 CNAME 설정 → 자동 DNS 확인 → SSL 발급 → 접속 성공
 
 ---
