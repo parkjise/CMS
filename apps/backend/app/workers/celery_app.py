@@ -11,6 +11,7 @@ celery_app = Celery(
         "app.workers.analytics",
         "app.workers.announcement",
         "app.workers.billing",
+        "app.workers.domain",
         "app.workers.email",
         "app.workers.image",
         "app.workers.notification",
@@ -86,6 +87,11 @@ celery_app.conf.update(
         "notify-trial-ending-daily-0900": {
             "task": "app.workers.billing.notify_trial_ending",
             "schedule": crontab(hour=9, minute=0),  # 매일 09:00 체험 D-3 알림
+        },
+        # ── 커스텀 도메인 (T-100) ─────────────────────────────────────────
+        "renew-expiring-ssl-daily-0345": {
+            "task": "app.workers.domain.renew_expiring_ssl",
+            "schedule": crontab(hour=3, minute=45),  # 매일 03:45 SSL D-30 갱신
         },
     },
 )

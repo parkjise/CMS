@@ -5,6 +5,7 @@ from app.api.super.endpoints import (
     audit,
     auth,
     dashboard,
+    domains,
     features,
     health,
     monitoring,
@@ -22,3 +23,4 @@ super_router.include_router(announcements.router)
 super_router.include_router(dashboard.router)
 super_router.include_router(monitoring.router)
 super_router.include_router(audit.router)
+super_router.include_router(domains.router)

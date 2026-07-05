@@ -7,6 +7,7 @@ from app.api.v1.endpoints import (
     auth,
     billing,
     dashboard,
+    domain,
     edit,
     gallery,
     inquiries,
@@ -39,6 +40,7 @@ api_router.include_router(templates.router)
 api_router.include_router(tenant_features.router)
 api_router.include_router(announcements.router)
 api_router.include_router(billing.router)
+api_router.include_router(domain.router)
 
 
 # 헬스체크 (인증 불필요)

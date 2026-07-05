@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     # 무료 체험 (T-099)
     trial_days: int = 14
 
+    # 커스텀 도메인 (T-100)
+    # "test" | "live" — test 모드는 DNS/certbot/nginx 호출 없이 stub
+    domain_mode: str = "test"
+    domain_cname_target: str = "cms.example.com"
+    nginx_sites_dir: str = "/etc/nginx/sites-enabled"
+    ssl_renew_before_days: int = 30
+
     # 쿠키 & URL
     cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
     admin_base_url: str = "http://localhost:3001"
