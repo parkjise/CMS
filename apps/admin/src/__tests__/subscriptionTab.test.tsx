@@ -61,12 +61,13 @@ describe('SubscriptionTab', () => {
     expect(screen.getByText('정상 구독')).toBeInTheDocument()
   })
 
-  it('해지 버튼 클릭 시 cancel 호출', async () => {
+  it('해지 버튼 클릭 시 해지 다이얼로그 오픈', async () => {
     const user = userEvent.setup()
     useSubscription.mockReturnValue({ data: sub({}), isLoading: false })
     render(<SubscriptionTab />)
     await user.click(screen.getByRole('button', { name: '구독 해지' }))
-    expect(cancelMutate).toHaveBeenCalled()
+    // 다이얼로그의 해지 확인 버튼이 노출되면 오픈된 것
+    expect(screen.getByRole('button', { name: '해지 확인' })).toBeInTheDocument()
   })
 
   it('CANCELLED 상태는 해지 버튼 없음', () => {
