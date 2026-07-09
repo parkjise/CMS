@@ -8,13 +8,14 @@ import {
 } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
 import { AiUsageCard } from '@/components/billing/AiUsageCard'
+import { CancelSubscriptionDialog } from '@/components/billing/CancelSubscriptionDialog'
 import { PlanCard } from '@/components/billing/PlanCard'
 import { UpgradeModal } from '@/components/billing/UpgradeModal'
 import { UsageStat } from '@/components/billing/UsageStat'
 import { useAiUsage } from '@/hooks/useAiUsage'
 import { useInquiries } from '@/hooks/useInquiries'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
-import { useCancelSubscription, useSubscription } from '@/hooks/useBilling'
+import { useSubscription } from '@/hooks/useBilling'
 import { type PlanDefinition, PLANS, getPlan } from '@/lib/plans'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -27,7 +28,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function SubscriptionTab() {
   const subQuery = useSubscription()
-  const cancel = useCancelSubscription()
+  const [cancelOpen, setCancelOpen] = useState(false)
   const sub = subQuery.data
 
   const planKey = (sub?.plan_type ?? 'STANDARD') as PlanDefinition['key']
@@ -59,11 +60,6 @@ export function SubscriptionTab() {
     toast.success(`${plan.name} 플랜 업그레이드 문의가 접수되었습니다.`)
   }
 
-  const handleCancel = async () => {
-    await cancel.mutateAsync(undefined)
-    toast.success('구독 해지가 접수되었습니다. 현재 기간까지 이용 가능합니다.')
-  }
-
   return (
     <div className="space-y-8">
       {/* 구독 요약 */}
@@ -91,7 +87,7 @@ export function SubscriptionTab() {
             )}
           </div>
           {sub && sub.status !== 'CANCELLED' && (
-            <Button variant="ghost" onClick={handleCancel} loading={cancel.isPending}>
+            <Button variant="ghost" onClick={() => setCancelOpen(true)}>
               구독 해지
             </Button>
           )}
@@ -215,6 +211,11 @@ export function SubscriptionTab() {
           setUpgradeFeature(null)
           toast.success('Premium 플랜 업그레이드 문의가 접수되었습니다.')
         }}
+      />
+
+      <CancelSubscriptionDialog
+        open={cancelOpen}
+        onClose={() => setCancelOpen(false)}
       />
     </div>
   )

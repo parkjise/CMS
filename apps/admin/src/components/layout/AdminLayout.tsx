@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { Outlet } from 'react-router'
 import { SkipLink } from '@/components/a11y/SkipLink'
 import { useFeatureStore } from '@/stores/featureStore'
+import { ReSubscribeBanner } from '@/components/billing/ReSubscribeBanner'
+import { useSubscription } from '@/hooks/useBilling'
+import { SubscriptionExpiredPage } from '@/pages/SubscriptionExpiredPage'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { BottomTabBar } from './BottomTabBar'
 import { CollapsedSidebar } from './CollapsedSidebar'
@@ -11,10 +14,16 @@ import { TrialBanner } from './TrialBanner'
 
 export function AdminLayout() {
   const loadFeatures = useFeatureStore((s) => s.load)
+  const { data: sub } = useSubscription()
 
   useEffect(() => {
     void loadFeatures()
   }, [loadFeatures])
+
+  // 구독 만료(SUSPENDED) 시 전체 접근 차단
+  if (sub?.status === 'SUSPENDED') {
+    return <SubscriptionExpiredPage />
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-slate-50">
@@ -34,6 +43,7 @@ export function AdminLayout() {
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
         <TrialBanner />
+        <ReSubscribeBanner />
         <AnnouncementBanner />
         <main
           id="main-content"
