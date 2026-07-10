@@ -237,7 +237,9 @@ class TestCleanupOrphanFiles:
 
         try:
             deleted = await image_worker._cleanup_orphan_files(age_days=30)
-            assert deleted == 1  # old_orphan만 삭제
+            # 전역 정리이므로 다른 테스트의 잔여 orphan이 섞일 수 있어 >= 1로 확인.
+            # 정확성은 아래 파일별 존재/부재 검증으로 보장한다.
+            assert deleted >= 1
 
             # DB 확인
             async with _TestSession() as session:
