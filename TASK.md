@@ -27,8 +27,8 @@
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
 | Phase 12: 테스트 & 배포 | 6 | 0 | 0% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
-| **Phase 14: SaaS 운영 시스템** | **12** | **8** | **66.7%** |
-| **합계** | **113** | **89** | **78.8%** |
+| **Phase 14: SaaS 운영 시스템** | **12** | **9** | **75%** |
+| **합계** | **113** | **90** | **79.6%** |
 
 ---
 
@@ -2003,12 +2003,12 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 15.5 (SA-06)`
 - **작업 내용:**
-  - [ ] `apps/superadmin/src/pages/BillingOverviewPage.tsx`
-  - [ ] 통계 카드 (MRR, 연체 수, 해지 수, 신규 수)
-  - [ ] 연체 테넌트 즉시 처리 (수동 결제, 유예 처리)
-  - [ ] 환불 처리 UI
-  - [ ] MRR 추이 차트 (Recharts)
-  - [ ] 플랜별 테넌트 수 도넛 차트
+  - [x] `apps/superadmin/src/pages/BillingOverviewPage.tsx` (+ 백엔드 `GET /api/super/v1/billing/overview`)
+  - [x] 통계 카드 (MRR, 연체 수, 해지 수, 신규 수)
+  - [x] 연체 테넌트 즉시 처리 (수동 결제, `POST /billing/manual-charge/{tenant_id}`)
+  - [x] 환불 처리 API (`POST /billing/refund/{payment_id}`)
+  - [x] MRR 추이 차트 (Recharts, T-093 revenue 재사용)
+  - [x] 플랜별 테넌트 수 도넛 차트
 - **완료 조건:** 결제 현황 정상 표시, 수동 결제 실행 가능
 
 ---
