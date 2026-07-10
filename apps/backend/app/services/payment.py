@@ -16,10 +16,14 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.core.crypto import decrypt_secret, encrypt_secret
 from app.models.billing import PaymentHistory, PlanChangeHistory, Subscription
 from app.models.tenant import Tenant
 
 TOSS_BASE_URL = "https://api.tosspayments.com/v1"
+
+# 동일 테넌트 중복 결제 차단 창(초) — 수동 결제 더블클릭/재요청 방지
+DUPLICATE_CHARGE_WINDOW_SECONDS = 60
 
 # 플랜별 월 요금 (원)
 PLAN_MONTHLY_PRICE: dict[str, int] = {
@@ -165,7 +169,8 @@ async def register_card(
         )
         db.add(sub)
 
-    sub.billing_key = billing_key
+    # 빌링키는 암호화하여 저장 (T-106)
+    sub.billing_key = encrypt_secret(billing_key)
     sub.billing_email = billing_email
     sub.billing_name = billing_name
     if sub.status in ("CANCELLED", "SUSPENDED", "PAST_DUE"):
@@ -310,7 +315,7 @@ async def charge_subscription(
         if not sub.billing_key:
             raise PaymentError("등록된 결제 수단이 없습니다.")
         result = await charge_billing(
-            billing_key=sub.billing_key,
+            billing_key=decrypt_secret(sub.billing_key),
             customer_key=str(sub.tenant_id),
             amount=sub.monthly_amount,
             order_id=oid,
@@ -368,4 +373,27 @@ def _enqueue_email(*, to: str, subject: str, template: str, variables: dict) -> 
 
 async def manual_charge(db: AsyncSession, tenant_id: uuid.UUID) -> PaymentHistory:
     sub = await get_subscription(db, tenant_id)
+    await _guard_duplicate_charge(db, tenant_id)
     return await charge_subscription(db, sub)
+
+
+async def _guard_duplicate_charge(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """단기간(60초) 내 동일 테넌트 성공 결제가 있으면 중복으로 차단한다 (T-106)."""
+    since = datetime.now(UTC) - timedelta(seconds=DUPLICATE_CHARGE_WINDOW_SECONDS)
+    recent = (
+        await db.execute(
+            select(func.count())
+            .select_from(PaymentHistory)
+            .where(
+                PaymentHistory.tenant_id == tenant_id,
+                PaymentHistory.status == "SUCCESS",
+                PaymentHistory.paid_at.isnot(None),
+                PaymentHistory.paid_at >= since,
+            )
+        )
+    ).scalar_one()
+    if recent:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="단기간 내 중복 결제가 감지되어 차단되었습니다.",
+        )

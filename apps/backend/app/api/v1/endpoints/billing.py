@@ -1,6 +1,8 @@
-"""T-096 테넌트 결제 API."""
+"""T-096 테넌트 결제 API. 쓰기 API는 Rate Limit(분당 5회, T-106)."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db_with_rls
@@ -19,9 +21,14 @@ from app.services import payment as svc
 
 router = APIRouter(prefix="/billing", tags=["billing"])
 
+# 결제 쓰기 API 전용 rate limiter (분당 5회). 테스트는 conftest에서 비활성화.
+_limiter = Limiter(key_func=get_remote_address)
+
 
 @router.post("/register-card", response_model=ApiResponse[SubscriptionResponse])
+@_limiter.limit("5/minute")
 async def register_card(
+    request: Request,
     body: RegisterCardRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
@@ -87,7 +94,9 @@ async def get_history(
 
 
 @router.post("/cancel", response_model=ApiResponse[SubscriptionResponse])
+@_limiter.limit("5/minute")
 async def cancel_subscription(
+    request: Request,
     body: CancelSubscriptionRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
@@ -97,7 +106,9 @@ async def cancel_subscription(
 
 
 @router.post("/change-plan", response_model=ApiResponse[SubscriptionResponse])
+@_limiter.limit("5/minute")
 async def change_plan(
+    request: Request,
     body: ChangePlanRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
