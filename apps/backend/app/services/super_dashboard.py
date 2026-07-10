@@ -1,7 +1,7 @@
 """T-089 슈퍼 어드민 대시보드 집계 서비스."""
 
 import asyncio
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -126,6 +126,7 @@ async def get_dashboard(db: AsyncSession) -> dict:
         for t in recent_sorted
     ]
 
+    ssl_expiring = await _expiring_ssl(db, now)
     system = await _system_status(db)
 
     return {
@@ -141,8 +142,38 @@ async def get_dashboard(db: AsyncSession) -> dict:
         "mrr_trend": mrr_trend,
         "expiring_tenants": expiring,
         "recent_tenants": recent,
+        "ssl_expiring": ssl_expiring,
         "system": system,
     }
+
+
+async def _expiring_ssl(db: AsyncSession, now: datetime) -> list[dict]:
+    """SSL 만료 D-30 이내 ACTIVE 도메인 목록 (경고 위젯용)."""
+    from app.models.domain import TenantDomain
+
+    cutoff = now + timedelta(days=30)
+    rows = (
+        await db.execute(
+            select(TenantDomain.domain, TenantDomain.ssl_expires_at)
+            .where(
+                TenantDomain.status == "ACTIVE",
+                TenantDomain.ssl_expires_at.isnot(None),
+                TenantDomain.ssl_expires_at <= cutoff,
+            )
+            .order_by(TenantDomain.ssl_expires_at)
+        )
+    ).all()
+    result = []
+    for domain, expires in rows:
+        days_left = (expires - now).days if expires else 0
+        result.append(
+            {
+                "domain": domain,
+                "ssl_expires_at": expires,
+                "days_left": max(0, days_left),
+            }
+        )
+    return result
 
 
 def _mrr_trend(active: list[Tenant], today: date) -> list[dict]:

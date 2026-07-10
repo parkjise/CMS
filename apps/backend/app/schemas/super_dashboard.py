@@ -49,6 +49,12 @@ class SystemStatus(BaseModel):
     celery: bool
 
 
+class ExpiringSslDomain(BaseModel):
+    domain: str
+    ssl_expires_at: datetime | None
+    days_left: int
+
+
 class DashboardResponse(BaseModel):
     stats: DashboardStats
     plan_distribution: list[PlanDistributionItem]
@@ -56,4 +62,5 @@ class DashboardResponse(BaseModel):
     mrr_trend: list[MrrTrendPoint]
     expiring_tenants: list[ExpiringTenant]
     recent_tenants: list[RecentTenant]
+    ssl_expiring: list[ExpiringSslDomain]
     system: SystemStatus

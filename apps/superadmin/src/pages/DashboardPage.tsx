@@ -4,6 +4,7 @@ import { StatCard } from '@/components/dashboard/StatCard'
 import { PlanDistribution } from '@/components/dashboard/PlanDistribution'
 import { ExpiringTenants } from '@/components/dashboard/ExpiringTenants'
 import { RecentTenants } from '@/components/dashboard/RecentTenants'
+import { SslExpiringWidget } from '@/components/dashboard/SslExpiringWidget'
 import { SystemStatus } from '@/components/dashboard/SystemStatus'
 
 function formatMoney(won: number): string {
@@ -71,6 +72,9 @@ export function DashboardPage() {
             />
             <ExpiringTenants tenants={data.expiring_tenants} />
           </div>
+
+          {/* SSL 만료 예정 경고 */}
+          <SslExpiringWidget domains={data.ssl_expiring} />
 
           {/* 최근 신규 테넌트 */}
           <RecentTenants tenants={data.recent_tenants} />

@@ -61,17 +61,22 @@ async def _poll_domain_dns(domain_id: str) -> dict:
     autoretry_for=(Exception,),
     retry_backoff=True,
 )
-def renew_expiring_ssl(self) -> int:
+def renew_expiring_ssl(self) -> dict:
     return asyncio.run(_renew_expiring_ssl())
 
 
-async def _renew_expiring_ssl() -> int:
-    """SSL 만료 D-30 이하 ACTIVE 도메인 자동 갱신. 갱신 건수 반환."""
+async def _renew_expiring_ssl() -> dict:
+    """SSL 만료 D-30 이하 ACTIVE 도메인 자동 갱신.
+
+    도메인별로 개별 처리하여 한 도메인 실패가 나머지 갱신을 막지 않도록 한다.
+    실패 시 슈퍼 어드민에게 긴급 이메일 알림을 발송한다.
+    """
     from app.db.session import AsyncSessionLocal
     from app.services import domain as domain_service
 
     cutoff = datetime.now(UTC) + timedelta(days=settings.ssl_renew_before_days)
     renewed = 0
+    failed = 0
     async with AsyncSessionLocal() as db:
         await _bypass(db)
         rows = (
@@ -88,7 +93,37 @@ async def _renew_expiring_ssl() -> int:
             .all()
         )
         for row in rows:
-            row.ssl_expires_at = domain_service.renew_ssl_certificate(row.domain)
-            renewed += 1
-        await db.commit()
-    return renewed
+            # rollback 후 ORM 속성 접근 시 IO가 발생하므로 미리 값을 캡처한다.
+            dom = row.domain
+            prev_expiry = row.ssl_expires_at
+            try:
+                row.ssl_expires_at = domain_service.renew_ssl_certificate(dom)
+                await db.commit()
+                renewed += 1
+            except Exception as exc:
+                await db.rollback()
+                failed += 1
+                _alert_ssl_failure(dom, prev_expiry, str(exc))
+    return {"renewed": renewed, "failed": failed}
+
+
+def _alert_ssl_failure(domain: str, ssl_expires_at, error: str) -> None:
+    """SSL 갱신 실패 시 슈퍼 어드민에게 긴급 이메일 알림 (브로커 미가용 시 무시)."""
+    try:
+        from app.core.config import settings as cfg
+        from app.workers.email import send_email_async
+
+        send_email_async.delay(
+            cfg.super_admin_email,
+            f"[CMS] ⚠️ SSL 갱신 실패: {domain}",
+            "ssl_renew_failed",
+            {
+                "domain": domain,
+                "ssl_expires_at": (
+                    ssl_expires_at.isoformat() if ssl_expires_at else "-"
+                ),
+                "error": error[:200],
+            },
+        )
+    except Exception:
+        pass
