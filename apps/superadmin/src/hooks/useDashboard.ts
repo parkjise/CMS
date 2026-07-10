@@ -44,12 +44,19 @@ export interface SystemStatus {
   celery: boolean
 }
 
+export interface ExpiringSslDomain {
+  domain: string
+  ssl_expires_at: string | null
+  days_left: number
+}
+
 export interface DashboardData {
   stats: DashboardStats
   plan_distribution: PlanDistributionItem[]
   mrr_trend: MrrTrendPoint[]
   expiring_tenants: ExpiringTenant[]
   recent_tenants: RecentTenant[]
+  ssl_expiring: ExpiringSslDomain[]
   system: SystemStatus
 }
 

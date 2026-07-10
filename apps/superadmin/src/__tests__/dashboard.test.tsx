@@ -61,6 +61,7 @@ const SAMPLE: DashboardData = {
       created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),
     },
   ],
+  ssl_expiring: [],
   system: { server: true, db: true, redis: true, celery: false },
 }
 
