@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet } from 'react-router'
 import { SuperAdminLayout } from '@/components/layout/SuperAdminLayout'
 import { AnnouncementsPage } from '@/pages/AnnouncementsPage'
+import { BillingOverviewPage } from '@/pages/BillingOverviewPage'
 import { DashboardPage } from '@/pages/DashboardPage'
 import { FeaturesPage } from '@/pages/FeaturesPage'
 import { LoginPage } from '@/pages/LoginPage'
@@ -31,6 +32,7 @@ export const router = createBrowserRouter([
           { path: '/announcements', element: <AnnouncementsPage /> },
           { path: '/monitoring', element: <MonitoringPage /> },
           { path: '/revenue', element: <RevenuePage /> },
+          { path: '/billing', element: <BillingOverviewPage /> },
         ],
       },
     ],

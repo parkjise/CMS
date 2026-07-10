@@ -113,3 +113,24 @@ class DomainStatusResponse(TenantDomainResponse):
 class DomainListResponse(BaseModel):
     items: list[TenantDomainResponse]
     total: int
+
+
+# ── 슈퍼 어드민 결제 현황 (T-103) ──────────────────────────────────────────
+class PastDueTenant(BaseModel):
+    subscription_id: uuid.UUID
+    tenant_id: uuid.UUID
+    name: str
+    plan_type: str
+    amount: int
+
+
+class BillingOverviewResponse(BaseModel):
+    mrr: int
+    past_due_count: int
+    cancelled_count: int
+    new_this_month: int
+    past_due_tenants: list[PastDueTenant]
+
+
+class RefundRequest(BaseModel):
+    reason: str | None = None

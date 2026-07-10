@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router'
 import {
   Bell,
   Building2,
+  CreditCard,
   LayoutDashboard,
   LineChart,
   LogOut,
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
   { to: '/announcements', icon: Bell, label: '공지 관리' },
   { to: '/monitoring', icon: LineChart, label: '모니터링' },
   { to: '/revenue', icon: Wallet, label: '수익 관리' },
+  { to: '/billing', icon: CreditCard, label: '결제 현황' },
 ]
 
 export function SuperAdminLayout() {

@@ -4,6 +4,7 @@ from app.api.super.endpoints import (
     announcements,
     audit,
     auth,
+    billing,
     dashboard,
     domains,
     features,
@@ -24,3 +25,4 @@ super_router.include_router(dashboard.router)
 super_router.include_router(monitoring.router)
 super_router.include_router(audit.router)
 super_router.include_router(domains.router)
+super_router.include_router(billing.router)
