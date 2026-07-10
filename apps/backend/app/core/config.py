@@ -75,6 +75,9 @@ class Settings(BaseSettings):
     # 무료 체험 (T-099)
     trial_days: int = 14
 
+    # 빌링키 암호화 키 (T-106, base64 인코딩된 32바이트). 미설정 시 app_secret 파생.
+    billing_key_encryption_key: str = ""
+
     # 커스텀 도메인 (T-100)
     # "test" | "live" — test 모드는 DNS/certbot/nginx 호출 없이 stub
     domain_mode: str = "test"
