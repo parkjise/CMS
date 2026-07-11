@@ -1,10 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { buildLocalBusinessJsonLd } from '@/lib/jsonLd'
+import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import type { PublicSite, PublicSection } from '@/lib/publicSite.types'
 
-function mapSection(
-  overrides: Record<string, string> = {},
-): PublicSection {
+function mapSection(overrides: Record<string, string> = {}): PublicSection {
   const settings = Object.entries({
     address: '서울시 강남구 테헤란로 1',
     address_detail: '5층',
@@ -107,7 +105,7 @@ describe('buildLocalBusinessJsonLd (T-074)', () => {
     const ld = buildLocalBusinessJsonLd(
       buildSite({
         sections: [mapSection({ latitude: '0', longitude: '0' })],
-      }),
+      })
     )
     expect(ld.geo).toBeUndefined()
   })
@@ -155,8 +153,48 @@ describe('buildLocalBusinessJsonLd (T-074)', () => {
         keywords: '강남, 통증의학과, 도수치료',
       } as never,
     })
-    expect(buildLocalBusinessJsonLd(site).keywords).toBe(
-      '강남, 통증의학과, 도수치료',
-    )
+    expect(buildLocalBusinessJsonLd(site).keywords).toBe('강남, 통증의학과, 도수치료')
+  })
+})
+
+describe('serializeJsonLd (T-079 XSS 방지)', () => {
+  it('테넌트가 주입한 </script> 페이로드가 이스케이프되어 태그 탈출을 막는다', () => {
+    const site = buildSite({
+      tenant: {
+        id: 't-1',
+        slug: 'evil',
+        name: '</script><img src=x onerror=alert(document.cookie)>',
+        template_type: 'GENERAL',
+        plan_type: 'BASIC',
+        custom_domain: null,
+      },
+    })
+    const html = serializeJsonLd(buildLocalBusinessJsonLd(site))
+    // 원시 </script> 시퀀스가 그대로 남으면 안 된다 (대소문자 무관)
+    expect(html.toLowerCase()).not.toContain('</script')
+    expect(html).not.toContain('<')
+    expect(html).not.toContain('>')
+    // 이스케이프된 형태로는 포함되어야 한다
+    expect(html).toContain('\\u003c/script\\u003e')
+    // 여전히 유효한 JSON 이어야 한다
+    const parsed = JSON.parse(html)
+    expect(parsed.name).toBe('</script><img src=x onerror=alert(document.cookie)>')
+  })
+
+  it('메타 설명의 앰퍼샌드/꺾쇠도 이스케이프한다', () => {
+    const site = buildSite({
+      seo_settings: {
+        meta_title: null,
+        meta_description: 'A & B <tag>',
+        og_image_url: null,
+        google_analytics_id: null,
+        naver_site_verification: null,
+      } as never,
+    })
+    const html = serializeJsonLd(buildLocalBusinessJsonLd(site))
+    expect(html).toContain('\\u0026')
+    expect(html).not.toContain('<')
+    expect(html).not.toContain('>')
+    expect(JSON.parse(html).description).toBe('A & B <tag>')
   })
 })

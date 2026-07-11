@@ -1,3 +1,4 @@
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -101,6 +102,17 @@ class Settings(BaseSettings):
     # reCAPTCHA (없으면 검증 스킵)
     recaptcha_secret_key: str = ""
     recaptcha_min_score: float = 0.5
+
+    @field_validator("app_secret_key")
+    @classmethod
+    def _validate_secret_key_strength(cls, v: str) -> str:
+        # OWASP: JWT 서명 키는 최소 32자 이상 (T-079 보안 점검)
+        if len(v) < 32:
+            raise ValueError(
+                "APP_SECRET_KEY는 최소 32자 이상이어야 합니다. "
+                "(JWT 서명 키 강도 요구사항)"
+            )
+        return v
 
     @property
     def cors_origins(self) -> list[str]:

@@ -64,8 +64,7 @@ function buildGeo(site: PublicSite): Record<string, unknown> | undefined {
  * 현재 SEO 모델에는 keywords 필드가 없어 값이 있을 때만 주입된다(향후 확장 대비).
  */
 function buildKeywords(site: PublicSite): string | undefined {
-  const raw = (site.seo_settings as { keywords?: string | null } | null)
-    ?.keywords
+  const raw = (site.seo_settings as { keywords?: string | null } | null)?.keywords
   if (!raw) return undefined
   const cleaned = raw
     .split(',')
@@ -74,11 +73,23 @@ function buildKeywords(site: PublicSite): string | undefined {
   return cleaned.length > 0 ? cleaned.join(', ') : undefined
 }
 
-export function buildLocalBusinessJsonLd(
-  site: PublicSite,
-): Record<string, unknown> {
-  const schemaType =
-    TEMPLATE_TO_SCHEMA[site.tenant.template_type] ?? 'LocalBusiness'
+/**
+ * JSON-LD 객체를 `<script type="application/ld+json">`에 안전하게 주입하기 위한
+ * 직렬화. 테넌트가 편집 가능한 값(상호명·메타 설명·주소 등)이 포함되므로
+ * `</script>` 탈출 및 XSS를 막기 위해 `<`, `>`, `&`와 줄 구분자를 이스케이프한다.
+ * (JSON 문자열 값 내부에서만 치환되므로 JSON 유효성은 유지된다.)
+ */
+export function serializeJsonLd(jsonLd: Record<string, unknown>): string {
+  return JSON.stringify(jsonLd)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029')
+}
+
+export function buildLocalBusinessJsonLd(site: PublicSite): Record<string, unknown> {
+  const schemaType = TEMPLATE_TO_SCHEMA[site.tenant.template_type] ?? 'LocalBusiness'
   const url = `${getSiteUrl()}/${site.tenant.slug}`
   const sameAs = buildSameAs(site)
   const address = buildAddress(site)

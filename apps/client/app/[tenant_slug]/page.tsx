@@ -5,7 +5,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
-import { buildLocalBusinessJsonLd } from '@/lib/jsonLd'
+import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -26,7 +26,7 @@ export default async function TenantHomePage({ params }: Props) {
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
       <EditToolbar />
@@ -37,21 +37,14 @@ export default async function TenantHomePage({ params }: Props) {
           <EmptySectionsPlaceholder />
         ) : (
           activeSections.map((section) => (
-            <SectionRenderer
-              key={section.id}
-              section={section}
-              tenantSlug={tenant_slug}
-            />
+            <SectionRenderer key={section.id} section={section} tenantSlug={tenant_slug} />
           ))
         )}
       </main>
 
       <Footer tenantName={site.tenant.name} sns={site.sns_settings} />
 
-      <FloatingButtons
-        tenantSlug={tenant_slug}
-        kakaoUrl={site.sns_settings?.kakao_url ?? null}
-      />
+      <FloatingButtons tenantSlug={tenant_slug} kakaoUrl={site.sns_settings?.kakao_url ?? null} />
     </div>
   )
 }
@@ -59,9 +52,7 @@ export default async function TenantHomePage({ params }: Props) {
 function EmptySectionsPlaceholder() {
   return (
     <section className="px-6 py-24 text-center">
-      <p className="text-base text-[color:var(--color-text-muted)]">
-        아직 표시할 섹션이 없습니다.
-      </p>
+      <p className="text-base text-[color:var(--color-text-muted)]">아직 표시할 섹션이 없습니다.</p>
     </section>
   )
 }
