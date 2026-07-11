@@ -27,13 +27,12 @@ from app.db.base import Base, TimestampMixin
 
 class Feature(Base, TimestampMixin):
     __tablename__ = "features"
+    __table_args__ = (UniqueConstraint("key", name="uq_features_key"),)
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    key: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, index=True
-    )
+    key: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     # CONTENT, NOTIFICATION, AI, SEO, ANALYTICS, INTEGRATION

@@ -13,11 +13,13 @@ from datetime import datetime
 from sqlalchemy import (
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -27,7 +29,11 @@ from app.db.base import Base, TimestampMixin
 
 class Subscription(Base, TimestampMixin):
     __tablename__ = "subscriptions"
-    __table_args__ = (UniqueConstraint("tenant_id", name="uq_subscriptions_tenant"),)
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="uq_subscriptions_tenant"),
+        Index("idx_subscriptions_status", "status"),
+        Index("idx_subscriptions_period_end", "current_period_end"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -58,13 +64,20 @@ class Subscription(Base, TimestampMixin):
 
 class PaymentHistory(Base):
     __tablename__ = "payment_history"
-    __table_args__ = (UniqueConstraint("order_id", name="uq_payment_history_order"),)
+    __table_args__ = (
+        UniqueConstraint("order_id", name="uq_payment_history_order"),
+        Index(
+            "idx_payment_history_tenant",
+            "tenant_id",
+            text("created_at DESC"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     tenant_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False, index=True
+        UUID(as_uuid=True), ForeignKey("tenants.id"), nullable=False
     )
     subscription_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("subscriptions.id"), nullable=False, index=True
