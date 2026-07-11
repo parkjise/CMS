@@ -26,10 +26,10 @@
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
-| Phase 12: 테스트 & 배포 | 6 | 1 | 16.7% |
+| Phase 12: 테스트 & 배포 | 6 | 2 | 33.3% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **합계** | **108** | **103** | **95.4%** |
+| **합계** | **108** | **104** | **96.3%** |
 
 ---
 
@@ -1485,19 +1485,23 @@
 
 ---
 
-### T-080: Nginx 설정 + SSL
+### T-080: Nginx 설정 + SSL ✅
 - **담당:** 인프라
+- **참조:** `nginx/nginx.conf`, `nginx/README.md`, `CLAUDE.md 섹션 7.1/8.1`
 - **작업 내용:**
-  - [ ] `nginx/nginx.conf` 작성
-    - `/api/admin/*` → FastAPI :8000 프록시
-    - `/api/public/*` → FastAPI :8001 프록시
-    - `admin.{domain}` → Vite 빌드 파일 서빙
-    - `*.{domain}` → Next.js :3000 프록시
-  - [ ] SSL 인증서 설정 (Let's Encrypt + Certbot)
-  - [ ] HSTS 헤더 적용
-  - [ ] Gzip 압축 설정
-  - [ ] Rate Limiting (IP당 100req/min)
+  - [x] `nginx/nginx.conf` 작성 (실제 아키텍처 기준 라우팅)
+    - `/api/**` → FastAPI 백엔드 프록시 (단일 backend 서비스)
+    - `admin.{domain}` → 테넌트 관리자(Vite) 서빙
+    - `system.{domain}` → 슈퍼 어드민(Vite) 서빙
+    - `{domain}` → 고객 홈페이지(Next.js) 프록시
+    - 커스텀 도메인 → `sites-enabled/*.conf` 동적 include (T-100)
+  - [x] SSL 인증서 설정 (Let's Encrypt + Certbot webroot 자동 갱신 서비스)
+  - [x] HSTS 헤더 적용 (+ X-Content-Type-Options, X-Frame-Options 등)
+  - [x] Gzip 압축 설정
+  - [x] Rate Limiting (IP당 100req/min)
 - **완료 조건:** HTTPS 정상 동작, SSL Labs A 등급
+  - ✅ `nginx -t`(docker) + `docker compose config` 정적 검증 통과
+  - ⚠️ 라이브 HTTPS 동작·SSL Labs 등급은 실도메인 배포 시 확인(환경 밖)
 
 ---
 
