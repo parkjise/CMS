@@ -1,0 +1,96 @@
+name: Deploy
+
+# Test 워크플로가 main에서 성공한 뒤에만 실행 (테스트 통과 = 배포 전제).
+on:
+  workflow_run:
+    workflows: [Test]
+    branches: [main]
+    types: [completed]
+
+# 동시 배포 방지
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+
+jobs:
+  # ── 4개 이미지 빌드 → ECR 푸시 ──────────────────────────────────────────────
+  build-push:
+    # Test가 성공(conclusion == success)했을 때만
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: backend
+            context: apps/backend
+            dockerfile: apps/backend/Dockerfile
+          - name: client
+            context: .
+            dockerfile: apps/client/Dockerfile
+          - name: admin
+            context: .
+            dockerfile: apps/admin/Dockerfile
+          - name: superadmin
+            context: .
+            dockerfile: apps/superadmin/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push ${{ matrix.name }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.ECR_REGISTRY }}/cms-${{ matrix.name }}:latest
+            ${{ env.ECR_REGISTRY }}/cms-${{ matrix.name }}:${{ github.event.workflow_run.head_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── ECS 서비스 롤링 배포 ────────────────────────────────────────────────────
+  deploy:
+    needs: build-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Force new deployment (rolling)
+        # ECS 태스크 정의가 ECR :latest를 참조한다는 전제로 강제 재배포.
+        run: |
+          for svc in backend worker beat client admin superadmin; do
+            echo "Deploying cms-$svc ..."
+            aws ecs update-service \
+              --cluster "${{ secrets.ECS_CLUSTER }}" \
+              --service "cms-$svc" \
+              --force-new-deployment \
+              --no-cli-pager
+          done
+
+      - name: Wait for services to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster "${{ secrets.ECS_CLUSTER }}" \
+            --services cms-backend cms-client cms-admin cms-superadmin

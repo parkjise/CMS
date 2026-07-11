@@ -1,0 +1,102 @@
+name: Test
+
+# PR 및 main/develop push 시 자동 실행. 실패 시 (브랜치 보호 규칙과 함께) 머지 차단.
+on:
+  pull_request:
+  push:
+    branches: [main, develop]
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 백엔드: ruff + alembic + pytest(커버리지 70%) ──────────────────────────
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cms_user
+          POSTGRES_PASSWORD: cms_password
+          POSTGRES_DB: cms_test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cms_user -d cms_test_db"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      # conftest가 DATABASE_URL을 test DB로 오버라이드하지만, alembic·설정 로드용으로 지정
+      DATABASE_URL: postgresql+asyncpg://cms_user:cms_password@localhost:5432/cms_test_db
+      REDIS_URL: redis://localhost:6379/0
+      # JWT 서명 키 32자 이상 (T-079 검증기 충족) — 실제 시크릿 아님
+      APP_SECRET_KEY: ci-only-secret-key-32chars-minimum-000
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache Poetry venv
+        uses: actions/cache@v4
+        with:
+          path: apps/backend/.venv
+          key: poetry-${{ runner.os }}-${{ hashFiles('apps/backend/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction
+
+      - name: Ruff (lint + format check)
+        run: |
+          poetry run ruff check app/
+          poetry run ruff format --check app/
+
+      - name: Alembic migrate (test DB)
+        run: poetry run alembic upgrade head
+
+      - name: Pytest (coverage ≥ 70%)
+        run: poetry run pytest tests/ -q --cov=app --cov-report=term-missing --cov-fail-under=70
+
+  # ── 프론트엔드: type-check + vitest ────────────────────────────────────────
+  # NOTE: eslint 툴체인이 아직 미설치라 lint 스텝은 제외한다.
+  #       (별도 태스크로 ESLint 설정 후 `pnpm -r --if-present lint` 추가 예정)
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        run: pnpm -r --if-present type-check
+
+      - name: Unit tests (Vitest)
+        run: pnpm -r --if-present test
