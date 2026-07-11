@@ -80,16 +80,32 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      # 커스텀 도메인(T-100) 동적 서버 블록
+      - ./nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      # Let's Encrypt ACME 웹루트 (certbot과 공유)
+      - certbot_www:/var/www/certbot:ro
     depends_on:
       - backend
     restart: always
     networks:
       - external
 
+  # Let's Encrypt 인증서 자동 발급/갱신 (webroot 방식)
+  # 최초 발급: nginx/README.md 참조. 이후 12시간마다 갱신 시도.
+  certbot:
+    image: certbot/certbot:latest
+    container_name: cms-certbot
+    volumes:
+      - ./nginx/certs:/etc/letsencrypt        # nginx가 읽는 인증서 저장소
+      - certbot_www:/var/www/certbot           # ACME 챌린지 웹루트
+    entrypoint: /bin/sh -c 'trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done'
+    restart: always
+
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+  certbot_www:
 
 networks:
   internal:
