@@ -1,0 +1,28 @@
+# 프론트엔드 이미지 build context(저장소 루트)에서 제외
+**/node_modules
+**/dist
+**/.next
+**/.turbo
+**/coverage
+**/.vite
+
+# 백엔드(별도 context지만 방어적으로 제외)
+apps/backend/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+**/.mypy_cache
+
+# VCS / 환경 / 문서
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+docs
+*.md
+**/*.log
+
+# 로컬 인프라 산출물
+nginx/certs
+nginx/sites-enabled/*.conf

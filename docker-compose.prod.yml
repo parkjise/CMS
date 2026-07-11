@@ -50,8 +50,9 @@ services:
     build:
       context: ./apps/backend
       dockerfile: Dockerfile
+    image: cms-backend:latest
     container_name: cms-backend
-    environment:
+    environment: &backend_env
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
@@ -71,6 +72,67 @@ services:
       - internal
       - external
 
+  # Celery 워커 — 알림/이미지/도메인 비동기 태스크 (백엔드 이미지 재사용)
+  worker:
+    image: cms-backend:latest
+    container_name: cms-worker
+    command: celery -A app.workers.celery_app worker --loglevel=info
+    environment: *backend_env
+    depends_on:
+      - backend
+      - redis
+    restart: always
+    networks:
+      - internal
+
+  # Celery Beat — 예약 태스크 스케줄러 (구독 갱신·인증서 갱신 등)
+  beat:
+    image: cms-backend:latest
+    container_name: cms-beat
+    command: celery -A app.workers.celery_app beat --loglevel=info
+    environment: *backend_env
+    depends_on:
+      - backend
+      - redis
+    restart: always
+    networks:
+      - internal
+
+  # 고객 홈페이지 (Next.js standalone)
+  client:
+    build:
+      context: .
+      dockerfile: apps/client/Dockerfile
+    image: cms-client:latest
+    container_name: cms-client
+    environment:
+      NODE_ENV: production
+    restart: always
+    networks:
+      - external
+
+  # 테넌트 관리자 (Vite SPA / Nginx)
+  admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    image: cms-admin:latest
+    container_name: cms-admin
+    restart: always
+    networks:
+      - external
+
+  # 슈퍼 어드민 (Vite SPA / Nginx)
+  superadmin:
+    build:
+      context: .
+      dockerfile: apps/superadmin/Dockerfile
+    image: cms-superadmin:latest
+    container_name: cms-superadmin
+    restart: always
+    networks:
+      - external
+
   nginx:
     image: nginx:1.28-alpine
     container_name: cms-nginx
@@ -86,6 +148,9 @@ services:
       - certbot_www:/var/www/certbot:ro
     depends_on:
       - backend
+      - client
+      - admin
+      - superadmin
     restart: always
     networks:
       - external
