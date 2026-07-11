@@ -26,10 +26,10 @@
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
-| Phase 12: 테스트 & 배포 | 6 | 3 | 50% |
+| Phase 12: 테스트 & 배포 | 6 | 4 | 66.7% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **합계** | **108** | **105** | **97.2%** |
+| **합계** | **108** | **106** | **98.1%** |
 
 ---
 
@@ -1521,17 +1521,21 @@
 
 ---
 
-### T-082: CI/CD 파이프라인 (GitHub Actions)
+### T-082: CI/CD 파이프라인 (GitHub Actions) ✅
 - **담당:** 인프라
+- **참조:** `.github/workflows/README.md`
 - **작업 내용:**
-  - [ ] `.github/workflows/test.yml`
-    - PR 생성 시 자동 실행: pytest + Vitest
-    - 테스트 실패 시 머지 차단
-  - [ ] `.github/workflows/deploy.yml`
-    - `main` 브랜치 push 시 자동 배포
-    - Docker 이미지 빌드 → ECR 푸시 → ECS 배포
-  - [ ] 환경변수 GitHub Secrets 관리
+  - [x] `.github/workflows/test.yml`
+    - PR/push 시 자동 실행: backend(ruff+alembic+pytest 70%) + frontend(type-check+vitest)
+    - 브랜치 보호 규칙 등록 시 테스트 실패 → 머지 차단
+  - [x] `.github/workflows/deploy.yml`
+    - Test 성공(workflow_run, main) 후 자동 배포
+    - 4개 이미지 매트릭스 빌드 → ECR 푸시(:latest+:sha) → ECS 롤링 배포
+  - [x] 환경변수 GitHub Secrets 관리 (AWS/ECR/ECS, README 문서화)
 - **완료 조건:** PR 머지 → 자동 배포 → 프로덕션 반영 확인
+  - ✅ actionlint(docker) exit 0 — 문법·표현식·shellcheck 통과
+  - ⚠️ 실제 자동 배포는 GitHub Secrets + AWS(ECR/ECS) 연결 시 동작(환경 밖)
+  - ⚠️ lint 스텝은 ESLint 미설치로 제외(README 공백 명시)
 
 ---
 
