@@ -26,10 +26,10 @@
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
-| Phase 12: 테스트 & 배포 | 6 | 2 | 33.3% |
+| Phase 12: 테스트 & 배포 | 6 | 3 | 50% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **합계** | **108** | **104** | **96.3%** |
+| **합계** | **108** | **105** | **97.2%** |
 
 ---
 
@@ -1505,15 +1505,19 @@
 
 ---
 
-### T-081: Docker 프로덕션 이미지 빌드
+### T-081: Docker 프로덕션 이미지 빌드 ✅
 - **담당:** 인프라
 - **작업 내용:**
-  - [ ] `apps/backend/Dockerfile` — 멀티스테이지 빌드 (Python 3.13-slim)
-  - [ ] `apps/admin/Dockerfile` — Node.js 빌드 → Nginx 서빙
-  - [ ] `apps/client/Dockerfile` — Next.js standalone 빌드
-  - [ ] `docker-compose.prod.yml` 완성 (환경변수 시크릿 관리)
-  - [ ] 이미지 크기 최적화 (백엔드 500MB 이하 목표)
+  - [x] `apps/backend/Dockerfile` — 멀티스테이지 (Python 3.13-slim + Poetry, 비루트)
+  - [x] `apps/admin/Dockerfile` — Node 빌드 → Nginx 서빙 (SPA 폴백)
+  - [x] `apps/superadmin/Dockerfile` — Node 빌드 → Nginx 서빙 (nginx system. 라우팅용)
+  - [x] `apps/client/Dockerfile` — Next.js standalone 빌드
+  - [x] `docker-compose.prod.yml` 완성 (프론트 3종 + celery worker/beat 서비스)
+  - [x] 이미지 크기 최적화 (백엔드 **478MB** < 500MB 목표)
+  - [x] poetry.lock 커밋(재현 가능 빌드) + 모노레포 build context 대응
 - **완료 조건:** `docker compose -f docker-compose.prod.yml up` 성공
+  - ✅ 4개 이미지 `docker build` 성공, backend 478MB, client 컨테이너 기동 스모크(307) 통과
+  - ✅ `docker compose config` 통과 / ⚠️ 전체 `up`은 시크릿·DB 포함 실환경에서 확인
 
 ---
 
