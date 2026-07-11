@@ -1,8 +1,13 @@
+import path from 'node:path'
 import type { NextConfig } from 'next'
 
 const isDev = process.env.NODE_ENV !== 'production'
 
 const nextConfig: NextConfig = {
+  // 프로덕션 Docker 이미지 경량화: 최소 node_modules만 포함한 standalone 서버 출력
+  output: 'standalone',
+  // pnpm 모노레포: 워크스페이스 루트 기준으로 파일 트레이싱 (워크스페이스 의존성 포함)
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   images: {
     remotePatterns: [
       // 로컬 MinIO

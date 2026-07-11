@@ -28,7 +28,7 @@ dist/
 *.egg
 
 # Poetry
-poetry.lock
+# poetry.lock은 재현 가능한 빌드(Docker/CI)를 위해 커밋한다 (pnpm-lock.yaml과 동일 정책).
 
 # Pytest
 .pytest_cache/
