@@ -11,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
     String,
     Text,
     func,
@@ -23,6 +24,9 @@ from app.db.base import Base
 
 class Announcement(Base):
     __tablename__ = "announcements"
+    __table_args__ = (
+        Index("ix_announcements_published", "is_published", "published_at"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
@@ -57,6 +61,7 @@ class Announcement(Base):
 
 class AnnouncementRead(Base):
     __tablename__ = "announcement_reads"
+    __table_args__ = (Index("ix_announcement_reads_announcement", "announcement_id"),)
 
     tenant_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
