@@ -188,9 +188,7 @@ async def get_summary(db: AsyncSession, tenant_id: UUID) -> dict:
     redis_pv = int(await redis.get(_pv_key(tid_str, today)) or 0)
     redis_uv = int(await redis.pfcount(_uv_key(tid_str, today)) or 0)
 
-    week_start = datetime.now(UTC).date() - timedelta(
-        days=datetime.now(UTC).weekday()
-    )
+    week_start = datetime.now(UTC).date() - timedelta(days=datetime.now(UTC).weekday())
     week_result = await db.execute(
         select(
             func.sum(SiteAnalytics.page_views),
@@ -226,15 +224,19 @@ async def get_timeseries(
     start = datetime.now(UTC).date() - timedelta(days=days - 1)
 
     rows = (
-        await db.execute(
-            select(SiteAnalytics)
-            .where(
-                SiteAnalytics.tenant_id == tenant_id,
-                SiteAnalytics.date >= start,
+        (
+            await db.execute(
+                select(SiteAnalytics)
+                .where(
+                    SiteAnalytics.tenant_id == tenant_id,
+                    SiteAnalytics.date >= start,
+                )
+                .order_by(SiteAnalytics.date)
             )
-            .order_by(SiteAnalytics.date)
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     # 날짜별 시계열 (데이터 없는 날은 0으로 채움)
     by_date = {r.date.isoformat(): r for r in rows}
@@ -257,9 +259,7 @@ async def get_timeseries(
     desktop_views = max(total_views - mobile_views, 0)
     top_referrers = [
         {"source": s, "count": c}
-        for s, c in sorted(
-            referrer_totals.items(), key=lambda kv: kv[1], reverse=True
-        )
+        for s, c in sorted(referrer_totals.items(), key=lambda kv: kv[1], reverse=True)
     ]
 
     return {

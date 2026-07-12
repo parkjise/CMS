@@ -44,6 +44,7 @@ async def get_sitemap(
     db: AsyncSession = Depends(get_db),
 ):
     from sqlalchemy import text
+
     await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
     xml = await seo_service.generate_sitemap_xml(db, tenant_slug)
     if not xml:

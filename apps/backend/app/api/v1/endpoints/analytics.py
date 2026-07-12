@@ -12,14 +12,53 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 public_router = APIRouter(prefix="/analytics", tags=["public"])
 
 # 1×1 투명 GIF
-_1PX_GIF = bytes([
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
-    0x01, 0x00, 0x80, 0x00, 0x00, 0xff, 0xff, 0xff,
-    0x00, 0x00, 0x00, 0x21, 0xf9, 0x04, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
-    0x01, 0x00, 0x3b,
-])
+_1PX_GIF = bytes(
+    [
+        0x47,
+        0x49,
+        0x46,
+        0x38,
+        0x39,
+        0x61,
+        0x01,
+        0x00,
+        0x01,
+        0x00,
+        0x80,
+        0x00,
+        0x00,
+        0xFF,
+        0xFF,
+        0xFF,
+        0x00,
+        0x00,
+        0x00,
+        0x21,
+        0xF9,
+        0x04,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x2C,
+        0x00,
+        0x00,
+        0x00,
+        0x00,
+        0x01,
+        0x00,
+        0x01,
+        0x00,
+        0x00,
+        0x02,
+        0x02,
+        0x44,
+        0x01,
+        0x00,
+        0x3B,
+    ]
+)
 
 
 @public_router.post("/pageview")
@@ -30,8 +69,10 @@ async def record_pageview(
 ):
     """1px 비콘 방식 페이지뷰 수집. tenant_id 쿼리 파라미터 필수."""
     forwarded = request.headers.get("X-Forwarded-For")
-    ip = forwarded.split(",")[0].strip() if forwarded else (
-        request.client.host if request.client else "unknown"
+    ip = (
+        forwarded.split(",")[0].strip()
+        if forwarded
+        else (request.client.host if request.client else "unknown")
     )
     ua = request.headers.get("User-Agent", "")
     referrer = request.headers.get("Referer", "")

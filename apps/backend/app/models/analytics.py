@@ -14,8 +14,12 @@ class SiteAnalytics(Base, TimestampMixin):
         UniqueConstraint("tenant_id", "date", name="uq_site_analytics_tenant_date"),
     )
 
-    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
+    )
     date: Mapped[date] = mapped_column(Date, nullable=False)
     page_views: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     unique_visitors: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -58,8 +58,10 @@ async def super_admin_ip_whitelist(request: Request, call_next):
         if allowed:
             allowed_set = {ip.strip() for ip in allowed.split(",")}
             forwarded = request.headers.get("X-Forwarded-For")
-            client_ip = forwarded.split(",")[0].strip() if forwarded else (
-                request.client.host if request.client else ""
+            client_ip = (
+                forwarded.split(",")[0].strip()
+                if forwarded
+                else (request.client.host if request.client else "")
             )
             if client_ip not in allowed_set:
                 return JSONResponse(

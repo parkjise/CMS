@@ -11,7 +11,12 @@ from app.core.redis import get_redis
 from app.core.security import decode_token
 from app.schemas.auth import LoginRequest, LoginResponse, RefreshResponse, UserResponse
 from app.schemas.common import ApiResponse
-from app.services.auth import authenticate_user, get_user_by_id, issue_tokens, update_last_login
+from app.services.auth import (
+    authenticate_user,
+    get_user_by_id,
+    issue_tokens,
+    update_last_login,
+)
 
 limiter = Limiter(key_func=get_remote_address)
 
@@ -56,7 +61,9 @@ async def login(
     try:
         user = await authenticate_user(db, body.email, body.password, body.tenant_slug)
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     access_token, refresh_token = issue_tokens(user)
     _set_refresh_cookie(response, refresh_token)
@@ -76,30 +83,40 @@ async def refresh(
     refresh_token: str | None = Cookie(default=None, alias=_REFRESH_COOKIE),
 ):
     if not refresh_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     # 블랙리스트 확인
     redis = await get_redis()
     if await redis.get(f"blacklist:{_token_hash(refresh_token)}"):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     try:
         payload = decode_token(refresh_token)
         if payload.get("type") != "refresh":
             raise ValueError
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     from uuid import UUID
-    from app.db.session import AsyncSessionLocal
+
     from sqlalchemy import text
+
+    from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
         await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
         user = await get_user_by_id(db, UUID(payload["sub"]))
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     new_access, new_refresh = issue_tokens(user)
     # refresh token rotation
@@ -117,7 +134,9 @@ async def logout(
 ):
     if refresh_token:
         redis = await get_redis()
-        await redis.setex(f"blacklist:{_token_hash(refresh_token)}", _COOKIE_MAX_AGE, "1")
+        await redis.setex(
+            f"blacklist:{_token_hash(refresh_token)}", _COOKIE_MAX_AGE, "1"
+        )
     _delete_refresh_cookie(response)
 
 
@@ -136,11 +155,15 @@ async def me(
         try:
             payload = _decode(bearer)
             from uuid import UUID
-            from app.db.session import AsyncSessionLocal
+
             from sqlalchemy import text
 
+            from app.db.session import AsyncSessionLocal
+
             async with AsyncSessionLocal() as db:
-                await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+                await db.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
                 user = await get_user_by_id(db, UUID(payload["sub"]))
             if user:
                 return ApiResponse.ok(UserResponse.model_validate(user))
@@ -149,28 +172,38 @@ async def me(
 
     # 2) Bearer 없음 → refresh cookie 로 시도
     if not refresh_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     redis = await get_redis()
     if await redis.get(f"blacklist:{_token_hash(refresh_token)}"):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     try:
         payload = decode_token(refresh_token)
         if payload.get("type") != "refresh":
             raise ValueError
     except ValueError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     from uuid import UUID
-    from app.db.session import AsyncSessionLocal
+
     from sqlalchemy import text
+
+    from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
         await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
         user = await get_user_by_id(db, UUID(payload["sub"]))
 
     if not user:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
 
     return ApiResponse.ok(UserResponse.model_validate(user))
