@@ -76,6 +76,7 @@ async def generate_sitemap_xml(db: AsyncSession, tenant_slug: str) -> str:
         return ""
 
     from app.core.config import settings as app_settings
+
     base_url = f"{app_settings.client_base_url}/{tenant_slug}"
 
     lines = [

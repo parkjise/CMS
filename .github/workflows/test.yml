@@ -79,10 +79,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 버전은 package.json의 packageManager(pnpm@9.15.9)에서 읽는다.
+      # (version 명시 시 packageManager와 충돌 → "Multiple versions" 에러)
       - name: Install pnpm
         uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - name: Set up Node 22
         uses: actions/setup-node@v4

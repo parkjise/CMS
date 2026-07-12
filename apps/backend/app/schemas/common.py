@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Generic, TypeVar
 
-from pydantic import BaseModel, field_serializer
+from pydantic import BaseModel
 
 T = TypeVar("T")
 
@@ -48,7 +48,9 @@ class ApiError(BaseModel):
         field: str | None = None,
         details: list | None = None,
     ) -> "ApiError":
-        return cls(error=ErrorDetail(code=code, message=message, field=field, details=details))
+        return cls(
+            error=ErrorDetail(code=code, message=message, field=field, details=details)
+        )
 
 
 class PaginationMeta(BaseModel):

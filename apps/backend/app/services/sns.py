@@ -25,17 +25,11 @@ _CHANNEL_FIELDS = [
 
 
 def _count_channels(data: SnsSettingsUpdate) -> int:
-    return sum(
-        1
-        for field in _CHANNEL_FIELDS
-        if getattr(data, field, None) is not None
-    )
+    return sum(1 for field in _CHANNEL_FIELDS if getattr(data, field, None) is not None)
 
 
 async def _get_plan_type(db: AsyncSession, tenant_id: UUID) -> str:
-    result = await db.execute(
-        select(Tenant.plan_type).where(Tenant.id == tenant_id)
-    )
+    result = await db.execute(select(Tenant.plan_type).where(Tenant.id == tenant_id))
     return result.scalar_one_or_none() or "BASIC"
 
 

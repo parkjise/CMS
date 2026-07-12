@@ -107,9 +107,7 @@ async def batch_save(
 
 async def _purge_cache(db: AsyncSession, tenant_id: UUID) -> bool:
     try:
-        tenant_row = await db.execute(
-            select(Tenant).where(Tenant.id == tenant_id)
-        )
+        tenant_row = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
         tenant = tenant_row.scalar_one_or_none()
 
         redis = await get_redis()
