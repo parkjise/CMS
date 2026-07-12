@@ -22,6 +22,13 @@ Require status checks to pass**에 등록하면 테스트 실패 시 머지가 �
 배포 서비스는 `cms-backend`, `cms-worker`, `cms-beat`, `cms-client`,
 `cms-admin`, `cms-superadmin` (ECS 태스크 정의가 ECR `:latest` 참조 전제).
 
+### 배포 활성화 (기본: 비활성)
+`deploy.yml`은 repo **variable** `DEPLOY_ENABLED`로 가드된다. 미설정 시
+Deploy는 **회색 skip**(빨간 X 없음). AWS 준비 완료 후 활성화:
+1. 위 5개 **Secrets** 등록 (Settings → Secrets and variables → Actions → Secrets)
+2. **Variable** `DEPLOY_ENABLED = true` 설정 (같은 화면 → Variables 탭)
+→ 이후 Test 성공 시 자동 배포. 비활성화하려면 변수를 `false`로 두거나 삭제.
+
 ## Lint
 ESLint 9 flat config(`eslint.config.mjs`)로 프론트 전체를 검사한다.
 `test.yml` frontend job이 `pnpm lint`(루트 단일 `eslint .` 패스)를 실행한다.

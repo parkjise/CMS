@@ -19,8 +19,11 @@ env:
 jobs:
   # ── 4개 이미지 빌드 → ECR 푸시 ──────────────────────────────────────────────
   build-push:
-    # Test가 성공(conclusion == success)했을 때만
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Test 성공 + 배포 활성화(repo variable DEPLOY_ENABLED=true)일 때만.
+    # AWS 시크릿/인프라 미구성 시 회색 skip(빨간 X 방지). 활성화 절차는 README 참조.
+    if: >-
+      ${{ github.event.workflow_run.conclusion == 'success'
+          && vars.DEPLOY_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
