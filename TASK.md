@@ -26,10 +26,10 @@
 | Phase 9: 인라인 편집 모드 | 7 | 7 | 100% |
 | Phase 10: AI 어시스턴트 | 6 | 6 | 100% |
 | Phase 11: SEO & 분석 | 4 | 4 | 100% |
-| Phase 12: 테스트 & 배포 | 6 | 4 | 66.7% |
+| Phase 12: 테스트 & 배포 | 6 | 5 | 83.3% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **합계** | **108** | **106** | **98.1%** |
+| **합계** | **108** | **107** | **99.1%** |
 
 ---
 
@@ -1539,17 +1539,20 @@
 
 ---
 
-### T-083: 모니터링 설정
+### T-083: 모니터링 설정 ✅
 - **담당:** 인프라
+- **참조:** `monitoring/README.md`, `apps/backend/app/core/observability.py`
 - **작업 내용:**
-  - [ ] Sentry 프론트엔드 + 백엔드 에러 추적 설정
-  - [ ] Grafana + Prometheus 메트릭 대시보드
-    - API 응답 시간 P95
-    - DB 연결 수
-    - 큐 대기 태스크 수
-    - 에러율
-  - [ ] 알림 설정 (에러율 5% 초과 시 슬랙 알림)
+  - [x] Sentry 프론트엔드(@sentry/react·nextjs) + 백엔드(sentry-sdk) 에러 추적
+  - [x] Grafana + Prometheus 메트릭 대시보드 (CMS Overview 5패널)
+    - [x] API 응답 시간 P95 (http_request_duration_seconds 히스토그램)
+    - [x] DB 연결 수 (postgres-exporter)
+    - [x] 큐 대기 태스크 수 (redis-exporter, Celery 큐)
+    - [x] 에러율 (http_requests_total status 라벨)
+  - [x] 알림 설정 (에러율 5% 초과 → Alertmanager Slack)
 - **완료 조건:** Grafana 대시보드에서 시스템 지표 실시간 확인
+  - ✅ 백엔드 `/metrics` 테스트 통과, promtool(5규칙)·amtool·대시보드 JSON·결합 compose 검증
+  - ⚠️ 실시간 대시보드 화면 확인은 스택 기동(실환경) 시 (환경 밖)
 
 ---
 
