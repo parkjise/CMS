@@ -1,0 +1,72 @@
+# 모니터링 스택 (T-083) — 프로덕션 스택과 함께 기동:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d
+# backend/postgres/redis 서비스명은 docker-compose.prod.yml과 동일 네트워크에서 해석된다.
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cms-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert_rules.yml:/etc/prometheus/alert_rules.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=15d"
+    restart: always
+    networks: [internal, external]
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: cms-alertmanager
+    volumes:
+      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      # Slack 웹훅 URL 시크릿 파일 (monitoring/secrets/slack_url, git 제외)
+      - ./monitoring/secrets:/etc/alertmanager/secrets:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    restart: always
+    networks: [internal]
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cms-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3003:3000"
+    depends_on:
+      - prometheus
+    restart: always
+    networks: [internal, external]
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: cms-postgres-exporter
+    environment:
+      DATA_SOURCE_NAME: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    restart: always
+    networks: [internal]
+
+  redis-exporter:
+    image: oliver006/redis_exporter:latest
+    container_name: cms-redis-exporter
+    command:
+      - "--redis.addr=redis://redis:6379"
+      - "--redis.password=${REDIS_PASSWORD}"
+      # Celery 큐 리스트 길이 노출
+      - "--check-keys=celery"
+    restart: always
+    networks: [internal]
+
+volumes:
+  prometheus_data:
+  grafana_data:
+
+# 네트워크(internal/external)는 docker-compose.prod.yml에서 정의된 것을 재사용.
+# 반드시 함께 기동한다:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.monitoring.yml up -d

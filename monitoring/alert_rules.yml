@@ -1,0 +1,62 @@
+# Prometheus 알림 규칙 (T-083)
+groups:
+  - name: cms-availability
+    rules:
+      - alert: BackendDown
+        expr: up{job="cms-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "백엔드 인스턴스 다운"
+          description: "cms-backend가 2분 이상 응답하지 않습니다."
+
+  - name: cms-slo
+    rules:
+      # 에러율 5% 초과 (완료 조건: 에러율 5% 초과 시 알림)
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+            / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "5xx 에러율 5% 초과"
+          description: "최근 5분 에러율이 {{ $value | humanizePercentage }} 입니다."
+
+      # API 응답시간 P95 1초 초과
+      - alert: HighLatencyP95
+        expr: |
+          histogram_quantile(0.95,
+            sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "API P95 지연 1초 초과"
+          description: "P95 응답시간이 {{ $value }}s 입니다."
+
+  - name: cms-resources
+    rules:
+      # Celery 큐(Redis 리스트 'celery') 적체
+      - alert: CeleryQueueBacklog
+        expr: redis_key_size{key="celery"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Celery 큐 적체"
+          description: "대기 태스크가 {{ $value }}개입니다."
+
+      # DB 연결 포화 (max_connections 대비 80%)
+      - alert: PostgresConnectionsHigh
+        expr: |
+          sum(pg_stat_activity_count)
+            / on() pg_settings_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL 연결 포화 임박"
+          description: "연결 사용률이 {{ $value | humanizePercentage }} 입니다."

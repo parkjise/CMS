@@ -8,14 +8,15 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.api.super.router import super_router
-from app.api.webhook.tosspayments import router as tosspayments_webhook_router
 from app.api.v1.endpoints.analytics import public_router as analytics_public_router
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
 from app.api.v1.endpoints.public import router as public_site_router
 from app.api.v1.endpoints.seo import public_router as seo_public_router
 from app.api.v1.endpoints.templates import public_router as template_public_router
 from app.api.v1.router import api_router
+from app.api.webhook.tosspayments import router as tosspayments_webhook_router
 from app.core.config import settings
+from app.core.observability import setup_observability
 from app.core.redis import close_redis
 
 limiter = Limiter(key_func=get_remote_address)
@@ -37,6 +38,9 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# 관측성: Prometheus /metrics + Sentry (T-083)
+setup_observability(app)
 
 app.add_middleware(
     CORSMiddleware,
