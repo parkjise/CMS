@@ -7,10 +7,7 @@
     "admin",
     "superadmin",
     "client",
-    "backend",
-    "FeatureCard.tsx",
-    "CreateFeatureModal.tsx",
-    "DeployModal.tsx"
+    "backend"
   ],
   "primaryFeature": "packages",
   "features": {
@@ -91,45 +88,6 @@
         "lastUpdated": "2026-07-11T22:34:05.957Z"
       },
       "lastFile": "/Users/Js/Work/cms-T-083/apps/backend/tests/test_observability.py"
-    },
-    "FeatureCard.tsx": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-07-03T22:43:32.211Z",
-        "lastUpdated": "2026-07-03T22:43:32.211Z"
-      },
-      "lastFile": "/Users/Js/Work/cms-T-091/apps/superadmin/src/components/features/FeatureCard.tsx"
-    },
-    "CreateFeatureModal.tsx": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-07-03T22:43:54.559Z",
-        "lastUpdated": "2026-07-03T22:43:54.559Z"
-      },
-      "lastFile": "/Users/Js/Work/cms-T-091/apps/superadmin/src/components/features/CreateFeatureModal.tsx"
-    },
-    "DeployModal.tsx": {
-      "phase": "do",
-      "phaseNumber": 3,
-      "matchRate": null,
-      "iterationCount": 0,
-      "requirements": [],
-      "documents": {},
-      "timestamps": {
-        "started": "2026-07-03T22:44:35.126Z",
-        "lastUpdated": "2026-07-03T22:44:35.126Z"
-      },
-      "lastFile": "/Users/Js/Work/cms-T-091/apps/superadmin/src/components/features/DeployModal.tsx"
     }
   },
   "pipeline": {
@@ -5174,24 +5132,6 @@
     {
       "timestamp": "2026-07-03T22:43:11.874Z",
       "feature": "superadmin",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-07-03T22:43:32.211Z",
-      "feature": "FeatureCard.tsx",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-07-03T22:43:54.559Z",
-      "feature": "CreateFeatureModal.tsx",
-      "phase": "do",
-      "action": "updated"
-    },
-    {
-      "timestamp": "2026-07-03T22:44:35.126Z",
-      "feature": "DeployModal.tsx",
       "phase": "do",
       "action": "updated"
     },
