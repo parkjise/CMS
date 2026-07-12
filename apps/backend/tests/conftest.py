@@ -91,6 +91,16 @@ async def test_tenant():
         await session.execute(
             text("SELECT set_config('app.is_super_admin', 'true', true)")
         )  # noqa: E501
+        # FK 순서 준수: section_settings → sections → users → tenants
+        # (sections.tenant_id → tenants.id FK, 마이그레이션 0016)
+        await session.execute(
+            text("DELETE FROM section_settings WHERE tenant_id = :tid"),
+            {"tid": str(tenant_id)},
+        )
+        await session.execute(
+            text("DELETE FROM sections WHERE tenant_id = :tid"),
+            {"tid": str(tenant_id)},
+        )
         await session.execute(
             text("DELETE FROM users WHERE tenant_id = :tid"),
             {"tid": str(tenant_id)},
