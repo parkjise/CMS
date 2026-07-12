@@ -6,14 +6,21 @@
     "dev": "pnpm --parallel -r dev",
     "build": "pnpm --filter @cms/types build && pnpm --filter @cms/ui build && pnpm --parallel --filter './apps/*' build",
     "test": "pnpm --parallel -r test",
-    "lint": "pnpm --parallel -r lint",
+    "lint": "eslint .",
     "type-check": "pnpm --parallel -r type-check",
     "validate": "pnpm lint && pnpm type-check && pnpm test",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\" --ignore-path .gitignore"
   },
   "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@next/eslint-plugin-next": "^15.0.0",
+    "eslint": "^9.15.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.14",
+    "globals": "^15.12.0",
     "prettier": "^3.5.3",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.15.0"
   },
   "engines": {
     "node": ">=22.0.0",

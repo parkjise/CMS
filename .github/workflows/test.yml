@@ -73,9 +73,7 @@ jobs:
       - name: Pytest (coverage ≥ 70%)
         run: poetry run pytest tests/ -q --cov=app --cov-report=term-missing --cov-fail-under=70
 
-  # ── 프론트엔드: type-check + vitest ────────────────────────────────────────
-  # NOTE: eslint 툴체인이 아직 미설치라 lint 스텝은 제외한다.
-  #       (별도 태스크로 ESLint 설정 후 `pnpm -r --if-present lint` 추가 예정)
+  # ── 프론트엔드: lint + type-check + vitest ─────────────────────────────────
   frontend:
     runs-on: ubuntu-latest
     steps:
@@ -94,6 +92,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Lint (ESLint)
+        run: pnpm lint
 
       - name: Type-check
         run: pnpm -r --if-present type-check

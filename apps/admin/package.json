@@ -7,7 +7,7 @@
     "dev": "vite --port 3001",
     "build": "tsc -b && vite build",
     "preview": "vite preview --port 3001",
-    "lint": "eslint src --ext .ts,.tsx",
+    "lint": "eslint .",
     "type-check": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
     "analyze": "vite-bundle-visualizer"
