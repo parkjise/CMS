@@ -1,0 +1,35 @@
+# Prometheus 스크레이프 설정 (T-083)
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# 알림 규칙
+rule_files:
+  - /etc/prometheus/alert_rules.yml
+
+# Alertmanager 연동
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # FastAPI 백엔드 /metrics (app.core.observability)
+  - job_name: cms-backend
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["backend:8000"]
+
+  # PostgreSQL exporter (DB 연결 수 등)
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter:9187"]
+
+  # Redis exporter (Celery 큐 대기 길이 등)
+  - job_name: redis
+    static_configs:
+      - targets: ["redis-exporter:9121"]

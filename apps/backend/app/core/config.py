@@ -103,6 +103,11 @@ class Settings(BaseSettings):
     recaptcha_secret_key: str = ""
     recaptcha_min_score: float = 0.5
 
+    # 관측성 (T-083). SENTRY_DSN 미설정 시 Sentry 비활성(no-op).
+    sentry_dsn: str = ""
+    sentry_environment: str = ""
+    sentry_traces_sample_rate: float = 0.1
+
     @field_validator("app_secret_key")
     @classmethod
     def _validate_secret_key_strength(cls, v: str) -> str:

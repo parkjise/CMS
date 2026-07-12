@@ -5,7 +5,10 @@ import { RouterProvider } from 'react-router'
 import { Toast } from '@cms/ui'
 import { queryClient } from '@/lib/queryClient'
 import { router } from '@/router'
+import { initSentry } from '@/lib/sentry'
 import './index.css'
+
+initSentry()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
