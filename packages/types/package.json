@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "lint": "echo 'no lint for types package'"
+    "lint": "eslint ."
   },
   "devDependencies": {
     "typescript": "^5.9.2"

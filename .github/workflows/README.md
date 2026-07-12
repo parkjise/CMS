@@ -22,7 +22,6 @@ Require status checks to pass**에 등록하면 테스트 실패 시 머지가 �
 배포 서비스는 `cms-backend`, `cms-worker`, `cms-beat`, `cms-client`,
 `cms-admin`, `cms-superadmin` (ECS 태스크 정의가 ECR `:latest` 참조 전제).
 
-## 알려진 공백
-- **ESLint 미설치**: 프론트 `lint` 스크립트(`eslint`/`next lint`)가 아직
-  동작하지 않아 `test.yml`에서 lint 스텝을 제외했다. ESLint 설정 완료 후
-  `pnpm -r --if-present lint` 스텝을 추가할 것.
+## Lint
+ESLint 9 flat config(`eslint.config.mjs`)로 프론트 전체를 검사한다.
+`test.yml` frontend job이 `pnpm lint`(루트 단일 `eslint .` 패스)를 실행한다.

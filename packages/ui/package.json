@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "tsc --noEmit",
-    "lint": "echo 'no lint for ui package'"
+    "lint": "eslint ."
   },
   "peerDependencies": {
     "react": "^19.0.0",
