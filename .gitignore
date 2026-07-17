@@ -73,3 +73,6 @@ apps/backend/alembic/versions/*.pyc
 test-results/
 playwright-report/
 playwright/.cache/
+
+# Playwright MCP 세션 로그/스크린샷 (임시)
+.playwright-mcp/
