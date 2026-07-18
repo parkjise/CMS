@@ -38,11 +38,12 @@ SECTIONS = [
     ("CONTACT", "문의하기", [("title", "무엇이든 문의하세요")]),
 ]
 
+# status: PENDING(대기) · IN_PROGRESS(처리중) · DONE(완료) · SPAM(스팸)
 INQUIRIES = [
     ("GENERAL", "김민수", "010-1234-5678", "도수치료 비용이 궁금합니다.", "PENDING", False),
     ("RESERVATION", "이서연", "010-2345-6789", "토요일 진료 예약 가능한가요?", "PENDING", False),
-    ("GENERAL", "박준호", "010-3456-7890", "주차 가능한지 문의드립니다.", "CONFIRMED", True),
-    ("RESERVATION", "최지우", "010-4567-8901", "체외충격파 상담 원합니다.", "CONFIRMED", True),
+    ("GENERAL", "박준호", "010-3456-7890", "주차 가능한지 문의드립니다.", "IN_PROGRESS", True),
+    ("RESERVATION", "최지우", "010-4567-8901", "체외충격파 상담 원합니다.", "DONE", True),
     ("GENERAL", "정하늘", "010-5678-9012", "예약 변경하고 싶어요.", "PENDING", False),
 ]
 
