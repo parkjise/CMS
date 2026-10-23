@@ -26,6 +26,14 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
 
+  // HTML 목업의 브라우저 스크립트
+  {
+    files: ['docs/mockups/**/assets/js/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+  },
+
   // React (Vite 앱 + 공통 UI 패키지)
   {
     files: [

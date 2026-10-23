@@ -1,0 +1,126 @@
+// ── HEADER (layout/Navbar.tsx) — 섹션 아님, 사이트 공통 ──────────
+// 블록: .header  /  상태: .header--scrolled (스크롤 시 JS 가 토글)
+@use '../mixins' as *;
+
+.header {
+  position: sticky;
+  top: 16px;
+  z-index: 40;
+  width: auto;
+  height: 80px;
+  background-color: #fff;
+  border-radius: 80px;
+  margin-inline: var(--spacing-frame);
+  transition: all 0.4s;
+
+  @include md {
+    top: 30px;
+  }
+
+  &--scrolled {
+    top: 0;
+    margin-inline: 0;
+    background: color-mix(in srgb, var(--color-background) 95%, transparent);
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(8px);
+    border-radius: 0px;
+  }
+
+  &__inner {
+    @include flex(center, space-between);
+    height: 100%;
+    gap: 16px;
+    padding: 16px 24px;
+    margin-inline: auto;
+    @include md {
+      padding-inline: 40px;
+    }
+  }
+
+  &__logo {
+    margin-right: auto; // lg 미만: 로고 왼쪽, 나머지 오른쪽
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+  &__logo-link {
+    @include focus-ring;
+  }
+
+  // lg 미만: 햄버거 버튼으로 여는 드롭다운 패널
+  &__nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    padding: 12px 24px;
+    border-radius: 24px;
+    background: #fff;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+
+    // 토글 버튼으로 열림 (aria-expanded="true")
+    &--open {
+      display: block;
+    }
+    @include lg {
+      display: block;
+      position: static;
+      margin-right: auto;
+      padding: 0;
+      border-radius: 0;
+      background: none;
+      box-shadow: none;
+    }
+  }
+  &--scrolled &__nav {
+    border-radius: 0;
+    @include lg {
+      background: none;
+    }
+  }
+  &__menu {
+    @include flex(stretch, start, 0, column);
+    @include lg {
+      @include flex(center, start, 50px);
+    }
+  }
+  &__menu-link {
+    display: block;
+    padding-block: 14px;
+    @include lg {
+      padding-block: 0;
+    }
+    font-size: 18px;
+    color: var(--color-text-secondary);
+    @include focus-ring;
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+
+  &__menu-toggle {
+    @include button-reset;
+    @include focus-ring;
+    order: 1; // 맨 오른쪽
+    font-size: 24px;
+    line-height: 1;
+    color: var(--color-text-primary);
+    @include lg {
+      display: none;
+    }
+  }
+
+  &__account {
+    @include flex(start, start, 12px);
+    font-size: 13px;
+    @include md {
+      gap: 20px;
+      font-size: 14px;
+    }
+  }
+  &__account-link {
+    @include focus-ring;
+  }
+}

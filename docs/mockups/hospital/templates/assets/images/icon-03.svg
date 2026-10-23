@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- 은은한 화이트-실버 선용 그라데이션 -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="30%" stop-color="#cfd6e2" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.98" />
+      <stop offset="80%" stop-color="#909cb3" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- 투명 배경에서도 선이 선명하게 보이도록 돕는 미세한 빛 퍼짐 필터 -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 토러스 구조체 (배경 태그 제거됨) -->
+  <g transform="translate(250, 250)" stroke="url(#lineGrad)" stroke-width="1.15" fill="none" opacity="0.85" filter="url(#glow)">
+    <circle r="180" opacity="0.8" />
+
+    <ellipse rx="10" ry="180" opacity="0.95" />
+    <ellipse rx="18" ry="179" opacity="0.93" />
+    <ellipse rx="26" ry="178" opacity="0.91" />
+    <ellipse rx="34" ry="176" opacity="0.89" />
+    <ellipse rx="42" ry="174" opacity="0.87" />
+    <ellipse rx="50" ry="171" opacity="0.85" />
+    <ellipse rx="58" ry="168" opacity="0.83" />
+    <ellipse rx="66" ry="165" opacity="0.81" />
+    <ellipse rx="74" ry="161" opacity="0.79" />
+    <ellipse rx="82" ry="157" opacity="0.77" />
+    <ellipse rx="90" ry="153" opacity="0.75" />
+    <ellipse rx="98" ry="148" opacity="0.73" />
+    <ellipse rx="106" ry="143" opacity="0.71" />
+    <ellipse rx="114" ry="138" opacity="0.69" />
+    <ellipse rx="122" ry="133" opacity="0.67" />
+    <ellipse rx="130" ry="127" opacity="0.65" />
+    <ellipse rx="138" ry="121" opacity="0.63" />
+    <ellipse rx="146" ry="115" opacity="0.61" />
+    <ellipse rx="154" ry="108" opacity="0.59" />
+    <ellipse rx="162" ry="101" opacity="0.57" />
+    <ellipse rx="170" ry="93" opacity="0.55" />
+    <ellipse rx="178" ry="84" opacity="0.53" />
+    <ellipse rx="186" ry="74" opacity="0.51" />
+    <ellipse rx="194" ry="62" opacity="0.49" />
+
+    <ellipse rx="15" ry="179.5" opacity="0.93" />
+    <ellipse rx="30" ry="177" opacity="0.89" />
+    <ellipse rx="45" ry="173" opacity="0.85" />
+    <ellipse rx="60" ry="167" opacity="0.81" />
+    <ellipse rx="75" ry="160" opacity="0.77" />
+    <ellipse rx="90" ry="152" opacity="0.73" />
+    <ellipse rx="105" ry="143" opacity="0.69" />
+    <ellipse rx="120" ry="132" opacity="0.65" />
+    <ellipse rx="135" ry="120" opacity="0.61" />
+    <ellipse rx="150" ry="106" opacity="0.57" />
+    <ellipse rx="165" ry="90" opacity="0.53" />
+    <ellipse rx="180" ry="70" opacity="0.49" />
+
+    <ellipse rx="180" ry="10" opacity="0.95" />
+    <ellipse rx="179" ry="18" opacity="0.93" />
+    <ellipse rx="178" ry="26" opacity="0.91" />
+    <ellipse rx="176" ry="34" opacity="0.89" />
+    <ellipse rx="174" ry="42" opacity="0.87" />
+    <ellipse rx="171" ry="50" opacity="0.85" />
+    <ellipse rx="168" ry="58" opacity="0.83" />
+    <ellipse rx="165" ry="66" opacity="0.81" />
+    <ellipse rx="161" ry="74" opacity="0.79" />
+    <ellipse rx="157" ry="82" opacity="0.77" />
+    <ellipse rx="153" ry="90" opacity="0.75" />
+    <ellipse rx="148" ry="98" opacity="0.73" />
+    <ellipse rx="143" ry="106" opacity="0.71" />
+    <ellipse rx="138" ry="114" opacity="0.69" />
+    <ellipse rx="133" ry="122" opacity="0.67" />
+    <ellipse rx="127" ry="130" opacity="0.65" />
+    <ellipse rx="121" ry="138" opacity="0.63" />
+    <ellipse rx="115" ry="146" opacity="0.61" />
+    <ellipse rx="108" ry="154" opacity="0.59" />
+    <ellipse rx="101" ry="162" opacity="0.57" />
+    <ellipse rx="93" ry="170" opacity="0.55" />
+    <ellipse rx="84" ry="178" opacity="0.53" />
+  </g>
+</svg>

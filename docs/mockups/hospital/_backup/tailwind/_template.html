@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>병원 템플릿 — Tailwind 트랙 (스캐폴드)</title>
+
+  <!--
+    ════════════════════════════════════════════════════════════════
+    Tailwind 트랙 — client(apps/client)와 동일한 방식
+    ────────────────────────────────────────────────────────────────
+    - Tailwind v4 브라우저 빌드 사용 (빌드 불필요, 저장→새로고침)
+    - 토큰은 아래 @theme 블록에 정의 → utility 클래스로 자동 생성
+      예: --color-primary 정의 → bg-primary / text-primary 사용 가능
+    - 이 @theme 값이 그대로 TemplateTheme.cssVariables 로 이식됩니다.
+    - 섹션 variant 는 data-variant 로 표시 (이식 시 layout prop 으로)
+    ════════════════════════════════════════════════════════════════
+  -->
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <style type="text/tailwindcss">
+    @theme {
+      --color-primary:        #0ea5a0;
+      --color-primary-hover:  #0c8a86;
+      --color-on-primary:     #ffffff;
+      --color-secondary:      #e8f6f5;
+      --color-accent:         #f59e0b;
+      --color-background:     #ffffff;
+      --color-surface:        #f8fafc;
+      --color-text-primary:   #0f172a;
+      --color-text-secondary: #475569;
+      --color-border:         #e2e8f0;
+      --font-heading: 'Pretendard', system-ui, sans-serif;
+      --font-body:    'Pretendard', system-ui, sans-serif;
+      --radius-base: 10px;
+      --radius-card: 16px;
+    }
+    .section-tag { @apply absolute top-2 left-2 z-10 rounded bg-slate-900/50 px-2 py-0.5 font-mono text-[11px] text-white; }
+  </style>
+</head>
+<body class="bg-background font-body text-text-primary">
+
+  <!-- ════════ GNB → components/layout/Navbar.tsx (섹션 아님) ════════ -->
+  <header id="gnb" class="sticky top-0 z-40 w-full transition-all">
+    <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
+      <button class="text-lg font-bold">○○ 정형외과</button>
+      <ul class="hidden gap-6 md:flex">
+        <li><button class="text-sm text-text-secondary hover:text-primary">병원소개</button></li>
+        <li><button class="text-sm text-text-secondary hover:text-primary">진료안내</button></li>
+        <li><button class="text-sm text-text-secondary hover:text-primary">의료진</button></li>
+        <li><button class="text-sm text-text-secondary hover:text-primary">예약·문의</button></li>
+        <li><button class="text-sm text-text-secondary hover:text-primary">오시는길</button></li>
+      </ul>
+      <button class="text-2xl text-text-secondary md:hidden" aria-label="메뉴 열기">☰</button>
+    </div>
+  </header>
+
+  <!-- ════════ HERO_BANNER (variant: centered) → HeroBanner.tsx ════════ -->
+  <section data-variant="centered" class="relative -mt-[73px] bg-secondary px-6 pt-[153px] pb-20 text-center">
+    <span class="section-tag">HERO_BANNER · centered</span>
+    <h1 class="text-4xl font-bold md:text-5xl">○○ 정형외과</h1>
+    <p class="mt-4 text-lg text-text-secondary">환자 중심의 정직한 진료</p>
+    <a href="#" class="mt-7 inline-block rounded-[--radius-base] bg-accent px-6 py-3 font-semibold text-on-primary">온라인 예약</a>
+  </section>
+
+  <!-- ════════ INTRO → Intro.tsx ════════ -->
+  <section class="relative mx-auto max-w-6xl px-6 py-20">
+    <span class="section-tag">INTRO</span>
+    <div class="grid items-center gap-6 md:grid-cols-2">
+      <div>
+        <h2 class="text-3xl font-bold">병원 소개</h2>
+        <p class="mt-4 text-text-secondary">여기에 병원 소개 문구를 작성하세요.</p>
+      </div>
+      <div class="flex min-h-60 items-center justify-center rounded-[--radius-card] border border-border bg-surface text-text-secondary">이미지 영역</div>
+    </div>
+  </section>
+
+  <!-- ════════ SERVICES → Services.tsx ════════ -->
+  <section class="relative bg-surface px-6 py-20">
+    <span class="section-tag">SERVICES</span>
+    <div class="mx-auto max-w-6xl">
+      <h2 class="mb-10 text-center text-3xl font-bold">진료 안내</h2>
+      <div class="grid gap-6 md:grid-cols-3">
+        <div class="rounded-[--radius-card] border border-border bg-background p-7"><h3 class="font-bold">진료과목 1</h3><p class="mt-2 text-text-secondary">설명</p></div>
+        <div class="rounded-[--radius-card] border border-border bg-background p-7"><h3 class="font-bold">진료과목 2</h3><p class="mt-2 text-text-secondary">설명</p></div>
+        <div class="rounded-[--radius-card] border border-border bg-background p-7"><h3 class="font-bold">진료과목 3</h3><p class="mt-2 text-text-secondary">설명</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ TEAM → 의료진 ════════ -->
+  <section class="relative mx-auto max-w-6xl px-6 py-20">
+    <span class="section-tag">TEAM</span>
+    <h2 class="mb-10 text-center text-3xl font-bold">의료진 소개</h2>
+    <div class="grid gap-6 md:grid-cols-3">
+      <div class="rounded-[--radius-card] border border-border bg-surface p-7 text-center">
+        <div class="mx-auto mb-4 h-24 w-24 rounded-full bg-secondary"></div>
+        <h3 class="font-bold">원장명</h3><p class="text-text-secondary">전문 분야</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ CONTACT → ContactForm.tsx ════════ -->
+  <section class="relative bg-secondary px-6 py-20 text-center">
+    <span class="section-tag">CONTACT</span>
+    <div class="mx-auto max-w-xl">
+      <h2 class="text-3xl font-bold">예약·문의</h2>
+      <p class="mb-6 mt-3 text-text-secondary">전화 또는 온라인으로 문의하세요.</p>
+      <a href="#" class="inline-block rounded-[--radius-base] bg-primary px-6 py-3 font-semibold text-on-primary">문의하기</a>
+    </div>
+  </section>
+
+  <!-- ════════ MAP → Map.tsx ════════ -->
+  <section class="relative mx-auto max-w-6xl px-6 py-20">
+    <span class="section-tag">MAP</span>
+    <h2 class="mb-6 text-3xl font-bold">오시는 길</h2>
+    <div class="flex min-h-80 items-center justify-center rounded-[--radius-card] border border-border bg-surface">지도 영역</div>
+  </section>
+
+  <!-- ════════ Footer → Footer.tsx ════════ -->
+  <footer class="bg-text-primary px-6 py-10 text-center text-on-primary">
+    <p class="font-bold">○○ 정형외과</p>
+    <p class="mt-2 text-sm opacity-70">주소 · 전화번호 · 사업자정보</p>
+  </footer>
+
+  <script>
+    const gnb = document.getElementById('gnb');
+    const onScroll = () => gnb.className = 'sticky top-0 z-40 w-full transition-all ' +
+      (window.scrollY > 16 ? 'border-b border-border bg-background/95 shadow-sm backdrop-blur' : 'bg-transparent');
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  </script>
+</body>
+</html>

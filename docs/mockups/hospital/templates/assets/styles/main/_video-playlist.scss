@@ -1,0 +1,159 @@
+// ── VIDEO PLAYLIST — 유튜브 대표 영상 플레이어 + 영상 목록 ──────────
+// 용도 예: 유튜브 채널, 브랜드 필름, 강의 영상 (신규 섹션 후보)
+// JS: assets/js/video-playlist.js
+@use '../mixins' as *;
+
+.video-playlist {
+  background-color: #fff;
+
+  // lg 미만: 대표 영상 위 · 목록 아래
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    @include lg {
+      flex-direction: row;
+      gap: 2.5rem;
+    }
+  }
+
+  // ── 대표 영상 ──
+  &__featured {
+    min-width: 0;
+    @include lg {
+      width: 58%;
+      flex-shrink: 0;
+    }
+  }
+  &__player {
+    position: relative;
+    @include ratio(16, 9); // 유튜브 영상 비율
+    border-radius: 1rem;
+    overflow: hidden;
+    background: #000;
+    @include md {
+      border-radius: 2rem;
+    }
+  }
+  // 재생 전: 썸네일 + 재생 버튼
+  &__play {
+    @include button-reset;
+    @include absolute-fill;
+    display: block;
+    width: 100%;
+    height: 100%;
+    @include focus-ring(var(--color-primary), -4px);
+
+    &:hover .video-playlist__play-icon,
+    &:focus-visible .video-playlist__play-icon {
+      transform: translate(-50%, -50%) scale(1.1);
+      background: #ff0033;
+    }
+  }
+  &__player-image {
+    @include cover;
+  }
+  &__play-icon {
+    @include absolute-center;
+    @include flex-center;
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgb(0 0 0 / 60%);
+    color: #fff;
+    font-size: 32px;
+    @include md {
+      width: 80px;
+      height: 80px;
+      font-size: 40px;
+    }
+    transition:
+      transform 0.3s ease,
+      background 0.3s ease;
+  }
+  // 재생 후: iframe (JS 가 삽입)
+  &__iframe {
+    @include absolute-fill;
+    width: 100%;
+    height: 100%;
+    border: 0;
+  }
+  &__featured-meta {
+    @include flex(center, space-between, 0.75rem 1.5rem);
+    flex-wrap: wrap;
+    margin-top: 1.25rem;
+  }
+  &__featured-title {
+    @include fluid-type(1.125rem, 1.5rem);
+    font-weight: 600;
+  }
+
+  // ── 영상 목록 ──
+  &__list {
+    flex: 1;
+    min-width: 0;
+    @include flex(stretch, start, 0.75rem, column);
+  }
+  &__link {
+    @include flex(center, start, 1rem);
+    padding: 0.5rem;
+    border-radius: 1.5rem;
+    transition: background 0.3s;
+    @include focus-ring;
+
+    &:hover {
+      background: var(--color-surface);
+    }
+    // 현재 대표 영상으로 재생 중인 항목
+    &[aria-current='true'] {
+      background: var(--color-surface);
+      .video-playlist__title {
+        color: var(--color-primary);
+      }
+    }
+  }
+  &__thumb {
+    position: relative;
+    width: 128px;
+    flex-shrink: 0;
+    @include md {
+      width: 160px;
+    }
+    @include ratio(16, 9);
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+  &__thumb-image {
+    @include cover;
+  }
+  &__duration {
+    position: absolute;
+    right: 8px;
+    bottom: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgb(0 0 0 / 75%);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  &__title {
+    @include line-clamp(2);
+    font-size: 1rem;
+    font-weight: 600;
+    transition: color 0.3s;
+  }
+
+  &__channel {
+    flex-shrink: 0;
+    @include flex(center, center, 8px);
+    color: var(--color-text-primary);
+    font-weight: 500;
+    @include focus-ring;
+    i {
+      font-size: 1.25rem;
+      color: #ff0033;
+    }
+  }
+}

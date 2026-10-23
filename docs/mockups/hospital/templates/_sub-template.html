@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>브랜드 소개 | ONDO</title>
+    <!--
+    서브 페이지 스캐폴드 (복사용)
+    - 위치: _template.html 과 같은 폴더 (templates/ 루트)에 둔다.
+      partial 의 상대경로(./assets/..., components/...)가 '페이지 기준'이라
+      하위 폴더에 두면 경로가 깨진다. 파일명으로 구분: about.html, about-history.html …
+    - 이 파일을 복사 → 아래 3곳만 수정
+      1) <title>
+      2) sub-hero 의 data-eyebrow / data-page-title / data-category / data-image
+      3) sub-nav 의 data-current (탭 data-key 값) + <main> 안의 본문 섹션
+    - 본문 섹션은 components/sections/ 의 메인 섹션을 재사용하거나,
+      서브 전용이면 components/sub/ 에 새 partial 로 만든다.
+    - ⚠️ 로컬 서버로 열어야 함 (file:// 에서는 fetch 차단)
+  -->
+    <link rel="stylesheet" href="assets/vendor/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/template.css" />
+    <link rel="stylesheet" href="./assets/vendor/remixicon/remixicon.css" />
+
+    <script src="assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+    <script src="./assets/vendor/gsap/gsap.min.js" defer></script>
+    <script src="./assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+
+    <script src="assets/js/include.js" defer></script>
+    <script src="./assets/js/header.js" defer></script>
+    <script src="./assets/js/quick-menu.js" defer></script>
+    <script src="./assets/js/sub-nav.js" defer></script>
+    <script src="./assets/js/sub-hero.js" defer></script>
+    <script src="./assets/js/photo-gallery.js" defer></script>
+  </head>
+  <body>
+    <div data-include="components/header.html"></div>
+
+    <main class="main main--sub" id="main" tabindex="-1">
+      <div
+        data-include="components/sub/sub-hero.html"
+        data-eyebrow="About"
+        data-page-title="브랜드 소개"
+        data-category="About"
+        data-image="./assets/images/head_slide1.jpg"
+      ></div>
+      <div data-include="components/sub/sub-nav.html" data-current="about"></div>
+
+      <!-- ↓ 본문: 페이지마다 다른 영역 (components/sub/ 또는 components/sections/ 에서 골라 조합) -->
+      <div data-include="components/sub/media-row.html"></div>
+      <div data-include="components/sub/strength-list.html"></div>
+      <div data-include="components/sub/area-rows.html"></div>
+      <div data-include="components/sub/photo-gallery.html"></div>
+      <div data-include="components/sub/consult-links.html"></div>
+    </main>
+
+    <div data-include="components/footer.html"></div>
+    <div data-include="components/quick-menu.html"></div>
+  </body>
+</html>

@@ -1,0 +1,82 @@
+// ── STORY TEXT — 큰 영문 제목 + 국문 명조 소제목 + 설명 ─────────────
+// split-story / milestone-split / banner-split / criteria-cards / value-circles 공용
+//   <h2 class="story-text__title">
+//     <span class="story-text__en">ENGLISH</span><span class="story-text__sub">국문 소제목</span>
+//   </h2>
+//   <div class="story-text__desc"><p>…</p></div>
+// 수식어: --split(제목 | 설명 좌우, lg 이상) --center(가운데 정렬) --light(흰 글자)
+@use '../mixins' as *;
+
+.story-text {
+  word-break: keep-all;
+
+  &__title {
+    display: block;
+    font-weight: 400;
+  }
+  &__en {
+    display: block;
+    @include font-seasons(400);
+    @include fluid-type(2.25rem, 3.75rem);
+    line-height: 1.2;
+    color: #26211f;
+  }
+  &__sub {
+    display: block;
+    margin-top: 1.25rem;
+    @include font-serif-ko(500);
+    @include fluid-type(1.125rem, 1.5rem);
+    line-height: 1.5;
+    color: var(--color-text-primary);
+    @include md {
+      margin-top: 2.5rem;
+    }
+  }
+
+  &__desc {
+    margin-top: 2rem;
+    @include fluid-type(0.9375rem, 1.125rem);
+    line-height: 1.88;
+    color: var(--color-text-primary);
+    @include md {
+      margin-top: 3.75rem;
+    }
+
+    p + p {
+      margin-top: 1.88em;
+    }
+    strong {
+      font-weight: 700;
+    }
+    // 좁은 화면에서는 강제 줄바꿈 대신 자연스럽게 흐르도록
+    br {
+      @include down(md) {
+        display: none;
+      }
+    }
+  }
+
+  &--split {
+    @include lg {
+      display: grid;
+      grid-template-columns: 1fr minmax(0, 32rem);
+      column-gap: 40px;
+
+      .story-text__desc {
+        margin-top: 0;
+      }
+    }
+  }
+
+  &--center {
+    text-align: center;
+  }
+
+  &--light {
+    .story-text__en,
+    .story-text__sub,
+    .story-text__desc {
+      color: #fff;
+    }
+  }
+}

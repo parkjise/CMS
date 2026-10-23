@@ -1,0 +1,20 @@
+<!-- SUB NAV: 같은 카테고리 안의 페이지 탭 (서브 공통)
+  사용: <div data-include="components/sub/sub-nav.html" data-current="about"></div>
+  data-current 와 같은 data-key 탭에 aria-current="page" (assets/js/sub-nav.js)
+  카테고리마다 탭 구성이 다르면 이 파일을 복제해서 sub-nav-서비스명.html 로 만든다.
+-->
+<nav class="sub-nav" aria-label="하위 메뉴" data-current="{{current}}">
+  <div class="container">
+    <ul class="sub-nav__list">
+      <li class="sub-nav__item">
+        <a class="sub-nav__link" href="about.html" data-key="about">브랜드 소개</a>
+      </li>
+      <li class="sub-nav__item">
+        <a class="sub-nav__link" href="about-history.html" data-key="history">연혁</a>
+      </li>
+      <li class="sub-nav__item">
+        <a class="sub-nav__link" href="about-location.html" data-key="location">오시는 길</a>
+      </li>
+    </ul>
+  </div>
+</nav>

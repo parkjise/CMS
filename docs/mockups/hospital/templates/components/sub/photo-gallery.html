@@ -1,0 +1,59 @@
+<!-- PHOTO GALLERY: 섹션 헤더 + 큰 사진 슬라이드 + 썸네일 + 진행 바 (서브 공통)
+  용도 예: 공간 둘러보기, 시설 소개, 포트폴리오
+  JS: assets/js/photo-gallery.js (Swiper + Thumbs)
+-->
+<section class="photo-gallery" aria-labelledby="photo-gallery-title">
+  <div class="container">
+    <header class="section-head section-head--sub">
+      <p class="section-head__eyebrow" lang="en">( Space Tour )</p>
+      <h2 class="section-head__title" id="photo-gallery-title">ONDO 둘러보기</h2>
+    </header>
+
+    <div class="photo-gallery__frame">
+      <button class="photo-gallery__arrow photo-gallery__arrow--prev" type="button" aria-label="이전 사진">
+        <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+      </button>
+
+      <div class="photo-gallery__main swiper" role="region" aria-label="공간 사진 슬라이드">
+        <div class="swiper-wrapper">
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/about-lounge.jpg" alt="라운지" loading="lazy" />
+          </div>
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/about-reception.jpg" alt="안내 데스크" loading="lazy" />
+          </div>
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/business-meeting.jpg" alt="회의 공간" loading="lazy" />
+          </div>
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/business-hero.jpg" alt="건물 외관" loading="lazy" />
+          </div>
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/about-hero.jpg" alt="소파와 안락의자가 있는 밝은 휴게 공간" loading="lazy" />
+          </div>
+          <div class="photo-gallery__slide swiper-slide">
+            <img class="photo-gallery__image" src="./assets/images/unsplash/about-hallway.jpg" alt="창가 의자로 이어지는 조용한 복도" loading="lazy" />
+          </div>
+        </div>
+      </div>
+
+      <button class="photo-gallery__arrow photo-gallery__arrow--next" type="button" aria-label="다음 사진">
+        <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- 썸네일: 클릭 시 해당 사진으로 이동 (장식 이미지, 버튼 이름은 Swiper a11y 가 부여) -->
+    <div class="photo-gallery__thumbs swiper">
+      <div class="swiper-wrapper">
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/about-lounge.jpg" alt="" /></div>
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/about-reception.jpg" alt="" /></div>
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/business-meeting.jpg" alt="" /></div>
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/business-hero.jpg" alt="" /></div>
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/about-hero.jpg" alt="" /></div>
+        <div class="photo-gallery__thumb swiper-slide"><img src="./assets/images/unsplash/about-hallway.jpg" alt="" /></div>
+      </div>
+    </div>
+
+    <div class="photo-gallery__progress swiper-pagination" aria-hidden="true"></div>
+  </div>
+</section>

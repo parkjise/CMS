@@ -1,0 +1,129 @@
+// ── VALUE CIRCLES — 배경 사진 + 가운데 제목 + 원형 가치 3개 + 더보기 ──
+// components/sub/value-circles.html
+// 배경 사진: .value-circles__bg (img) 위에 어두운 막
+@use '../mixins' as *;
+
+.value-circles {
+  padding: 80px 0;
+  overflow: hidden;
+  background: #26211f;
+  color: #fff;
+
+  @include lg {
+    padding: 140px 0;
+  }
+
+  // 배경 사진 + 어두운 막 (글자는 그 위)
+  &__bg {
+    @include absolute-fill;
+    @include cover;
+  }
+  &::after {
+    content: '';
+    @include absolute-fill;
+    background: rgba(20, 16, 15, 0.82);
+  }
+  > .container {
+    position: relative;
+    z-index: 1;
+  }
+
+  // 원형 가치 — 모바일은 2 + 1 줄바꿈
+  &__list {
+    @include flex(center, center, 16px);
+    flex-wrap: wrap;
+    margin-top: 48px;
+
+    @include md {
+      gap: 40px;
+      margin-top: 80px;
+    }
+    @include lg {
+      gap: 60px;
+    }
+  }
+  &__item {
+    @include flex-center;
+    width: 148px;
+    @include ratio(1, 1);
+    padding: 12px;
+    border: 1px solid #fff;
+    border-radius: 50%;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.55;
+    text-align: center;
+    word-break: keep-all;
+
+    @include md {
+      width: 180px;
+      font-size: 1rem;
+    }
+    @include lg {
+      width: 220px;
+      font-size: 1.125rem;
+    }
+  }
+
+  // 더보기 — 글자 옆 가는 화살표 선 + 점
+  &__more {
+    margin-top: 56px;
+    text-align: center;
+    @include md {
+      margin-top: 100px;
+    }
+  }
+  &__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    @include font-serif-ko(400);
+    @include fluid-type(1.0625rem, 1.5rem);
+    letter-spacing: 0.08em;
+    color: #fff;
+    @include focus-ring(#fff, 6px);
+
+    @include hover {
+      .value-circles__arrow {
+        width: 80px;
+      }
+    }
+  }
+  &__arrow {
+    position: relative;
+    flex-shrink: 0;
+    width: 56px;
+    height: 1px;
+    background: currentColor;
+    transition: width 0.3s ease;
+
+    // 화살촉 + 끝 점
+    &::before {
+      content: '';
+      position: absolute;
+      right: 6px;
+      bottom: 0;
+      width: 10px;
+      height: 1px;
+      background: currentColor;
+      transform: rotate(30deg);
+      transform-origin: right bottom;
+    }
+    &::after {
+      content: '';
+      position: absolute;
+      top: -1.5px;
+      right: 0;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .value-circles__arrow {
+    transition: none;
+  }
+}

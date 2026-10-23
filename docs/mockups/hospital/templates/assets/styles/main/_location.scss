@@ -1,0 +1,69 @@
+// ── LOCATION — 제목 + 지도 + 방문 정보 ───────────────────────────
+// components/sections/location.html
+// 용도 예: 오시는 길, 매장 위치, 사무실 위치 (CMS 기본 매핑: MAP)
+@use '../mixins' as *;
+
+.location {
+  &__map {
+    position: relative;
+    @include ratio(4, 3);
+    @include md {
+      @include ratio(1640, 600);
+    }
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--color-surface);
+
+    // 지도 iframe 을 넣으면 꽉 채움
+    iframe {
+      @include absolute-fill;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+  }
+  &__map-placeholder {
+    @include absolute-center;
+    @include flex(center, center, 8px);
+    font-size: 1.125rem;
+    color: var(--color-text-secondary);
+  }
+
+  &__info {
+    margin-top: 40px;
+    @include md {
+      margin-top: 60px;
+    }
+    border-top: 1px solid var(--color-text-primary);
+  }
+  &__info-row {
+    display: grid;
+    gap: 8px;
+    padding: 20px 0;
+    @include md {
+      padding: 28px 0;
+    }
+    border-bottom: 1px solid var(--color-border);
+
+    @include md {
+      grid-template-columns: 200px 1fr;
+      gap: 40px;
+    }
+  }
+  &__info-label {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+  &__info-value {
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+
+    address {
+      font-style: normal;
+    }
+  }
+  &__info-link {
+    @include focus-ring;
+  }
+}

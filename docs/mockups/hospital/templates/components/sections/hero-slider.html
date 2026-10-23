@@ -1,0 +1,83 @@
+<!-- HERO SLIDER: 전체 화면 비주얼 슬라이드 + 메인 카피 (CMS 기본 매핑: HERO_BANNER) -->
+<section class="hero-slider" aria-roledescription="carousel" aria-label="메인 비주얼">
+  <div class="hero-slider__viewport swiper">
+    <div class="hero-slider__track swiper-wrapper">
+      <div class="hero-slider__slide swiper-slide">
+        <img class="hero-slider__image" src="./assets/images/head_slide2.png" alt="" />
+      </div>
+      <div class="hero-slider__slide swiper-slide">
+        <img class="hero-slider__image" src="./assets/images/head_slide1.jpg" alt="" />
+      </div>
+      <div class="hero-slider__slide swiper-slide">
+        <img class="hero-slider__image" src="./assets/images/head_slide3.png" alt="" />
+      </div>
+    </div>
+
+    <div class="hero-slider__layout">
+      <!-- 불릿 페이지네이션 (Swiper 가 채움) -->
+      <div class="hero-slider__bullets"></div>
+
+      <div class="hero-slider__content">
+        <h2 class="hero-slider__title">당신의 하루에 알맞은 온도</h2>
+        <p class="hero-slider__copy" lang="en">
+          <span class="hero-slider__copy-line hero-slider__copy-line--primary">Warm Moments</span>
+          <span class="hero-slider__copy-line hero-slider__copy-line--secondary"
+            >Crafted with Care</span
+          >
+        </p>
+      </div>
+      <div class="hero-slider__content" hidden>
+        <h2 class="hero-slider__title">오래 머물고 싶은 경험을 설계합니다</h2>
+        <p class="hero-slider__copy" lang="en">
+          <span class="hero-slider__copy-line hero-slider__copy-line--primary">Timeless Value</span>
+          <span class="hero-slider__copy-line hero-slider__copy-line--secondary"
+            >Designed to Last</span
+          >
+        </p>
+      </div>
+      <div class="hero-slider__content" hidden>
+        <h2 class="hero-slider__title">작은 차이가 만드는 깊은 신뢰</h2>
+        <p class="hero-slider__copy" lang="en">
+          <span class="hero-slider__copy-line hero-slider__copy-line--primary"
+            >Quiet Confidence</span
+          >
+          <span class="hero-slider__copy-line hero-slider__copy-line--secondary"
+            >In Every Detail</span
+          >
+        </p>
+      </div>
+
+      <div class="hero-slider__controls">
+        <!-- 진행 표시: 시각 장식용 (슬라이드 위치는 Swiper a11y 가 스크린리더에 안내) -->
+        <div class="hero-slider__progress" aria-hidden="true">
+          <strong class="hero-slider__progress-current">1</strong>
+          <span class="hero-slider__progress-track">
+            <span class="hero-slider__progress-fill"></span>
+          </span>
+          <span class="hero-slider__progress-total">3</span>
+        </div>
+        <button
+          class="hero-slider__button hero-slider__button--autoplay"
+          type="button"
+          aria-label="자동 재생 정지"
+        >
+          <i class="ri-pause-line" aria-hidden="true"></i>
+        </button>
+        <button
+          class="hero-slider__button hero-slider__button--prev"
+          type="button"
+          aria-label="이전 슬라이드"
+        >
+          <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+        </button>
+        <button
+          class="hero-slider__button hero-slider__button--next"
+          type="button"
+          aria-label="다음 슬라이드"
+        >
+          <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
