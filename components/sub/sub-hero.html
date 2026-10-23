@@ -1,0 +1,33 @@
+<!-- SUB HERO: 서브 페이지 상단 비주얼 + 페이지 제목 + 브레드크럼 (서브 공통)
+  사용: <div data-include="components/sub/sub-hero.html"
+             data-eyebrow="About" data-page-title="브랜드 소개"
+             data-category="About" data-image="./assets/images/head_slide1.jpg"></div>
+-->
+<section class="sub-hero" aria-labelledby="sub-hero-title">
+  <img class="sub-hero__image" src="{{image}}" alt="" />
+  <div class="container sub-hero__content">
+    <p class="sub-hero__eyebrow" lang="en">{{eyebrow}}</p>
+    <h2 class="sub-hero__title" id="sub-hero-title">{{pageTitle}}</h2>
+
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <ol class="breadcrumb__list">
+        <li class="breadcrumb__item">
+          <a class="breadcrumb__link" href="_template.html">
+            <i class="ri-home-5-line" aria-hidden="true"></i><span class="sr-only">홈</span>
+          </a>
+        </li>
+        <li class="breadcrumb__item"><span lang="en">{{category}}</span></li>
+        <li class="breadcrumb__item"><span aria-current="page">{{pageTitle}}</span></li>
+      </ol>
+    </nav>
+  </div>
+  <button class="sub-hero__scroll" type="button" aria-label="아래로 스크롤">
+    <img
+      class="sub-hero__scroll-icon"
+      src="./assets/images/scroll-down.svg"
+      width="20"
+      height="38"
+      alt=""
+    />
+  </button>
+</section>

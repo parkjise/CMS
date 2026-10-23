@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>연혁 | ONDO</title>
+    <!-- 서브: 연혁 (_sub-template.html 기반) -->
+    <link rel="stylesheet" href="assets/vendor/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/template.css" />
+    <link rel="stylesheet" href="./assets/vendor/remixicon/remixicon.css" />
+
+    <script src="assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+    <script src="./assets/vendor/gsap/gsap.min.js" defer></script>
+    <script src="./assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+
+    <script src="assets/js/include.js" defer></script>
+    <script src="./assets/js/header.js" defer></script>
+    <script src="./assets/js/quick-menu.js" defer></script>
+    <script src="./assets/js/sub-nav.js" defer></script>
+    <script src="./assets/js/sub-hero.js" defer></script>
+    <script src="./assets/js/history-timeline.js" defer></script>
+  </head>
+  <body>
+    <div data-include="components/header.html"></div>
+
+    <main class="main main--sub" id="main" tabindex="-1">
+      <div
+        data-include="components/sub/sub-hero.html"
+        data-eyebrow="History"
+        data-page-title="연혁"
+        data-category="About"
+        data-image="./assets/images/head_slide1.jpg"
+      ></div>
+      <div data-include="components/sub/sub-nav.html" data-current="history"></div>
+
+      <!-- ↓ 본문 -->
+      <div data-include="components/sub/history-timeline.html"></div>
+    </main>
+
+    <div data-include="components/footer.html"></div>
+    <div data-include="components/quick-menu.html"></div>
+  </body>
+</html>

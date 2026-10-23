@@ -1,0 +1,77 @@
+// ── MILESTONE SPLIT — 제목 + 사진 | 사진 + 주요 연도 목록 ──────────
+// components/sub/milestone-split.html
+@use '../mixins' as *;
+
+.milestone-split {
+  padding: 80px 0;
+  @include center-divider;
+  @include lg {
+    padding: 140px 0 0;
+  }
+
+  &__inner {
+    position: relative; // 세로선 위로
+    display: grid;
+    gap: 56px;
+
+    @include lg {
+      grid-template-columns: 708fr 606fr;
+      column-gap: clamp(40px, 8.75vw, 126px);
+      align-items: start;
+    }
+  }
+
+  &__col {
+    @include flex(stretch, flex-start, 40px, column);
+
+    &--left {
+      @include lg {
+        gap: 120px;
+        padding-top: 40px;
+      }
+    }
+    &--right {
+      @include lg {
+        gap: 80px;
+      }
+    }
+  }
+
+  &__image {
+    width: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  &__col--left &__image {
+    @include ratio(708, 578);
+    @include lg {
+      border-radius: 12px 12px 0 0; // 섹션 바닥에 붙음
+    }
+  }
+  &__col--right &__image {
+    @include ratio(606, 537);
+  }
+
+  &__list {
+    @include flex(stretch, flex-start, 32px, column);
+    @include md {
+      gap: 36px;
+    }
+  }
+  &__year {
+    @include font-seasons(400);
+    @include fluid-type(1.75rem, 2.25rem);
+    line-height: 1.2;
+    color: #433939;
+  }
+  &__text {
+    margin-top: 10px;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    color: #565656;
+    word-break: keep-all;
+    @include md {
+      font-size: 1rem;
+    }
+  }
+}

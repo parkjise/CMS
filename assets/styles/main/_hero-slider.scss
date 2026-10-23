@@ -1,0 +1,167 @@
+// ── HERO SLIDER — 전체 화면 비주얼 슬라이드 + 메인 카피 + CTA ──────
+// 용도: 모든 업종의 첫 화면 (CMS 기본 매핑: HERO_BANNER)
+// JS: assets/js/hero-slider.js
+@use '../mixins' as *;
+
+.hero-slider {
+  background: var(--color-secondary);
+  text-align: center;
+  margin-top: -80px; // 헤더 높이만큼 당겨 히어로 위로 겹침
+  padding: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+
+  &__viewport {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+  }
+
+  &__track {
+    grid-area: 1 / 1;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  &__slide {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
+    // 이미지 위 어두운 오버레이 (텍스트 대비 확보)
+    &::after {
+      content: '';
+      grid-area: 1 / 1;
+      background: rgb(0 0 0 / 30%);
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+  &__image {
+    grid-area: 1 / 1;
+    min-height: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__layout {
+    grid-area: 1 / 1;
+    @include flex(stretch, flex-end, 24px, column);
+    min-width: 0;
+    padding: 128px var(--spacing-frame) calc(136px + env(safe-area-inset-bottom));
+    z-index: 2;
+
+    @include md {
+      gap: 32px;
+      padding-top: 146px;
+      padding-bottom: 132px;
+    }
+  }
+  &__content {
+    text-align: left;
+  }
+  &__title {
+    @include fluid-type(1.375rem, 2.5rem);
+    @include font-serif-ko(500);
+    color: #fff;
+    word-break: keep-all;
+    padding-top: 20px;
+  }
+  &__copy {
+    @include flex(start, start, 20px, column);
+    padding-top: 30px;
+    padding-bottom: 60px;
+  }
+  &__copy-line {
+    line-height: 1;
+    color: #fff;
+    @include font-seasons;
+
+    &--primary {
+      @include fluid-type(3rem, 7.5rem);
+    }
+    &--secondary {
+      @include fluid-type(1.75rem, 3.75rem);
+    }
+  }
+
+  // 불릿 (Swiper 가 .swiper-pagination-bullet 생성)
+  &__bullets {
+    display: block;
+    text-align: left;
+    padding-left: 0;
+    line-height: 1;
+  }
+  .swiper-pagination-bullet {
+    width: 14px;
+    height: 14px;
+    background-color: rgba(255, 255, 255, 0.5);
+    &-active {
+      background-color: rgba(255, 255, 255, 1);
+    }
+  }
+
+  &__controls {
+    @include flex(center, start, 10px);
+  }
+
+  &__progress {
+    @include flex(center, start, 30px);
+    @include font-seasons;
+    color: #fff;
+    font-size: 16px;
+    width: min(140px, calc(100vw - var(--spacing-frame) * 2 - 174px));
+    gap: 16px;
+    margin-right: 12px;
+    @include md {
+      width: 200px;
+      gap: 30px;
+      margin-right: 30px;
+      font-size: 18px;
+    }
+  }
+  &__progress-track {
+    display: block;
+    width: 100%;
+    height: 2px;
+    overflow: hidden;
+    background: rgb(255 255 255 / 30%);
+  }
+  &__progress-fill {
+    display: block;
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    transform: scaleX(0);
+    transform-origin: left;
+  }
+
+  &__button {
+    @include button-reset;
+    @include focus-ring(#fff);
+    flex: 0 0 44px;
+    width: 44px;
+    height: 44px;
+    @include md {
+      flex-basis: 60px;
+      width: 60px;
+      height: 60px;
+    }
+
+    i {
+      @include flex(center, center);
+      width: 100%;
+      height: 100%;
+      border: 1px solid #dee2e6;
+      border-radius: 100%;
+      font-size: 28px;
+      color: #fff;
+      @include md {
+        font-size: 40px;
+      }
+    }
+  }
+}

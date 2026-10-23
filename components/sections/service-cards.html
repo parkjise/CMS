@@ -1,0 +1,84 @@
+<!-- SERVICE CARDS: 섹션 헤더 + 이미지 카드 목록 (CMS 기본 매핑: SERVICES)
+  태블릿 이상: 5단 그리드 / 모바일(768px 미만): 슬라이드
+  JS: assets/js/service-cards.js (모바일에서만 Swiper 생성, 넓어지면 해제)
+-->
+<section class="service-cards" id="services" aria-labelledby="service-cards-title">
+  <div class="container">
+    <header class="section-head">
+      <p class="section-head__eyebrow" lang="en">Our Expertise</p>
+      <h2 class="section-head__title" id="service-cards-title">
+        한 분야에 깊이 집중해 온 시간,<br />
+        그 시간이 곧 신뢰가 됩니다.
+      </h2>
+      <p class="section-head__desc">
+        처음 만나는 순간부터 그 이후까지, 가장 가까운 곳에서 함께하겠습니다.
+      </p>
+    </header>
+
+    <div class="service-cards__viewport">
+      <ul class="service-cards__list grid grid--cols-5">
+        <li class="service-cards__item">
+          <a class="service-cards__link" href="#">
+            <div class="service-cards__media">
+              <img class="service-cards__image" src="./assets/images/card1.avif" alt="" />
+            </div>
+            <div class="service-cards__body">
+              <span class="service-cards__eyebrow" lang="en">Signature</span>
+              <h3 class="service-cards__title">시그니처</h3>
+              <span class="service-cards__desc">ONDO만의 프로그램</span>
+            </div>
+          </a>
+        </li>
+        <li class="service-cards__item">
+          <a class="service-cards__link" href="#">
+            <div class="service-cards__media">
+              <img class="service-cards__image" src="./assets/images/card2.avif" alt="" />
+            </div>
+            <div class="service-cards__body">
+              <span class="service-cards__eyebrow" lang="en">Consulting</span>
+              <h3 class="service-cards__title">1:1 컨설팅</h3>
+              <span class="service-cards__desc">목표에 꼭 맞춘 맞춤형 제안</span>
+            </div>
+          </a>
+        </li>
+        <li class="service-cards__item">
+          <a class="service-cards__link" href="#">
+            <div class="service-cards__media">
+              <img class="service-cards__image" src="./assets/images/card3.avif" alt="" />
+            </div>
+            <div class="service-cards__body">
+              <span class="service-cards__eyebrow" lang="en">Premium</span>
+              <h3 class="service-cards__title">프리미엄</h3>
+              <span class="service-cards__desc">한 단계 높은 경험을 위한 선택</span>
+            </div>
+          </a>
+        </li>
+        <li class="service-cards__item">
+          <a class="service-cards__link" href="#">
+            <div class="service-cards__media">
+              <img class="service-cards__image" src="./assets/images/card4.avif" alt="" />
+            </div>
+            <div class="service-cards__body">
+              <span class="service-cards__eyebrow" lang="en">Care</span>
+              <h3 class="service-cards__title">케어 서비스</h3>
+              <span class="service-cards__desc">세심한 관리로 완성되는 만족</span>
+            </div>
+          </a>
+        </li>
+        <li class="service-cards__item">
+          <a class="service-cards__link" href="#">
+            <div class="service-cards__media">
+              <img class="service-cards__image" src="./assets/images/card5.avif" alt="" />
+            </div>
+            <div class="service-cards__body">
+              <span class="service-cards__eyebrow" lang="en">Membership</span>
+              <h3 class="service-cards__title">멤버십</h3>
+              <span class="service-cards__desc">오래 함께할수록 커지는 혜택</span>
+            </div>
+          </a>
+        </li>
+      </ul>
+      <div class="service-cards__pagination"></div>
+    </div>
+  </div>
+</section>

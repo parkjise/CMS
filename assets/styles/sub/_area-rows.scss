@@ -1,0 +1,92 @@
+// ── AREA ROWS — 사진/텍스트 지그재그 행 ────────────────────────────
+// components/sub/area-rows.html  /  반전: .area-rows__row--reverse
+@use '../mixins' as *;
+
+.area-rows {
+  padding-bottom: 80px;
+  @include md {
+    padding-bottom: 165px;
+  }
+
+  &__row {
+    max-width: 1060px;
+    margin-inline: auto;
+    display: grid;
+    gap: 32px;
+    @include lg {
+      gap: 50px;
+      grid-template-columns: 654px 1fr;
+    }
+
+    & + & {
+      margin-top: 64px;
+      @include md {
+        margin-top: 120px;
+      }
+    }
+
+    // 반전: 텍스트 왼쪽 · 사진 오른쪽, 라인은 텍스트 아래
+    &--reverse {
+      @include lg {
+        grid-template-columns: 1fr 654px;
+      }
+      .area-rows__photo {
+        @include lg {
+          order: 2;
+        }
+      }
+      .area-rows__body {
+        border-top: 0;
+        border-bottom: 1px solid var(--color-text-primary);
+        padding-block: 32px 0;
+        @include lg {
+          padding-block: 60px 0;
+        }
+        justify-content: flex-start;
+      }
+    }
+  }
+
+  &__photo {
+    @include ratio(654, 424);
+    overflow: hidden;
+  }
+  &__image {
+    @include cover;
+    transition: transform 0.6s ease;
+  }
+  &__row:hover &__image {
+    transform: scale(1.04);
+  }
+
+  &__body {
+    @include flex(stretch, start, 0, column);
+    border-top: 1px solid var(--color-text-primary);
+    padding-top: 32px;
+    @include lg {
+      padding-top: 60px;
+    }
+  }
+  &__title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  &__link {
+    @include focus-ring;
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+  &__desc {
+    margin-top: 20px;
+    font-size: 1rem;
+    line-height: 1.9;
+    word-break: keep-all;
+    @include md {
+      margin-top: 30px;
+      font-size: 1.0625rem;
+      line-height: 2.1;
+    }
+    color: var(--color-text-secondary);
+  }
+}

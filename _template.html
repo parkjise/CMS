@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>홈페이지 템플릿 — 기본 스캐폴드</title>
+    <!--
+    공통 홈페이지 템플릿 시안 (직접 CSS/SCSS 작성)
+    - 업종 무관 스캐폴드. 문구는 어느 업종에서도 자연스러운 샘플 카피(브랜드: ONDO).
+    - 이름 규칙: partial 파일명 = SCSS 파일명 = BEM 블록명 = JS 파일명
+      hero-slider · brand-intro · service-cards · video-playlist · notice (+ location 미사용)
+      예) components/sections/service-cards.html ↔ styles/main/_service-cards.scss ↔ .service-cards__*
+    - 클래스는 BEM: .block__element--modifier  (공통 제목: .section-head__eyebrow/title/desc)
+    - 상태 클래스도 BEM modifier: .header--scrolled
+    - 컴포넌트: header/footer/섹션은 components/ 의 HTML partial 로 분리.
+      아래 data-include 목록만 넣고·빼고·순서를 바꿔서 페이지를 구성한다.
+      partial 안의 이미지 등 상대경로는 '이 페이지 기준'(./assets/...)으로 쓴다.
+    - ⚠️ 로컬 서버로 열어야 함 (file:// 에서는 fetch 차단):
+      VSCode Live Server → _template.html 우클릭 'Open with Live Server'
+    - 서브 페이지: _sub-template.html 을 복사해서 이 폴더(루트)에 만든다. 예: about.html
+      (하위 폴더에 두면 partial 상대경로가 깨짐 — _sub-template.html 상단 주석 참고)
+    - 이 파일을 복사해서 시안을 늘려가세요. 예: clinic-a.html, pension-b.html
+    - assets/styles/template.scss 편집 → VSCode 'Live Sass Compiler' Watch Sass 버튼이
+      assets/css/template.css 로 자동 컴파일 (전역 설정 savePath: ~/../css).
+      수동 컴파일 시: cd .../templates && npx sass --watch assets/styles/template.scss assets/css/template.css
+    - 저장하면 자동 재컴파일 → Live Server 가 브라우저 자동 새로고침.
+  -->
+    <link rel="stylesheet" href="assets/vendor/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/template.css" />
+    <link rel="stylesheet" href="./assets/vendor/remixicon/remixicon.css" />
+
+    <!-- swiper -->
+    <script src="assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+
+    <!-- gsap -->
+    <script src="./assets/vendor/gsap/gsap.min.js" defer></script>
+    <script src="./assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+
+    <script src="assets/js/include.js" defer></script>
+    <script src="./assets/js/header.js" defer></script>
+    <script src="./assets/js/quick-menu.js" defer></script>
+    <script src="./assets/js/hero-slider.js" defer></script>
+    <script src="./assets/js/brand-intro.js" defer></script>
+    <script src="./assets/js/service-cards.js" defer></script>
+    <script src="./assets/js/video-playlist.js" defer></script>
+    <script src="./assets/js/scroll-reveal.js" defer></script>
+  </head>
+  <body>
+    <div data-include="components/header.html"></div>
+
+    <main class="main" id="main" tabindex="-1">
+      <div data-include="components/sections/hero-slider.html"></div>
+      <div data-include="components/sections/brand-intro.html"></div>
+      <div data-include="components/sections/service-cards.html"></div>
+      <div data-include="components/sections/video-playlist.html"></div>
+      <div data-include="components/sections/notice.html"></div>
+    </main>
+
+    <div data-include="components/footer.html"></div>
+    <div data-include="components/quick-menu.html"></div>
+
+  </body>
+</html>

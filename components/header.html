@@ -1,0 +1,42 @@
+<!-- HEADER → layout/Navbar.tsx (섹션 아님, 사이트 공통) -->
+<a class="skip-link" href="#main">본문 바로가기</a>
+
+<header class="header" id="header">
+  <div class="header__inner">
+    <h1 class="header__logo">
+      <a class="header__logo-link" href="_template.html" lang="en">ONDO</a>
+    </h1>
+
+    <nav class="header__nav" id="header-nav" aria-label="주 메뉴">
+      <ul class="header__menu">
+        <li class="header__menu-item">
+          <a class="header__menu-link" href="about.html" lang="en">About</a>
+        </li>
+        <li class="header__menu-item">
+          <a class="header__menu-link" href="business.html" lang="en">Business</a>
+        </li>
+        <li class="header__menu-item">
+          <a class="header__menu-link" href="notice.html" lang="en">Notice</a>
+        </li>
+        <li class="header__menu-item">
+          <a class="header__menu-link" href="#contact" lang="en">Contact</a>
+        </li>
+      </ul>
+    </nav>
+
+    <button
+      class="header__menu-toggle"
+      type="button"
+      aria-label="전체 메뉴 열기"
+      aria-controls="header-nav"
+      aria-expanded="false"
+    >
+      <i class="ri-menu-line" aria-hidden="true"></i>
+    </button>
+
+    <ul class="header__account">
+      <li><a class="header__account-link" href="#">로그인</a></li>
+      <li><a class="header__account-link" href="#">회원가입</a></li>
+    </ul>
+  </div>
+</header>

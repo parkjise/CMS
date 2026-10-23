@@ -1,0 +1,172 @@
+// ── BRAND INTRO — 브랜드 소개 + 이미지 갤러리 + 대표 서비스 3종 ────
+// 용도 예: 브랜드 소개, 선택 이유, 대표 상품/시설 (CMS 기본 매핑: INTRO)
+// JS: assets/js/brand-intro.js
+@use '../mixins' as *;
+
+.brand-intro {
+  background-color: #18151e;
+  border-radius: 0;
+  color: #fff;
+  padding-top: 100px;
+  @include md {
+    padding-top: 180px;
+  }
+
+  // 배경 장식 원 (aria-hidden)
+  &__glow {
+    position: absolute;
+    top: 112px;
+    right: 105px;
+    width: min(345px, 60vw);
+    height: min(345px, 60vw);
+    pointer-events: none;
+    background: rgba(180, 134, 68, 0.3);
+    border-radius: 100%;
+    filter: blur(100px);
+    animation: brand-intro-glow 4s ease-in-out infinite alternate;
+  }
+
+  // ── 소개 헤드 ──
+  &__title {
+    @include fluid-type(2.25rem, 3.75rem);
+    @include font-seasons;
+  }
+  &__desc,
+  &__signature-desc {
+    word-break: keep-all;
+  }
+  &__desc {
+    margin-top: 16px;
+  }
+
+  // ── 이미지 갤러리 (Swiper) ──
+  &__gallery {
+    padding: 60px 0 80px;
+    @include md {
+      padding: 100px 0 140px;
+    }
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+    @include flex(center, center, 60px, column);
+    @include md {
+      gap: 120px;
+    }
+  }
+  &__gallery-viewport {
+    width: min(400px, 72%);
+    aspect-ratio: 4 / 5;
+    overflow: visible;
+  }
+  &__gallery-track {
+    padding: 0;
+  }
+  &__gallery-slide {
+    position: relative;
+    height: 100%;
+    overflow: visible;
+  }
+  &__gallery-card {
+    width: 100%;
+    height: 100%;
+    border-radius: 30px;
+    overflow: hidden;
+    transition-property: transform, opacity, border-radius;
+    transition-timing-function: var(--swiper-wrapper-transition-timing-function, ease);
+    .swiper-slide-active & {
+      border-radius: 0;
+    }
+  }
+  &__gallery-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  // ── 시그니처 (대표 서비스) ──
+  &__signature {
+    margin-top: 100px;
+  }
+  &__signature-title {
+    @include font-seasons;
+    text-align: center;
+    @include fluid-type(2.25rem, 3.75rem);
+  }
+  &__signature-desc {
+    text-align: center;
+  }
+
+  &__features {
+    display: grid;
+    margin-top: 48px;
+    @include md {
+      grid-template-columns: repeat(3, 1fr);
+      margin-top: 80px;
+    }
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  // 모바일: 세로로 쌓고 위 구분선 / 태블릿 이상: 3단 + 왼쪽 구분선
+  &__feature {
+    padding: 28px 24px;
+    & + & {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    @include md {
+      padding: 40px;
+      border-left: 1px solid rgba(255, 255, 255, 0.2);
+      & + & {
+        border-top: 0;
+      }
+    }
+  }
+  // 모바일: 글자 왼쪽 · 아이콘 오른쪽 한 줄 / 태블릿 이상: 위아래
+  &__feature-link {
+    height: 100%;
+    @include flex(center, space-between, 16px);
+    @include focus-ring(#fff);
+    @include md {
+      @include flex(start, space-between, 30px, column);
+    }
+  }
+  &__feature-text {
+    @include flex(start, start, 0, column);
+  }
+  &__feature-name {
+    @include fluid-type(1.375rem, 1.75rem);
+    font-weight: 400;
+  }
+  &__feature-en {
+    @include font-seasons;
+  }
+  &__feature-icon {
+    flex-shrink: 0;
+    @include md {
+      width: 100%;
+      justify-items: flex-end;
+    }
+  }
+  &__feature-icon-image {
+    width: 72px;
+    @include md {
+      width: 120px;
+    }
+    @include lg {
+      width: 180px;
+    }
+  }
+}
+
+@keyframes brand-intro-glow {
+  0% {
+    transform: scale(1);
+  }
+  100% {
+    transform: scale(0.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-intro__glow {
+    animation: none;
+  }
+}

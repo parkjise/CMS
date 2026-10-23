@@ -1,0 +1,86 @@
+<!-- FOOTER → layout/Footer.tsx
+  3단: 고객 상담(전화·메신저) / 운영 시간 / 오시는 길·주차 + 왼쪽 하단 정책 링크·사업자 정보
+  외부 링크(메신저 상담, 지도 길찾기)는 사이트별 URL로 교체
+-->
+<footer class="footer" id="contact">
+  <div class="container footer__inner">
+    <!-- 고객 상담 -->
+    <section class="footer__block footer__block--contact" aria-labelledby="footer-contact-title">
+      <h2 class="footer__title" id="footer-contact-title">고객 상담</h2>
+      <p class="footer__phone">
+        <a class="footer__phone-link" href="tel:02-1234-5678">02-1234-5678</a>
+      </p>
+      <ul class="footer__buttons">
+        <li>
+          <a class="footer__button" href="#" target="_blank" rel="noopener">
+            카카오톡 상담<span class="sr-only">(새 창)</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 운영 시간 -->
+    <section class="footer__block footer__block--hours" aria-labelledby="footer-hours-title">
+      <h2 class="footer__title" id="footer-hours-title">운영 시간</h2>
+      <dl class="footer__hours">
+        <div class="footer__hours-row">
+          <dt class="footer__hours-day footer__hours-day--spaced">평일</dt>
+          <dd class="footer__hours-time">오전 10:00 - 오후 7:00</dd>
+        </div>
+        <div class="footer__hours-row">
+          <dt class="footer__hours-day">토요일</dt>
+          <dd class="footer__hours-time">오전 10:00 - 오후 4:00</dd>
+        </div>
+      </dl>
+      <p class="footer__note">일요일 · 공휴일 휴무</p>
+    </section>
+
+    <!-- 오시는 길 -->
+    <section class="footer__block footer__block--location" aria-labelledby="footer-location-title">
+      <h2 class="footer__title" id="footer-location-title">오시는 길</h2>
+      <address class="footer__text">서울특별시 강남구 테헤란로 123, 4층</address>
+      <ul class="footer__buttons">
+        <li>
+          <a class="footer__button" href="#" target="_blank" rel="noopener">
+            네이버 길찾기<span class="sr-only">(새 창)</span>
+          </a>
+        </li>
+        <li>
+          <a class="footer__button" href="#" target="_blank" rel="noopener">
+            카카오 길찾기<span class="sr-only">(새 창)</span>
+          </a>
+        </li>
+        <li>
+          <a class="footer__button" href="#" target="_blank" rel="noopener">
+            티맵 길찾기<span class="sr-only">(새 창)</span>
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <!-- 주차 안내 -->
+    <section class="footer__block footer__block--parking" aria-labelledby="footer-parking-title">
+      <h2 class="footer__title" id="footer-parking-title">주차 안내</h2>
+      <p class="footer__text">건물 내 주차 2시간 무료 · 발렛 서비스 가능</p>
+    </section>
+
+    <!-- 정책 링크 + 사업자 정보 -->
+    <div class="footer__block footer__block--legal">
+      <nav class="footer__policy" aria-label="약관 및 정책">
+        <ul class="footer__policy-list">
+          <li><a class="footer__policy-link" href="#">이용약관</a></li>
+          <li><a class="footer__policy-link" href="#">개인정보처리방침</a></li>
+        </ul>
+      </nav>
+      <p class="footer__company">
+        <span class="footer__company-item">ONDO</span>
+        <span class="footer__company-item">대표자 김온도</span>
+        <span class="footer__company-item">사업자등록번호 123-45-67890</span>
+        <br />
+        <span class="footer__company-item">서울특별시 강남구 테헤란로 123, 4층</span>
+        <span class="footer__company-item">TEL 02-1234-5678</span>
+      </p>
+      <p class="footer__copyright"><small>Copyright &copy; 2026 ONDO. All rights reserved.</small></p>
+    </div>
+  </div>
+</footer>

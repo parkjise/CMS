@@ -1,0 +1,51 @@
+// ════════════════════════════════════════════════════════════════
+// 엔트리 — 영역별 partial 조합 (이 파일만 컴파일)
+// ────────────────────────────────────────────────────────────────
+// 컴파일:  VSCode 'Live Sass Compiler' Watch Sass → ../css/template.css 로 출력
+//          (전역 설정 savePath: ~/../css / 엔트리는 밑줄 없어야 인식됨)
+//   수동:  cd docs/mockups/hospital/templates
+//          npx sass --watch assets/styles/template.scss assets/css/template.css
+//
+// 스타일을 header / main / footer 영역으로 나눠 관리한다.
+// 새 main 섹션을 추가하려면:
+//   1) main/_새섹션.scss 생성 (@use '../mixins' as *;)
+//   2) 아래 main 그룹에 @use 'main/새섹션'; 한 줄 추가
+//   3) components/sections/새섹션.html 생성 → _template.html 에 data-include 추가
+// ════════════════════════════════════════════════════════════════
+
+@use 'tokens'; // :root 토큰 (가장 먼저)
+@use 'reset';
+@use 'base'; // 리셋 · 레이아웃 · 공용 컴포넌트
+
+@use 'header/header'; // GNB
+
+// 섹션 파일명 = HTML partial 파일명 = BEM 블록명 (components/sections/*.html 과 1:1)
+// 괄호 안은 CMS 섹션 타입 기본 매핑 (이식 시 참고)
+@use 'main/hero-slider'; // 메인 비주얼 슬라이드 (HERO_BANNER)
+@use 'main/brand-intro'; // 브랜드 소개 + 갤러리 + 대표 서비스 (INTRO)
+@use 'main/service-cards'; // 서비스 카드 목록 (SERVICES)
+@use 'main/video-playlist'; // 영상 목록 (신규)
+@use 'main/notice'; // 공지 목록 (신규)
+@use 'main/location'; // 지도 (MAP) — 현재 페이지 미사용
+
+// 서브 페이지 공통 (components/sub/*.html 과 1:1)
+@use 'sub/sub-hero'; // 서브 상단 비주얼 + 브레드크럼
+@use 'sub/page-intro'; // 서브 본문 상단 공통 소개
+@use 'sub/sub-nav'; // 서브 탭 메뉴
+@use 'sub/media-row'; // 사진 + 제목·설명 가로 배치
+@use 'sub/strength-list'; // 체크리스트 + 사진
+@use 'sub/area-rows'; // 사진/텍스트 지그재그
+@use 'sub/photo-gallery'; // 사진 슬라이드 + 썸네일
+@use 'sub/consult-links'; // 상담·예약 버튼
+@use 'sub/history-timeline'; // 연혁 타임라인
+@use 'sub/story-text'; // 큰 영문 제목 + 국문 명조 소제목 + 설명 (아래 섹션 공용)
+@use 'sub/split-story'; // 글 | 사진 2단 (--lined, --reverse)
+@use 'sub/milestone-split'; // 제목·사진 | 사진·주요 연도
+@use 'sub/banner-split'; // 글 | 오른쪽 꽉 찬 사진
+@use 'sub/criteria-cards'; // 제목·설명 + 사진 카드 3개
+@use 'sub/value-circles'; // 배경 사진 + 원형 가치 3개 + 더보기
+@use 'sub/board-list'; // 게시판 목록 (공지사항)
+@use 'sub/board-view'; // 게시판 상세
+
+@use 'footer/footer'; // Footer
+@use 'quick-menu/quick-menu'; // 퀵메뉴 · 간편상담 · 상단으로 (메인·서브 공통)
