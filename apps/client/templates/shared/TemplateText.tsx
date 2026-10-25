@@ -13,6 +13,7 @@ interface Props {
   maxLength?: number
   multiline?: boolean
   lang?: string
+  id?: string
 }
 
 /**
@@ -28,6 +29,7 @@ export function TemplateText({
   maxLength,
   multiline = false,
   lang,
+  id,
 }: Props) {
   const value = getString(section.settings, field)
   if (!value) return null
@@ -44,13 +46,15 @@ export function TemplateText({
         maxLength={maxLength}
         multiline={multiline}
         className={classes}
+        id={id}
+        lang={lang}
       />
     )
   }
 
   const Tag = as
   return (
-    <Tag className={classes} lang={lang}>
+    <Tag className={classes} lang={lang} id={id}>
       {value}
     </Tag>
   )

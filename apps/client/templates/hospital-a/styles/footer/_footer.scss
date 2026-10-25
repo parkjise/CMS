@@ -1,0 +1,194 @@
+// ── FOOTER (layout/Footer.tsx) ──────────────────────────────────
+// components/footer.html
+// lg 이상: 3단 그리드 (세로 구분선)
+//   고객 상담 | 운영 시간 | 오시는 길
+//   정책·정보 |    〃     | 주차 안내
+// lg 미만: 한 줄씩 쌓고 정책·정보는 맨 아래
+@use '../mixins' as *;
+
+$bg: #070707;
+$line: #323232;
+
+.footer {
+  padding: 60px 0;
+  background: $bg;
+  @include md {
+    padding: 80px 0;
+  }
+  color: #fff;
+
+  &__inner {
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+
+    @include lg {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      grid-template-areas:
+        'contact hours location'
+        'legal   hours parking';
+      gap: 0;
+    }
+  }
+
+  // ── 단 배치 + 구분선 ──
+  &__block {
+    @include flex(flex-start, flex-start, 24px, column);
+    padding-block: 0; // base 의 section 패딩 제거
+
+    @include lg {
+      padding-inline: 40px;
+      @include xl {
+        padding-inline: 80px;
+      }
+
+      &--contact,
+      &--legal {
+        padding-left: 0;
+      }
+      &--location,
+      &--parking {
+        padding-right: 0;
+      }
+      &--contact,
+      &--legal,
+      &--hours {
+        border-right: 1px solid $line;
+      }
+      &--contact,
+      &--location {
+        padding-bottom: 90px;
+      }
+    }
+
+    &--contact { grid-area: contact; }
+    &--hours { grid-area: hours; }
+    &--location { grid-area: location; }
+    &--parking {
+      grid-area: parking;
+      gap: 13px;
+    }
+    &--legal {
+      grid-area: legal;
+      gap: 30px;
+      order: 1; // lg 미만에서 맨 아래
+    }
+  }
+
+  &__title {
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  // 고객 상담 — 큰 전화번호
+  &__phone {
+    margin-top: -16px;
+    @include font-seasons(400);
+    @include fluid-type(2rem, 2.4375rem);
+    line-height: 1.6;
+  }
+  &__phone-link {
+    @include focus-ring(#fff);
+  }
+
+  &__text {
+    @include fluid-type(1.0625rem, 1.25rem);
+    word-break: keep-all;
+    font-weight: 500;
+    font-style: normal;
+    color: #bebebe;
+  }
+
+  // 테두리 버튼 (메신저 상담, 길찾기)
+  &__buttons {
+    @include flex(center, flex-start, 10px 12px);
+    flex-wrap: wrap;
+  }
+  &__button {
+    display: block;
+    padding: 9px 22px;
+    border: 1px solid #fff;
+    border-radius: 4px;
+    font-size: 1rem;
+    transition: background 0.2s, color 0.2s;
+    @include focus-ring(#fff);
+
+    @include hover {
+      background: #fff;
+      color: $bg;
+    }
+  }
+
+  // 운영 시간 — 요일은 양끝 정렬(평　일 / 토요일)
+  &__hours {
+    @include flex(stretch, flex-start, 10px, column);
+  }
+  &__hours-row {
+    display: flex;
+    gap: 34px;
+    @include fluid-type(1.0625rem, 1.25rem);
+    line-height: 1.6;
+  }
+  &__hours-day {
+    width: 3em;
+    font-weight: 700;
+    white-space: nowrap;
+
+    // 두 글자 요일을 세 글자 폭에 맞춤 (평　일)
+    &--spaced {
+      letter-spacing: 1em;
+    }
+  }
+  &__hours-time {
+    color: #bfbfbf;
+  }
+  &__note {
+    margin-top: -14px;
+    padding-left: calc(3em * 1.25 / 1.125 + 34px); // 시간 열과 맞춤
+    font-size: 1.125rem;
+    color: #787878;
+  }
+
+  // 정책 링크 (구분선 |)
+  &__policy-list {
+    @include flex(center, flex-start, 10px);
+  }
+  &__policy-list > li + li::before {
+    content: '|';
+    margin-right: 10px;
+    font-weight: 400;
+    color: #e2e2e2;
+  }
+  &__policy-link {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: #e2e2e2;
+    @include focus-ring(#fff);
+
+    @include hover {
+      color: #fff;
+    }
+  }
+
+  &__company,
+  &__copyright {
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.63;
+    color: #797979;
+  }
+  &__company-item + &__company-item::before {
+    content: '|';
+    margin-inline: 8px;
+  }
+  &__copyright small {
+    font-size: inherit;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .footer__button {
+    transition: none;
+  }
+}

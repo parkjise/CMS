@@ -1,0 +1,15 @@
+// 템플릿 루트 아래로 중첩될 규칙 모음 (index.scss 의 meta.load-css 대상)
+// 파일명 = 컴포넌트명 = BEM 블록명 (components/*.tsx 와 1:1)
+@use 'reset';
+@use 'base'; // 레이아웃 · 공용 컴포넌트 (.page-container · .card-grid · .section-head · .btn · .sr-only)
+
+@use 'header/header'; // Header.tsx
+
+@use 'main/hero-slider'; // sections/HeroSlider.tsx (HERO_SLIDER)
+@use 'main/brand-intro'; // sections/BrandIntro.tsx (INTRO)
+@use 'main/service-cards'; // sections/ServiceCards.tsx (SERVICES)
+@use 'main/video-playlist'; // sections/VideoPlaylist.tsx (VIDEO_PLAYLIST)
+@use 'main/notice'; // sections/NoticeLatest.tsx (NOTICE_LATEST)
+
+@use 'footer/footer'; // Footer.tsx
+@use 'quick-menu/quick-menu'; // QuickMenu.tsx

@@ -6,9 +6,17 @@
  * - 테마형 6종(lib/templates)은 여기에 없다 → 기존 SectionRenderer 로 렌더링.
  */
 import type { PublicSite } from '@/lib/publicSite.types'
+import { hospitalAManifest } from './hospital-a/manifest'
+import { hospitalASample } from './hospital-a/sample-content'
 import type { CodeTemplateEntry } from './shared/contracts'
 
-export const CODE_TEMPLATES: CodeTemplateEntry[] = []
+export const CODE_TEMPLATES: CodeTemplateEntry[] = [
+  {
+    manifest: hospitalAManifest,
+    sample: hospitalASample,
+    load: () => import('./hospital-a/Template'),
+  },
+]
 
 /** 템플릿 ID('TPL_HOSPITAL_A') 또는 폴더 키('hospital-a')로 찾는다 */
 export function findCodeTemplate(

@@ -1,0 +1,42 @@
+// ════════════════════════════════════════════════════════════════
+// hospital-a 템플릿 스타일 엔트리 (기획서 11.7 — 코드형 · styling: scss)
+// ────────────────────────────────────────────────────────────────
+// 원본: docs/mockups/hospital/templates/assets/styles (읽기 전용 — 여기로 복사해 사용)
+// 스타일 격리 (두 겹):
+//   1) 모든 규칙을 [data-template='hospital-a'] 아래로 중첩 (meta.load-css)
+//   2) @layer template — Tailwind base(preflight) 뒤, utilities 앞
+// 레이어 순서 선언은 app/globals.css 와 같아야 한다 (먼저 읽히는 쪽이 순서를 정함)
+// ════════════════════════════════════════════════════════════════
+@use 'sass:meta';
+@use 'tokens';
+@use 'mixins' as *;
+
+@layer theme, base, components, template, utilities;
+
+// 라이브러리 CSS 도 레이어 안에 둬야 템플릿 규칙이 이긴다 (레이어 밖 CSS 는 레이어 안 규칙보다 우선)
+@layer components {
+  @include meta.load-css('../../../node_modules/swiper/swiper.css');
+  @include meta.load-css('../../../node_modules/swiper/modules/pagination.css');
+}
+
+@layer template {
+  [data-template='hospital-a'] {
+    @include tokens.root-tokens;
+
+    // 목업 body 기본값
+    font-family: var(--font-body);
+    color: var(--color-text-primary);
+    background: var(--color-background);
+    line-height: 1.6;
+    font-size: 100%;
+
+    // 모바일 하단 바(퀵메뉴)에 페이지 끝이 가리지 않도록 (목업 body:has(.quick-menu))
+    @include down(md) {
+      &:has(.quick-menu) {
+        padding-bottom: calc(64px + env(safe-area-inset-bottom));
+      }
+    }
+
+    @include meta.load-css('scoped');
+  }
+}
