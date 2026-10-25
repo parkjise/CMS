@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { Eye, MessageCircle, MessageSquare, Users } from 'lucide-react'
 import { RecentInquiryList } from '@/components/dashboard/RecentInquiryList'
+import { SampleReminder } from '@/components/dashboard/SampleReminder'
 import { StatCard } from '@/components/dashboard/StatCard'
 import { VisitorChart } from '@/components/dashboard/VisitorChart'
 import {
@@ -47,6 +48,9 @@ export function DashboardPage() {
           </span>
         </div>
       </div>
+
+      {/* 템플릿 샘플이 남아 있으면 할 일 안내 (기획서 11.8) */}
+      <SampleReminder />
 
       {/* 통계 카드 4개 */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">

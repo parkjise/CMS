@@ -6,6 +6,8 @@ export interface SectionSetting {
   field_key: string
   field_value: string | null
   value_type: string
+  /** 템플릿 샘플 값 그대로인지 — 저장하면 false (기획서 11.8) */
+  is_sample?: boolean
 }
 
 export interface Section {
@@ -15,6 +17,8 @@ export interface Section {
   label: string
   display_order: number
   is_active: boolean
+  /** 섹션이 속한 페이지 (기본 home) */
+  page_key?: string
   settings: SectionSetting[]
   created_at: string
   updated_at: string

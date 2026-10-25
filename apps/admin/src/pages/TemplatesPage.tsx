@@ -6,6 +6,7 @@ import { CustomizePanel } from '@/components/templates/CustomizePanel'
 import { IndustryFilterTabs } from '@/components/templates/IndustryFilterTabs'
 import { TemplateCard } from '@/components/templates/TemplateCard'
 import {
+  type ContentMode,
   type IndustryType,
   type TemplateItem,
   useApplyTemplate,
@@ -45,12 +46,16 @@ export function TemplatesPage() {
     openTemplatePreview(tenantSlug, template.id)
   }
 
-  const handleConfirmApply = () => {
+  const handleConfirmApply = (contentMode: ContentMode) => {
     if (!pendingApply) return
     const name = pendingApply.name
-    applyMutation.mutate(pendingApply.id, {
+    applyMutation.mutate({ templateId: pendingApply.id, contentMode }, {
       onSuccess: () => {
-        toast.success(`'${name}' 템플릿을 적용했습니다.`)
+        toast.success(
+          contentMode === 'replace_with_sample'
+            ? `'${name}' 템플릿 샘플로 교체했습니다.`
+            : `'${name}' 템플릿을 적용했습니다.`,
+        )
         setPendingApply(null)
       },
     })
