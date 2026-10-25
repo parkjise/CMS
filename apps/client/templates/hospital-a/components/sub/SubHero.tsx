@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
-import { getString } from '@/lib/sectionSettings'
+import { getBoolean, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
 
@@ -12,12 +12,13 @@ interface Props extends CodeSectionProps {
 
 /**
  * 서브 상단 비주얼 + 제목 + 브레드크럼 — 목업 sub/sub-hero.html + sub-hero.js
- * 설정 키: eyebrow · title · category (인라인 편집) · image_url
+ * 설정 키: eyebrow · title · category (인라인 편집) · image_url · plain(이미지 없는 형 — 목업 sub-hero-plain)
  */
 export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
   const ref = useRef<HTMLElement>(null)
   const image = getString(section.settings, 'image_url')
   const title = getString(section.settings, 'title')
+  const plain = getBoolean(section.settings, 'plain')
 
   // 아래로: 다음 영역 시작점으로 이동 + 첫 링크·버튼에 포커스
   const scrollDown = () => {
@@ -29,9 +30,13 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
   }
 
   return (
-    <section className="sub-hero" aria-labelledby="sub-hero-title" ref={ref}>
+    <section
+      className={`sub-hero${plain ? ' sub-hero--plain' : ''}`}
+      aria-labelledby="sub-hero-title"
+      ref={ref}
+    >
       {/* eslint-disable-next-line @next/next/no-img-element -- 목업 배경 비주얼(object-fit) 유지 */}
-      {image && <img className="sub-hero__image" src={image} alt="" />}
+      {image && !plain && <img className="sub-hero__image" src={image} alt="" />}
       <div className="page-container sub-hero__content">
         <TemplateText section={section} editable={editable} field="eyebrow" as="p" className="sub-hero__eyebrow" lang="en" maxLength={40} />
         <TemplateText section={section} editable={editable} field="title" as="h2" id="sub-hero-title" className="sub-hero__title" maxLength={40} />
@@ -53,10 +58,12 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
           </ol>
         </nav>
       </div>
-      <button className="sub-hero__scroll" type="button" aria-label="아래로 스크롤" onClick={scrollDown}>
-        {/* eslint-disable-next-line @next/next/no-img-element -- 장식 아이콘 */}
-        <img className="sub-hero__scroll-icon" src={scrollIconUrl} width={20} height={38} alt="" />
-      </button>
+      {!plain && (
+        <button className="sub-hero__scroll" type="button" aria-label="아래로 스크롤" onClick={scrollDown}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- 장식 아이콘 */}
+          <img className="sub-hero__scroll-icon" src={scrollIconUrl} width={20} height={38} alt="" />
+        </button>
+      )}
     </section>
   )
 }

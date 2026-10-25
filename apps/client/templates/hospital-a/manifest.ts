@@ -66,9 +66,22 @@ export const hospitalAManifest: TemplateManifest = {
         'CONTENT_BLOCK',
       ],
     },
-    // 공지·상담 화면은 T-123 에서 구현 — 메뉴 순서·이름만 먼저 정의
-    { key: 'notice', title: '공지사항', menu: 'gnb', default_sections: [] },
-    { key: 'consult', title: '상담·예약', menu: 'gnb', default_sections: [] },
+    // 게시판 (T-123) — BOARD 섹션의 board 값: notice | consult | reservation
+    { key: 'notice', title: '공지사항', menu: 'gnb', default_sections: ['SUB_HERO', 'BOARD'] },
+    {
+      key: 'consult',
+      title: '상담·예약',
+      tab_title: '온라인 상담',
+      menu: 'gnb',
+      default_sections: ['SUB_HERO', 'BOARD'],
+    },
+    {
+      key: 'reservation',
+      title: '온라인 예약',
+      menu: 'sub',
+      parent: 'consult',
+      default_sections: ['SUB_HERO', 'BOARD'],
+    },
   ],
   sections: [
     'HERO_SLIDER',
@@ -80,6 +93,7 @@ export const hospitalAManifest: TemplateManifest = {
     'CONTENT_BLOCK',
     'HISTORY_TIMELINE',
     'MAP',
+    'BOARD',
   ],
   css_variables: {
     primary: '#0ea5a0',

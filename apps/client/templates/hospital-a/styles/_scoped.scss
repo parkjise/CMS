@@ -29,5 +29,13 @@
 @use 'sub/criteria-cards';
 @use 'sub/value-circles';
 
+// 게시판 · 입력 폼 (T-123)
+@use 'sub/board-toolbar'; // 총 건수 | 검색 (공용)
+@use 'sub/pagination'; // 페이지 이동 (공용)
+@use 'sub/board-list'; // 공지 목록
+@use 'sub/board-view'; // 공지·상담 상세 (+ 답변 박스)
+@use 'sub/consult-board'; // 상담 목록 (표)
+@use 'sub/board-form'; // 상담 글쓰기 · 예약 폼
+
 @use 'footer/footer'; // Footer.tsx
 @use 'quick-menu/quick-menu'; // QuickMenu.tsx

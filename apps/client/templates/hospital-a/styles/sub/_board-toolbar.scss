@@ -1,0 +1,59 @@
+// ── BOARD TOOLBAR — 게시판 상단 총 건수 | 검색 ───────────────────────
+// 게시판 공용 (board-list, consult-board). 검색 동작은 assets/js/board-search.js
+@use '../mixins' as *;
+
+$muted: #64748b;
+
+.board-toolbar {
+  @include flex(stretch, space-between, 20px, column);
+  @include md {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  &__total {
+    font-size: 1rem;
+    @include md {
+      font-size: 1.125rem;
+    }
+  }
+  &__count {
+    margin-left: 0.45em;
+    font-weight: 600;
+  }
+  &__search {
+    @include flex(center, space-between, 10px);
+    width: 100%;
+    padding: 10px;
+    border-bottom: 1px solid var(--color-text-primary);
+    @include md {
+      width: 370px;
+    }
+
+    &:focus-within {
+      border-bottom-color: var(--color-primary);
+    }
+  }
+  &__search-input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    background: none;
+    font-size: 1rem;
+    @include md {
+      font-size: 1.125rem;
+    }
+    &::placeholder {
+      color: $muted;
+    }
+    &:focus {
+      outline: none;
+    }
+  }
+  &__search-button {
+    @include button-reset;
+    @include flex-center;
+    font-size: 1.5rem;
+    @include focus-ring;
+  }
+}

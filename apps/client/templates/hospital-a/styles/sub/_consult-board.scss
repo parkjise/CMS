@@ -1,0 +1,202 @@
+// ── CONSULT BOARD — 온라인 상담 목록 (표) ────────────────────────────
+// components/sub/consult-board.html
+// md 이상: 5칸 표 / md 미만: 줄마다 제목 + (작성자·답변·날짜) 카드형
+@use '../mixins' as *;
+
+$line-strong: #ced7e3;
+$line: #e5e7eb;
+$muted: #64748b;
+
+.consult-board {
+  padding: 64px 0 100px;
+  @include md {
+    padding: 120px 0 150px;
+  }
+
+  &__title {
+    @include fluid-type(1.375rem, 2.125rem);
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+  }
+
+  &__toolbar {
+    margin-top: 40px;
+    @include md {
+      margin-top: 80px;
+    }
+  }
+
+  &__table {
+    width: 100%;
+    margin-top: 28px;
+    border-top: 1px solid var(--color-text-primary);
+    border-spacing: 0;
+    table-layout: fixed;
+    font-size: 0.9375rem;
+  }
+  &__col--no {
+    width: 9%;
+  }
+  &__col--author {
+    width: 12%;
+  }
+  &__col--status {
+    width: 16%;
+  }
+  &__col--date {
+    width: 18%;
+  }
+
+  &__head th {
+    height: 56px;
+    border-bottom: 1px solid $line-strong;
+    font-weight: 600;
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  &__row {
+    td {
+      height: 64px;
+      padding: 10px 8px;
+      border-bottom: 1px solid $line;
+      color: $muted;
+      text-align: center;
+      vertical-align: middle;
+    }
+  }
+  &__subject {
+    min-width: 0;
+    text-align: left !important;
+  }
+  &__link {
+    @include flex(center, flex-start, 6px);
+    max-width: 100%;
+    color: var(--color-text-primary);
+    @include focus-ring;
+
+    > span:last-child {
+      @include ellipsis;
+    }
+    i {
+      flex-shrink: 0;
+      color: $muted;
+    }
+
+    @include hover {
+      color: var(--color-primary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+  }
+
+  &__badge {
+    display: inline-flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 14px;
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+
+    &--done {
+      background: var(--color-text-primary);
+      color: #fff;
+    }
+    &--wait {
+      border: 1px solid $line-strong;
+      color: $muted;
+    }
+  }
+  &__date {
+    font-variant-numeric: tabular-nums;
+  }
+
+  // md 미만: 표 → 카드형 줄
+  @include down(md) {
+    &__table,
+    &__table tbody,
+    &__row td {
+      display: block;
+    }
+    &__table colgroup,
+    &__head {
+      @include sr-only;
+    }
+    &__row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px 12px;
+      padding: 18px 4px;
+      border-bottom: 1px solid $line;
+
+      td {
+        height: auto;
+        padding: 0;
+        border: 0;
+        font-size: 0.8125rem;
+      }
+    }
+    &__no {
+      display: none !important;
+    }
+    &__subject {
+      flex-basis: 100%;
+      font-size: 1rem !important;
+    }
+    &__badge {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 0.75rem;
+    }
+    &__status {
+      order: 1;
+    }
+    &__author {
+      order: 2;
+    }
+    &__date {
+      order: 3;
+    }
+  }
+
+  &__empty {
+    padding: 80px 0;
+    border-bottom: 1px solid $line;
+    text-align: center;
+    color: $muted;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 32px;
+    @include md {
+      margin-top: 45px;
+    }
+  }
+  &__write {
+    @include flex-center;
+    width: 120px;
+    height: 44px;
+    border: 1px solid var(--color-text-primary);
+    border-radius: 999px;
+    font-size: 1rem;
+    transition: background-color 0.2s, color 0.2s;
+    @include focus-ring;
+
+    @include hover {
+      background: var(--color-text-primary);
+      color: #fff;
+    }
+  }
+
+  &__pagination {
+    margin-top: 40px;
+    @include md {
+      margin-top: 60px;
+    }
+  }
+}

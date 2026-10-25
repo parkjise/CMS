@@ -15,6 +15,8 @@ interface Props {
   contentSource?: 'tenant' | 'sample'
   /** 미리보기 안에서 페이지 이동 링크를 유지하기 위한 쿼리 ('tpl=…&content=…') */
   previewQuery?: string
+  detailId?: string
+  query?: { q?: string; p?: string }
 }
 
 /**
@@ -31,6 +33,8 @@ export async function CodeTemplateRenderer({
   preview = false,
   contentSource = 'tenant',
   previewQuery,
+  detailId,
+  query,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -60,6 +64,8 @@ export async function CodeTemplateRenderer({
         siteInfo={siteInfo}
         preview={preview}
         previewQuery={previewQuery}
+        detailId={detailId}
+        query={query}
       />
     </div>
   )

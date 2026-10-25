@@ -33,14 +33,42 @@ export interface CodeTemplateProps {
    * /{slug}/preview?{query}&page={key} 로 만들어 미리보기 안에서 이동한다
    */
   previewQuery?: string
+  /** 게시판 상세·글쓰기 ('{글 id}' | 'write') — /{slug}/{page}/{id} */
+  detailId?: string
+  /** 목록 검색어(q) · 페이지(p) */
+  query?: { q?: string; p?: string }
 }
 
-/** 페이지 주소 — 실제: /{slug} · /{slug}/{key} / 미리보기: /{slug}/preview?…&page={key} */
-export function pageHref(slug: string, key: string, previewQuery?: string): string {
+export interface HrefExtra {
+  /** 게시판 상세·글쓰기 */
+  id?: string
+  q?: string
+  p?: number | string
+}
+
+/**
+ * 페이지 주소 — 실제: /{slug} · /{slug}/{key}[/{id}][?q=&p=]
+ * 미리보기: /{slug}/preview?{previewQuery}&page={key}[&id=][&q=&p=]
+ */
+export function pageHref(
+  slug: string,
+  key: string,
+  previewQuery?: string,
+  extra: HrefExtra = {},
+): string {
+  const params = new URLSearchParams()
+  if (extra.q) params.set('q', extra.q)
+  if (extra.p && Number(extra.p) > 1) params.set('p', String(extra.p))
   if (previewQuery) {
-    return `/${slug}/preview?${previewQuery}${key === 'home' ? '' : `&page=${key}`}`
+    const preview = new URLSearchParams(previewQuery)
+    if (key !== 'home') preview.set('page', key)
+    if (extra.id) preview.set('id', extra.id)
+    params.forEach((value, name) => preview.set(name, value))
+    return `/${slug}/preview?${preview.toString()}`
   }
-  return key === 'home' ? `/${slug}` : `/${slug}/${key}`
+  const path = key === 'home' ? `/${slug}` : `/${slug}/${key}${extra.id ? `/${extra.id}` : ''}`
+  const search = params.toString()
+  return search ? `${path}?${search}` : path
 }
 
 /** 샘플 콘텐츠의 섹션 하나 — 값은 문자열, 목록은 배열/객체 그대로 (렌더링 시 JSON 직렬화) */

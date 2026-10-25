@@ -8,6 +8,7 @@ import { resolveCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string; page: string }>
+  searchParams: Promise<{ q?: string; p?: string }>
 }
 
 /** 코드형 템플릿 서브 페이지 찾기 — 테마형 템플릿이거나 없는 페이지면 null (404) */
@@ -21,7 +22,7 @@ async function resolvePage(tenantSlug: string, pageKey: string) {
   return { site, entry, page }
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {
   const { tenant_slug, page } = await params
   const resolved = await resolvePage(tenant_slug, page)
   if (!resolved) return { title: '페이지를 찾을 수 없습니다', robots: { index: false, follow: false } }
@@ -32,8 +33,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * 코드형 템플릿 서브 페이지 (기획서 11.9) — /{slug}/{page_key}
  * 매니페스트 pages 에 있는 키만 열리고, 테마형 템플릿 테넌트는 서브 페이지가 없어 404.
  */
-export default async function TenantSubPage({ params }: Props) {
+export default async function TenantSubPage({ params, searchParams }: Props) {
   const { tenant_slug, page } = await params
+  const { q, p } = await searchParams
   const resolved = await resolvePage(tenant_slug, page)
   if (!resolved) notFound()
 
@@ -43,7 +45,13 @@ export default async function TenantSubPage({ params }: Props) {
   return (
     <>
       <EditToolbar sampleCount={countSampleSettings(pageSections)} />
-      <CodeTemplateRenderer entry={entry} site={site} tenantSlug={tenant_slug} pageKey={page} />
+      <CodeTemplateRenderer
+        entry={entry}
+        site={site}
+        tenantSlug={tenant_slug}
+        pageKey={page}
+        query={{ q, p }}
+      />
     </>
   )
 }
