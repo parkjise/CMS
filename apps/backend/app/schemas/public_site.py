@@ -28,6 +28,7 @@ class PublicSectionResponse(BaseModel):
     label: str
     display_order: int
     is_active: bool
+    page_key: str = "home"
     settings: list[PublicSettingItem] = []
 
     model_config = {"from_attributes": True}
@@ -60,6 +61,11 @@ class PublicTemplateResponse(BaseModel):
     name: str
     css_variables: dict
     section_layouts: list
+    # 코드형 템플릿 판별 (클라이언트 templates/registry 키) — 기획서 11.7
+    code: str | None = None
+    renderer: str = "theme"
+    styling: str = "tailwind"
+    version: str = "1.0.0"
 
     model_config = {"from_attributes": True}
 

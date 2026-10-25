@@ -125,7 +125,7 @@ describe('코드형 템플릿 레지스트리 (T-118)', () => {
   it('미리보기 override 가 테넌트 템플릿보다 우선한다', () => {
     const site = makeSite({
       template: {
-        template_id: 'TPL_OTHER',
+        code: 'TPL_OTHER',
         template_type: 'GENERAL',
         name: '다른 템플릿',
         css_variables: {},
@@ -136,10 +136,24 @@ describe('코드형 템플릿 레지스트리 (T-118)', () => {
     expect(resolveCodeTemplate(site, null, [entry])).toBeNull()
   })
 
-  it('테넌트 템플릿 ID 가 코드형이면 해당 템플릿을 고른다', () => {
+  it('테마형 템플릿이 적용된 테넌트는 코드가 같아도 테마형으로 렌더링한다', () => {
     const site = makeSite({
       template: {
-        template_id: 'TPL_TEST_CODE',
+        code: 'TPL_TEST_CODE',
+        renderer: 'theme',
+        template_type: 'GENERAL',
+        name: '테마',
+        css_variables: {},
+        section_layouts: [],
+      },
+    })
+    expect(resolveCodeTemplate(site, undefined, [entry])).toBeNull()
+  })
+
+  it('테넌트 템플릿 코드가 코드형이면 해당 템플릿을 고른다', () => {
+    const site = makeSite({
+      template: {
+        code: 'TPL_TEST_CODE',
         template_type: 'HOSPITAL',
         name: '테스트',
         css_variables: {},
@@ -193,6 +207,17 @@ describe('페이지 섹션 합치기 — 샘플 콘텐츠 (T-118)', () => {
     const types = result.map((r) => r.section.section_type)
     expect(types).not.toContain('SERVICES')
     expect(types).not.toContain('FAQ')
+  })
+
+  it('다른 페이지(page_key)의 같은 타입 섹션은 쓰지 않는다', () => {
+    const aboutIntro = makeSection({
+      id: 'about-intro',
+      page_key: 'about',
+      settings: [{ field_key: 'title', field_value: '소개 페이지 제목', value_type: 'STRING' }],
+    })
+    const [, intro] = resolvePageSections(manifest, sample, [aboutIntro], 'home')
+    expect(intro.editable).toBe(false)
+    expect(intro.section.settings.find((s) => s.field_key === 'title')?.field_value).toBe('샘플 제목')
   })
 
   it('없는 페이지 키는 빈 목록', () => {
@@ -250,7 +275,7 @@ describe('TemplateText (T-118)', () => {
 describe('CodeTemplateRenderer (T-118)', () => {
   const site = makeSite({
     template: {
-      template_id: 'TPL_TEST_CODE',
+      code: 'TPL_TEST_CODE',
       template_type: 'HOSPITAL',
       name: '테스트',
       css_variables: { primary: '#ff0000' },

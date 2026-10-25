@@ -111,7 +111,8 @@ export interface TemplateManifest {
 
 export interface TemplateApplyRequest {
   template_id: string
-  preserve_content: true
+  /** keep(기본): 콘텐츠 유지 / replace_with_sample: 템플릿 샘플로 교체 (기획서 11.8) */
+  content_mode?: 'keep' | 'replace_with_sample'
 }
 
 export interface CSSOverrideUpdate {

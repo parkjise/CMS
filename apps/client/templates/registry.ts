@@ -42,5 +42,6 @@ export function resolveCodeTemplate(
   entries: CodeTemplateEntry[] = CODE_TEMPLATES,
 ): CodeTemplateEntry | null {
   if (override) return findCodeTemplate(override, entries)
-  return findCodeTemplate(site.template?.template_id, entries)
+  if (site.template?.renderer === 'theme') return null
+  return findCodeTemplate(site.template?.code, entries)
 }

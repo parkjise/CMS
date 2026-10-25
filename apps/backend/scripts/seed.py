@@ -168,6 +168,46 @@ TEMPLATES = [
 ]
 # fmt: on
 
+# 코드형 템플릿 (기획서 11.7, T-117).
+# code 는 클라이언트 templates/registry 의 manifest.id 와 같아야 하고,
+# css_variables 는 manifest.css_variables 와 일치시킨다.
+# sample_content 는 T-120 에서 templates/{key}/sample-content.ts 와 동기화한다.
+# fmt: off
+CODE_TEMPLATES = [
+    {
+        "code": "TPL_HOSPITAL_A",
+        "renderer": "code",
+        "styling": "scss",
+        "version": "1.0.0",
+        "template_type": "HOSPITAL",
+        "name": "하스피털 A",
+        "description": "큰 비주얼 슬라이드와 명조 타이포의 병원·클리닉 템플릿",
+        "thumbnail_url": "/templates/hospital-a/1.0.0/head_slide1.jpg",
+        "css_variables": {
+            "primary": "#0ea5a0",
+            "primary_hover": "#0c8a86",
+            "on_primary": "#ffffff",
+            "secondary": "#e8f6f5",
+            "accent": "#f59e0b",
+            "background": "#ffffff",
+            "surface": "#f8fafc",
+            "text_primary": "#333333",
+            "text_secondary": "#475569",
+            "border": "#e2e8f0",
+            "font_heading": "'Pretendard', system-ui, sans-serif",
+            "font_body": "'Pretendard', system-ui, sans-serif",
+            "border_radius_base": "10px",
+            "border_radius_card": "16px",
+        },
+        "section_layouts": [
+            "HERO_SLIDER", "INTRO", "SERVICES", "VIDEO_PLAYLIST", "NOTICE_LATEST",
+        ],
+        "min_plan": "BASIC",
+        "sample_content": {},
+    },
+]
+# fmt: on
+
 
 # 초기 기능 세트 (T-086). key는 UPPER_SNAKE_CASE, 클라이언트 featureStore와 일치.
 # fmt: off
@@ -246,13 +286,26 @@ async def enable_default_features_for_tenant(
 async def seed_templates(db: AsyncSession) -> None:
     existing = await db.execute(select(Template))
     if existing.scalars().first():
-        print("ℹ️  템플릿 데이터 이미 존재 — 건너뜀")
-        return
+        print("ℹ️  템플릿 데이터 이미 존재 — 테마형 건너뜀")
+    else:
+        for t in TEMPLATES:
+            db.add(Template(**t))
+        await db.commit()
+        print(f"✅ 템플릿 {len(TEMPLATES)}개 삽입 완료")
+    await seed_code_templates(db)
 
-    for t in TEMPLATES:
+
+async def seed_code_templates(db: AsyncSession) -> None:
+    """코드형 템플릿은 code 기준으로 없으면 추가한다 (기존 DB 에도 반영되도록)."""
+    added = 0
+    for t in CODE_TEMPLATES:
+        found = await db.execute(select(Template).where(Template.code == t["code"]))
+        if found.scalars().first():
+            continue
         db.add(Template(**t))
+        added += 1
     await db.commit()
-    print(f"✅ 템플릿 {len(TEMPLATES)}개 삽입 완료")
+    print(f"✅ 코드형 템플릿 {added}개 추가 (전체 {len(CODE_TEMPLATES)}개)")
 
 
 async def seed_super_admin(db: AsyncSession) -> None:

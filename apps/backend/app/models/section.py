@@ -23,6 +23,10 @@ class Section(Base, TimestampMixin, SoftDeleteMixin):
     section_type: Mapped[str] = mapped_column(String(50), nullable=False)
     label: Mapped[str] = mapped_column(String(100), nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    # 섹션이 속한 페이지 ('home' | 'about' …) — 코드형 템플릿 서브 페이지 (기획서 11.9)
+    page_key: Mapped[str] = mapped_column(
+        String(50), nullable=False, default="home", server_default="home"
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
     tenant: Mapped["Tenant"] = relationship(
@@ -55,6 +59,10 @@ class SectionSetting(Base, TimestampMixin):
     field_value: Mapped[str | None] = mapped_column(Text, nullable=True)
     value_type: Mapped[str] = mapped_column(
         String(20), nullable=False, default="STRING"
+    )
+    # 템플릿 샘플 값 그대로면 true — 고객이 한 번이라도 저장하면 false (기획서 11.8)
+    is_sample: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
     )
 
     section: Mapped["Section"] = relationship(

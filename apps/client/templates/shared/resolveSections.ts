@@ -48,7 +48,9 @@ export function resolvePageSections(
   page.default_sections.forEach((type, index) => {
     if (!manifest.sections.includes(type)) return
 
-    const tenant = tenantSections.find((s) => s.section_type === type)
+    const tenant = tenantSections.find(
+      (s) => s.section_type === type && (s.page_key ?? 'home') === pageKey,
+    )
     if (tenant && !tenant.is_active) return
 
     const sampleSection = samples.find((s) => s.section_type === type)

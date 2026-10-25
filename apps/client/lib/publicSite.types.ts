@@ -19,6 +19,8 @@ export interface PublicSection {
   label: string
   display_order: number
   is_active: boolean
+  /** 섹션이 속한 페이지 ('home' | 'about' …, 기본 home) — T-117 */
+  page_key?: string
   settings: PublicSettingItem[]
 }
 
@@ -41,9 +43,12 @@ export interface PublicSeoSettings {
 }
 
 export interface PublicTemplate {
-  /** templates.id ('TPL_HOSPITAL_A') — 코드형 템플릿 판별용 (T-117 에서 API 추가) */
-  template_id?: string
   template_type: string
+  /** 템플릿 코드 ('TPL_HOSPITAL_A') — 코드형 템플릿 레지스트리 키 (T-117) */
+  code?: string | null
+  renderer?: 'theme' | 'code'
+  styling?: 'tailwind' | 'scss'
+  version?: string
   name: string
   css_variables: Record<string, string>
   section_layouts: unknown[]

@@ -13,6 +13,7 @@ _seed = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_seed)
 
 TEMPLATES = _seed.TEMPLATES
+CODE_TEMPLATES = _seed.CODE_TEMPLATES
 
 VALID_PLANS = {"BASIC", "STANDARD", "PREMIUM"}
 VALID_INDUSTRIES = {"HOSPITAL", "PENSION", "STARTUP", "GENERAL"}
@@ -52,3 +53,26 @@ def test_each_template_css_has_core_keys():
 def test_plan_gating_coverage():
     # 게이팅 시연을 위해 STANDARD 이상 템플릿이 최소 1개 존재
     assert any(t["min_plan"] != "BASIC" for t in TEMPLATES)
+
+
+def test_code_templates_match_client_registry():
+    """코드형 템플릿 code 는 클라이언트 매니페스트 id 와 같아야 한다 (T-117)."""
+    manifest = (
+        Path(__file__).resolve().parents[3]
+        / "apps"
+        / "client"
+        / "templates"
+        / "hospital-a"
+        / "manifest.ts"
+    ).read_text(encoding="utf-8")
+    codes = {t["code"] for t in CODE_TEMPLATES}
+    assert codes == {"TPL_HOSPITAL_A"}
+    assert "id: 'TPL_HOSPITAL_A'" in manifest
+    for t in CODE_TEMPLATES:
+        assert t["renderer"] == "code"
+        assert t["styling"] in {"scss", "tailwind"}
+        assert t["min_plan"] in VALID_PLANS
+        for key, value in t["css_variables"].items():
+            assert f"{key}: {value!r}".replace('"', "'") in manifest.replace(
+                '"', "'"
+            ), key

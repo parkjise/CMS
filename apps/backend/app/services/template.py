@@ -7,10 +7,15 @@
 이력(TemplateChangeHistory) row 의미:
   template_id = 변경 직전(롤백 대상) 템플릿, before_css = 직전 css_overrides,
   after_css = 변경 후 css_overrides. 롤백은 최신 이력으로 복원 후 그 row를 삭제한다.
+  content_snapshot = 샘플로 교체(content_mode=replace_with_sample)한 경우
+  {"restored_section_ids": 교체 전 섹션, "created_section_ids": 샘플로 만든 섹션}
+  — 섹션은 소프트 삭제라 롤백 시 교체 전 섹션을 되살리고 샘플 섹션은 숨긴다.
 """
 
+import json
 import logging
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select, text
@@ -18,7 +23,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.redis import get_redis
-from app.models.section import Section
+from app.models.section import Section, SectionSetting
 from app.models.template import (
     Template,
     TemplateChangeHistory,
@@ -126,16 +131,107 @@ async def _purge_site_cache(db: AsyncSession, tenant_id: uuid.UUID) -> None:
         logger.warning("템플릿 변경 후 캐시 퍼지 실패", exc_info=True)
 
 
+CONTENT_KEEP = "keep"
+CONTENT_REPLACE = "replace_with_sample"
+
+
+def _sample_pages(template: Template) -> dict:
+    pages = (template.sample_content or {}).get("pages") or {}
+    return pages if isinstance(pages, dict) else {}
+
+
+async def _active_section_ids(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> list[uuid.UUID]:
+    result = await db.execute(
+        select(Section.id).where(
+            Section.tenant_id == tenant_id, Section.deleted_at.is_(None)
+        )
+    )
+    return list(result.scalars().all())
+
+
+async def copy_sample_sections(
+    db: AsyncSession, tenant_id: uuid.UUID, template: Template
+) -> list[uuid.UUID]:
+    """템플릿 샘플 콘텐츠를 테넌트 섹션으로 복사한다 (참조가 아닌 복사 — 기획서 11.8).
+
+    샘플 설정 값은 is_sample=True 로 만들어 관리자 화면에 '샘플' 표시가 된다.
+    목록형 값(list/dict)은 JSON 문자열로 저장한다.
+    """
+    now = datetime.now(UTC)
+    created: list[uuid.UUID] = []
+    for page_key, items in _sample_pages(template).items():
+        for order, item in enumerate(items or []):
+            section_id = uuid.uuid4()
+            db.add(
+                Section(
+                    id=section_id,
+                    tenant_id=tenant_id,
+                    section_type=item["section_type"],
+                    label=item.get("label") or item["section_type"],
+                    display_order=order,
+                    is_active=True,
+                    page_key=page_key,
+                    created_at=now,
+                    updated_at=now,
+                )
+            )
+            for key, value in (item.get("settings") or {}).items():
+                is_json = not isinstance(value, str)
+                db.add(
+                    SectionSetting(
+                        id=uuid.uuid4(),
+                        tenant_id=tenant_id,
+                        section_id=section_id,
+                        field_key=key,
+                        field_value=json.dumps(value, ensure_ascii=False)
+                        if is_json
+                        else value,
+                        value_type="JSON" if is_json else "STRING",
+                        is_sample=True,
+                        created_at=now,
+                        updated_at=now,
+                    )
+                )
+            created.append(section_id)
+    await db.flush()
+    return created
+
+
+async def _set_deleted(
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    section_ids: list[uuid.UUID],
+    deleted: bool,
+) -> None:
+    if not section_ids:
+        return
+    rows = await db.execute(
+        select(Section).where(
+            Section.tenant_id == tenant_id, Section.id.in_(section_ids)
+        )
+    )
+    now = datetime.now(UTC)
+    for section in rows.scalars().all():
+        section.deleted_at = now if deleted else None
+        section.updated_at = now
+
+
 async def apply_template(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     template_id: uuid.UUID,
     user_id: uuid.UUID | None,
+    content_mode: str = CONTENT_KEEP,
 ) -> TenantTemplateOverride:
-    """템플릿을 적용한다. 콘텐츠(섹션)는 건드리지 않는다.
+    """템플릿을 적용한다.
 
     - 플랜 잠금 템플릿이면 403
     - 기존 적용 상태가 있으면 롤백용 이력 스냅샷을 남긴다
+    - content_mode=keep(기본): 콘텐츠(섹션)는 건드리지 않는다 (기획서 11.1)
+    - content_mode=replace_with_sample: 현재 섹션을 숨기고 템플릿 샘플로 교체,
+      교체 전 섹션은 이력의 content_snapshot 으로 롤백 가능 (기획서 11.8)
     """
     tenant = await _get_tenant(db, tenant_id)
     template = await _get_template(db, template_id)
@@ -144,6 +240,22 @@ async def apply_template(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="현재 플랜에서는 사용할 수 없는 템플릿입니다.",
         )
+    replace = content_mode == CONTENT_REPLACE
+    if replace and not _sample_pages(template):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="이 템플릿에는 샘플 콘텐츠가 없습니다.",
+        )
+
+    content_snapshot: dict | None = None
+    if replace:
+        previous_ids = await _active_section_ids(db, tenant_id)
+        await _set_deleted(db, tenant_id, previous_ids, deleted=True)
+        created_ids = await copy_sample_sections(db, tenant_id, template)
+        content_snapshot = {
+            "restored_section_ids": [str(i) for i in previous_ids],
+            "created_section_ids": [str(i) for i in created_ids],
+        }
 
     override = await get_current_override(db, tenant_id)
     if override is not None:
@@ -155,6 +267,7 @@ async def apply_template(
                 changed_by=user_id,
                 before_css=dict(override.css_overrides or {}),
                 after_css={},
+                content_snapshot=content_snapshot,
             )
         )
         override.template_id = template_id
@@ -166,6 +279,18 @@ async def apply_template(
             css_overrides={},
         )
         db.add(override)
+        if content_snapshot is not None:
+            # 첫 적용이라 되돌릴 템플릿은 없지만, 교체 전 콘텐츠는 복원할 수 있게 남긴다
+            db.add(
+                TemplateChangeHistory(
+                    tenant_id=tenant_id,
+                    template_id=template_id,
+                    changed_by=user_id,
+                    before_css={},
+                    after_css={},
+                    content_snapshot=content_snapshot,
+                )
+            )
 
     await db.commit()
     await db.refresh(override)
@@ -202,6 +327,15 @@ async def rollback_template(
 
     override.template_id = history_row.template_id
     override.css_overrides = dict(history_row.before_css or {})
+
+    # 샘플로 교체했던 변경이면 콘텐츠도 되돌린다
+    snapshot = history_row.content_snapshot or {}
+    if snapshot:
+        created = [uuid.UUID(i) for i in snapshot.get("created_section_ids", [])]
+        restored = [uuid.UUID(i) for i in snapshot.get("restored_section_ids", [])]
+        await _set_deleted(db, tenant_id, created, deleted=True)
+        await _set_deleted(db, tenant_id, restored, deleted=False)
+
     await db.delete(history_row)
 
     await db.commit()

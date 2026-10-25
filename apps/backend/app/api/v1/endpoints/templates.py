@@ -48,7 +48,11 @@ async def apply_template(
     current_user: User = Depends(get_current_user),
 ):
     override = await template_service.apply_template(
-        db, current_user.tenant_id, body.template_id, current_user.id
+        db,
+        current_user.tenant_id,
+        body.template_id,
+        current_user.id,
+        content_mode=body.content_mode,
     )
     return ApiResponse.ok(TenantTemplateOverrideResponse.model_validate(override))
 

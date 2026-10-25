@@ -81,6 +81,8 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
                 .where(
                     Template.template_type == tenant.template_type,
                     Template.is_active == True,  # noqa: E712
+                    # 코드형 템플릿은 업종 기본값으로 고르지 않음 (직접 적용만)
+                    Template.renderer == "theme",
                 )
                 .limit(1)
             )
