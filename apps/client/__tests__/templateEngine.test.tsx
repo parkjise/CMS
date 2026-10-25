@@ -360,3 +360,61 @@ describe('CodeTemplateRenderer (T-118)', () => {
     expect(container.querySelector('style')).toBeNull()
   })
 })
+
+describe('서브 페이지 지원 (T-122)', () => {
+  const subManifest: TemplateManifest = {
+    ...manifest,
+    pages: [
+      ...manifest.pages,
+      { key: 'biz', title: '사업', menu: 'gnb', default_sections: ['INTRO', 'SERVICES', 'INTRO'] },
+    ],
+  }
+  const subSample: SampleContent = {
+    ...sample,
+    pages: {
+      ...sample.pages,
+      biz: [
+        { section_type: 'INTRO', label: '첫째', settings: { title: '샘플 1' } },
+        { section_type: 'SERVICES', label: '서비스', settings: { title: '샘플 서비스' } },
+        { section_type: 'INTRO', label: '둘째', settings: { title: '샘플 2' } },
+      ],
+    },
+  }
+  const title = (r: { section: PublicSection }) =>
+    r.section.settings.find((s) => s.field_key === 'title')?.field_value
+
+  it('같은 타입이 여러 번 나오면 순서대로 테넌트·샘플과 짝을 맞춘다', () => {
+    const second = makeSection({
+      id: 'biz-intro-2',
+      page_key: 'biz',
+      display_order: 5,
+      settings: [{ field_key: 'title', field_value: '우리 둘째', value_type: 'STRING' }],
+    })
+    const first = makeSection({
+      id: 'biz-intro-1',
+      page_key: 'biz',
+      display_order: 1,
+      settings: [{ field_key: 'title', field_value: '우리 첫째', value_type: 'STRING' }],
+    })
+    const result = resolvePageSections(subManifest, subSample, [second, first], 'biz')
+    expect(result.map(title)).toEqual(['우리 첫째', '샘플 서비스', '우리 둘째'])
+    expect(result.map((r) => r.section.id)).toEqual(['biz-intro-1', 'sample:biz:SERVICES:0', 'biz-intro-2'])
+  })
+
+  it('테넌트 섹션이 하나뿐이면 두 번째 자리는 샘플로 채운다', () => {
+    const only = makeSection({ id: 'only', page_key: 'biz', settings: [] })
+    const result = resolvePageSections(subManifest, subSample, [only], 'biz')
+    expect(result.map((r) => r.section.id)).toEqual(['only', 'sample:biz:SERVICES:0', 'sample:biz:INTRO:1'])
+    expect(title(result[2])).toBe('샘플 2')
+  })
+
+  it('pageHref: 실제 주소와 미리보기 주소', async () => {
+    const { pageHref } = await import('@/templates/shared/contracts')
+    expect(pageHref('demo', 'home')).toBe('/demo')
+    expect(pageHref('demo', 'about')).toBe('/demo/about')
+    expect(pageHref('demo', 'home', 'tpl=TPL_X')).toBe('/demo/preview?tpl=TPL_X')
+    expect(pageHref('demo', 'about', 'tpl=TPL_X&content=mine')).toBe(
+      '/demo/preview?tpl=TPL_X&content=mine&page=about',
+    )
+  })
+})

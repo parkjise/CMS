@@ -48,12 +48,14 @@ describe('SCSS 코드형 템플릿 스타일 격리 (T-119)', () => {
       const templateBlock = css.slice(css.search(/@layer template\s*\{/))
       const selectors = [...templateBlock.matchAll(/^\s*([^@\s{}][^{}]*?)\s*\{/gm)]
         .map((m) => m[1].trim())
-        .filter((s) => !/^(from|to|\d+%)$/.test(s) && !s.startsWith('@'))
+        .filter((s) => !s.startsWith('@'))
       expect(selectors.length).toBeGreaterThan(50)
       const unscoped = selectors
         .flatMap((s) => s.split(','))
         .map((s) => s.trim())
-        .filter((s) => s && !s.startsWith(`[data-template=${manifest.key}]`))
+        // @keyframes 안의 단계(from · to · 0% …)는 선택자가 아니다
+        .filter((s) => s && !/^(from|to|\d+(\.\d+)?%)$/.test(s))
+        .filter((s) => !s.startsWith(`[data-template=${manifest.key}]`))
       expect(unscoped).toEqual([])
     })
 

@@ -1,0 +1,102 @@
+// ── PHOTO GALLERY — 큰 사진 슬라이드 + 썸네일 + 진행 바 ─────────────
+// components/sub/photo-gallery.html  /  JS: assets/js/photo-gallery.js
+@use '../mixins' as *;
+
+.photo-gallery {
+  padding-bottom: 80px;
+  @include md {
+    padding-bottom: 160px;
+  }
+
+  &__frame {
+    position: relative;
+    max-width: 1080px;
+    margin-inline: auto;
+  }
+  &__main {
+    @include ratio(1080, 589);
+    border-radius: 6px;
+  }
+  &__image {
+    @include cover;
+  }
+
+  // 좌우 화살표 — 좁은 화면: 사진 안쪽 / xl 이상: 사진 바깥 양옆
+  &__arrow {
+    @include button-reset;
+    @include flex-center;
+    @include focus-ring;
+    position: absolute;
+    top: 50%;
+    z-index: 2;
+    width: 40px;
+    height: 40px;
+    @include md {
+      width: 48px;
+      height: 48px;
+    }
+    transform: translateY(-50%);
+    border: 1px solid var(--color-border);
+    border-radius: 50%;
+    background: var(--color-background);
+    font-size: 28px;
+    color: var(--color-text-primary);
+
+    &--prev {
+      left: 12px;
+      @include xl {
+        left: -80px;
+      }
+    }
+    &--next {
+      right: 12px;
+      @include xl {
+        right: -80px;
+      }
+    }
+    &.swiper-button-disabled {
+      opacity: 0.3;
+      cursor: default;
+    }
+  }
+
+  // 썸네일
+  &__thumbs {
+    max-width: 1080px;
+    margin: 20px auto 0;
+  }
+  &__thumb {
+    width: 88px;
+    @include md {
+      width: 139px;
+    }
+    @include ratio(139, 76);
+    border: 2px solid transparent;
+    cursor: pointer;
+    opacity: 0.6;
+    transition:
+      opacity 0.2s,
+      border-color 0.2s;
+
+    img {
+      @include cover;
+    }
+    &.swiper-slide-thumb-active {
+      opacity: 1;
+      border-color: var(--color-primary);
+    }
+  }
+
+  // 진행 바 (Swiper progressbar)
+  &__progress.swiper-pagination {
+    position: relative;
+    max-width: 710px;
+    height: 2px;
+    margin: 30px auto 0;
+    background: var(--color-border);
+
+    .swiper-pagination-progressbar-fill {
+      background: var(--color-primary);
+    }
+  }
+}

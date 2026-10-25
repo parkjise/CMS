@@ -10,6 +10,24 @@
 @use 'main/service-cards'; // sections/ServiceCards.tsx (SERVICES)
 @use 'main/video-playlist'; // sections/VideoPlaylist.tsx (VIDEO_PLAYLIST)
 @use 'main/notice'; // sections/NoticeLatest.tsx (NOTICE_LATEST)
+@use 'main/location'; // sections/Location.tsx (MAP)
+
+// 서브 페이지 (T-122) — 파일명 = 컴포넌트명 = BEM 블록명
+@use 'sub/sub-hero'; // sub/SubHero.tsx (SUB_HERO)
+@use 'sub/page-intro'; // sub/PageIntro.tsx (CONTENT_BLOCK layout=page-intro)
+@use 'sub/sub-nav'; // sub/SubNav.tsx (페이지 하위 탭 — 매니페스트 parent)
+@use 'sub/media-row';
+@use 'sub/strength-list';
+@use 'sub/area-rows';
+@use 'sub/photo-gallery';
+@use 'sub/consult-links';
+@use 'sub/history-timeline'; // sub/HistoryTimeline.tsx (HISTORY_TIMELINE)
+@use 'sub/story-text'; // 큰 영문 제목 + 국문 소제목 + 설명 (아래 블록 공용)
+@use 'sub/split-story';
+@use 'sub/milestone-split';
+@use 'sub/banner-split';
+@use 'sub/criteria-cards';
+@use 'sub/value-circles';
 
 @use 'footer/footer'; // Footer.tsx
 @use 'quick-menu/quick-menu'; // QuickMenu.tsx

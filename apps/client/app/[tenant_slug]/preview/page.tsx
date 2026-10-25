@@ -10,7 +10,7 @@ import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string; content?: string }>
+  searchParams: Promise<{ tpl?: string; content?: string; page?: string }>
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -24,7 +24,7 @@ export default async function TemplatePreviewPage({
   searchParams,
 }: Props) {
   const { tenant_slug } = await params
-  const { tpl, content } = await searchParams
+  const { tpl, content, page } = await searchParams
 
   if (!tpl) {
     notFound()
@@ -38,6 +38,11 @@ export default async function TemplatePreviewPage({
     if (!tenantSite) {
       notFound()
     }
+    const pageKey = page ?? 'home'
+    if (!codeTemplate.manifest.pages.some((p) => p.key === pageKey)) {
+      notFound()
+    }
+    const previewQuery = `tpl=${encodeURIComponent(tpl)}${content === 'mine' ? '&content=mine' : ''}`
     return (
       <>
         <PreviewBanner templateName={codeTemplate.manifest.name} />
@@ -45,9 +50,10 @@ export default async function TemplatePreviewPage({
           entry={codeTemplate}
           site={tenantSite}
           tenantSlug={tenant_slug}
-          pageKey="home"
+          pageKey={pageKey}
           preview
           contentSource={content === 'mine' ? 'tenant' : 'sample'}
+          previewQuery={previewQuery}
         />
       </>
     )

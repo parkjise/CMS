@@ -86,6 +86,8 @@ export interface TemplatePage {
   key: string
   /** 메뉴·브레드크럼 이름 */
   title: string
+  /** 하위 탭에 보일 이름 (없으면 title) — 예: 메뉴 '회사소개' / 탭 '브랜드 소개' */
+  tab_title?: string
   menu: 'gnb' | 'sub' | 'account' | 'none'
   /** 하위 탭 묶음 (예: about-history → about) */
   parent?: string

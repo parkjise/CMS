@@ -28,6 +28,19 @@ export interface CodeTemplateProps {
   siteInfo: Record<string, string>
   /** 미리보기 모드 (편집 UI 없음) */
   preview: boolean
+  /**
+   * 미리보기 링크용 쿼리 ('tpl=TPL_X&content=mine') — 있으면 페이지 링크를
+   * /{slug}/preview?{query}&page={key} 로 만들어 미리보기 안에서 이동한다
+   */
+  previewQuery?: string
+}
+
+/** 페이지 주소 — 실제: /{slug} · /{slug}/{key} / 미리보기: /{slug}/preview?…&page={key} */
+export function pageHref(slug: string, key: string, previewQuery?: string): string {
+  if (previewQuery) {
+    return `/${slug}/preview?${previewQuery}${key === 'home' ? '' : `&page=${key}`}`
+  }
+  return key === 'home' ? `/${slug}` : `/${slug}/${key}`
 }
 
 /** 샘플 콘텐츠의 섹션 하나 — 값은 문자열, 목록은 배열/객체 그대로 (렌더링 시 JSON 직렬화) */

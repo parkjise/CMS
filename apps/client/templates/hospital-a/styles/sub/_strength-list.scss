@@ -1,0 +1,47 @@
+// ── STRENGTH LIST — 섹션 헤더 + 체크리스트 + 사진 ──────────────────
+// components/sub/strength-list.html
+@use '../mixins' as *;
+
+.strength-list {
+  &__row {
+    max-width: 1060px;
+    margin-inline: auto;
+    display: grid;
+    gap: 32px;
+    align-items: center;
+    @include md {
+      gap: 60px;
+    }
+    @include lg {
+      grid-template-columns: 402px 1fr;
+    }
+  }
+  &__items {
+    @include flex(stretch, start, 10px, column);
+  }
+  &__item {
+    @include flex(center, start, 12px);
+    padding: 16px 20px;
+    border: 1px solid var(--color-border);
+    border-radius: 6px;
+    background: rgb(255 255 255 / 50%);
+    font-size: 1rem;
+    word-break: keep-all;
+    @include md {
+      padding: 20px 30px;
+      font-size: 1.0625rem;
+    }
+  }
+  &__icon {
+    flex-shrink: 0;
+    font-size: 1.125rem;
+    color: var(--color-primary);
+  }
+  &__photo {
+    @include ratio(600, 474);
+    overflow: hidden;
+  }
+  &__image {
+    @include cover;
+  }
+}

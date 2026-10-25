@@ -13,6 +13,8 @@ interface Props {
    * 'tenant'(기본): 테넌트 콘텐츠 + 빈 값만 샘플 / 'sample': 템플릿 샘플 그대로 (디자인 원본 확인용 미리보기)
    */
   contentSource?: 'tenant' | 'sample'
+  /** 미리보기 안에서 페이지 이동 링크를 유지하기 위한 쿼리 ('tpl=…&content=…') */
+  previewQuery?: string
 }
 
 /**
@@ -28,6 +30,7 @@ export async function CodeTemplateRenderer({
   pageKey,
   preview = false,
   contentSource = 'tenant',
+  previewQuery,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -56,6 +59,7 @@ export async function CodeTemplateRenderer({
         sections={sections}
         siteInfo={siteInfo}
         preview={preview}
+        previewQuery={previewQuery}
       />
     </div>
   )

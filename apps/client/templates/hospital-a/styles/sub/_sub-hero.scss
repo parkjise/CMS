@@ -1,0 +1,174 @@
+// ── SUB HERO — 서브 페이지 상단 비주얼 + 페이지 제목 + 브레드크럼 ──
+// components/sub/sub-hero.html
+@use '../mixins' as *;
+
+.sub-hero {
+  position: relative;
+  margin-top: -80px; // 헤더 높이만큼 당겨 비주얼 위로 겹침
+  padding: 0;
+  height: 360px;
+  @include md {
+    height: 100vh;
+  }
+  color: #fff;
+  overflow: hidden;
+
+  // 텍스트 대비용 오버레이
+  &::after {
+    content: '';
+    @include absolute-fill;
+    background: linear-gradient(
+      180deg,
+      rgb(0 0 0 / 8%) 0%,
+      rgb(0 0 0 / 12%) 38%,
+      rgb(0 0 0 / 50%) 87%,
+      rgb(0 0 0 / 65%) 100%
+    );
+    pointer-events: none;
+  }
+
+  &__image {
+    @include absolute-fill;
+    @include cover;
+    transform-origin: center;
+    animation: sub-hero-zoom-out 3s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+  }
+  &__content {
+    position: relative;
+    z-index: 1;
+    height: 100%;
+    @include flex(center, center, 0, column);
+    padding-bottom: 48px;
+    @include md {
+      padding-bottom: 72px;
+    }
+    text-align: center;
+  }
+  &__eyebrow {
+    @include font-seasons(600);
+    @include fluid-type(1rem, 1.25rem);
+  }
+  &__title {
+    margin-block: 0.5rem 1rem;
+    @include fluid-type(2.125rem, 4.125rem);
+    @include md {
+      margin-block: 0.75rem 1.5rem;
+    }
+    font-weight: 600;
+  }
+  &__scroll {
+    position: absolute;
+    z-index: 1;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    @include flex(center, center, 8px, column);
+    @include focus-ring(#fff, 4px);
+    padding: 8px 16px;
+    min-width: 44px;
+    min-height: 44px;
+    color: #fff;
+    white-space: nowrap;
+
+    @include md {
+      bottom: 32px;
+      gap: 12px;
+    }
+  }
+  &__scroll-icon {
+    display: block;
+    width: 20px;
+    height: 38px;
+    animation: sub-hero-scroll-cue 1.8s ease-in-out infinite;
+  }
+
+  &--plain {
+    display: grid;
+    place-items: center;
+    height: auto;
+    min-height: 360px;
+    margin-top: -80px;
+    // Reserve the overlaid header (80px tall + its top offset).
+    padding: 96px 0 0;
+    color: var(--color-text-primary);
+    background: linear-gradient(135deg, #f8f8f9 0%, #e6e7e9 48%, #f3f3f4 100%);
+
+    @include md {
+      min-height: 440px;
+      padding-top: 110px;
+    }
+
+    &::after {
+      content: none;
+    }
+
+    .sub-hero__content {
+      width: 100%;
+      height: auto;
+      padding-bottom: 0;
+    }
+
+    .breadcrumb__link {
+      @include focus-ring(var(--color-primary));
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &__image {
+      animation: none;
+    }
+
+    &__scroll-icon {
+      animation: none;
+    }
+  }
+}
+
+@keyframes sub-hero-zoom-out {
+  from {
+    transform: scale(1.16);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes sub-hero-scroll-cue {
+  0%,
+  100% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+
+// ── 브레드크럼 (현재 위치) ──
+.breadcrumb {
+  &__list {
+    @include flex(center, center, 10px);
+    font-size: 17px;
+  }
+  &__item {
+    @include flex(center, center, 10px);
+    opacity: 0.85;
+
+    & + &::before {
+      content: '';
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: currentColor;
+      opacity: 0.6;
+    }
+    &:last-child {
+      opacity: 1;
+      font-weight: 600;
+    }
+  }
+  &__link {
+    @include flex-center;
+    font-size: 16px;
+    @include focus-ring(#fff);
+  }
+}

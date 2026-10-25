@@ -220,7 +220,7 @@ class TestTenantCreateWithTemplate:
             sections = await _tenant_rows(
                 tid,
                 "SELECT section_type, page_key FROM sections WHERE tenant_id = :t"
-                " ORDER BY display_order",
+                " AND page_key = 'home' ORDER BY display_order",
             )
             assert [s.section_type for s in sections] == [
                 "HERO_SLIDER",
@@ -229,7 +229,16 @@ class TestTenantCreateWithTemplate:
                 "VIDEO_PLAYLIST",
                 "NOTICE_LATEST",
             ]
-            assert {s.page_key for s in sections} == {"home"}
+            pages = await _tenant_rows(
+                tid, "SELECT DISTINCT page_key FROM sections WHERE tenant_id = :t"
+            )
+            assert {p.page_key for p in pages} == {
+                "home",
+                "about",
+                "about-history",
+                "about-location",
+                "business",
+            }
 
             flags = await _tenant_rows(
                 tid,
