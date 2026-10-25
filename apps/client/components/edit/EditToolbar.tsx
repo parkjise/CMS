@@ -16,7 +16,12 @@ import { ExitConfirmDialog } from '@/components/layout/ExitConfirmDialog'
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
 
-export function EditToolbar() {
+interface EditToolbarProps {
+  /** 아직 바꾸지 않은 템플릿 샘플 값 개수 — 0 이면 표시 안 함 (기획서 11.8) */
+  sampleCount?: number
+}
+
+export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
   const isEditMode = useEditStore((s) => s.isEditMode)
   const pendingChanges = useEditStore((s) => s.pendingChanges)
   const isDirty = useEditStore((s) => s.isDirty)
@@ -106,6 +111,14 @@ export function EditToolbar() {
             <span>관리자 페이지</span>
             <ExternalLink className="h-3 w-3" />
           </a>
+          {sampleCount > 0 && (
+            <span
+              className="rounded-full bg-black/15 px-2 py-0.5 text-xs font-medium"
+              title="템플릿 샘플 문구·이미지가 그대로 남아 있어요. 클릭해서 내 내용으로 바꿔주세요."
+            >
+              샘플 {sampleCount}개 남음
+            </span>
+          )}
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">

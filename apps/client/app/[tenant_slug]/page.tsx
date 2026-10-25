@@ -6,6 +6,7 @@ import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
+import { countSampleSettings } from '@/lib/sampleCount'
 import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
 import { resolveCodeTemplate } from '@/templates/registry'
 
@@ -22,6 +23,7 @@ export default async function TenantHomePage({ params }: Props) {
   }
 
   const jsonLd = buildLocalBusinessJsonLd(site)
+  const sampleCount = countSampleSettings(site.sections)
 
   // 코드형 템플릿 (기획서 11.7) — 템플릿 전용 마크업·스타일로 렌더링
   const codeTemplate = resolveCodeTemplate(site)
@@ -32,7 +34,7 @@ export default async function TenantHomePage({ params }: Props) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
         />
-        <EditToolbar />
+        <EditToolbar sampleCount={sampleCount} />
         <CodeTemplateRenderer
           entry={codeTemplate}
           site={site}
@@ -52,7 +54,7 @@ export default async function TenantHomePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      <EditToolbar />
+      <EditToolbar sampleCount={sampleCount} />
       <Navbar tenantName={site.tenant.name} sections={activeSections} />
 
       <main className="flex-1">

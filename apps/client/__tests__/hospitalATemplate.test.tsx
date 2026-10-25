@@ -89,6 +89,16 @@ describe('hospital-a 매니페스트 · 샘플 (T-121)', () => {
     }
   })
 
+  it('샘플 JSON 의 섹션 타입은 모두 매니페스트가 지원한다 (T-120)', () => {
+    for (const sections of Object.values(hospitalASample.pages)) {
+      for (const s of sections) {
+        expect(hospitalAManifest.sections).toContain(s.section_type)
+        expect(s.label).toBeTruthy()
+      }
+    }
+    expect(hospitalASample.version).toBe(hospitalAManifest.version)
+  })
+
   it('매니페스트 css_variables 에 화면 폭별 간격 토큰을 넣지 않는다 (미디어쿼리 덮어쓰기 방지)', () => {
     const keys = Object.keys(hospitalAManifest.css_variables)
     expect(keys.some((k) => k.startsWith('spacing'))).toBe(false)

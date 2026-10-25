@@ -242,6 +242,24 @@ describe('페이지 섹션 합치기 — 샘플 콘텐츠 (T-118)', () => {
   })
 })
 
+describe('샘플 개수 (T-120)', () => {
+  it('노출 중인 섹션의 is_sample 값만 센다', async () => {
+    const { countSampleSettings } = await import('@/lib/sampleCount')
+    const shown = makeSection({
+      settings: [
+        { field_key: 'a', field_value: 'x', value_type: 'STRING', is_sample: true },
+        { field_key: 'b', field_value: 'y', value_type: 'STRING', is_sample: false },
+      ],
+    })
+    const hidden = makeSection({
+      id: 'h',
+      is_active: false,
+      settings: [{ field_key: 'a', field_value: 'x', value_type: 'STRING', is_sample: true }],
+    })
+    expect(countSampleSettings([shown, hidden])).toBe(1)
+  })
+})
+
 describe('TemplateText (T-118)', () => {
   const section = makeSection({
     id: 'intro-1',

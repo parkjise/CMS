@@ -11,6 +11,8 @@ export interface PublicSettingItem {
   field_key: string
   field_value: string | null
   value_type: string
+  /** 템플릿 샘플 값 그대로인지 (기획서 11.8) */
+  is_sample?: boolean
 }
 
 export interface PublicSection {

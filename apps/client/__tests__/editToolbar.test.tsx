@@ -65,6 +65,16 @@ describe('EditToolbar', () => {
     expect(document.body.classList.contains('edit-mode')).toBe(true)
   })
 
+  it('템플릿 샘플이 남아 있으면 "샘플 n개 남음"을 표시한다 (T-120)', () => {
+    useClientAuthStore.setState({ isLoggedIn: true })
+    useEditStore.setState({ isEditMode: true })
+
+    const { rerender } = render(<EditToolbar sampleCount={3} />)
+    expect(screen.getByText('샘플 3개 남음')).toBeInTheDocument()
+    rerender(<EditToolbar sampleCount={0} />)
+    expect(screen.queryByText(/샘플 \d+개 남음/)).not.toBeInTheDocument()
+  })
+
   it('변경사항 없으면 저장 버튼 비활성 + 카운트 미표시', () => {
     useClientAuthStore.setState({ isLoggedIn: true })
     useEditStore.setState({ isEditMode: true })
