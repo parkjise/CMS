@@ -13,6 +13,12 @@ export interface InquiryListItem {
   status: InquiryStatus
   is_read: boolean
   admin_memo: string | null
+  /** 상담 게시판 · 예약 (T-123) */
+  subject?: string | null
+  is_board?: boolean
+  answered_at?: string | null
+  reserved_date?: string | null
+  reserved_time?: string | null
   created_at: string
 }
 
@@ -26,6 +32,9 @@ export interface InquiryListResponse {
 export interface InquiryDetail extends InquiryListItem {
   tenant_id: string
   message: string
+  is_secret?: boolean
+  /** 상담 게시판에 공개되는 답변 */
+  answer?: string | null
   attachments: Array<{
     id: string
     file_url: string
@@ -48,6 +57,8 @@ export interface InquiryUpdate {
   status?: InquiryStatus
   is_read?: boolean
   admin_memo?: string | null
+  /** 상담 게시판 답변 — 빈 문자열이면 답변 삭제 */
+  answer?: string
 }
 
 const cleanParams = (filters: InquiryFilters) => {

@@ -25,12 +25,14 @@ export function InquiryDetailModal({
 
   const [memo, setMemo] = useState('')
   const [status, setStatus] = useState<InquiryStatus>('PENDING')
+  const [answer, setAnswer] = useState('')
 
   // 데이터 도착 시 폼 동기화 + 자동 읽음 처리
   useEffect(() => {
     if (!inquiryQuery.data) return
     setMemo(inquiryQuery.data.admin_memo ?? '')
     setStatus(inquiryQuery.data.status)
+    setAnswer(inquiryQuery.data.answer ?? '')
 
     // 미확인이면 백그라운드로 읽음 처리
     if (!inquiryQuery.data.is_read) {
@@ -56,7 +58,12 @@ export function InquiryDetailModal({
     try {
       await updateMutation.mutateAsync({
         id: inquiryId,
-        payload: { status, admin_memo: memo || null },
+        payload: {
+          status,
+          admin_memo: memo || null,
+          // 상담 게시판 글만 답변 저장 (답변하면 서버가 '완료'로 바꾼다)
+          ...(inquiryQuery.data?.is_board ? { answer } : {}),
+        },
       })
       toast.success('문의를 저장했습니다.')
       onClose()
@@ -127,6 +134,21 @@ export function InquiryDetailModal({
                 'YYYY-MM-DD HH:mm'
               )}
             />
+            {inquiryQuery.data.subject && (
+              <Field label="제목" value={inquiryQuery.data.subject} />
+            )}
+            {inquiryQuery.data.reserved_date && (
+              <Field
+                label="희망 예약 일시"
+                value={`${inquiryQuery.data.reserved_date} ${inquiryQuery.data.reserved_time ?? ''}`.trim()}
+              />
+            )}
+            {inquiryQuery.data.is_board && (
+              <Field
+                label="상담 게시판"
+                value={inquiryQuery.data.is_secret ? '비밀글 (작성자 비밀번호로 열람)' : '공개글'}
+              />
+            )}
             <div className="space-y-1">
               <span className="text-xs font-medium text-slate-500">현재 상태</span>
               <div>
@@ -144,6 +166,30 @@ export function InquiryDetailModal({
               {inquiryQuery.data.message}
             </div>
           </div>
+
+          {/* 상담 게시판 답변 — 홈페이지 상담 상세에 공개 */}
+          {inquiryQuery.data.is_board && (
+            <div>
+              <label
+                htmlFor="inquiry-answer"
+                className="mb-1.5 block text-sm font-medium text-slate-700"
+              >
+                답변 (홈페이지 상담 게시판에 표시)
+              </label>
+              <Textarea
+                id="inquiry-answer"
+                value={answer}
+                onChange={(e) => setAnswer(e.target.value)}
+                rows={6}
+                placeholder="고객에게 보일 답변을 작성하세요. 저장하면 '답변완료'로 표시됩니다."
+              />
+              {inquiryQuery.data.answered_at && (
+                <p className="mt-1 text-xs text-slate-500">
+                  답변일 {dayjs(inquiryQuery.data.answered_at).format('YYYY-MM-DD HH:mm')}
+                </p>
+              )}
+            </div>
+          )}
 
           {/* 상태 변경 */}
           <div>
