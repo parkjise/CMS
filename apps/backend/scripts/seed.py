@@ -19,6 +19,7 @@ from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
 from app.models.billing import Subscription
 from app.models.feature import Feature, TenantFeature
+from app.data.template_samples import load_sample
 from app.models.template import Template
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -171,7 +172,7 @@ TEMPLATES = [
 # 코드형 템플릿 (기획서 11.7, T-117).
 # code 는 클라이언트 templates/registry 의 manifest.id 와 같아야 하고,
 # css_variables 는 manifest.css_variables 와 일치시킨다.
-# sample_content 는 T-120 에서 templates/{key}/sample-content.ts 와 동기화한다.
+# sample_content 는 app/data/templates/{code}.json (클라이언트 sample-content.json 복사본).
 # fmt: off
 CODE_TEMPLATES = [
     {
@@ -203,7 +204,7 @@ CODE_TEMPLATES = [
             "HERO_SLIDER", "INTRO", "SERVICES", "VIDEO_PLAYLIST", "NOTICE_LATEST",
         ],
         "min_plan": "BASIC",
-        "sample_content": {},
+        "sample_content": load_sample("TPL_HOSPITAL_A"),
     },
 ]
 # fmt: on
@@ -296,16 +297,25 @@ async def seed_templates(db: AsyncSession) -> None:
 
 
 async def seed_code_templates(db: AsyncSession) -> None:
-    """코드형 템플릿은 code 기준으로 없으면 추가한다 (기존 DB 에도 반영되도록)."""
-    added = 0
+    """코드형 템플릿을 code 기준으로 추가하거나 최신 정의로 동기화한다.
+
+    기존 DB 에도 반영되도록 매번 실행한다. 샘플이 바뀌어도 이미 테넌트에 복사된
+    콘텐츠는 바뀌지 않는다 (새로 적용하는 테넌트부터 반영 — 오픈 이슈 #28).
+    """
+    added = updated = 0
     for t in CODE_TEMPLATES:
         found = await db.execute(select(Template).where(Template.code == t["code"]))
-        if found.scalars().first():
+        template = found.scalars().first()
+        if template is None:
+            db.add(Template(**t))
+            added += 1
             continue
-        db.add(Template(**t))
-        added += 1
+        for key, value in t.items():
+            if getattr(template, key) != value:
+                setattr(template, key, value)
+                updated += 1
     await db.commit()
-    print(f"✅ 코드형 템플릿 {added}개 추가 (전체 {len(CODE_TEMPLATES)}개)")
+    print(f"✅ 코드형 템플릿 추가 {added}개 · 변경 필드 {updated}개")
 
 
 async def seed_super_admin(db: AsyncSession) -> None:

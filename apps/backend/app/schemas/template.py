@@ -20,6 +20,7 @@ class TemplateResponse(BaseModel):
     renderer: str = "theme"
     styling: str = "tailwind"
     version: str = "1.0.0"
+    has_sample_content: bool = False
 
     model_config = {"from_attributes": True}
 

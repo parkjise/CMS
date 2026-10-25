@@ -151,18 +151,38 @@ async def _active_section_ids(
     return list(result.scalars().all())
 
 
+async def _existing_slots(
+    db: AsyncSession, tenant_id: uuid.UUID
+) -> set[tuple[str, str]]:
+    """테넌트에 이미 있는 (page_key, section_type) — 숨김 섹션 포함, 삭제 제외."""
+    rows = await db.execute(
+        select(Section.page_key, Section.section_type).where(
+            Section.tenant_id == tenant_id, Section.deleted_at.is_(None)
+        )
+    )
+    return {(page, stype) for page, stype in rows.all()}
+
+
 async def copy_sample_sections(
-    db: AsyncSession, tenant_id: uuid.UUID, template: Template
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    template: Template,
+    *,
+    only_missing: bool = False,
 ) -> list[uuid.UUID]:
     """템플릿 샘플 콘텐츠를 테넌트 섹션으로 복사한다 (참조가 아닌 복사 — 기획서 11.8).
 
     샘플 설정 값은 is_sample=True 로 만들어 관리자 화면에 '샘플' 표시가 된다.
     목록형 값(list/dict)은 JSON 문자열로 저장한다.
+    only_missing=True 면 테넌트에 없는 (페이지, 섹션 타입)만 추가한다 (콘텐츠 유지).
     """
     now = datetime.now(UTC)
     created: list[uuid.UUID] = []
+    existing = await _existing_slots(db, tenant_id) if only_missing else set()
     for page_key, items in _sample_pages(template).items():
         for order, item in enumerate(items or []):
+            if (page_key, item["section_type"]) in existing:
+                continue
             section_id = uuid.uuid4()
             db.add(
                 Section(
@@ -248,6 +268,9 @@ async def apply_template(
         )
 
     content_snapshot: dict | None = None
+    if not replace and template.renderer == "code":
+        # 콘텐츠 유지: 기존 섹션은 그대로, 새 템플릿에만 있는 섹션만 샘플로 (11.8)
+        await copy_sample_sections(db, tenant_id, template, only_missing=True)
     if replace:
         previous_ids = await _active_section_ids(db, tenant_id)
         await _set_deleted(db, tenant_id, previous_ids, deleted=True)

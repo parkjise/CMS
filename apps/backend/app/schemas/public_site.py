@@ -18,6 +18,8 @@ class PublicSettingItem(BaseModel):
     field_key: str
     field_value: str | None
     value_type: str
+    # 인라인 편집 툴바 '샘플 n개' 표시용 (기획서 11.8)
+    is_sample: bool = False
 
     model_config = {"from_attributes": True}
 

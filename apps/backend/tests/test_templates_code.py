@@ -133,6 +133,30 @@ class TestApplyContentMode:
         resp = await _apply(client, auth_headers, code_templates["code"])
         assert resp.status_code == 200
         sections = await _sections(client, auth_headers)
+        # 기존 섹션은 그대로 + 새 템플릿에만 있는 섹션은 샘플로 추가 (T-120)
+        assert test_section["id"] in [s["id"] for s in sections]
+        assert {s["section_type"] for s in sections} == {
+            "HERO_BANNER",
+            "HERO_SLIDER",
+            "INTRO",
+            "SUB_HERO",
+        }
+
+    async def test_keep_does_not_duplicate_existing_section_types(
+        self, client: AsyncClient, auth_headers, code_templates
+    ):
+        await _apply(client, auth_headers, code_templates["code"])
+        first = await _sections(client, auth_headers)
+        await _apply(client, auth_headers, code_templates["empty"])
+        await _apply(client, auth_headers, code_templates["code"])
+        again = await _sections(client, auth_headers)
+        assert sorted(s["id"] for s in again) == sorted(s["id"] for s in first)
+
+    async def test_keep_on_theme_template_adds_nothing(
+        self, client: AsyncClient, auth_headers, test_section, code_templates
+    ):
+        await _apply(client, auth_headers, code_templates["empty"])
+        sections = await _sections(client, auth_headers)
         assert [s["id"] for s in sections] == [test_section["id"]]
 
     async def test_replace_with_sample_copies_sample_sections(

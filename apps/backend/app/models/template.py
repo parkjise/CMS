@@ -53,6 +53,12 @@ class Template(Base, TimestampMixin):
         String(50), nullable=False, default="BASIC", server_default="BASIC"
     )
 
+    @property
+    def has_sample_content(self) -> bool:
+        """샘플로 교체(replace_with_sample)할 수 있는지 — 관리자 적용 모달 선택지."""
+        pages = (self.sample_content or {}).get("pages") or {}
+        return any(pages.values()) if isinstance(pages, dict) else False
+
 
 class TenantTemplateOverride(Base, TimestampMixin):
     __tablename__ = "tenant_template_overrides"
