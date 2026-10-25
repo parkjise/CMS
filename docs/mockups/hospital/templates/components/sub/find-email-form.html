@@ -1,0 +1,55 @@
+<!-- FIND EMAIL FORM: 이메일 찾기 — ① 이름 + 휴대폰 인증 → ② 결과(가려진 이메일) 또는 일치 계정 없음 (기획서 16.5)
+  - 검사: .board-form + assets/js/board-form.js / 단계 전환: assets/js/member-form.js ([data-find-email] → [data-step])
+  - 목업: 이름 '홍길동' + 인증번호 123456 → ho****@email.com, 다른 이름 → 계정 없음 (실제는 POST /auth/find-email)
+-->
+<section class="board-form member-form" aria-labelledby="find-email-title">
+  <div class="container">
+    <div data-include="components/sub/find-tabs.html" data-current="email"></div>
+
+    <form class="board-form__form" action="find-email.html" method="post" novalidate data-find-email data-step="form">
+      <div class="board-form__panel board-form__panel--narrow">
+        <a class="member-form__back" href="login.html"><i class="ri-arrow-left-line" aria-hidden="true"></i>로그인으로 돌아가기</a>
+        <h2 class="member-form__heading" id="find-email-title">이메일 찾기</h2>
+        <p class="member-form__desc">가입할 때 등록한 이름과 휴대폰 번호로 찾을 수 있어요.</p>
+
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="fe-name">이름<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="text" id="fe-name" name="name" placeholder="홍길동" autocomplete="name" required data-error="이름을 입력해 주세요." />
+          </div>
+          <div data-include="components/sub/phone-verify.html" data-id="fe"></div>
+        </div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <button class="member-form__submit" type="submit">이메일 찾기</button>
+      </div>
+    </form>
+
+    <!-- ② 결과: 찾음 -->
+    <div class="board-form__panel board-form__panel--narrow member-form__done" data-step="found" tabindex="-1" hidden>
+      <i class="ri-checkbox-circle-line member-form__done-icon" aria-hidden="true"></i>
+      <h2 class="member-form__title">이메일을 찾았어요</h2>
+      <dl class="member-form__found">
+        <dt>등록된 이메일</dt>
+        <dd data-found-email>ho****@email.com</dd>
+      </dl>
+      <p class="member-form__desc">보안을 위해 일부만 표시합니다.</p>
+      <div class="member-form__buttons">
+        <a class="member-form__submit" href="login.html">로그인하기</a>
+        <a class="member-form__line-link" href="find-pw.html">비밀번호도 찾기</a>
+      </div>
+    </div>
+
+    <!-- ② 결과: 계정 없음 -->
+    <div class="board-form__panel board-form__panel--narrow member-form__done" data-step="none" tabindex="-1" hidden>
+      <i class="ri-error-warning-line member-form__done-icon member-form__done-icon--muted" aria-hidden="true"></i>
+      <h2 class="member-form__title">일치하는 계정이 없어요</h2>
+      <p class="member-form__desc">입력하신 정보와 일치하는 계정을 찾을 수 없습니다.<br />이름과 휴대폰 번호를 다시 확인해 주세요.</p>
+      <div class="member-form__buttons">
+        <a class="member-form__submit" href="join.html">회원가입 하기</a>
+        <button class="member-form__line-link" type="button" data-step-back>다시 찾기</button>
+      </div>
+    </div>
+  </div>
+</section>

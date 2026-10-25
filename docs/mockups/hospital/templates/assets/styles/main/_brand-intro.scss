@@ -24,6 +24,14 @@
     border-radius: 100%;
     filter: blur(100px);
     animation: brand-intro-glow 4s ease-in-out infinite alternate;
+
+    &--bottom-left {
+      top: auto;
+      right: auto;
+      bottom: 112px;
+      left: min(105px, 8vw);
+      background: rgba(145, 90, 210, 0.3);
+    }
   }
 
   // ── 소개 헤드 ──

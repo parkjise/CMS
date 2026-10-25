@@ -1,0 +1,14 @@
+<!-- MEMBER SNS: 카카오 · 네이버 간편 로그인 버튼 (회원 공통 — 로그인·회원가입)
+  사용: <div data-include="components/sub/member-sns.html" data-action="로그인" data-href="mypage.html"></div>
+  - action: 버튼 문구 끝말 (로그인 / 시작하기), href: 목업 이동 경로 (기존 회원 → 마이페이지, 신규 → join-social.html)
+  - 실제는 OAuth 인증 페이지로 이동 → 콜백에서 POST /auth/social (기획서 16.4)
+  - 색상: 카카오 #FEE500 · 네이버 #03C75A 는 각 사 로그인 버튼 가이드 색 (테마 색과 무관하게 고정)
+-->
+<div class="member-form__sns">
+  <a class="member-form__sns-button member-form__sns-button--kakao" href="{{href}}#kakao">
+    <i class="ri-kakao-talk-fill member-form__sns-icon" aria-hidden="true"></i>카카오로 {{action}}
+  </a>
+  <a class="member-form__sns-button member-form__sns-button--naver" href="{{href}}#naver">
+    <span class="member-form__sns-icon member-form__sns-icon--naver" aria-hidden="true">N</span>네이버로 {{action}}
+  </a>
+</div>

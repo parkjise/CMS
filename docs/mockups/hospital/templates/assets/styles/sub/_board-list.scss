@@ -20,60 +20,11 @@ $badge-bg: #f1f5f9;
     word-break: keep-all;
   }
 
-  // 총 건수 | 검색
   &__toolbar {
-    @include flex(stretch, space-between, 20px, column);
     margin-top: 40px;
     @include md {
-      flex-direction: row;
-      align-items: flex-end;
       margin-top: 80px;
     }
-  }
-  &__total {
-    font-size: 1rem;
-    @include md {
-      font-size: 1.125rem;
-    }
-  }
-  &__count {
-    margin-left: 0.45em;
-    font-weight: 600;
-  }
-  &__search {
-    @include flex(center, space-between, 10px);
-    width: 100%;
-    padding: 10px;
-    border-bottom: 1px solid var(--color-text-primary);
-    @include md {
-      width: 370px;
-    }
-
-    &:focus-within {
-      border-bottom-color: var(--color-primary);
-    }
-  }
-  &__search-input {
-    flex: 1;
-    min-width: 0;
-    border: 0;
-    background: none;
-    font-size: 1rem;
-    @include md {
-      font-size: 1.125rem;
-    }
-    &::placeholder {
-      color: $muted;
-    }
-    &:focus {
-      outline: none;
-    }
-  }
-  &__search-button {
-    @include button-reset;
-    @include flex-center;
-    font-size: 1.5rem;
-    @include focus-ring;
   }
 
   // 목록
@@ -153,40 +104,10 @@ $badge-bg: #f1f5f9;
     color: $muted;
   }
 
-  // 페이지 이동
   &__pagination {
-    @include flex(center, center, 4px);
     margin-top: 56px;
     @include md {
-      gap: 8px;
       margin-top: 110px;
-    }
-  }
-  &__pages {
-    @include flex(center, center, 4px);
-  }
-  &__page {
-    @include flex-center;
-    width: 32px;
-    height: 32px;
-    border-radius: 4px;
-    font-size: 1rem;
-    @include focus-ring;
-
-    &[aria-current='page'] {
-      background: var(--color-text-primary);
-      color: #fff;
-      font-weight: 700;
-    }
-    &--arrow {
-      font-size: 1.375rem;
-      color: #94a3b8;
-    }
-
-    @include hover {
-      &:not([aria-current='page']) {
-        color: var(--color-primary);
-      }
     }
   }
 }

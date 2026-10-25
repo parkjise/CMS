@@ -18,9 +18,9 @@
     gap: 48px;
 
     @include lg {
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: 708fr 606fr;
       align-items: center;
-      column-gap: 44px;
+      column-gap: clamp(40px, 8.75vw, 126px);
     }
   }
 
@@ -56,6 +56,10 @@
   // 사진 왼쪽, 글은 오른쪽 칸의 끝에 붙임
   &--reverse {
     @include lg {
+      .split-story__inner {
+        grid-template-columns: 606fr 708fr;
+      }
+
       .split-story__text {
         justify-self: end;
         width: 100%;

@@ -11,7 +11,6 @@ document.addEventListener('includes:loaded', () => {
   if (!section) return
 
   const player = section.querySelector('.video-playlist__player')
-  const featuredTitle = section.querySelector('.video-playlist__featured-title')
   const links = [...section.querySelectorAll('.video-playlist__link')]
 
   const isSample = (id) => !id || id.startsWith('VIDEO_ID_')
@@ -33,13 +32,12 @@ document.addEventListener('includes:loaded', () => {
         <span class="sr-only">영상 재생:</span>
         <span class="sr-only video-playlist__play-label">${title}</span>
       </button>`
-    featuredTitle.textContent = title
   }
 
   // 재생: iframe 삽입
   const play = () => {
     const id = player.dataset.videoId
-    const title = featuredTitle.textContent
+    const title = player.querySelector('.video-playlist__play-label').textContent.trim()
     const iframe = document.createElement('iframe')
     iframe.className = 'video-playlist__iframe'
     iframe.src = `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`

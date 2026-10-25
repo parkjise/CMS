@@ -1,7 +1,7 @@
 # Unsplash Reference Photos
 
 Locally stored reference photography for the About and Business mockup pages.
-These photos are illustrative, not photographs of ONDO facilities.
+These photos are illustrative, not photographs of BAZZAR facilities.
 
 License: [Unsplash License](https://unsplash.com/license).
 

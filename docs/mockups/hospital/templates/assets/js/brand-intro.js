@@ -8,8 +8,10 @@ document.addEventListener('includes:loaded', () => {
   slides.forEach((slide, index) => {
     slide.setAttribute('aria-label', `${slides.length}개 중 ${index + 1}번째 이미지`)
   })
-  // Keep images available on both sides while the three designs circulate.
-  slides.forEach((slide) => slide.parentElement.append(slide.cloneNode(true)))
+  // The visible overflow needs more loop cards than the one-slide viewport.
+  for (let copy = 0; copy < 3; copy += 1) {
+    slides.forEach((slide) => slide.parentElement.append(slide.cloneNode(true)))
+  }
 
   const updateCards = (swiper) => {
     swiper.slides.forEach((slide) => {
@@ -28,7 +30,7 @@ document.addEventListener('includes:loaded', () => {
     spaceBetween: '25%',
     watchSlidesProgress: true,
     loop: true,
-    loopAdditionalSlides: 1,
+    loopAdditionalSlides: 3,
     speed: 700,
     grabCursor: true,
     autoplay: {

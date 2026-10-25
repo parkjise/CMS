@@ -156,6 +156,7 @@ $shadow: 0 0 15px rgba(0, 0, 0, 0.15);
     }
   }
   &__links {
+    width: 100%;
     flex-shrink: 0;
     overflow: hidden;
     min-height: 0;

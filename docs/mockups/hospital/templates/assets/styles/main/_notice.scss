@@ -40,6 +40,11 @@
     border-color: var(--color-text-primary);
     color: var(--color-text-primary);
     @include focus-ring;
+    &:hover {
+      color: #fff;
+      background: var(--color-text-primary);
+      border-color: var(--color-text-primary);
+    }
   }
 
   &__list {

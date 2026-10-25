@@ -30,22 +30,35 @@
   &__inner {
     @include flex(center, space-between);
     height: 100%;
-    gap: 16px;
+    gap: 12px;
     padding: 16px 24px;
     margin-inline: auto;
     @include md {
+      gap: 16px;
       padding-inline: 40px;
     }
   }
 
   &__logo {
+    flex-shrink: 0;
     margin-right: auto; // lg 미만: 로고 왼쪽, 나머지 오른쪽
     font-size: 18px;
     font-weight: 700;
     color: var(--color-text-primary);
   }
   &__logo-link {
+    @include flex(center, start, 10px);
     @include focus-ring;
+    font-size: 1.5rem;
+  }
+  &__logo-image {
+    display: block;
+    width: auto;
+    height: 16px;
+
+    @include md {
+      height: 28px;
+    }
   }
 
   // lg 미만: 햄버거 버튼으로 여는 드롭다운 패널

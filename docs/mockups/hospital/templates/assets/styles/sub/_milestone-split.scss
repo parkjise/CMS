@@ -6,7 +6,7 @@
   padding: 80px 0;
   @include center-divider;
   @include lg {
-    padding: 140px 0 0;
+    padding: 140px 0 80px;
   }
 
   &__inner {
@@ -45,7 +45,7 @@
   &__col--left &__image {
     @include ratio(708, 578);
     @include lg {
-      border-radius: 12px 12px 0 0; // 섹션 바닥에 붙음
+      width: calc(100% * 606 / 708);
     }
   }
   &__col--right &__image {

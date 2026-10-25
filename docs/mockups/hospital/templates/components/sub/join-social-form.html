@@ -1,0 +1,26 @@
+<!-- JOIN SOCIAL FORM: 소셜 신규 가입 추가 정보 — 휴대폰 인증 + 약관 동의 + 가입 완료하기 (기획서 16.3 소셜 신규 가입)
+  - 제공자 문구: #kakao | #naver → [data-provider-name] (assets/js/member-form.js)
+  - 목업: 인증번호 123456 / 실제는 OAuth 콜백에서 신규 회원일 때만 이 화면으로 이동
+-->
+<section class="board-form member-form" aria-labelledby="join-social-title">
+  <div class="container">
+    <form class="board-form__form" action="join-social.html" method="post" novalidate data-success="가입이 완료되었습니다. 마이페이지로 이동합니다." data-redirect="mypage.html">
+      <div class="board-form__panel board-form__panel--narrow">
+        <p class="member-form__badge" aria-hidden="true"><i class="ri-kakao-talk-fill" data-provider-icon></i></p>
+        <h2 class="member-form__title" id="join-social-title"><span data-provider-name>카카오</span> 계정으로 가입을 완료해 주세요.</h2>
+        <p class="member-form__desc">처음 이용하시는 계정이에요. 예약 안내를 받을 휴대폰 번호만 확인하면 끝나요.</p>
+
+        <div class="board-form__list member-form__list">
+          <div data-include="components/sub/phone-verify.html" data-id="js"></div>
+        </div>
+
+        <div data-include="components/sub/member-agree.html" data-id="js"></div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <button class="member-form__submit" type="submit">가입 완료하기</button>
+        <p class="member-form__switch"><a href="login.html">다른 방법으로 로그인</a></p>
+      </div>
+    </form>
+  </div>
+</section>

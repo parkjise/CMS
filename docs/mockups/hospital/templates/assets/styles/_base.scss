@@ -50,7 +50,7 @@ section {
     text-align: left;
     margin-bottom: 24px;
   }
-  // 서브 페이지용 — 작은 제목 (괄호 eyebrow + 42px 제목)
+  // 서브 페이지용 — 작은 제목 (eyebrow + 42px 제목)
   &--sub {
     margin-bottom: 40px;
     @include md {
@@ -59,7 +59,6 @@ section {
     .section-head__eyebrow {
       font-size: 0.9375rem;
       font-weight: 400;
-      color: var(--color-primary);
     }
     .section-head__title {
       margin-block: 0.75rem 0;

@@ -47,7 +47,7 @@
     &:hover .video-playlist__play-icon,
     &:focus-visible .video-playlist__play-icon {
       transform: translate(-50%, -50%) scale(1.1);
-      background: #ff0033;
+      background: var(--color-text-primary);
     }
   }
   &__player-image {
@@ -78,20 +78,13 @@
     height: 100%;
     border: 0;
   }
-  &__featured-meta {
-    @include flex(center, space-between, 0.75rem 1.5rem);
-    flex-wrap: wrap;
-    margin-top: 1.25rem;
-  }
-  &__featured-title {
-    @include fluid-type(1.125rem, 1.5rem);
-    font-weight: 600;
-  }
-
   // ── 영상 목록 ──
-  &__list {
+  &__sidebar {
     flex: 1;
     min-width: 0;
+    @include flex(stretch, start, 1.25rem, column);
+  }
+  &__list {
     @include flex(stretch, start, 0.75rem, column);
   }
   &__link {
@@ -151,6 +144,11 @@
     color: var(--color-text-primary);
     font-weight: 500;
     @include focus-ring;
+    &:hover {
+      color: #fff;
+      background: var(--color-text-primary);
+      border-color: var(--color-text-primary);
+    }
     i {
       font-size: 1.25rem;
       color: #ff0033;

@@ -44,8 +44,14 @@
 @use 'sub/banner-split'; // 글 | 오른쪽 꽉 찬 사진
 @use 'sub/criteria-cards'; // 제목·설명 + 사진 카드 3개
 @use 'sub/value-circles'; // 배경 사진 + 원형 가치 3개 + 더보기
+@use 'sub/board-toolbar'; // 게시판 상단 총 건수 | 검색 (공용)
+@use 'sub/pagination'; // 게시판 페이지 이동 (공용)
 @use 'sub/board-list'; // 게시판 목록 (공지사항)
 @use 'sub/board-view'; // 게시판 상세
+@use 'sub/consult-board'; // 온라인 상담 목록 (표)
+@use 'sub/board-form'; // 게시판 입력 폼 (온라인 예약 · 상담 글쓰기 · 회원)
+@use 'sub/member-form'; // 회원 화면 전용 (로그인·가입·찾기·재설정·탈퇴)
+@use 'sub/mypage'; // 마이페이지 (내 예약·문의 내역·알림 설정·내 정보)
 
 @use 'footer/footer'; // Footer
 @use 'quick-menu/quick-menu'; // 퀵메뉴 · 간편상담 · 상단으로 (메인·서브 공통)

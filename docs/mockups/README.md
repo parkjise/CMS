@@ -37,7 +37,7 @@
 - **시맨틱·접근성**: 목록은 `ul > li`, 섹션은 `aria-labelledby` 로 제목 연결, 로고만 `h1`(섹션 제목은 `h2`),
   장식 이미지는 `alt=""`, 의미 있는 이미지는 대체텍스트, 링크·버튼에 `focus-visible` 링,
   본문 바로가기(`.skip-link`), 스크린리더 전용 텍스트는 `.sr-only`
-- 샘플 문구는 어느 업종에서도 자연스러운 카피 (가상 브랜드 `ONDO`)
+- 샘플 문구는 어느 업종에서도 자연스러운 카피 (가상 브랜드 `BAZZAR`)
 - 기존 섹션으로 표현 안 되는 특정 업종 전용 레이아웃은 `data-new="true"`로 표시 → 새 섹션 컴포넌트 추가 대상
 - 이식 산출물: `apps/client/lib/templates/<key>.ts` (+ 백엔드 `seed.py` 동일 값) / 필요 시 새 섹션 컴포넌트
 
@@ -54,10 +54,14 @@ docs/mockups/
       about-location.html      ← 서브: 오시는 길 (sections/location 재사용)
       business.html            ← 서브: 사업 소개 (헤더 Business 메뉴, 하위 탭 없음)
       notice.html notice-view.html ← 서브: 공지사항 목록 / 상세 (헤더 Notice 메뉴)
+      consult.html consult-view.html consult-write.html reservation.html ← 서브: 온라인 상담 목록 / 상세 / 글쓰기 / 온라인 예약 신청 (헤더 상담 예약 메뉴, 탭 sub-nav-consult)
+      login.html join.html join-social.html find-email.html find-pw.html reset-pw.html mypage.html withdraw.html
+                               ← 회원 (기획서 16): 로그인 / 회원가입 / 소셜 가입 추가 정보 / 이메일 찾기 / 비밀번호 찾기 / 새 비밀번호 / 마이페이지 / 회원 탈퇴
+                                 목업 계정 hong@email.com / bazzar1234 · 인증번호 123456 · 상태 보기 reset-pw.html#expired, withdraw.html#reservation, join-social.html#naver
       components/              ← HTML partial (컴포넌트)
         header.html footer.html quick-menu.html (퀵메뉴·간편상담·상단으로, 모든 페이지 footer 다음)
         sub/                   ← 서브 페이지 공통 partial
-          sub-hero.html (비주얼+제목+브레드크럼) sub-nav.html (탭)
+          sub-hero.html (비주얼+제목+브레드크럼) sub-nav.html (탭) sub-nav-consult.html (상담 예약 탭)
           media-row.html (사진+글) strength-list.html (체크리스트+사진) area-rows.html (지그재그)
           photo-gallery.html (사진 슬라이드+썸네일) consult-links.html (상담 버튼 3종)
           history-timeline.html (연혁: 구간 탭 + 고정 연도·사진 + 월별 목록)
@@ -65,12 +69,17 @@ docs/mockups/
           banner-split.html (글 | 오른쪽 꽉 찬 사진) criteria-cards.html (제목·설명 + 사진 카드 3개)
           value-circles.html (배경 사진 + 원형 가치 3개 + 더보기) ← 공통 글 블록 .story-text 사용
           board-list.html (게시판 목록: 총 건수·검색·공지 배지·페이지 이동) board-view.html (게시판 상세: 본문 + 이전/목록/다음)
+          consult-board.html (상담 목록 표: 비밀글·답변여부 + 글쓰기) consult-view.html (상담 상세: board-view + 작성자·답변 박스) consult-write.html (상담 글쓰기 폼 + 취소/등록) reserve-form.html (예약 신청 폼 + 등록)
+          login-form.html join-form.html join-social-form.html find-email-form.html find-pw-form.html reset-pw-form.html withdraw-form.html (회원: .board-form + 전용 .member-form)
+          member-sns.html (카카오·네이버 + 또는) member-agree.html (약관 동의) phone-verify.html (휴대폰 인증) password-field.html (비밀번호 + 보기 + 조건) find-tabs.html (찾기 탭)
+          mypage.html (마이페이지 탭: 내 예약 · 문의 내역 · 알림 설정 · 내 정보 → .mypage)
+          ← 게시판 공용 블록: .board-toolbar (총 건수 | 검색), .pagination (페이지 이동), .board-form (입력 폼 패널)
         sections/              ← 섹션별 partial (레이아웃 패턴 이름)
           hero-slider.html brand-intro.html service-cards.html video-playlist.html notice.html location.html
       clinic-a.html            ← (예) 개별 시안
       assets/
         js/include.js          ← data-include partial 로더 (완료 시 'includes:loaded' 이벤트)
-        js/header.js quick-menu.js sub-nav.js photo-gallery.js history-timeline.js board-list.js ← 헤더·퀵메뉴(공통), 서브 탭·갤러리·연혁·게시판 검색
+        js/header.js quick-menu.js sub-nav.js photo-gallery.js history-timeline.js board-search.js board-form.js member-form.js mypage.js ← 헤더·퀵메뉴(공통), 서브 탭·갤러리·연혁·게시판 검색(공용)·입력 폼 검증(공용)·회원(이메일 중복·휴대폰 인증·로그인 잠금·찾기 단계·탈퇴)·마이페이지(탭·예약·알림·내 정보)
         js/hero-slider.js brand-intro.js service-cards.js video-playlist.js scroll-reveal.js ← 섹션별 동작 (Swiper·GSAP·YouTube)
         images/                ← 이미지·아이콘
         styles/                ← SCSS 소스
