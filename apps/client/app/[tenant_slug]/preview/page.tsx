@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation'
-import { fetchTemplatePreview } from '@/lib/publicSite'
+import { fetchPublicSite, fetchTemplatePreview } from '@/lib/publicSite'
 import { buildCssVarBody } from '@/lib/theme'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { PreviewBanner } from '@/components/preview/PreviewBanner'
+import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
+import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -26,6 +28,27 @@ export default async function TemplatePreviewPage({
 
   if (!tpl) {
     notFound()
+  }
+
+  // 코드형 템플릿 미리보기: 테넌트 실제 콘텐츠 + 템플릿 마크업·기본 토큰 (빈 항목은 샘플)
+  const codeTemplate = findCodeTemplate(tpl)
+  if (codeTemplate) {
+    const tenantSite = await fetchPublicSite(tenant_slug)
+    if (!tenantSite) {
+      notFound()
+    }
+    return (
+      <>
+        <PreviewBanner templateName={codeTemplate.manifest.name} />
+        <CodeTemplateRenderer
+          entry={codeTemplate}
+          site={tenantSite}
+          tenantSlug={tenant_slug}
+          pageKey="home"
+          preview
+        />
+      </>
+    )
   }
 
   const site = await fetchTemplatePreview(tenant_slug, tpl)

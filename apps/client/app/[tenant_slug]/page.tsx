@@ -6,6 +6,8 @@ import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
+import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
+import { resolveCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -19,8 +21,29 @@ export default async function TenantHomePage({ params }: Props) {
     notFound()
   }
 
-  const activeSections = site.sections.filter((s) => s.is_active)
   const jsonLd = buildLocalBusinessJsonLd(site)
+
+  // 코드형 템플릿 (기획서 11.7) — 템플릿 전용 마크업·스타일로 렌더링
+  const codeTemplate = resolveCodeTemplate(site)
+  if (codeTemplate) {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+        />
+        <EditToolbar />
+        <CodeTemplateRenderer
+          entry={codeTemplate}
+          site={site}
+          tenantSlug={tenant_slug}
+          pageKey="home"
+        />
+      </>
+    )
+  }
+
+  const activeSections = site.sections.filter((s) => s.is_active)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">

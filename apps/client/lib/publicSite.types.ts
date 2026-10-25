@@ -41,6 +41,8 @@ export interface PublicSeoSettings {
 }
 
 export interface PublicTemplate {
+  /** templates.id ('TPL_HOSPITAL_A') — 코드형 템플릿 판별용 (T-117 에서 API 추가) */
+  template_id?: string
   template_type: string
   name: string
   css_variables: Record<string, string>

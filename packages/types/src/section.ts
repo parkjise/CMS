@@ -9,6 +9,14 @@ export type SectionType =
   | 'PORTFOLIO'
   | 'TEAM'
   | 'FAQ'
+  // 코드형 템플릿 섹션 (기획서 11.10) — 백엔드 enum 은 T-117 에서 추가
+  | 'HERO_SLIDER'
+  | 'VIDEO_PLAYLIST'
+  | 'NOTICE_LATEST'
+  | 'SUB_HERO'
+  | 'CONTENT_BLOCK'
+  | 'HISTORY_TIMELINE'
+  | 'BOARD'
 
 export type SectionValueType = 'STRING' | 'INTEGER' | 'BOOLEAN' | 'JSON' | 'URL'
 
