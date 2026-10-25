@@ -30,8 +30,8 @@
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
 | **Phase 15: 방문자 인증** | **10** | **1** | **10%** |
-| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **4** | **44%** |
-| **합계** | **127** | **113** | **89%** |
+| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **5** | **56%** |
+| **합계** | **127** | **114** | **90%** |
 
 ---
 
@@ -2301,14 +2301,15 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-122: 목업 이식 ② 서브 페이지
+### T-122: 목업 이식 ② 서브 페이지 ✅
 - **담당:** 프론트엔드
 - **참조:** 목업 `about*.html`, `business.html`, `components/sub/*`, `기획서 섹션 11.9`
 - **작업 내용:**
-  - [ ] 서브 페이지 라우트 `/{slug}/[page]` + 매니페스트 `pages` 기반 메뉴·하위 탭·브레드크럼
-  - [ ] SubHero(이미지형 · 텍스트형) · SubNav · 콘텐츠 블록(media-row · split-story · strength-list · area-rows · banner-split · criteria-cards · value-circles · milestone-split · photo-gallery) · HistoryTimeline · 오시는 길(MAP)
-  - [ ] 페이지별 샘플 콘텐츠 (소개 · 연혁 · 오시는 길 · 사업 소개)
+  - [x] 서브 페이지 라우트 `/{slug}/[page]` + 매니페스트 `pages` 기반 메뉴·하위 탭·브레드크럼
+  - [x] SubHero(이미지형 · 텍스트형) · SubNav · 콘텐츠 블록(media-row · split-story · strength-list · area-rows · banner-split · criteria-cards · value-circles · milestone-split · photo-gallery) · HistoryTimeline · 오시는 길(MAP)
+  - [x] 페이지별 샘플 콘텐츠 (소개 · 연혁 · 오시는 길 · 사업 소개)
 - **완료 조건:** 서브 4개 페이지가 목업과 동일, 각 블록 문구·이미지 편집 가능
+- **결과:** 커밋 `5cb97a0` (feat/T-122) — 1440·390 에서 섹션별 높이가 목업과 일치, 테스트 15건 추가(클라이언트 140건 통과). 제목·설명 등 단일 값은 인라인 편집, 문단·목록·이미지는 관리자 AD-02 편집. 실제 라우트의 없는 페이지는 404 화면이지만 HTTP 상태는 200 (기존 loading.tsx 스트리밍 동작 — T-125 점검)
 
 ---
 
