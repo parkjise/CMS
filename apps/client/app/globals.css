@@ -1,3 +1,7 @@
+/* CSS 레이어 순서 (기획서 11.7): 코드형 템플릿 스타일(template)은 Tailwind preflight(base) 뒤, utilities 앞.
+   templates/{key}/styles/index.scss 와 같은 순서로 선언한다 — 먼저 읽히는 선언이 순서를 정한다. */
+@layer theme, base, components, template, utilities;
+
 @import "tailwindcss";
 
 @layer base {
