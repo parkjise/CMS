@@ -2044,6 +2044,11 @@ export interface TemplateManifest {
 - `sections.page_key` (기본 `'home'`) 로 섹션이 어느 페이지에 속하는지 구분한다. 페이지 주소는 `/{slug}/{page_key}` (예: `/{slug}/about`).
 - 매니페스트 `pages` 에 페이지 키·메뉴명·기본 섹션 목록·헤더 메뉴 위치를 정의하고, 헤더/푸터 메뉴는 이 목록으로 그린다.
 - 게시판형 페이지(공지·상담)와 예약 페이지는 기존 데이터 연동: 상담·예약 → 문의 API (5.5, AD-04), 회원 화면 → 섹션 16 방문자 인증. 공지 게시판 데이터 저장 방식은 오픈 이슈 #27.
+- **구현 (T-123):** 페이지 섹션 `BOARD` 의 `board` 값으로 구분 — `notice` · `consult` · `reservation`. 상세·글쓰기 주소는 `/{slug}/{page}/{id}` (`/consult/write`), 목록 검색·페이지는 `?q=` · `?p=`.
+  - **공지:** 섹션 JSON (`items [{ id, subject, date, pinned, body [블록] }]`) — #27 옵션 A
+  - **온라인 상담:** 문의(inquiries)에 `is_board` 로 저장. 공개 API `GET /api/public/inquiries/board` (목록: 제목·가린 이름·비밀글·답변 여부·등록일, 스팸 제외 — 연락처는 절대 미노출), `GET /board/{id}` (비밀글은 `locked`), `POST /board/{id}/unlock` (작성 비밀번호 bcrypt 확인, IP당 분당 10회), `POST /board` (reCAPTCHA, 분당 3회). 답변은 AD-04 문의 상세에서 작성 → `answer` · `answered_at`, 상태 '완료'.
+  - **온라인 예약:** `POST /api/public/inquiries` 에 `inquiry_type=RESERVATION` + `subject` · `reserved_date` · `reserved_time`.
+  - 목업의 6자리 보안문자는 브라우저에서 만드는 장식이라 실제로는 보이지 않는 reCAPTCHA v3 로 대체한다.
 - 템플릿이 제공하지 않는 페이지 키로 접근하면 404.
 
 ```typescript
@@ -2088,7 +2093,7 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 |---|---|---|---|---|---|
 | 25 | 목업 템플릿 이름·ID | `TPL_HOSPITAL_A` (업종+순번) | 디자인 컨셉명 (예: `TPL_CLASSIC_SERIF`) | 1주차 | PM |
 | 26 | SCSS 템플릿 CSS 전달 방식 | Next 번들(동적 import 청크) — 적용 후 확인: 서버 컴포넌트 동적 import 는 청크가 나뉘지 않아 다른 테넌트에도 CSS(gzip 약 10KB)·JS 가 함께 내려옴 | **✅ 결정 (2026-10-25): 미들웨어로 템플릿별 라우트 분기** — `/{slug}` 요청을 템플릿 전용 내부 라우트로 rewrite 해 CSS·JS 를 라우트 단위로 분리 (T-125 에서 적용) | 결정됨 | 프론트 |
-| 27 | 공지 게시판 데이터 | 섹션 settings JSON (간단) | 별도 `posts` 테이블 + API | 2주차 | 백엔드 |
+| 27 | 공지 게시판 데이터 | **✅ 결정 (2026-10-25): 섹션 settings JSON** — T-123 적용 | 별도 `posts` 테이블 + API (공지가 많아지면 이전) | 결정됨 | 백엔드 |
 | 28 | 샘플 콘텐츠 업데이트 전파 | 신규 적용분에만 반영 | `is_sample=true` 값은 새 버전으로 자동 갱신 | 2주차 | PM |
 
 ---
