@@ -1,6 +1,6 @@
 import re
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -23,6 +23,10 @@ class InquiryCreate(BaseModel):
     email: EmailStr | None = None
     message: str = Field(..., min_length=10, max_length=1000)
     recaptcha_token: str | None = None
+    # 온라인 예약 (T-123) — inquiry_type=RESERVATION 과 함께 사용
+    subject: str | None = Field(None, max_length=200)
+    reserved_date: date | None = None
+    reserved_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
 
     @field_validator("phone")
     @classmethod
@@ -43,6 +47,13 @@ class InquiryResponse(BaseModel):
     status: str
     is_read: bool
     admin_memo: str | None
+    subject: str | None = None
+    is_board: bool = False
+    is_secret: bool = False
+    answer: str | None = None
+    answered_at: datetime | None = None
+    reserved_date: date | None = None
+    reserved_time: str | None = None
     attachments: list[InquiryAttachmentResponse] = []
     created_at: datetime
     updated_at: datetime
@@ -59,6 +70,11 @@ class InquiryListItem(BaseModel):
     status: str
     is_read: bool
     admin_memo: str | None
+    subject: str | None = None
+    is_board: bool = False
+    answered_at: datetime | None = None
+    reserved_date: date | None = None
+    reserved_time: str | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -75,3 +91,5 @@ class InquiryUpdate(BaseModel):
     status: str | None = None
     is_read: bool | None = None
     admin_memo: str | None = None
+    # 상담 게시판 답변 (빈 문자열이면 답변 삭제) — T-123
+    answer: str | None = Field(None, max_length=5000)

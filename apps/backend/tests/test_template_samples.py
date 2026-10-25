@@ -232,12 +232,11 @@ class TestTenantCreateWithTemplate:
             pages = await _tenant_rows(
                 tid, "SELECT DISTINCT page_key FROM sections WHERE tenant_id = :t"
             )
+            sample_pages = next(
+                t for t in _seed.CODE_TEMPLATES if t["code"] == "TPL_HOSPITAL_A"
+            )["sample_content"]["pages"]
             assert {p.page_key for p in pages} == {
-                "home",
-                "about",
-                "about-history",
-                "about-location",
-                "business",
+                key for key, sections in sample_pages.items() if sections
             }
 
             flags = await _tenant_rows(

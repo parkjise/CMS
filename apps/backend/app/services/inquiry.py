@@ -27,6 +27,9 @@ async def create_inquiry(
         phone=data.phone,
         email=str(data.email) if data.email else None,
         message=data.message,
+        subject=data.subject,
+        reserved_date=data.reserved_date,
+        reserved_time=data.reserved_time,
         status="PENDING",
         is_read=False,
         created_at=datetime.now(UTC),
@@ -136,6 +139,13 @@ async def update_inquiry(
         inquiry.is_read = data.is_read
     if data.admin_memo is not None:
         inquiry.admin_memo = data.admin_memo
+    if data.answer is not None:
+        answer = data.answer.strip()
+        inquiry.answer = answer or None
+        inquiry.answered_at = datetime.now(UTC) if answer else None
+        # 답변하면 처리 완료로 (이미 다른 상태로 바꾼 경우는 유지)
+        if answer and inquiry.status in ("PENDING", "IN_PROGRESS"):
+            inquiry.status = "DONE"
 
     inquiry.updated_at = datetime.now(UTC)
     await db.commit()

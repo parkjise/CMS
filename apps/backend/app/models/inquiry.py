@@ -1,6 +1,7 @@
 import uuid
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, ForeignKey, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -27,6 +28,24 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     admin_memo: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # ── 온라인 상담 게시판 · 예약 (T-123) ──
+    subject: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # 공개 상담 게시판 글 (목록에 제목·가린 이름 노출)
+    is_board: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    # 비밀글 — 작성자 비밀번호(bcrypt) 확인 후에만 내용·답변 공개
+    is_secret: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default="false"
+    )
+    password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    reserved_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    reserved_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
 
     attachments: Mapped[list["InquiryAttachment"]] = relationship(
         "InquiryAttachment",

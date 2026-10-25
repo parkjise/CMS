@@ -18,7 +18,14 @@ from app.schemas.inquiry import (
     InquiryResponse,
     InquiryUpdate,
 )
+from app.schemas.inquiry_board import (
+    BoardListResponse,
+    BoardPostCreate,
+    BoardPostDetail,
+    BoardUnlockRequest,
+)
 from app.services import inquiry as inquiry_service
+from app.services import inquiry_board as board_service
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
 router = APIRouter(prefix="/inquiries", tags=["inquiries"])
@@ -52,6 +59,23 @@ async def _verify_recaptcha(token: str | None) -> None:
 # ── Public ──────────────────────────────────────────────────────────────────
 
 
+async def _resolve_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant:
+    """공개 API: 슬러그로 활성 테넌트를 찾고 그 테넌트로 RLS 를 설정한다."""
+    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    tenant_result = await db.execute(
+        select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
+    )
+    tenant = tenant_result.scalar_one_or_none()
+    if not tenant:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    await db.execute(text("SELECT set_config('app.is_super_admin', 'false', true)"))
+    await db.execute(
+        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
+        {"tid": str(tenant.id)},
+    )
+    return tenant
+
+
 @public_router.post("", response_model=ApiResponse[dict])
 @_limiter.limit("3/minute")
 async def submit_inquiry(
@@ -61,23 +85,80 @@ async def submit_inquiry(
     db: AsyncSession = Depends(get_db),
 ):
     await _verify_recaptcha(body.recaptcha_token)
-
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
-    tenant_result = await db.execute(
-        select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
-    )
-    tenant = tenant_result.scalar_one_or_none()
-    if not tenant:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tenant.id)},
-    )
+    tenant = await _resolve_public_tenant(db, tenant_slug)
     inquiry = await inquiry_service.create_inquiry(db, tenant.id, body)
     return ApiResponse.ok(
         {"inquiry_id": str(inquiry.id), "message": "문의가 접수되었습니다."}
     )
+
+
+# ── Public: 온라인 상담 게시판 (T-123) ────────────────────────────────────────
+
+
+@public_router.get("/board", response_model=ApiResponse[BoardListResponse])
+async def list_board_posts(
+    tenant_slug: str = Query(..., description="테넌트 슬러그"),
+    page: int = Query(1, ge=1),
+    size: int = Query(10, ge=1, le=50),
+    q: str | None = Query(None, max_length=60),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _resolve_public_tenant(db, tenant_slug)
+    return ApiResponse.ok(await board_service.list_posts(db, tenant.id, page, size, q))
+
+
+@public_router.post("/board", response_model=ApiResponse[dict])
+@_limiter.limit("3/minute")
+async def create_board_post(
+    request: Request,
+    body: BoardPostCreate,
+    tenant_slug: str = Query(..., description="테넌트 슬러그"),
+    db: AsyncSession = Depends(get_db),
+):
+    await _verify_recaptcha(body.recaptcha_token)
+    tenant = await _resolve_public_tenant(db, tenant_slug)
+    post = await board_service.create_post(db, tenant.id, body)
+    return ApiResponse.ok(
+        {"post_id": str(post.id), "message": "상담 글이 등록되었습니다."}
+    )
+
+
+@public_router.get("/board/{post_id}", response_model=ApiResponse[BoardPostDetail])
+async def get_board_post(
+    post_id: UUID,
+    tenant_slug: str = Query(..., description="테넌트 슬러그"),
+    db: AsyncSession = Depends(get_db),
+):
+    tenant = await _resolve_public_tenant(db, tenant_slug)
+    detail = await board_service.get_post(db, tenant.id, post_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    return ApiResponse.ok(detail)
+
+
+@public_router.post(
+    "/board/{post_id}/unlock", response_model=ApiResponse[BoardPostDetail]
+)
+@_limiter.limit("10/minute")
+async def unlock_board_post(
+    request: Request,
+    post_id: UUID,
+    body: BoardUnlockRequest,
+    tenant_slug: str = Query(..., description="테넌트 슬러그"),
+    db: AsyncSession = Depends(get_db),
+):
+    """비밀글 열람: 작성 시 입력한 비밀번호 확인 (IP당 분당 10회)."""
+    tenant = await _resolve_public_tenant(db, tenant_slug)
+    try:
+        detail = await board_service.get_post(db, tenant.id, post_id, body.password)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="비밀번호가 일치하지 않습니다.",
+        ) from exc
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    return ApiResponse.ok(detail)
 
 
 # ── Admin ────────────────────────────────────────────────────────────────────
