@@ -30,8 +30,8 @@
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
 | **Phase 15: 방문자 인증** | **10** | **1** | **10%** |
-| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **3** | **33%** |
-| **합계** | **127** | **112** | **88%** |
+| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **4** | **44%** |
+| **합계** | **127** | **113** | **89%** |
 
 ---
 
@@ -2226,17 +2226,18 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-117: 템플릿 DB · API 확장
+### T-117: 템플릿 DB · API 확장 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 11.10`
 - **작업 내용:**
-  - [ ] Alembic 마이그레이션 — `templates`(renderer · styling · version · sample_content · updated_at), `sections.page_key`, `section_settings.is_sample`, `template_change_history.content_snapshot`, 인덱스
-  - [ ] `SectionType` 추가 (HERO_SLIDER · VIDEO_PLAYLIST · NOTICE_LATEST · SUB_HERO · CONTENT_BLOCK · HISTORY_TIMELINE · BOARD) — 백엔드 enum + `packages/types`
-  - [ ] `POST /templates/apply` — `content_mode: keep | replace_with_sample`, 교체 전 콘텐츠 스냅샷, 롤백 시 콘텐츠 복원
-  - [ ] `GET /templates` 에 renderer · styling · pages, 공개 사이트 API 에 `page` 쿼리
-  - [ ] 섹션 저장 시 `is_sample=false` 갱신
-  - [ ] pytest — apply keep / replace / rollback, page_key 조회, RLS 격리
+  - [x] Alembic 마이그레이션 — `templates`(renderer · styling · version · sample_content · updated_at), `sections.page_key`, `section_settings.is_sample`, `template_change_history.content_snapshot`, 인덱스
+  - [x] `SectionType` 추가 (HERO_SLIDER · VIDEO_PLAYLIST · NOTICE_LATEST · SUB_HERO · CONTENT_BLOCK · HISTORY_TIMELINE · BOARD) — 백엔드 enum + `packages/types`
+  - [x] `POST /templates/apply` — `content_mode: keep | replace_with_sample`, 교체 전 콘텐츠 스냅샷, 롤백 시 콘텐츠 복원
+  - [x] `GET /templates` 에 code · renderer · styling · version, 공개 사이트 API 섹션에 `page_key` (페이지 쿼리 대신 — 캐시 키 유지)
+  - [x] 섹션 저장 시 `is_sample=false` 갱신
+  - [x] pytest — apply keep / replace / rollback, page_key 조회, RLS 격리
 - **완료 조건:** 마이그레이션 up/down 성공, 테스트 통과, 기존 테마형 템플릿 동작 변화 없음
+- **결과:** 커밋 `39fbe88` (feat/T-117) — 마이그레이션 0017 테스트 DB up/down/up 확인, pytest 전체 480건 + 신규 12건 통과(커버리지 77.9%), 시드에 TPL_HOSPITAL_A 추가. 개발 DB(cms_db)에는 아직 미적용
 
 ---
 

@@ -2059,12 +2059,13 @@ export interface TemplatePage {
 ### 11.10 DB · API 변경 요약 (11.7 ~ 11.9)
 
 ```sql
+-- 구현(마이그레이션 0017): templates.id 는 UUID 이므로 템플릿 코드는 code 컬럼으로 둔다
 ALTER TABLE templates
+  ADD COLUMN code           VARCHAR(50) UNIQUE,                     -- 'TPL_HOSPITAL_A' (클라이언트 레지스트리 키)
   ADD COLUMN renderer       VARCHAR(10) NOT NULL DEFAULT 'theme',    -- theme | code
   ADD COLUMN styling        VARCHAR(10) NOT NULL DEFAULT 'tailwind', -- tailwind | scss
   ADD COLUMN version        VARCHAR(20) NOT NULL DEFAULT '1.0.0',
-  ADD COLUMN sample_content JSONB NOT NULL DEFAULT '{}',
-  ADD COLUMN updated_at     TIMESTAMPTZ NOT NULL DEFAULT NOW();
+  ADD COLUMN sample_content JSONB NOT NULL DEFAULT '{}';         -- updated_at 은 기존 컬럼
 
 ALTER TABLE sections         ADD COLUMN page_key  VARCHAR(50) NOT NULL DEFAULT 'home';
 ALTER TABLE section_settings ADD COLUMN is_sample BOOLEAN     NOT NULL DEFAULT false;
@@ -2075,7 +2076,10 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 
 - `SectionType` 추가 (목업 섹션 대응): `HERO_SLIDER`, `VIDEO_PLAYLIST`, `NOTICE_LATEST`, `SUB_HERO`, `CONTENT_BLOCK`(사진+글 계열 레이아웃 변형), `HISTORY_TIMELINE`, `BOARD`. 기존 타입(`HERO_BANNER`·`INTRO`·`SERVICES` 등)과 겹치는 섹션은 기존 타입을 그대로 쓴다.
 - `POST /templates/apply` 요청의 `preserve_content` 를 `content_mode: 'keep' | 'replace_with_sample'` (기본 `keep`) 로 교체.
-- `GET /templates` 응답에 `renderer`, `styling`, `pages` 추가. 공개 사이트 API(`/api/public/site/{slug}`)는 `page` 쿼리로 페이지별 섹션을 반환.
+- `GET /templates` 응답에 `code`, `renderer`, `styling`, `version` 추가 (`pages` 는 클라이언트 매니페스트에서 읽음).
+- 공개 사이트 API(`/api/public/site/{slug}`)는 각 섹션에 `page_key` 를 담아 전체를 반환하고, 클라이언트가 페이지별로 고른다 (사이트 캐시 키를 하나로 유지). `template` 에는 `code`·`renderer`·`styling`·`version`.
+- 업종 기본 템플릿 폴백(적용 이력이 없는 테넌트)은 테마형만 고른다 — 코드형은 직접 적용한 테넌트에만.
+- 샘플로 교체(`replace_with_sample`)는 기존 섹션을 소프트 삭제하고 샘플을 복사한다. 롤백 시 교체 전 섹션을 되살린다 (첫 적용이라도 콘텐츠 복원 가능).
 - `GET /sections` 응답 각 setting 에 `is_sample` 포함, `PATCH` 저장 시 서버가 `is_sample=false` 로 갱신.
 
 ### 11.11 오픈 이슈 추가
