@@ -269,6 +269,42 @@ describe('CodeTemplateRenderer (T-118)', () => {
     expect(screen.getAllByRole('listitem')).toHaveLength(3)
   })
 
+  it('샘플 모드는 테넌트 콘텐츠·상호 대신 템플릿 샘플을 그대로 쓴다', async () => {
+    const tenantSite = makeSite({
+      sections: [
+        makeSection({
+          id: 'intro-1',
+          settings: [{ field_key: 'title', field_value: '우리 제목', value_type: 'STRING' }],
+        }),
+      ],
+    })
+    let received: CodeTemplateProps | null = null
+    const spyEntry: CodeTemplateEntry = {
+      ...entry,
+      load: async () => ({
+        default: (props: CodeTemplateProps) => {
+          received = props
+          return null
+        },
+      }),
+    }
+    render(
+      await CodeTemplateRenderer({
+        entry: spyEntry,
+        site: tenantSite,
+        tenantSlug: 'demo',
+        pageKey: 'home',
+        preview: true,
+        contentSource: 'sample',
+      }),
+    )
+    const props = received as unknown as CodeTemplateProps
+    expect(props.siteInfo.brand_name).toBe('샘플 상호')
+    const intro = props.sections.find((s) => s.section.section_type === 'INTRO')
+    expect(intro?.editable).toBe(false)
+    expect(intro?.section.settings.find((s) => s.field_key === 'title')?.field_value).toBe('샘플 제목')
+  })
+
   it('미리보기는 테넌트 색상을 덮어쓰지 않는다 (템플릿 기본 토큰)', async () => {
     const ui = await CodeTemplateRenderer({
       entry,

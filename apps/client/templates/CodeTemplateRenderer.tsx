@@ -9,6 +9,10 @@ interface Props {
   tenantSlug: string
   pageKey: string
   preview?: boolean
+  /**
+   * 'tenant'(기본): 테넌트 콘텐츠 + 빈 값만 샘플 / 'sample': 템플릿 샘플 그대로 (디자인 원본 확인용 미리보기)
+   */
+  contentSource?: 'tenant' | 'sample'
 }
 
 /**
@@ -23,10 +27,17 @@ export async function CodeTemplateRenderer({
   tenantSlug,
   pageKey,
   preview = false,
+  contentSource = 'tenant',
 }: Props) {
   const { default: Template } = await entry.load()
-  const sections = resolvePageSections(entry.manifest, entry.sample, site.sections, pageKey)
-  const siteInfo = resolveSiteInfo(entry.sample, site)
+  const useSample = contentSource === 'sample'
+  const sections = resolvePageSections(
+    entry.manifest,
+    entry.sample,
+    useSample ? [] : site.sections,
+    pageKey,
+  )
+  const siteInfo = useSample ? { ...entry.sample.site } : resolveSiteInfo(entry.sample, site)
   const overrideBody = preview ? '' : buildCssVarBody(site.template?.css_variables)
 
   return (

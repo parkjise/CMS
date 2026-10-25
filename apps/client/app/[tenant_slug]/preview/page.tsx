@@ -10,7 +10,7 @@ import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string }>
+  searchParams: Promise<{ tpl?: string; content?: string }>
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -24,13 +24,14 @@ export default async function TemplatePreviewPage({
   searchParams,
 }: Props) {
   const { tenant_slug } = await params
-  const { tpl } = await searchParams
+  const { tpl, content } = await searchParams
 
   if (!tpl) {
     notFound()
   }
 
-  // 코드형 템플릿 미리보기: 테넌트 실제 콘텐츠 + 템플릿 마크업·기본 토큰 (빈 항목은 샘플)
+  // 코드형 템플릿 미리보기: 기본은 템플릿 샘플 그대로(디자인 원본),
+  // &content=mine 이면 테넌트 실제 콘텐츠 + 빈 항목만 샘플
   const codeTemplate = findCodeTemplate(tpl)
   if (codeTemplate) {
     const tenantSite = await fetchPublicSite(tenant_slug)
@@ -46,6 +47,7 @@ export default async function TemplatePreviewPage({
           tenantSlug={tenant_slug}
           pageKey="home"
           preview
+          contentSource={content === 'mine' ? 'tenant' : 'sample'}
         />
       </>
     )
