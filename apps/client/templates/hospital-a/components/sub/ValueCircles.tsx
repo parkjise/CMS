@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Props extends CodeSectionProps {
   /** more_page 페이지 키 → 주소 */
@@ -27,7 +28,7 @@ export function ValueCircles({ hrefFor, ...props }: Props) {
   return (
     <section className="value-circles" aria-labelledby={id}>
       {/* eslint-disable-next-line @next/next/no-img-element -- 장식용 배경 사진 */}
-      <img className="value-circles__bg" src={getString(section.settings, 'bg_image_url')} alt="" loading="lazy" />
+      <img className="value-circles__bg" {...optimizedImg(getString(section.settings, 'bg_image_url'), '100vw', 2048)} alt="" loading="lazy" />
       <div className="page-container">
         <StoryText {...props} id={id} className="story-text--center story-text--light" />
         <ul className="value-circles__list">

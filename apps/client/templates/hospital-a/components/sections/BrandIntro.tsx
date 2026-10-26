@@ -8,6 +8,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface GalleryImage {
   image_url: string
@@ -85,7 +86,12 @@ const Gallery = memo(function Gallery({ images }: { images: GalleryImage[] }) {
             >
               <figure className="brand-intro__gallery-card">
                 {/* eslint-disable-next-line @next/next/no-img-element -- 목업 카드 회전 효과 유지 */}
-                <img className="brand-intro__gallery-image" src={image.image_url} alt={i < images.length ? image.alt : ''} />
+                <img
+                  className="brand-intro__gallery-image"
+                  {...optimizedImg(image.image_url, '(min-width: 768px) 40vw, 80vw', 1200)}
+                  alt={i < images.length ? image.alt : ''}
+                  loading="lazy"
+                />
               </figure>
             </div>
           ))}

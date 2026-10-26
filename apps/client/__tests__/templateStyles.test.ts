@@ -55,7 +55,12 @@ describe('SCSS 코드형 템플릿 스타일 격리 (T-119)', () => {
         .map((s) => s.trim())
         // @keyframes 안의 단계(from · to · 0% …)는 선택자가 아니다
         .filter((s) => s && !/^(from|to|\d+(\.\d+)?%)$/.test(s))
-        .filter((s) => !s.startsWith(`[data-template=${manifest.key}]`))
+        // 페이지 단위 규칙(스크롤바)은 이 템플릿이 그려진 문서로 한정: html:has([data-template=…])
+        .filter(
+          (s) =>
+            !s.startsWith(`[data-template=${manifest.key}]`) &&
+            !s.startsWith(`html:has([data-template=${manifest.key}])`),
+        )
       expect(unscoped).toEqual([])
     })
 

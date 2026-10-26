@@ -1,6 +1,7 @@
 import 'remixicon/fonts/remixicon.css'
 import './styles/index.scss'
 
+
 import { Fragment, type ReactNode } from 'react'
 import { getJson, getString } from '@/lib/sectionSettings'
 import {
@@ -38,9 +39,12 @@ import { NoticeBoard } from './components/board/NoticeBoard'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
 
-// 웹폰트 (목업 _base.scss 의 @import) — the-seasons 는 Typekit 키트(도메인 등록 필요, 미등록 도메인은 대체 글꼴)
+// 웹폰트 (목업 _base.scss 의 @import)
+// - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
+// - the-seasons: Typekit 키트 (도메인 등록 필요, 미등록 도메인은 대체 글꼴). 키트 설정에서
+//   font-display 를 swap 으로 바꾸면 첫 화면 문구가 글꼴을 기다리지 않는다 (T-125 성능 점검)
+// - 목업의 Cormorant Garamond 는 실제로 쓰는 곳이 없어 불러오지 않는다
 const FONT_URLS = [
-  'https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300..700;1,300..700&display=swap',
   'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&display=swap',
   'https://use.typekit.net/ley8ols.css',
 ]
@@ -208,6 +212,10 @@ export default function HospitalATemplate({
 
   return (
     <>
+      {/* 웹폰트는 CSS → 폰트 파일 두 단계라 미리 연결해 둔다 */}
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
+      <link rel="preconnect" href="https://p.typekit.net" crossOrigin="anonymous" />
       {FONT_URLS.map((href) => (
         <link key={href} rel="stylesheet" href={href} precedence="default" />
       ))}

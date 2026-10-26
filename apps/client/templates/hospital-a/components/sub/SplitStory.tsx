@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Props extends CodeSectionProps {
   /** 사진 | 글 순서 (layout=split-story-reverse) */
@@ -25,7 +26,7 @@ export function SplitStory({ reverse = false, ...props }: Props) {
   const media = (
     <figure className="split-story__media">
       {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-      <img className="split-story__image" src={getString(section.settings, 'image_url')} alt={getString(section.settings, 'image_alt')} loading="lazy" />
+      <img className="split-story__image" {...optimizedImg(getString(section.settings, 'image_url'), '(min-width: 1024px) 50vw, 100vw', 1200)} alt={getString(section.settings, 'image_alt')} loading="lazy" />
       {caption && (
         <figcaption className="split-story__caption">
           <RichLine text={caption} />

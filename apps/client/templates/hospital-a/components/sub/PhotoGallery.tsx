@@ -7,6 +7,7 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Photo {
   image_url: string
@@ -20,12 +21,12 @@ const Slides = memo(function Slides({ photos, thumbs }: { photos: Photo[]; thumb
         thumbs ? (
           <div className="photo-gallery__thumb swiper-slide" key={`${p.image_url}-${i}`}>
             {/* eslint-disable-next-line @next/next/no-img-element -- 썸네일 */}
-            <img src={p.image_url} alt="" />
+            <img {...optimizedImg(p.image_url, '160px', 640)} alt="" loading="lazy" />
           </div>
         ) : (
           <div className="photo-gallery__slide swiper-slide" key={`${p.image_url}-${i}`}>
             {/* eslint-disable-next-line @next/next/no-img-element -- 목업 슬라이드 사진 */}
-            <img className="photo-gallery__image" src={p.image_url} alt={p.alt} loading="lazy" />
+            <img className="photo-gallery__image" {...optimizedImg(p.image_url, '(min-width: 1024px) 80vw, 100vw', 1920)} alt={p.alt} loading="lazy" />
           </div>
         ),
       )}

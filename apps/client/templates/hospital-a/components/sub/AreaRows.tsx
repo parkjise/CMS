@@ -2,6 +2,7 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface AreaRow {
   image_url: string
@@ -26,7 +27,7 @@ export function AreaRows(props: CodeSectionProps) {
           <div className={`area-rows__row${i % 2 === 1 ? ' area-rows__row--reverse' : ''}`} key={`${row.title}-${i}`}>
             <figure className="area-rows__photo">
               {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-              <img className="area-rows__image" src={row.image_url} alt="" loading="lazy" />
+              <img className="area-rows__image" {...optimizedImg(row.image_url, '(min-width: 1024px) 50vw, 100vw', 1200)} alt="" loading="lazy" />
             </figure>
             <div className="area-rows__body">
               <h3 className="area-rows__title">

@@ -1,6 +1,7 @@
 // ── 공통 base — 리셋 · 레이아웃 · 공용 컴포넌트 ──────────────────
 @use 'mixins' as *;
 // 웹폰트는 Template.tsx 의 <link> 로 불러온다 (중첩 스코프 안에서는 @import 불가)
+// 커스텀 스크롤바(html)는 index.scss 에서 html:has([data-template]) 로 적용
 // font-family: "the-seasons", sans-serif;
 // font-family: 'Cormorant Garamond', serif;
 // body 기본값은 템플릿 루트([data-template])로 옮김 — styles/index.scss
@@ -164,4 +165,5 @@ section {
 .u-pre-line {
   white-space: pre-line;
 }
+
 

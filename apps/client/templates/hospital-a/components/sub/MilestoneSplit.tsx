@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Milestone {
   year: string
@@ -25,13 +26,13 @@ export function MilestoneSplit(props: CodeSectionProps) {
           <StoryText {...props} id={id} />
           <figure className="milestone-split__media">
             {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-            <img className="milestone-split__image" src={s('left_image_url')} alt={s('left_image_alt')} loading="lazy" />
+            <img className="milestone-split__image" {...optimizedImg(s('left_image_url'), '(min-width: 1024px) 40vw, 100vw', 1200)} alt={s('left_image_alt')} loading="lazy" />
           </figure>
         </div>
         <div className="milestone-split__col milestone-split__col--right">
           <figure className="milestone-split__media">
             {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-            <img className="milestone-split__image" src={s('right_image_url')} alt={s('right_image_alt')} loading="lazy" />
+            <img className="milestone-split__image" {...optimizedImg(s('right_image_url'), '(min-width: 1024px) 40vw, 100vw', 1200)} alt={s('right_image_alt')} loading="lazy" />
           </figure>
           <ol className="milestone-split__list">
             {milestones.map((m) => (

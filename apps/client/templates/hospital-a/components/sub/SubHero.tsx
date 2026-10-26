@@ -4,6 +4,7 @@ import { useRef } from 'react'
 import { getBoolean, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Props extends CodeSectionProps {
   homeHref: string
@@ -36,7 +37,7 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
       ref={ref}
     >
       {/* eslint-disable-next-line @next/next/no-img-element -- 목업 배경 비주얼(object-fit) 유지 */}
-      {image && !plain && <img className="sub-hero__image" src={image} alt="" />}
+      {image && !plain && <img className="sub-hero__image" {...optimizedImg(image, '100vw', 2048)} alt="" />}
       <div className="page-container sub-hero__content">
         <TemplateText section={section} editable={editable} field="eyebrow" as="p" className="sub-hero__eyebrow" lang="en" maxLength={40} />
         <TemplateText section={section} editable={editable} field="title" as="h2" id="sub-hero-title" className="sub-hero__title" maxLength={40} />

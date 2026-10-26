@@ -21,6 +21,41 @@
 }
 
 @layer template {
+  // ── 커스텀 스크롤바 (목업 _base.scss) — 페이지(html) 단위라 이 템플릿이 그려진 문서에만 적용 ──
+  $page: "html:has([data-template='hospital-a'])";
+
+  #{$page} {
+    --scroll-width: 7px;
+  }
+
+  // Firefox (Chrome 121+는 scrollbar-color 지정 시 webkit 스타일을 무시하므로 분리)
+  @supports not selector(::-webkit-scrollbar) {
+    #{$page} {
+      scrollbar-width: thin;
+      scrollbar-color: #a9a9a9 transparent;
+    }
+  }
+
+  // Chrome · Safari · Edge
+  #{$page}::-webkit-scrollbar,
+  #{$page} body::-webkit-scrollbar {
+    width: var(--scroll-width);
+    height: var(--scroll-width);
+  }
+  #{$page}::-webkit-scrollbar-track,
+  #{$page} body::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  #{$page}::-webkit-scrollbar-thumb,
+  #{$page} body::-webkit-scrollbar-thumb {
+    background: #a9a9a9;
+    border-radius: 10px;
+
+    &:hover {
+      background: #888;
+    }
+  }
+
   [data-template='hospital-a'] {
     @include tokens.root-tokens;
 

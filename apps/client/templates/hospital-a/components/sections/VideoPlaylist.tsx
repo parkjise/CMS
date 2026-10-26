@@ -78,7 +78,12 @@ export function VideoPlaylist({ section, editable }: CodeSectionProps) {
               ) : (
                 <button className="video-playlist__play" type="button" onClick={play} ref={playButtonRef}>
                   {/* eslint-disable-next-line @next/next/no-img-element -- 유튜브 썸네일(외부) 그대로 사용 */}
-                  <img className="video-playlist__player-image" src={thumbOf(video)} alt="" />
+                  <img
+                    className="video-playlist__player-image"
+                    src={thumbOf(video)}
+                    alt=""
+                    loading="lazy"
+                  />
                   <span className="video-playlist__play-icon" aria-hidden="true">
                     <i className="ri-play-fill" />
                   </span>
@@ -105,7 +110,12 @@ export function VideoPlaylist({ section, editable }: CodeSectionProps) {
                   >
                     <span className="video-playlist__thumb">
                       {/* eslint-disable-next-line @next/next/no-img-element -- 유튜브 썸네일(외부) */}
-                      <img className="video-playlist__thumb-image" src={thumbOf(v)} alt="" />
+                      <img
+                        className="video-playlist__thumb-image"
+                        src={thumbOf(v)}
+                        alt=""
+                        loading="lazy"
+                      />
                       {v.duration && (
                         <span className="video-playlist__duration">
                           <span className="sr-only">재생 시간</span>

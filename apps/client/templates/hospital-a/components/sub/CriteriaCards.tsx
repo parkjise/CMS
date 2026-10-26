@@ -2,6 +2,7 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { titleId } from './ids'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Card {
   image_url: string
@@ -26,7 +27,7 @@ export function CriteriaCards(props: CodeSectionProps) {
             <li className="criteria-cards__item" key={card.title}>
               <figure className="criteria-cards__media">
                 {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-                <img className="criteria-cards__image" src={card.image_url} alt="" loading="lazy" />
+                <img className="criteria-cards__image" {...optimizedImg(card.image_url, '(min-width: 1024px) 33vw, 100vw', 828)} alt="" loading="lazy" />
               </figure>
               <h3 className="criteria-cards__title">{card.title}</h3>
               {card.text && <p className="criteria-cards__text">{card.text}</p>}

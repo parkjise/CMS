@@ -5,6 +5,7 @@ import Swiper from 'swiper'
 import { A11y, Autoplay, Navigation, Pagination } from 'swiper/modules'
 import { gsap } from 'gsap'
 import { getJson } from '@/lib/sectionSettings'
+import { optimizedImg } from '../../../shared/optimizedImage'
 import type { CodeSectionProps } from '../../../shared/contracts'
 
 interface HeroSlide {
@@ -21,7 +22,14 @@ const HeroTrack = memo(function HeroTrack({ slides }: { slides: HeroSlide[] }) {
       {slides.map((slide, i) => (
         <div className="hero-slider__slide swiper-slide" key={`${slide.image_url}-${i}`}>
           {/* eslint-disable-next-line @next/next/no-img-element -- 목업 마크업(object-fit 배경) 유지 */}
-          <img className="hero-slider__image" src={slide.image_url} alt="" />
+          <img
+            className="hero-slider__image"
+            {...optimizedImg(slide.image_url, '100vw')}
+            alt=""
+            // 첫 슬라이드는 첫 화면 주인공 이미지 — 먼저 받고, 나머지는 나중에
+            fetchPriority={i === 0 ? 'high' : 'low'}
+            loading={i === 0 ? 'eager' : 'lazy'}
+          />
         </div>
       ))}
     </div>
@@ -72,7 +80,13 @@ export function HeroSlider({ section }: CodeSectionProps) {
   }, [slides.length])
 
   // 슬라이드가 바뀌면 카피를 아래에서 위로 차례로 등장
+  // 첫 화면 카피는 바로 보이게 둔다 — 숨겼다 나타내면 첫 화면 표시(LCP)가 애니메이션만큼 늦어진다 (T-125)
+  const firstRender = useRef(true)
   useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
     const panel = contentRefs.current[index]
     if (!panel) return
     const els = panel.querySelectorAll(
