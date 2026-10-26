@@ -7,8 +7,6 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { countSampleSettings } from '@/lib/sampleCount'
-import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
-import { resolveCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -25,25 +23,8 @@ export default async function TenantHomePage({ params }: Props) {
   const jsonLd = buildLocalBusinessJsonLd(site)
   const sampleCount = countSampleSettings(site.sections)
 
-  // 코드형 템플릿 (기획서 11.7) — 템플릿 전용 마크업·스타일로 렌더링
-  const codeTemplate = resolveCodeTemplate(site)
-  if (codeTemplate) {
-    return (
-      <>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
-        />
-        <EditToolbar sampleCount={sampleCount} />
-        <CodeTemplateRenderer
-          entry={codeTemplate}
-          site={site}
-          tenantSlug={tenant_slug}
-          pageKey="home"
-        />
-      </>
-    )
-  }
+  // 코드형 템플릿 테넌트는 middleware.ts 가 템플릿 전용 라우트(app/(code)/tpl-{key})로 보낸다.
+  // 이 라우트는 테마형 전용 — 코드형 템플릿 화면을 import 하지 않아야 다른 템플릿 CSS·JS 가 섞이지 않는다.
 
   const activeSections = site.sections.filter((s) => s.is_active)
 

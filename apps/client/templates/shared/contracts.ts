@@ -94,9 +94,13 @@ export interface ResolvedSection {
   sampleKeys: string[]
 }
 
-export interface CodeTemplateEntry {
+/** 매니페스트 + 샘플 (화면 없음 — 미들웨어·라우팅 판단용) */
+export interface CodeTemplateMeta {
   manifest: TemplateManifest
   sample: SampleContent
-  /** 템플릿 루트 컴포넌트 지연 로드 — 템플릿별 청크로 분리 */
+}
+
+export interface CodeTemplateEntry extends CodeTemplateMeta {
+  /** 템플릿 루트 컴포넌트 — 템플릿 전용 라우트는 정적 import, 미리보기는 지연 로드 */
   load: () => Promise<{ default: ComponentType<CodeTemplateProps> }>
 }
