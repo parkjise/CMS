@@ -226,6 +226,7 @@ export default function HospitalATemplate({
         homeHref={hrefFor('home')}
         menu={menu}
         account={account}
+        tenantSlug={tenantSlug}
       />
 
       <main className={`main${pageKey === 'home' ? '' : ' main--sub'}`} id="main" tabIndex={-1}>

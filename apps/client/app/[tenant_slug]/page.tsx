@@ -36,7 +36,7 @@ export default async function TenantHomePage({ params }: Props) {
       />
 
       <EditToolbar sampleCount={sampleCount} />
-      <Navbar tenantName={site.tenant.name} sections={activeSections} />
+      <Navbar tenantName={site.tenant.name} sections={activeSections} tenantSlug={site.tenant.slug} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (

@@ -100,3 +100,11 @@ export const loadPendingSignup = (): PendingSocialSignup | null => {
     return null
   }
 }
+
+export const clearPendingSignup = (): void => {
+  try {
+    window.sessionStorage.removeItem(PENDING_SIGNUP_KEY)
+  } catch {
+    // 저장소를 쓸 수 없으면 무시
+  }
+}

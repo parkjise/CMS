@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 
 export interface HeaderLink {
   href: string
@@ -13,6 +14,8 @@ interface Props {
   homeHref: string
   menu: HeaderLink[]
   account: HeaderLink[]
+  /** 방문자 로그인 상태에 따라 계정 메뉴 전환 (T-113) */
+  tenantSlug: string
 }
 
 /**
@@ -20,7 +23,7 @@ interface Props {
  * - 스크롤 시 .header--scrolled
  * - 1024px 미만 메뉴 토글 (링크 클릭·Esc·넓은 화면 전환 시 닫힘)
  */
-export function Header({ brandName, logoUrl, homeHref, menu, account }: Props) {
+export function Header({ brandName, logoUrl, homeHref, menu, account, tenantSlug }: Props) {
   const [scrolled, setScrolled] = useState(false)
   const [open, setOpen] = useState(false)
 
@@ -95,13 +98,12 @@ export function Header({ brandName, logoUrl, homeHref, menu, account }: Props) {
           </button>
 
           <ul className="header__account">
-            {account.map((item) => (
-              <li key={item.href}>
-                <a className="header__account-link" href={item.href}>
-                  {item.title}
-                </a>
-              </li>
-            ))}
+            <MemberAccountLinks
+              slug={tenantSlug}
+              guestLinks={account}
+              linkClassName="header__account-link"
+              asListItems
+            />
           </ul>
         </div>
       </header>

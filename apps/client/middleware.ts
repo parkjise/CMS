@@ -12,7 +12,8 @@ import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
  */
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
 const CACHE_TTL_MS = 60_000 // 공개 사이트 재검증 주기와 같게
-const RESERVED_PAGES = new Set(['preview', 'login', 'sitemap.xml'])
+// member: 방문자 회원 화면은 모든 테넌트 공통 라우트 app/[tenant_slug]/member (T-113)
+const RESERVED_PAGES = new Set(['preview', 'login', 'sitemap.xml', 'member'])
 // 테넌트가 아닌 최상위 경로 — /member/social/callback (T-110 소셜 공용 콜백)
 const RESERVED_ROOTS = new Set(['member'])
 
