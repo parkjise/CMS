@@ -19,6 +19,8 @@ const CATEGORY_LABELS: Record<string, string> = {
   SEO: 'SEO',
   ANALYTICS: '분석',
   INTEGRATION: '연동',
+  // 방문자 회원 기능 (T-115) — SITE_MEMBER · MEMBER_SOCIAL_LOGIN · MEMBER_RESERVATION
+  MEMBER: '방문자 회원',
 }
 
 export function FeaturesTab({ tenantId, tenantPlan }: Props) {
