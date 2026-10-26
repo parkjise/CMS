@@ -557,13 +557,26 @@ class TestFeatureFlag:
     async def test_auth_options_reflect_flag(self, client: AsyncClient, tenant: dict):
         url = f"{_base(tenant['slug'])}/auth/options"
         on = await client.get(url)
-        assert on.json()["data"] == {
-            "social_login": True,
-            "providers": ["KAKAO", "NAVER"],
-        }
+        assert on.json()["data"]["social_login"] is True
+        assert on.json()["data"]["providers"] == ["KAKAO", "NAVER"]
         await _set_flag(tenant["id"], False)
         off = await client.get(url)
-        assert off.json()["data"] == {"social_login": False, "providers": []}
+        assert off.json()["data"]["social_login"] is False
+        assert off.json()["data"]["providers"] == []
+
+    @pytest.mark.parametrize(
+        ("industry", "expected"),
+        [("HOSPITAL", True), ("PENSION", True), ("STARTUP", False), ("GENERAL", False)],
+    )
+    async def test_auth_options_reservations_by_industry(
+        self, client: AsyncClient, tenant: dict, industry: str, expected: bool
+    ):
+        await _sql(
+            "UPDATE tenants SET template_type = :i WHERE id = :t",
+            {"i": industry, "t": tenant["id"]},
+        )
+        resp = await client.get(f"{_base(tenant['slug'])}/auth/options")
+        assert resp.json()["data"]["reservations"] is expected
 
     async def test_disabled_returns_403(self, client: AsyncClient, tenant: dict):
         await _set_flag(tenant["id"], False)
