@@ -170,6 +170,7 @@ describe('hospital-a 화면 (T-121)', () => {
         homeHref="/demo"
         menu={[{ href: '/demo/about', title: '회사소개' }]}
         account={[]}
+        tenantSlug="demo"
       />,
     )
     const toggle = screen.getByRole('button', { name: '전체 메뉴 열기' })

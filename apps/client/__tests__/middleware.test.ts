@@ -31,6 +31,12 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     )
   })
 
+  it('방문자 회원 화면(/{slug}/member/*)은 코드형 템플릿이어도 rewrite 하지 않는다 (T-113)', async () => {
+    fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
+    expect(rewriteOf(await run('/clinic/member/login'))).toBeNull()
+    expect(rewriteOf(await run('/clinic/member/reset-password?token=x'))).toBeNull()
+  })
+
   it('소셜 공용 콜백(/member/...)은 테넌트로 보지 않는다 (T-110)', async () => {
     const res = await run('/member/social/callback?code=c&state=clinic.x')
     expect(rewriteOf(res)).toBeNull()
