@@ -4457,7 +4457,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 
 #### 구현 메모 (T-113 — 홈페이지 화면)
 
-- 화면: `app/[tenant_slug]/member/{login,join,join-social,find-email,find-password,reset-password}` — 모든 테넌트 공통(Tailwind · 테마 색상 변수). 미들웨어는 `/{slug}/member/*` 를 코드형 템플릿 라우트로 rewrite 하지 않음. hospital-a 전용 디자인은 T-124
+- 화면: `app/[tenant_slug]/member/{login,join,join-social,find-email,find-password,reset-password}` — 모든 테넌트 공통(Tailwind · 테마 색상 변수). 미들웨어는 `/{slug}/member/*` 를 코드형 템플릿 라우트로 rewrite 하지 않음. hospital-a 전용 디자인은 T-124 (아래 구현 메모)
 - 상태: `lib/memberStore.ts` — access token 은 메모리에만, 새로고침 시 refresh 쿠키로 복원. 로그인한 적 있는 테넌트만 `localStorage member_session:{slug}` 표시를 보고 복원 호출 (비회원 방문마다 401 요청 방지 — 토큰은 저장하지 않음)
 - API 호출은 TanStack Query 훅(`hooks/member/useMemberAuth.ts`), 검증은 zod(`lib/memberSchemas.ts` — 서버와 같은 규칙 · 문구)
 - 헤더 계정 메뉴: 비로그인 `로그인 · 회원가입` / 로그인 `마이페이지 · 로그아웃` (테마 Navbar · hospital-a 헤더 공통 `MemberAccountLinks`)
@@ -4482,6 +4482,13 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 기능 변경 시 공개 사이트 캐시(`site:{slug}`)도 비움 — 토글 · 배포 · 롤백
 - 공개 사이트 API 응답 `member: {enabled, reservations, social_login}`
 - 홈페이지 접수 폼(예약 · 상담 · 문의)은 로그인한 방문자의 access token 을 보낸다 (만료 직전이면 refresh 후) → `inquiries.member_id` · 내 예약 연결
+
+#### 구현 메모 (T-124 — hospital-a 회원 화면)
+
+- 화면 로직은 headless 훅(`hooks/member/useMemberForms.ts` · `useMypage.ts`) 하나 — 공통 Tailwind 화면과 템플릿 전용 화면이 함께 사용. 템플릿은 마크업 · SCSS 만 다르다
+- `templates/memberPages.ts` 의 `MEMBER_SCREEN_TEMPLATES` 에 등록된 템플릿(현재 hospital-a)만 미들웨어가 `/{slug}/member/{page}` 를 템플릿 라우트로 rewrite. 나머지는 공통 화면. 새 코드형 템플릿은 회원 화면을 만들고 여기에 등록
+- 템플릿 회원 화면: 서브 비주얼(SubHero) + 회원 화면, `noindex`, 인라인 편집 툴바 없음. 로그인 확인(`RequireMember`) 대상은 마이페이지 · 탈퇴, 탈퇴 완료 화면은 확인 밖
+- 목업과 의도적으로 다른 점: 로그인 데모 안내 줄 제거, 회원가입 하단 SNS 가입 버튼(16.3), 오류 문구는 이 기획서 기준, 문의 내역은 상세 링크 대신 펼쳐 보기
 
 #### 응답 형식 예시
 

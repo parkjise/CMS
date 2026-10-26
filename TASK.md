@@ -30,8 +30,8 @@
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
 | **Phase 15: 방문자 인증** | **10** | **10** | **100%** |
-| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **6** | **67%** |
-| **합계** | **127** | **124** | **98%** |
+| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **7** | **78%** |
+| **합계** | **127** | **125** | **98%** |
 
 ---
 
@@ -2347,13 +2347,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-124: 목업 이식 ④ 회원 화면 스타일 적용
+### T-124: 목업 이식 ④ 회원 화면 스타일 적용 ✅
 - **담당:** 프론트엔드
 - **참조:** 목업 `login · join · join-social · find-email · find-pw · reset-pw · mypage · withdraw`, T-113 · T-114
 - **작업 내용:**
-  - [ ] T-113 · T-114 의 방문자 인증 화면 로직을 hospital-a 템플릿 마크업·SCSS(member-form · mypage)로 렌더링
-  - [ ] 테마형 템플릿용 기본(Tailwind) 회원 화면과 같은 로직 공유 (화면만 템플릿별)
+  - [x] T-113 · T-114 의 방문자 인증 화면 로직을 hospital-a 템플릿 마크업·SCSS(member-form · mypage)로 렌더링 — `templates/hospital-a/components/member/*`, SCSS `sub/_member-form` · `sub/_mypage` 이식
+  - [x] 테마형 템플릿용 기본(Tailwind) 회원 화면과 같은 로직 공유 (화면만 템플릿별) — headless 훅 `hooks/member/useMemberForms.ts` · `useMypage.ts` 로 분리, 공통 화면도 같은 훅 사용 (마크업 변경 없음)
 - **완료 조건:** hospital-a 테넌트의 회원 화면 8종이 목업과 동일하고 실제 API 로 동작
+- **결과:** 커밋 `abeb111`·`1168053`·`db4e587` (feat/T-124, feat/T-115 기준) — 클라이언트 테스트 242건 통과(신규 11건 + 미들웨어 갱신), lint · type-check · build 통과. 미들웨어가 `MEMBER_SCREEN_TEMPLATES`(hospital-a) 테넌트의 `/{slug}/member/{page}` 를 템플릿 라우트로 rewrite (그 외 템플릿은 공통 화면 유지), 회원 화면은 noindex · 편집 툴바 없음. Playwright 시각 비교(목업 vs 실제, 1440 / 390, `main` 높이): find-email · find-password · reset(만료) · join-social · 마이페이지(알림 · 내 정보 · 예약) · withdraw 동일, 가로 스크롤 0. 의도된 차이: 로그인 목업의 데모 안내 줄 제거(−65px), 회원가입에 SNS 가입 버튼 추가(기획서 16.3, +130px), 오류 문구는 기획서 기준, 문의 내역은 상세 링크 대신 펼침. E2E(데모 DB · 실제 API): 빈 제출 오류 → 비밀번호 조건 3개 → 휴대폰 인증 타이머 → 전체 동의 → 가입 → 마이페이지 "안녕하세요, 이병원 님" · 헤더 전환 → 탈퇴 동의 누락 오류 → 탈퇴 완료 화면 유지 · 세션 표시 삭제
 
 ---
 
