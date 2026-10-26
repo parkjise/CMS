@@ -14,7 +14,7 @@ import {
   useRollbackTemplate,
   useTemplates,
 } from '@/hooks/useTemplates'
-import { openTemplatePreview } from '@/lib/previewUrl'
+import { openTemplatePreview, previewTemplateRef } from '@/lib/previewUrl'
 import { useAuthStore } from '@/stores/authStore'
 
 export function TemplatesPage() {
@@ -43,7 +43,7 @@ export function TemplatesPage() {
       toast.error('미리보기를 위한 사이트 정보를 찾을 수 없습니다.')
       return
     }
-    openTemplatePreview(tenantSlug, template.id)
+    openTemplatePreview(tenantSlug, previewTemplateRef(template))
   }
 
   const handleConfirmApply = (contentMode: ContentMode) => {

@@ -64,6 +64,18 @@ export function TemplateCard({
             {INDUSTRY_LABELS[template.template_type]}
           </Badge>
         </div>
+        {template.renderer === 'code' && (
+          <div className="flex flex-wrap gap-1">
+            <span className="rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-medium text-violet-700">
+              전용 디자인 · 서브 페이지 포함
+            </span>
+            {template.has_sample_content && (
+              <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+                샘플 문구·이미지 포함
+              </span>
+            )}
+          </div>
+        )}
         {template.description && (
           <p className="line-clamp-2 text-xs text-slate-500">
             {template.description}
