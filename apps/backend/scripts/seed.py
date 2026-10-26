@@ -403,7 +403,7 @@ async def seed_test_subscription(db: AsyncSession, tenant_id: uuid.UUID) -> None
 SITE_MEMBER_PASSWORD = "member1234"
 SITE_MEMBERS = [
     {
-        "email": "hong@member.test",
+        "email": "hong@example.com",
         "name": "홍길동",
         "phone": "010-1111-2222",
         "with_password": True,
@@ -411,14 +411,14 @@ SITE_MEMBERS = [
         "email_agree": True,
     },
     {
-        "email": "kim@member.test",
+        "email": "kim@example.com",
         "name": "김카카오",
         "phone": "010-3333-4444",
         "social_provider": "KAKAO",
         "social_id": "kakao-seed-0001",
     },
     {
-        "email": "lee@member.test",
+        "email": "lee@example.com",
         "name": "이네이버",
         "phone": "010-5555-6666",
         "social_provider": "NAVER",
@@ -429,7 +429,7 @@ SITE_MEMBERS = [
 # (회원 이메일, 예약 유형, 상태, 며칠 뒤, 메모, 업종별 항목)
 SITE_MEMBER_RESERVATIONS = [
     (
-        "hong@member.test",
+        "hong@example.com",
         "MEDICAL",
         "CONFIRMED",
         3,
@@ -437,7 +437,7 @@ SITE_MEMBER_RESERVATIONS = [
         {"department": "내과", "visit_type": "FIRST"},
     ),
     (
-        "hong@member.test",
+        "hong@example.com",
         "GENERAL",
         "COMPLETED",
         -10,
@@ -445,7 +445,7 @@ SITE_MEMBER_RESERVATIONS = [
         {"subject": "서류 발급 문의"},
     ),
     (
-        "kim@member.test",
+        "kim@example.com",
         "LODGING",
         "PENDING",
         14,
@@ -453,7 +453,7 @@ SITE_MEMBER_RESERVATIONS = [
         {"room": "오션뷰 디럭스", "guests": 2, "nights": 2, "amount": 320000},
     ),
     (
-        "lee@member.test",
+        "lee@example.com",
         "MEDICAL",
         "CANCELLED",
         1,
@@ -510,7 +510,7 @@ async def seed_site_members(db: AsyncSession) -> None:
     print(
         f"✅ 방문자 회원 {len(SITE_MEMBERS)}명 · 예약 "
         f"{len(SITE_MEMBER_RESERVATIONS)}건 생성 "
-        f"(hong@member.test / {SITE_MEMBER_PASSWORD})"
+        f"(hong@example.com / {SITE_MEMBER_PASSWORD})"
     )
 
 
