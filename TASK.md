@@ -29,9 +29,9 @@
 | Phase 12: 테스트 & 배포 | 6 | 6 | 100% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **Phase 15: 방문자 인증** | **10** | **7** | **70%** |
+| **Phase 15: 방문자 인증** | **10** | **8** | **80%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **6** | **67%** |
-| **합계** | **127** | **121** | **95%** |
+| **합계** | **127** | **122** | **96%** |
 
 ---
 
@@ -2169,20 +2169,21 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-113: 홈페이지 방문자 인증 화면 (apps/client)
+### T-113: 홈페이지 방문자 인증 화면 (apps/client) ✅
 - **담당:** 프론트엔드
 - **참조:** `기획서 섹션 16.3 ~ 16.6`, 목업 `docs/mockups/hospital/templates/` (T-116)
 - **작업 내용:**
-  - [ ] `apps/client/lib/memberStore.ts` — 방문자 전용 Zustand 스토어 (어드민 authStore 와 분리)
-  - [ ] `app/[tenant_slug]/member/login`, `join`, `find-email`, `find-password`, `reset-password` 페이지
-  - [ ] react-hook-form + zod 검증 (16.3 검증 규칙), 이메일 중복 1초 디바운스, 비밀번호 강도 표시
-  - [ ] 휴대폰 인증 컴포넌트 (발송 → 3분 타이머 → 확인), 재발송 60초 쿨다운
-  - [ ] 로그인 잠금 시 버튼 비활성화 + 남은 시간 카운트다운
-  - [ ] 성공 시 이전 페이지 또는 마이페이지 이동, 헤더에 로그인/마이페이지 메뉴 전환
-  - [ ] Vitest 테스트 (렌더링·검증 메시지·API 성공/실패)
-  - [ ] (T-110 연동) 로그인·가입 화면 카카오·네이버 버튼 — `fetchSocialAuthorizeUrl` 로 이동, `MEMBER_SOCIAL_LOGIN` OFF 면 숨김
-  - [ ] (T-110 연동) `/{slug}/member/join-social` 추가 정보 화면 — 콜백이 sessionStorage(`member_social_signup`)에 넣은 값으로 휴대폰 인증 + 약관 → `POST /auth/social/complete` (`email_required` 면 이메일 입력)
+  - [x] `apps/client/lib/memberStore.ts` — 방문자 전용 Zustand 스토어 (어드민 authStore 와 분리)
+  - [x] `app/[tenant_slug]/member/login`, `join`, `find-email`, `find-password`, `reset-password` 페이지
+  - [x] react-hook-form + zod 검증 (16.3 검증 규칙), 이메일 중복 1초 디바운스, 비밀번호 강도 표시
+  - [x] 휴대폰 인증 컴포넌트 (발송 → 3분 타이머 → 확인), 재발송 60초 쿨다운
+  - [x] 로그인 잠금 시 버튼 비활성화 + 남은 시간 카운트다운
+  - [x] 성공 시 이전 페이지 또는 마이페이지 이동, 헤더에 로그인/마이페이지 메뉴 전환
+  - [x] Vitest 테스트 (렌더링·검증 메시지·API 성공/실패)
+  - [x] (T-110 연동) 로그인·가입 화면 카카오·네이버 버튼 — `fetchSocialAuthorizeUrl` 로 이동, `MEMBER_SOCIAL_LOGIN` OFF 면 숨김
+  - [x] (T-110 연동) `/{slug}/member/join-social` 추가 정보 화면 — 콜백이 sessionStorage(`member_social_signup`)에 넣은 값으로 휴대폰 인증 + 약관 → `POST /auth/social/complete` (`email_required` 면 이메일 입력)
 - **완료 조건:** 가입 → 로그인 → 이메일 찾기 → 비밀번호 재설정 흐름 E2E 통과
+- **결과:** 커밋 `49dcc4c`·`c6d56d4`·`c376376`·`d5115e5` (feat/T-113, feat/T-112 기준) — 화면 6종(login · join · join-social · find-email · find-password · reset-password), 클라이언트 테스트 30건 추가(196건 통과) · 백엔드 690건 통과. Playwright E2E(데모 DB · 실제 서버): 가입(휴대폰 인증) → 자동 로그인 → 헤더 마이페이지/로그아웃 전환(hospital-a 헤더) → 새로고침 후 유지 → 로그아웃 → 로그인(next 이동) → 이메일 찾기 → 비밀번호 찾기 → 재설정 → 링크 재사용 차단 → 새 비밀번호 로그인 → 5회 실패 잠금 카운트다운 확인. 추가 API: `GET /auth/options`(소셜 버튼 노출), 개발용 `debug_reset_url`. 회원 화면은 모든 테넌트 공통 Tailwind 화면 — hospital-a 목업 디자인 적용은 T-124. 로그인 후 기본 이동(마이페이지)은 T-114 에서 화면 추가
 
 ---
 

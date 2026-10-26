@@ -4449,6 +4449,15 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - `GET /members/inquiries` (+ `/{id}`) — 내가 남긴 문의 · 상담 글 · 예약, `answered`(답변 있음 또는 처리 완료), 상세에 답변
 - 로그인한 방문자가 공개 접수 API(문의 · 상담 게시판 · 예약)를 호출하면 `inquiries.member_id` 기록, 예약은 `member_reservations` 생성 — 업종(HOSPITAL → MEDICAL, PENSION → LODGING, 그 외 GENERAL), `reserved_at` 은 희망 날짜 · 시각(한국 시간). 비회원 접수는 그대로 (#23 옵션 A)
 
+#### 구현 메모 (T-113 — 홈페이지 화면)
+
+- 화면: `app/[tenant_slug]/member/{login,join,join-social,find-email,find-password,reset-password}` — 모든 테넌트 공통(Tailwind · 테마 색상 변수). 미들웨어는 `/{slug}/member/*` 를 코드형 템플릿 라우트로 rewrite 하지 않음. hospital-a 전용 디자인은 T-124
+- 상태: `lib/memberStore.ts` — access token 은 메모리에만, 새로고침 시 refresh 쿠키로 복원. 로그인한 적 있는 테넌트만 `localStorage member_session:{slug}` 표시를 보고 복원 호출 (비회원 방문마다 401 요청 방지 — 토큰은 저장하지 않음)
+- API 호출은 TanStack Query 훅(`hooks/member/useMemberAuth.ts`), 검증은 zod(`lib/memberSchemas.ts` — 서버와 같은 규칙 · 문구)
+- 헤더 계정 메뉴: 비로그인 `로그인 · 회원가입` / 로그인 `마이페이지 · 로그아웃` (테마 Navbar · hospital-a 헤더 공통 `MemberAccountLinks`)
+- 추가 API: `GET /auth/options` → `{social_login, providers}` (소셜 버튼 노출, 기능 플래그 `MEMBER_SOCIAL_LOGIN`). `forgot-password` 응답 `debug_reset_url` 은 로컬 개발(운영 아님 + 알림 test 모드)에서만
+- 로그인 후 이동: `?next=` (같은 사이트 상대 경로만) → 없으면 마이페이지
+
 #### 응답 형식 예시
 
 ```json
