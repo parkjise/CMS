@@ -1,0 +1,254 @@
+<!-- MYPAGE: 마이페이지 — 인사 + 로그아웃 / 탭(내 예약 · 문의 내역 · 알림 설정 · 내 정보) (기획서 16.7)
+  - 탭: role=tablist (←/→/Home/End), 주소 #reservations · #inquiries · #notifications · #info 로 바로 열기 (assets/js/mypage.js)
+  - 탭 구성은 업종 기능 플래그로 바뀜 — 스타트업/일반(MEMBER_RESERVATION OFF)은 [내 예약] 탭을 빼고 마크업에서 지우면 됨
+  - 내 예약 카드: 병원/의원형(일시 · 항목 · 첫 방문/재방문). 펜션형은 카드 본문을 '기간 · 객실 · 인원 · 결제 금액' 으로 바꿔 씀
+  - 목업: 예약 취소·알림 토글·정보 수정·소셜 연결은 화면에서만 바뀜 (실제는 /api/public/{slug}/members/* — 기획서 16.10)
+  - 비밀번호 변경 폼은 .board-form 검사 재사용 (board-form.js · member-form.js)
+-->
+<section class="mypage" aria-labelledby="mypage-title">
+  <div class="container">
+    <div class="mypage__head">
+      <div>
+        <h2 class="mypage__hello" id="mypage-title">안녕하세요, <strong>홍길동</strong> 님</h2>
+        <p class="mypage__since">BAZZAR 회원 · 2026.10.24 가입</p>
+      </div>
+      <a class="mypage__logout" href="login.html"><i class="ri-logout-box-r-line" aria-hidden="true"></i>로그아웃</a>
+    </div>
+
+    <div class="mypage__tabs" role="tablist" aria-label="마이페이지 메뉴">
+      <button class="mypage__tab" type="button" role="tab" id="mp-tab-reservations" aria-controls="reservations" aria-selected="true">내 예약</button>
+      <button class="mypage__tab" type="button" role="tab" id="mp-tab-inquiries" aria-controls="inquiries" aria-selected="false" tabindex="-1">문의 내역</button>
+      <button class="mypage__tab" type="button" role="tab" id="mp-tab-notifications" aria-controls="notifications" aria-selected="false" tabindex="-1">알림 설정</button>
+      <button class="mypage__tab" type="button" role="tab" id="mp-tab-info" aria-controls="info" aria-selected="false" tabindex="-1">내 정보</button>
+    </div>
+
+    <!-- 내 예약 -->
+    <div class="mypage__panel" role="tabpanel" id="reservations" aria-labelledby="mp-tab-reservations" tabindex="0">
+      <div class="mypage__panel-head">
+        <h3 class="mypage__panel-title">내 예약 내역</h3>
+        <div class="mypage__filters">
+          <div class="board-form__field board-form__field--select">
+            <label class="sr-only" for="mp-status">예약 상태</label>
+            <select class="board-form__input board-form__select mypage__select" id="mp-status" data-filter="status">
+              <option value="all">전체 상태</option>
+              <option value="pending">대기중</option>
+              <option value="confirmed">확정</option>
+              <option value="completed">완료</option>
+              <option value="cancelled">취소</option>
+            </select>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </div>
+          <div class="board-form__field board-form__field--select">
+            <label class="sr-only" for="mp-period">조회 기간</label>
+            <select class="board-form__input board-form__select mypage__select" id="mp-period" data-filter="period">
+              <option value="3">최근 3개월</option>
+              <option value="6">최근 6개월</option>
+              <option value="12">최근 1년</option>
+              <option value="all">전체 기간</option>
+            </select>
+            <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- data-date: 기간 필터 기준 (목업 기준일 2026-10-25, mypage.js) -->
+      <ul class="mypage__cards" data-reservations data-today="2026-10-25">
+        <li class="mypage__card" data-status="confirmed" data-date="2026-11-05">
+          <span class="mypage__badge mypage__badge--confirmed" data-badge>예약 확정</span>
+          <p class="mypage__card-title"><time datetime="2026-11-05T10:00">2026.11.05 (목) 오전 10:00</time></p>
+          <p class="mypage__card-meta">1:1 상담 · 첫 방문</p>
+          <div class="mypage__card-actions">
+            <button class="mypage__action" type="button" data-cancel>예약 취소</button>
+          </div>
+        </li>
+        <li class="mypage__card" data-status="pending" data-date="2026-11-20">
+          <span class="mypage__badge mypage__badge--pending" data-badge>대기중</span>
+          <p class="mypage__card-title"><time datetime="2026-11-20T14:00">2026.11.20 (금) 오후 02:00</time></p>
+          <p class="mypage__card-meta">맞춤 플랜 상담 · 재방문</p>
+          <div class="mypage__card-actions">
+            <button class="mypage__action" type="button" data-cancel>예약 취소</button>
+          </div>
+        </li>
+        <li class="mypage__card" data-status="completed" data-date="2026-10-15">
+          <span class="mypage__badge mypage__badge--completed" data-badge>이용 완료</span>
+          <p class="mypage__card-title"><time datetime="2026-10-15T14:00">2026.10.15 (목) 오후 02:00</time></p>
+          <p class="mypage__card-meta">방문 상담 · 재방문</p>
+        </li>
+        <li class="mypage__card" data-status="cancelled" data-date="2026-09-02">
+          <span class="mypage__badge mypage__badge--cancelled" data-badge>예약 취소</span>
+          <p class="mypage__card-title"><time datetime="2026-09-02T11:00">2026.09.02 (수) 오전 11:00</time></p>
+          <p class="mypage__card-meta">1:1 상담 · 첫 방문</p>
+        </li>
+        <li class="mypage__card" data-status="completed" data-date="2026-04-14">
+          <span class="mypage__badge mypage__badge--completed" data-badge>이용 완료</span>
+          <p class="mypage__card-title"><time datetime="2026-04-14T15:00">2026.04.14 (화) 오후 03:00</time></p>
+          <p class="mypage__card-meta">첫 상담 · 첫 방문</p>
+        </li>
+      </ul>
+      <p class="mypage__empty" data-reservations-empty hidden>조건에 맞는 예약이 없어요.</p>
+
+      <dl class="mypage__legend" aria-label="예약 상태 안내">
+        <div><dt><span class="mypage__dot mypage__dot--pending" aria-hidden="true"></span>대기중</dt><dd>예약을 확인하고 있어요</dd></div>
+        <div><dt><span class="mypage__dot mypage__dot--confirmed" aria-hidden="true"></span>확정</dt><dd>방문일에 뵐게요</dd></div>
+        <div><dt><span class="mypage__dot mypage__dot--completed" aria-hidden="true"></span>완료</dt><dd>이용을 마쳤어요</dd></div>
+        <div><dt><span class="mypage__dot mypage__dot--cancelled" aria-hidden="true"></span>취소</dt><dd>취소된 예약이에요</dd></div>
+      </dl>
+      <p class="mypage__status" role="status" aria-live="polite" data-reservation-status></p>
+      <div class="mypage__more">
+        <a class="member-form__line-link" href="reservation.html">새 예약하기</a>
+      </div>
+    </div>
+
+    <!-- 문의 내역 (관리자 AD-04 문의 관리와 연동) -->
+    <div class="mypage__panel" role="tabpanel" id="inquiries" aria-labelledby="mp-tab-inquiries" tabindex="0" hidden>
+      <div class="mypage__panel-head">
+        <h3 class="mypage__panel-title">문의 내역</h3>
+      </div>
+      <ul class="mypage__cards">
+        <li class="mypage__card">
+          <span class="mypage__badge mypage__badge--pending">답변 대기</span>
+          <p class="mypage__card-title">주말 상담 가능 여부</p>
+          <p class="mypage__card-meta"><time datetime="2026-10-23">2026.10.23</time> 접수</p>
+          <div class="mypage__card-actions">
+            <a class="mypage__action" href="consult-view.html">상세보기</a>
+          </div>
+        </li>
+        <li class="mypage__card">
+          <span class="mypage__badge mypage__badge--done">답변 완료</span>
+          <p class="mypage__card-title">기존 예약 일정 변경 요청</p>
+          <p class="mypage__card-meta"><time datetime="2026-10-15">2026.10.15</time> 접수 · <time datetime="2026-10-16">2026.10.16</time> 답변</p>
+          <div class="mypage__card-actions">
+            <a class="mypage__action" href="consult-view.html">상세보기</a>
+          </div>
+        </li>
+      </ul>
+      <div class="mypage__more">
+        <a class="member-form__line-link" href="consult-write.html">새 문의 남기기</a>
+      </div>
+    </div>
+
+    <!-- 알림 설정 (토글 즉시 저장) -->
+    <div class="mypage__panel" role="tabpanel" id="notifications" aria-labelledby="mp-tab-notifications" tabindex="0" hidden>
+      <div class="mypage__panel-head">
+        <h3 class="mypage__panel-title">알림 설정</h3>
+      </div>
+      <ul class="mypage__settings" data-notify>
+        <li class="mypage__setting">
+          <label class="mypage__setting-label" for="nt-confirm">예약 확정 알림<span>예약이 확정되면 바로 알려드려요.</span></label>
+          <input class="mypage__switch" type="checkbox" role="switch" id="nt-confirm" checked />
+        </li>
+        <li class="mypage__setting">
+          <label class="mypage__setting-label" for="nt-cancel">예약 취소 알림<span>예약이 취소·변경되면 알려드려요.</span></label>
+          <input class="mypage__switch" type="checkbox" role="switch" id="nt-cancel" checked />
+        </li>
+        <li class="mypage__setting">
+          <label class="mypage__setting-label" for="nt-marketing">마케팅 · 이벤트 알림<span>새 소식과 혜택을 받아볼 수 있어요.</span></label>
+          <input class="mypage__switch" type="checkbox" role="switch" id="nt-marketing" />
+        </li>
+        <li class="mypage__setting">
+          <label class="mypage__setting-label" for="nt-sms">문자 수신<span>위 알림을 문자(알림톡)로 받아요.</span></label>
+          <input class="mypage__switch" type="checkbox" role="switch" id="nt-sms" checked />
+        </li>
+        <li class="mypage__setting">
+          <label class="mypage__setting-label" for="nt-email">이메일 수신<span>위 알림을 이메일로 받아요.</span></label>
+          <input class="mypage__switch" type="checkbox" role="switch" id="nt-email" />
+        </li>
+      </ul>
+      <p class="mypage__status" role="status" aria-live="polite" data-notify-status></p>
+    </div>
+
+    <!-- 내 정보 -->
+    <div class="mypage__panel" role="tabpanel" id="info" aria-labelledby="mp-tab-info" tabindex="0" hidden>
+      <div class="mypage__panel-head">
+        <h3 class="mypage__panel-title">내 정보</h3>
+      </div>
+      <dl class="mypage__info">
+        <div class="mypage__info-row" data-edit>
+          <dt>이름</dt>
+          <dd>
+            <span class="mypage__info-value" data-edit-value>홍길동</span>
+            <label class="sr-only" for="mi-name">이름</label>
+            <input class="board-form__input mypage__info-input" type="text" id="mi-name" autocomplete="name" maxlength="20" pattern="[가-힣a-zA-Z ]{2,20}" data-edit-input data-error="이름을 올바르게 입력해 주세요. (2자 이상, 특수문자 불가)" hidden />
+          </dd>
+          <dd class="mypage__info-actions"><button class="mypage__action" type="button" data-edit-toggle>수정</button></dd>
+        </div>
+        <div class="mypage__info-row">
+          <dt>이메일</dt>
+          <dd><span class="mypage__info-value">hong@email.com</span> <span class="mypage__info-note">(변경 불가)</span></dd>
+        </div>
+        <div class="mypage__info-row" data-edit>
+          <dt>연락처</dt>
+          <dd>
+            <span class="mypage__info-value" data-edit-value>010-1234-5678</span>
+            <label class="sr-only" for="mi-phone">연락처</label>
+            <input class="board-form__input mypage__info-input" type="tel" id="mi-phone" inputmode="numeric" autocomplete="tel" maxlength="13" pattern="01[0-9]-?[0-9]{3,4}-?[0-9]{4}" data-edit-input data-error="휴대폰 번호를 정확히 입력해 주세요." hidden />
+          </dd>
+          <dd class="mypage__info-actions"><button class="mypage__action" type="button" data-edit-toggle>수정</button></dd>
+        </div>
+        <div class="mypage__info-row" data-edit>
+          <dt>생년월일</dt>
+          <dd>
+            <span class="mypage__info-value" data-edit-value>1990-01-01</span>
+            <label class="sr-only" for="mi-birth">생년월일</label>
+            <input class="board-form__input mypage__info-input" type="date" id="mi-birth" min="1900-01-01" autocomplete="bday" data-edit-input data-error="생년월일을 선택해 주세요." hidden />
+          </dd>
+          <dd class="mypage__info-actions"><button class="mypage__action" type="button" data-edit-toggle>수정</button></dd>
+        </div>
+        <div class="mypage__info-row">
+          <dt>가입일</dt>
+          <dd><span class="mypage__info-value">2026.10.24</span></dd>
+        </div>
+      </dl>
+      <p class="mypage__status" role="status" aria-live="polite" data-info-status></p>
+
+      <!-- 비밀번호 변경 -->
+      <div class="mypage__block">
+        <div class="mypage__block-head">
+          <h4 class="mypage__block-title">비밀번호 변경</h4>
+          <button class="mypage__action" type="button" aria-expanded="false" aria-controls="mp-password" data-password-toggle>변경</button>
+        </div>
+        <form class="board-form__form mypage__password" id="mp-password" action="mypage.html" method="post" novalidate data-success="비밀번호가 변경되었습니다. 가입한 이메일과 휴대폰으로 변경 알림을 보냈어요." hidden>
+          <div class="board-form__list">
+            <div class="board-form__row">
+              <label class="board-form__label" for="mp-pw-now">현재 비밀번호<span class="board-form__req" aria-hidden="true">*</span></label>
+              <input class="board-form__input" type="password" id="mp-pw-now" name="current_password" autocomplete="current-password" required data-error="현재 비밀번호를 입력해 주세요." />
+            </div>
+            <div data-include="components/sub/password-field.html" data-id="mp-pw" data-label="새 비밀번호"></div>
+            <div class="board-form__row">
+              <label class="board-form__label" for="mp-pw2">새 비밀번호 확인<span class="board-form__req" aria-hidden="true">*</span></label>
+              <input class="board-form__input" type="password" id="mp-pw2" name="password_confirm" autocomplete="new-password" maxlength="20" required data-match="#mp-pw" data-error="새 비밀번호를 한 번 더 입력해 주세요." data-error-match="비밀번호가 일치하지 않습니다." />
+            </div>
+          </div>
+          <p class="board-form__status" role="status" aria-live="polite"></p>
+          <div class="board-form__actions mypage__password-actions">
+            <button class="board-form__submit" type="submit">변경하기</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- 연결된 소셜 계정 -->
+      <div class="mypage__block">
+        <h4 class="mypage__block-title">연결된 소셜 계정</h4>
+        <ul class="mypage__social">
+          <li class="mypage__social-item mypage__social-item--on" data-social="카카오">
+            <span class="member-form__sns-icon member-form__sns-icon--kakao-badge" aria-hidden="true"><i class="ri-kakao-talk-fill"></i></span>
+            <span class="mypage__social-name">카카오</span>
+            <span class="mypage__social-state" data-social-state>연결됨</span>
+            <button class="mypage__action" type="button" data-social-toggle aria-pressed="true">연결 해제</button>
+          </li>
+          <li class="mypage__social-item" data-social="네이버">
+            <span class="member-form__sns-icon member-form__sns-icon--naver" aria-hidden="true">N</span>
+            <span class="mypage__social-name">네이버</span>
+            <span class="mypage__social-state" data-social-state>미연결</span>
+            <button class="mypage__action" type="button" data-social-toggle aria-pressed="false">연결하기</button>
+          </li>
+        </ul>
+        <p class="mypage__status" role="status" aria-live="polite" data-social-status></p>
+      </div>
+
+      <div class="mypage__withdraw">
+        <a href="withdraw.html">회원 탈퇴</a>
+      </div>
+    </div>
+  </div>
+</section>

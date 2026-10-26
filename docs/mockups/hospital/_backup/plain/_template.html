@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>병원 템플릿 시안 (스캐폴드)</title>
+
+  <!--
+    ════════════════════════════════════════════════════════════════
+    병원 디자인 목업 스캐폴드
+    ────────────────────────────────────────────────────────────────
+    - 이 파일을 복사해서 시안별로 작업하세요. 예: ivory-clinic-a.html
+    - 아래 :root 변수 키는 apps/client/lib/theme.ts 의 KEY_MAP 과 동일합니다.
+      → 여기서 정한 색/폰트/모서리 값이 그대로 TemplateTheme.cssVariables 로 이식됩니다.
+    - 각 <section> 은 client 의 섹션 컴포넌트에 1:1 대응합니다.
+      HERO_BANNER / INTRO / SERVICES / TEAM / CONTACT / MAP / GALLERY
+    - 병원 전용 새 섹션이 필요하면 <section data-new="true"> 로 표시해두세요.
+    ════════════════════════════════════════════════════════════════
+  -->
+
+  <link rel="stylesheet" href="styles/base.css" />
+</head>
+<body>
+
+  <!-- ════════ GNB → components/layout/Navbar.tsx (섹션 아님 · 사이트 공통) ════════
+       - 로고(왼쪽) = 테넌트명 / 메뉴(오른쪽) = 활성 섹션에서 자동 생성
+       - 스크롤 시 .scrolled 로 투명→블러 전환, 모바일은 햄버거
+       - 디자인은 토큰으로만 바뀜 (구조는 공통) -->
+  <header class="gnb" id="gnb">
+    <div class="gnb-inner">
+      <button class="gnb-logo">○○ 정형외과</button>
+      <ul class="gnb-nav">
+        <li><button>병원소개</button></li>
+        <li><button>진료안내</button></li>
+        <li><button>의료진</button></li>
+        <li><button>예약·문의</button></li>
+        <li><button>오시는길</button></li>
+      </ul>
+      <button class="gnb-burger" aria-label="메뉴 열기">☰</button>
+    </div>
+  </header>
+
+  <!-- ════════ HERO_BANNER → components/sections/HeroBanner.tsx ════════ -->
+  <section style="background: var(--color-secondary); margin-top: -73px; padding-top: 153px;">
+    <span class="section-tag">HERO_BANNER</span>
+    <div class="container" style="text-align:center;">
+      <h1 style="font-size: clamp(32px, 5vw, 52px);">○○ 정형외과</h1>
+      <p class="muted" style="margin: 16px 0 28px; font-size: 18px;">환자 중심의 정직한 진료</p>
+      <a class="btn btn--accent" href="#">온라인 예약</a>
+    </div>
+  </section>
+
+  <!-- ════════ INTRO → components/sections/Intro.tsx ════════ -->
+  <section>
+    <span class="section-tag">INTRO</span>
+    <div class="container grid grid-2" style="align-items:center;">
+      <div>
+        <h2 style="font-size: 32px;">병원 소개</h2>
+        <p class="muted" style="margin-top: 16px;">여기에 병원 소개 문구를 작성하세요.</p>
+      </div>
+      <div class="card" style="min-height: 240px; display:flex; align-items:center; justify-content:center;" class="muted">이미지 영역</div>
+    </div>
+  </section>
+
+  <!-- ════════ SERVICES → components/sections/Services.tsx ════════ -->
+  <section style="background: var(--color-surface);">
+    <span class="section-tag">SERVICES</span>
+    <div class="container">
+      <h2 style="font-size: 32px; text-align:center; margin-bottom: 40px;">진료 안내</h2>
+      <div class="grid grid-3">
+        <div class="card"><h3>진료과목 1</h3><p class="muted" style="margin-top:8px;">설명</p></div>
+        <div class="card"><h3>진료과목 2</h3><p class="muted" style="margin-top:8px;">설명</p></div>
+        <div class="card"><h3>진료과목 3</h3><p class="muted" style="margin-top:8px;">설명</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ TEAM → (의료진 섹션) ════════ -->
+  <section>
+    <span class="section-tag">TEAM</span>
+    <div class="container">
+      <h2 style="font-size: 32px; text-align:center; margin-bottom: 40px;">의료진 소개</h2>
+      <div class="grid grid-3">
+        <div class="card" style="text-align:center;"><div style="width:96px;height:96px;border-radius:50%;background:var(--color-secondary);margin:0 auto 16px;"></div><h3>원장명</h3><p class="muted">전문 분야</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ CONTACT → components/sections/ContactForm.tsx ════════ -->
+  <section style="background: var(--color-secondary);">
+    <span class="section-tag">CONTACT</span>
+    <div class="container" style="max-width: 640px; text-align:center;">
+      <h2 style="font-size: 32px;">예약·문의</h2>
+      <p class="muted" style="margin: 12px 0 24px;">전화 또는 온라인으로 문의하세요.</p>
+      <a class="btn" href="#">문의하기</a>
+    </div>
+  </section>
+
+  <!-- ════════ MAP → components/sections/Map.tsx ════════ -->
+  <section>
+    <span class="section-tag">MAP</span>
+    <div class="container">
+      <h2 style="font-size: 32px; margin-bottom: 24px;">오시는 길</h2>
+      <div class="card" style="min-height: 320px; display:flex; align-items:center; justify-content:center;">지도 영역</div>
+    </div>
+  </section>
+
+  <!-- ════════ (선택) 병원 전용 새 섹션 — 필요 시 ════════
+  <section data-new="true">
+    <span class="section-tag">NEW: 진료시간표</span>
+    ...
+  </section>
+  -->
+
+  <!-- ════════ Footer → components/layout/Footer.tsx ════════ -->
+  <footer class="footer">
+    <div class="container">
+      <p style="font-weight:700;">○○ 정형외과</p>
+      <p style="opacity:.7; font-size:14px; margin-top:8px;">주소 · 전화번호 · 사업자정보</p>
+    </div>
+  </footer>
+
+  <script>
+    // GNB: 스크롤 시 배경 전환 (Navbar.tsx의 scrolled 상태 재현)
+    const gnb = document.getElementById('gnb');
+    const onScroll = () => gnb.classList.toggle('scrolled', window.scrollY > 16);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+  </script>
+
+</body>
+</html>
+

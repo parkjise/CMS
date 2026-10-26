@@ -1,0 +1,45 @@
+<!-- LOCATION: 제목 + 지도 + 방문 정보 (CMS 기본 매핑: MAP)
+  용도 예: 오시는 길, 매장 위치, 사무실 위치
+  - .location__map 안에 지도 iframe(네이버·카카오·구글 지도 퍼가기)을 넣는다. 지금은 자리 표시.
+-->
+<section class="location" aria-labelledby="location-title">
+  <div class="container">
+    <header class="section-head">
+      <p class="section-head__eyebrow" lang="en">Location</p>
+      <h2 class="section-head__title" id="location-title">찾아오시는 길</h2>
+      <p class="section-head__desc">강남역 인근, 편안하게 찾아오실 수 있는 곳에서 기다리고 있습니다.</p>
+    </header>
+
+    <div class="location__map" role="img" aria-label="BAZZAR 위치 지도 (지도 영역)">
+      <span class="location__map-placeholder" aria-hidden="true">
+        <i class="ri-map-pin-2-line"></i> 지도 영역
+      </span>
+    </div>
+
+    <dl class="location__info">
+      <div class="location__info-row">
+        <dt class="location__info-label">주소</dt>
+        <dd class="location__info-value">
+          <address>서울특별시 강남구 테헤란로 123, 4층</address>
+        </dd>
+      </div>
+      <div class="location__info-row">
+        <dt class="location__info-label">대표전화</dt>
+        <dd class="location__info-value">
+          <a class="location__info-link" href="tel:02-1234-5678">02-1234-5678</a>
+        </dd>
+      </div>
+      <div class="location__info-row">
+        <dt class="location__info-label">대중교통</dt>
+        <dd class="location__info-value">
+          지하철 2호선 강남역 4번 출구에서 도보 5분<br />
+          간선 140 · 402 / 지선 4412 ‘강남역’ 정류장 하차
+        </dd>
+      </div>
+      <div class="location__info-row">
+        <dt class="location__info-label">주차</dt>
+        <dd class="location__info-value">건물 내 주차 2시간 무료 · 발렛 서비스 가능</dd>
+      </div>
+    </dl>
+  </div>
+</section>

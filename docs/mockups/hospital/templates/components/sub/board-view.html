@@ -1,0 +1,48 @@
+<!-- BOARD VIEW: 게시판 상세 — 분류 배지·제목·날짜 + 본문(에디터 영역) + 이전/목록/다음 (서브 공통)
+  용도 예: 공지사항 상세, 이벤트 상세
+  - 본문(.board-view__content)은 CMS 에디터 HTML 이 그대로 들어가는 자리 (p, img, ul 등 기본 스타일 제공)
+  - 이전/다음 글이 없으면 해당 링크를 빼고 .board-view__nav-item--empty 로 자리만 유지
+-->
+<section class="board-view" aria-labelledby="board-view-title">
+  <div class="container">
+    <article class="board-view__article">
+      <header class="board-view__head">
+        <h2 class="board-view__title" id="board-view-title">
+          <span class="board-view__badge">공지사항</span>
+          홈페이지 리뉴얼 오픈 안내
+        </h2>
+        <time class="board-view__date" datetime="2026-10-20">2026. 10. 20</time>
+      </header>
+
+      <div class="board-view__content">
+        <figure>
+          <img src="./assets/images/head_slide1.jpg" alt="새롭게 단장한 BAZZAR 홈페이지 메인 화면" />
+        </figure>
+        <p>
+          안녕하세요, BAZZAR입니다.<br />
+          고객 여러분께 더 편리하고 따뜻한 경험을 드리기 위해 홈페이지를 새롭게 단장했습니다.
+        </p>
+        <p><strong>주요 변경 사항</strong></p>
+        <ul>
+          <li>모바일·태블릿에서도 보기 편한 반응형 화면</li>
+          <li>화면 아래 간편상담으로 빠른 상담 신청</li>
+          <li>사업 소개·연혁·오시는 길 메뉴 정리</li>
+        </ul>
+        <p>
+          이용 중 불편한 점이 있으시면 고객 상담(02-1234-5678)으로 알려주세요.<br />
+          앞으로도 한결같은 온도로 곁을 지키겠습니다. 감사합니다.
+        </p>
+      </div>
+    </article>
+
+    <nav class="board-view__nav" aria-label="게시글 이동">
+      <a class="board-view__nav-item board-view__nav-item--prev" href="notice-view.html">
+        <i class="ri-arrow-left-line" aria-hidden="true"></i>이전 게시글
+      </a>
+      <a class="board-view__list-button" href="notice.html">목록보기</a>
+      <a class="board-view__nav-item board-view__nav-item--next" href="notice-view.html">
+        다음 게시글<i class="ri-arrow-right-line" aria-hidden="true"></i>
+      </a>
+    </nav>
+  </div>
+</section>

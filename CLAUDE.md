@@ -235,6 +235,7 @@ cms-project/                          ← 프로젝트 루트 (여기서 모든 
 | UI 프레임워크 (홈페이지) | next | 15.x |
 | 언어 | typescript | 5.9.x |
 | CSS | tailwindcss | 4.x |
+| CSS (코드형 템플릿 전용) | sass | 1.x — `apps/client/templates/{key}/styles/` 에서만, 템플릿별 `styling` 선택 (기획서 11.7) |
 | 서버 상태 관리 | @tanstack/react-query | 5.x |
 | 클라이언트 상태 | zustand | 5.x |
 | 드래그앤드롭 | @dnd-kit/react | 0.4.x |
@@ -343,7 +344,7 @@ export default SectionCard
 // ❌ 금지 패턴
 // - any 타입 사용
 // - 컴포넌트 내부에서 직접 fetch/axios 호출
-// - CSS 인라인 스타일 (Tailwind 클래스 사용)
+// - CSS 인라인 스타일 (Tailwind 클래스 사용 — 단, styling: 'scss' 코드형 템플릿은 BEM 클래스 + SCSS)
 // - console.log 커밋 (개발 중 사용 후 반드시 제거)
 ```
 

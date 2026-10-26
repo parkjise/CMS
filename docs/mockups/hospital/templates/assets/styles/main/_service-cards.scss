@@ -1,0 +1,119 @@
+// ── SERVICE CARDS — 섹션 헤더 + 이미지 카드 목록 ───────────────────
+// 용도 예: 서비스, 진료과목, 객실, 제품, 특징 (CMS 기본 매핑: SERVICES)
+// lg 이상: 5단 그리드 / lg 미만: 슬라이드 (JS: assets/js/service-cards.js)
+@use '../mixins' as *;
+
+.service-cards {
+  background: var(--color-surface);
+
+  &__pagination {
+    @include flex(center, center, 0);
+    margin-top: 24px;
+    --swiper-pagination-color: var(--color-primary);
+    @include lg {
+      display: none;
+    }
+  }
+
+  &__item {
+    height: 420px;
+    @include md {
+      height: 500px;
+    }
+  }
+  &__link {
+    position: relative;
+    display: block;
+    height: 100%;
+    border-radius: 2rem;
+    overflow: hidden;
+    transition: all 0.4s;
+    @include focus-ring;
+
+    // 호버·키보드 포커스 모두 같은 효과
+    &:hover,
+    &:focus-visible {
+      .service-cards__media {
+        filter: blur(10px);
+      }
+      .service-cards__body {
+        grid-template-rows: auto auto 1fr;
+      }
+      .service-cards__desc {
+        opacity: 1;
+      }
+    }
+  }
+  &__media {
+    position: relative;
+    height: 100%;
+    transition: filter 0.4s ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgb(0 0 0 / 80%), rgb(0 0 0 / 35%) 40%, transparent 75%);
+      pointer-events: none;
+    }
+  }
+  &__image {
+    @include cover;
+  }
+  &__body {
+    position: absolute;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto auto 0fr;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    color: #fff;
+    padding: 1.5rem;
+    transition: grid-template-rows 0.4s ease;
+  }
+  &__eyebrow {
+    display: block;
+    @include font-seasons(600);
+    font-size: 1rem;
+    text-transform: uppercase;
+  }
+  &__title {
+    @include fluid-type(1.5rem, 1.875rem);
+    margin-block: 1.25rem;
+  }
+  &__desc {
+    display: block;
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    font-size: 1.125rem;
+    line-height: 1.2;
+    transition: opacity 0.4s ease;
+  }
+
+  // ── 슬라이드 모드 (lg 미만) — 위 기본 규칙을 덮어쓰도록 맨 아래에 둔다 ──
+  @include down(lg) {
+    // 카드가 화면 끝까지 이어 보이도록 container 여백만큼 바깥으로 확장
+    &__viewport {
+      overflow: hidden;
+      margin-inline: calc(var(--spacing-gutter) * -1);
+      padding-inline: var(--spacing-gutter);
+    }
+    &__list.grid {
+      display: flex;
+      gap: 0; // 간격은 Swiper spaceBetween
+    }
+    &__item {
+      flex-shrink: 0;
+    }
+    // 터치 기기엔 hover 가 없으므로 설명까지 처음부터 노출
+    &__body {
+      grid-template-rows: auto auto 1fr;
+      padding-top: 4rem;
+    }
+    &__desc {
+      opacity: 1;
+    }
+  }
+}

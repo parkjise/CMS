@@ -1,0 +1,21 @@
+<!-- PHONE VERIFY: 휴대폰 번호 + 인증번호 받기 / 인증번호 6자리 + 확인 (회원 공통 — 가입·이메일 찾기·비밀번호 찾기)
+  사용: <div data-include="components/sub/phone-verify.html" data-id="jn"></div>  (id 는 칸 id 앞부분)
+  - 인증번호 칸 data-verified 가 true 가 되어야 board-form.js 검사 통과 (assets/js/member-form.js)
+  - 목업: 인증번호 123456, 유효시간 3분, 재발송 가능 / 실제는 POST /auth/phone/send · /auth/phone/verify (기획서 16.10)
+-->
+<div class="board-form__row" data-phone-verify>
+  <label class="board-form__label" for="{{id}}-phone">휴대폰 번호<span class="board-form__req" aria-hidden="true">*</span></label>
+  <div class="member-form__addon">
+    <input class="board-form__input" type="tel" id="{{id}}-phone" name="phone" placeholder="숫자만 입력해 주세요." inputmode="numeric" autocomplete="tel" minlength="10" maxlength="11" required data-digits data-phone-input data-error="휴대폰 번호를 입력해 주세요." data-error-short="휴대폰 번호를 정확히 입력해 주세요." />
+    <button class="member-form__button member-form__button--line" type="button" data-phone-send>인증번호 받기</button>
+  </div>
+  <div class="member-form__addon">
+    <div class="member-form__timer-field">
+      <label class="sr-only" for="{{id}}-code">인증번호 6자리</label>
+      <input class="board-form__input" type="text" id="{{id}}-code" name="phone_code" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" autocomplete="one-time-code" required data-digits data-verified="false" data-phone-code data-error="인증번호 받기를 누른 뒤 문자로 받은 인증번호를 입력해 주세요." data-error-verify="휴대폰 인증을 완료해 주세요." />
+      <span class="member-form__timer" data-phone-timer hidden></span>
+    </div>
+    <button class="member-form__button" type="button" data-phone-confirm>확인</button>
+  </div>
+  <p class="member-form__result" role="status" aria-live="polite" data-phone-result></p>
+</div>

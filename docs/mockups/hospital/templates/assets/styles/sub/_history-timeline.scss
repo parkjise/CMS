@@ -1,0 +1,180 @@
+// ── HISTORY TIMELINE — 연도 구간 탭 + 고정 연도·사진 + 월별 연혁 ─────
+// components/sub/history-timeline.html  /  JS: assets/js/history-timeline.js
+@use '../mixins' as *;
+
+$header-h: 80px; // 스크롤 시 헤더 높이 (.header--scrolled)
+$nav-h: 84px;
+
+.history-timeline {
+  padding: 0 0 160px; // 상단 여백은 .sub-nav + section (_sub-nav.scss)
+
+  // ── 연도 구간 탭 (헤더 아래 고정) ──
+  &__nav {
+    position: sticky;
+    top: $header-h;
+    z-index: 20;
+    background: linear-gradient(
+      90deg,
+      var(--color-primary),
+      color-mix(in srgb, var(--color-primary) 60%, #000)
+    );
+  }
+  &__nav-list {
+    position: relative; // 활성 탭 offsetLeft 기준 (JS 가로 스크롤)
+    @include flex(center, safe center, 0); // 넘치면 왼쪽부터 가로 스크롤
+    @include hide-scrollbar;
+    height: $nav-h;
+    overflow-x: auto;
+  }
+  &__nav-link {
+    position: relative;
+    display: block;
+    padding: 0 16px;
+    line-height: $nav-h;
+    white-space: nowrap;
+    font-size: 1rem;
+    @include md {
+      padding: 0 30px;
+      font-size: 1.125rem;
+    }
+    font-weight: 700;
+    color: rgb(255 255 255 / 60%);
+    transition: color 0.2s;
+    @include focus-ring(#fff, -6px);
+
+    &:hover {
+      color: #fff;
+    }
+    // 현재 구간 — 위쪽 점 표시
+    &[aria-current='true'] {
+      color: #fff;
+      &::before {
+        content: '';
+        position: absolute;
+        top: 18px;
+        left: 50%;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #fff;
+        transform: translateX(-50%);
+      }
+    }
+  }
+
+  // ── 본문 2단 ──
+  &__inner {
+    max-width: 1600px;
+    display: grid;
+    padding-top: 48px;
+    @include lg {
+      padding-top: 80px;
+    }
+    @include lg {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  // 왼쪽: 현재 연도 + 사진 (스크롤 동안 고정)
+  &__aside {
+    display: none;
+    @include lg {
+      display: block;
+      position: sticky;
+      top: calc($header-h + $nav-h + 80px);
+      align-self: start;
+    }
+  }
+  &__current-year {
+    font-size: 7.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-primary);
+    transition: opacity 0.3s;
+
+    &.is-changing {
+      opacity: 0;
+    }
+  }
+  &__current-figure {
+    width: 600px;
+    max-width: 100%;
+    margin-top: 40px;
+    @include ratio(800, 377);
+    border-radius: 20px;
+    overflow: hidden;
+    transition: opacity 0.4s;
+
+    &[hidden] {
+      display: block !important; // 레이아웃 유지, 투명 처리
+      opacity: 0;
+    }
+  }
+  &__current-image {
+    @include cover;
+  }
+
+  // 오른쪽: 연도별 → 월별 → 항목
+  &__year {
+    scroll-margin-top: calc($header-h + $nav-h + 40px); // 탭 클릭 시 가려지지 않게
+    & + & {
+      margin-top: 24px;
+      @include lg {
+        margin-top: 0;
+      }
+    }
+  }
+  // 연도 제목 — lg 미만에서만 보임 (lg 이상은 왼쪽 고정 연도가 대신)
+  &__year-title {
+    margin-bottom: 28px;
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--color-primary);
+    @include lg {
+      @include sr-only;
+    }
+  }
+  &__month {
+    display: grid;
+    grid-template-columns: 48px 1fr;
+    gap: 20px;
+    padding-bottom: 48px;
+    @include md {
+      grid-template-columns: 80px 1fr;
+      gap: 40px;
+    }
+    @include lg {
+      padding-left: 80px;
+      padding-bottom: 160px;
+    }
+  }
+  &__month-label {
+    @include fluid-type(1.5rem, 2rem);
+    font-weight: 700;
+    line-height: 1;
+  }
+  &__events {
+    @include flex(start, start, 20px, column);
+  }
+  &__event {
+    font-size: 1rem;
+    word-break: keep-all;
+    @include md {
+      font-size: 1.0625rem;
+    }
+    font-weight: 700;
+    line-height: 1.4;
+
+    &--highlight {
+      color: var(--color-primary);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .history-timeline__current-year,
+  .history-timeline__current-figure {
+    transition: none;
+  }
+}

@@ -29,7 +29,9 @@
 | Phase 12: 테스트 & 배포 | 6 | 6 | 100% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **합계** | **108** | **108** | **100%** |
+| **Phase 15: 방문자 인증** | **10** | **10** | **100%** |
+| **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **7** | **78%** |
+| **합계** | **127** | **125** | **98%** |
 
 ---
 
@@ -1589,6 +1591,10 @@ T-078~T-083 (테스트 & 배포)
 T-084~T-094 (슈퍼 어드민 시스템)
     ↓
 T-095~T-106 (SaaS 운영 시스템 — 결제·온보딩·도메인)
+    ↓
+T-107~T-116 (테넌트 사이트 방문자 인증)
+    ↓ (T-124 는 T-113·T-114 와 함께)
+T-117~T-125 (코드형 템플릿 & 목업 이식)
 ```
 
 ### Claude에게 지시하는 예시 문장 모음
@@ -2067,8 +2073,304 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
   - [x] PCI DSS 준수 확인 (모델·스키마에 카드번호·CVV 미저장 검증)
 - **완료 조건:** 위변조 웹훅 요청 차단, 빌링키 암호화 저장 확인
 
+---
+
+## Phase 15: 테넌트 사이트 방문자 인증
+
+> **목표:** 테넌트 홈페이지 방문자(고객)용 회원 체계 완성 — 로그인 / 회원가입 / 이메일 찾기 / 비밀번호 찾기 / 마이페이지 / 회원 탈퇴
+> **예상 소요:** 6일
+> **선행 조건:** T-020 (공개 사이트 API), T-031 (SMS 발송), T-086 (기능 플래그), T-098 (이메일 발송) 완료
+> **참조:** `기획서 섹션 16 전체` (특히 16.0 기존 기획과의 정합 규칙)
 
 ---
 
-*최종 업데이트: 2026-05-24*
-*총 113개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*
+### T-107: 방문자 회원 DB 스키마 + 마이그레이션 ✅
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 16.9 (DB 스키마)`
+- **작업 내용:**
+  - [x] `app/models/site_member.py` — SiteMember, MemberReservation, PhoneVerification, MemberPasswordResetToken 모델
+  - [x] `inquiries.member_id` (nullable FK → site_members) 컬럼 추가
+  - [x] Alembic 마이그레이션 생성 및 적용 (4개 테이블 + RLS 정책 + 인덱스)
+  - [x] `app/schemas/site_member.py` — 가입/로그인/내 정보/알림 설정/예약 Pydantic 스키마
+  - [x] `scripts/seed.py`에 테스트용 방문자 회원·예약 데이터 추가 (업종별 1명 이상)
+- **완료 조건:** `alembic upgrade head` / `downgrade -1` 성공, 다른 테넌트 회원 조회 시 RLS 로 0건
+- **결과:** 커밋 `f979fe2`·`b925e1c`·`51d3071` (feat/T-107, feat/T-125 기준) — 마이그레이션 0019, 테스트 19건 추가 (백엔드 522건 통과 · 커버리지 78%). 기획서 16.9 대비 변경: phone_verifications · member_password_reset_tokens 에 tenant_id NOT NULL + RLS, 이메일·소셜 유니크는 탈퇴 제외 부분 인덱스(#22), 알림 설정용 notify_reservation_confirmed/cancelled 컬럼 추가, 토큰 컬럼 token_hash(SHA-256). 시드: test-tenant 회원 3명(이메일 hong@example.com / member1234 · 카카오 · 네이버 — `.test` 도메인은 이메일 검증에서 거부돼 T-108 에서 수정) + 예약 4건(MEDICAL·LODGING·GENERAL)
+- ⚠️ **발견:** 로컬·테스트 DB 접속 계정 `cms_user` 가 슈퍼유저(BYPASSRLS)라 앱 전체에서 RLS 가 실제로는 적용되지 않음 (격리는 서비스 쿼리의 tenant_id 조건에 의존). T-107 테스트는 일반 권한 역할로 바꿔 정책을 검증. 운영은 일반 권한 앱 계정 분리 필요 — 별도 태스크 제안
+
+---
+
+### T-108: 방문자 인증 서비스 + API (가입·로그인) ✅
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 16.3, 16.4, 16.10, 16.11`
+- **작업 내용:**
+  - [x] `app/services/member_auth.py` — 가입, 로그인, 로그아웃, 토큰 갱신, 이메일 중복 확인
+  - [x] `app/api/public/member_auth.py` — `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/refresh`, `GET /auth/check-email`
+  - [x] JWT `role=SITE_MEMBER` 발급 + `member_refresh_token` 쿠키 (테넌트 호스트 한정)
+  - [x] `get_current_member` 의존성 — 어드민 API 에 방문자 토큰 사용 시 403 (반대도 동일)
+  - [x] 연속 실패 5회 → 30분 잠금 (`ACCOUNT_LOCKED`, 남은 시간 응답), 인증 API IP당 10회/분 Rate Limit
+  - [x] 가입 성공 시 환영 메일 + `SMS_NOTIFICATION=Y` 테넌트는 관리자에게 신규 회원 알림톡
+- **완료 조건:** 가입 → 자동 로그인 → 토큰 갱신 → 로그아웃 동작, 잠금·Rate Limit 동작
+- **결과:** 커밋 `c535ff7`·`b6ec3d1`·`0018294`·`0677990` (feat/T-108, feat/T-107 기준) — 마이그레이션 0020(`phone_verifications.used_at`), 테스트 24건 추가 (백엔드 546건 통과 · 커버리지 78%). 실제 HTTP(데모 DB)로 가입 → refresh → 어드민 API 403 → 로그아웃 → refresh 401 → 시드 회원 로그인 확인. 오픈 이슈 #22 옵션 A(즉시 재가입) 결정. 방문자 API 만 공통 에러 형식(5.1) 적용 — 기존 API 의 `{"detail": ...}` 형식은 그대로 (별도 정리 필요). 남은 연동: 휴대폰 인증 발송·확인 API(T-109), `SITE_MEMBER` 기능 플래그 검사(T-115)
+
+---
+
+### T-109: 휴대폰 인증 + 이메일 찾기 + 비밀번호 재설정 API ✅
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 16.5, 16.6, 16.11`
+- **작업 내용:**
+  - [x] `POST /auth/phone/send`, `/auth/phone/verify` — 6자리 코드, 3분 만료, 1일 5회 제한 (purpose: REGISTER / FIND_EMAIL / RESET_PW)
+  - [x] `POST /auth/find-email` — 휴대폰 인증 완료 시 마스킹 이메일 반환 (앞 2자리 외 `*`)
+  - [x] `POST /auth/forgot-password` — 재설정 링크 메일 발송 (토큰 해시 저장, 30분, 1회용), 계정 유무와 무관하게 동일 응답
+  - [x] `POST /auth/reset-password` — 새 비밀번호 저장 + 보안 알림 메일/문자, 만료·사용 토큰은 `TOKEN_EXPIRED`
+- **완료 조건:** 인증 → 이메일 찾기, 링크 발송 → 재설정 → 재사용 차단 시나리오 통과
+- **결과:** 커밋 `0f25e03`·`f454b77`·`7387fd0` (feat/T-109, feat/T-108 기준) — 마이그레이션 0021(`site_members.password_changed_at`), 테스트 24건 추가 (백엔드 570건 통과 · 커버리지 78%). 실제 HTTP(데모 DB)로 발송 → 재요청 429 → 오입력 → 확인 → 이메일 찾기 → 링크 확인 → 재설정 → 재사용 TOKEN_EXPIRED → 새 비밀번호 로그인 확인. 오픈 이슈 #21 옵션 A(SENS SMS) 결정. 추가: 재설정 후 이전 토큰 전부 거부, `GET /auth/reset-password/check`, 로컬 개발용 `debug_code`
+
+---
+
+### T-110: 소셜 로그인 (카카오 / 네이버) ✅
+- **담당:** 백엔드 + 프론트엔드
+- **참조:** `기획서 섹션 16.3 (소셜 신규 가입), 16.4 (소셜 로그인 플로우)`
+- **작업 내용:**
+  - [x] `POST /auth/social` — 인가 코드 서버 교환, 소셜 토큰은 클라이언트에 노출 금지
+  - [x] 기존 회원 → 즉시 로그인 / 신규 → 휴대폰 인증 + 약관 동의 추가 정보 (`POST /auth/social/complete` — 화면은 T-113)
+  - [x] 마이페이지 소셜 계정 연결/해제 API (`/members/me/social` — 화면은 T-114)
+  - [x] 기능 플래그 `MEMBER_SOCIAL_LOGIN` OFF 시 API 403 (버튼 숨김은 T-113 화면에서)
+- **완료 조건:** 카카오·네이버 각각 신규 가입 / 기존 로그인 / 계정 연결 동작
+- **결과:** 커밋 `9ddc9f6`·`76514a6`·`0db0c76`·`df3710a` (feat/T-110, feat/T-109 기준) — 마이그레이션 0022(`member_social_accounts` + 기능 플래그 등록·기존 테넌트 켜기), 백엔드 테스트 21건(591건 통과 · 커버리지 78%) · 클라이언트 6건(166건 통과). 카카오·네이버 실제 API 응답 형태는 MockTransport 로, 브라우저 흐름(콜백 → 추가 정보 이동 / 기존 회원 로그인 → refresh 쿠키)은 stub 모드로 확인. **실제 카카오·네이버 연동 확인은 개발자 앱 키 발급 후** (`SOCIAL_MODE=live` + 키 + 콘솔에 `SOCIAL_REDIRECT_URI` 등록). 오픈 이슈 #24 옵션 A(운영사 공용 앱) 결정
+
+---
+
+### T-111: 마이페이지 + 회원 탈퇴 API ✅
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 16.7, 16.8, 16.10`
+- **작업 내용:**
+  - [x] `GET/PATCH /members/me` (이메일 변경 불가), `PATCH /members/me/password`, `PATCH /members/me/notification`
+  - [x] `GET /members/reservations` — 상태·기간 필터, 업종별 `detail` 포함 / `POST /members/reservations/{id}/cancel`
+  - [x] `GET /members/inquiries` — AD-04 문의와 `member_id` 로 연동, 답변 상태 포함
+  - [x] `DELETE /members/me` — 비밀번호 확인(소셜 가입자 생략), 진행 중 예약 있으면 `ACTIVE_RESERVATION_EXISTS`, 소프트 삭제 + 탈퇴 안내 발송
+- **완료 조건:** 내 정보 수정·알림 설정·예약 취소·탈퇴 동작, 탈퇴 회원 로그인 불가
+  - [x] (추가) 로그인한 방문자의 문의 · 상담 글 · 예약 접수에 `member_id` 기록, 예약은 `member_reservations` 생성 (업종별 유형)
+- **결과:** 커밋 `0e33765`·`205840a`·`e67ef39` (feat/T-111, feat/T-110 기준) — 마이그레이션 0023(`withdrawal_reason`), 테스트 16건 추가 (백엔드 607건 통과 · 커버리지 78%). 실제 HTTP(데모 DB)로 내 정보 · 예약(업종별 detail) · 문의 · 알림 설정 · 탈퇴(비밀번호 오류 401 / 진행 중 예약 409) 확인. 탈퇴 시 개인정보 즉시 익명화(개인정보보호법 — 법무 확인 권장), 예약 · 소셜 연결 소프트 삭제, 문의는 연결만 해제. 소셜 가입자 첫 비밀번호 · 연락처 변경은 휴대폰 인증(MYPAGE). 관리자 예약 확정 · 완료 처리는 T-115
+
+---
+
+### T-112: 방문자 인증 API 테스트 ✅
+- **담당:** 백엔드
+- **참조:** `CLAUDE.md 섹션 12.5`
+- **작업 내용:**
+  - [x] `tests/test_member_auth.py` — 가입·로그인·잠금·토큰 갱신·Rate Limit
+  - [x] `tests/test_member_recovery.py` — 휴대폰 인증 만료/횟수, 이메일 찾기, 재설정 토큰 만료/재사용
+  - [x] `tests/test_member_mypage.py` — 내 정보·알림·예약·문의·탈퇴
+  - [x] 테넌트 격리 검증 — A 테넌트 회원 토큰으로 B 테넌트 API 접근 시 403, 같은 이메일 테넌트별 가입 허용
+  - [x] 방문자 토큰 ↔ 어드민 API 상호 차단 검증
+- **완료 조건:** 전체 통과, 커버리지 70% 이상 유지
+- **결과:** 커밋 `0140672`·`85bc700` (feat/T-112, feat/T-111 기준) — 방문자 인증 테스트 총 169건 (T-107~T-111 에서 기능별로 작성한 88건 + 격리 매트릭스 81건), 백엔드 688건 통과. 매트릭스: 방문자 API 14개 × (토큰 없음 401 · 어드민 토큰 403 · 다른 테넌트 토큰 403), 어드민 · 슈퍼 어드민 GET API 31개에 방문자 토큰 거부, refresh 쿠키 상호 차단, 같은 이메일 3개 테넌트 가입 · 한 곳 탈퇴 독립. 플랜 한도 항목은 방문자 API 에 해당 없음
+- ⚠️ **발견 · 수정:** 커버리지 설정에 greenlet 추적이 없어 SQLAlchemy async 이후 줄이 미실행으로 집계되고 있었음 → `[tool.coverage.run] concurrency = ["greenlet", "thread"]` 추가. **실제 전체 커버리지 93% (기존 표시 78%)**, 방문자 모듈 전부 91% 이상
+
+---
+
+### T-113: 홈페이지 방문자 인증 화면 (apps/client) ✅
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 16.3 ~ 16.6`, 목업 `docs/mockups/hospital/templates/` (T-116)
+- **작업 내용:**
+  - [x] `apps/client/lib/memberStore.ts` — 방문자 전용 Zustand 스토어 (어드민 authStore 와 분리)
+  - [x] `app/[tenant_slug]/member/login`, `join`, `find-email`, `find-password`, `reset-password` 페이지
+  - [x] react-hook-form + zod 검증 (16.3 검증 규칙), 이메일 중복 1초 디바운스, 비밀번호 강도 표시
+  - [x] 휴대폰 인증 컴포넌트 (발송 → 3분 타이머 → 확인), 재발송 60초 쿨다운
+  - [x] 로그인 잠금 시 버튼 비활성화 + 남은 시간 카운트다운
+  - [x] 성공 시 이전 페이지 또는 마이페이지 이동, 헤더에 로그인/마이페이지 메뉴 전환
+  - [x] Vitest 테스트 (렌더링·검증 메시지·API 성공/실패)
+  - [x] (T-110 연동) 로그인·가입 화면 카카오·네이버 버튼 — `fetchSocialAuthorizeUrl` 로 이동, `MEMBER_SOCIAL_LOGIN` OFF 면 숨김
+  - [x] (T-110 연동) `/{slug}/member/join-social` 추가 정보 화면 — 콜백이 sessionStorage(`member_social_signup`)에 넣은 값으로 휴대폰 인증 + 약관 → `POST /auth/social/complete` (`email_required` 면 이메일 입력)
+- **완료 조건:** 가입 → 로그인 → 이메일 찾기 → 비밀번호 재설정 흐름 E2E 통과
+- **결과:** 커밋 `49dcc4c`·`c6d56d4`·`c376376`·`d5115e5` (feat/T-113, feat/T-112 기준) — 화면 6종(login · join · join-social · find-email · find-password · reset-password), 클라이언트 테스트 30건 추가(196건 통과) · 백엔드 690건 통과. Playwright E2E(데모 DB · 실제 서버): 가입(휴대폰 인증) → 자동 로그인 → 헤더 마이페이지/로그아웃 전환(hospital-a 헤더) → 새로고침 후 유지 → 로그아웃 → 로그인(next 이동) → 이메일 찾기 → 비밀번호 찾기 → 재설정 → 링크 재사용 차단 → 새 비밀번호 로그인 → 5회 실패 잠금 카운트다운 확인. 추가 API: `GET /auth/options`(소셜 버튼 노출), 개발용 `debug_reset_url`. 회원 화면은 모든 테넌트 공통 Tailwind 화면 — hospital-a 목업 디자인 적용은 T-124. 로그인 후 기본 이동(마이페이지)은 T-114 에서 화면 추가
+
+---
+
+### T-114: 마이페이지 + 회원 탈퇴 UI (apps/client) ✅
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 16.7, 16.8`
+- **작업 내용:**
+  - [x] `app/[tenant_slug]/member/mypage` — 탭: 내 예약 / 문의 내역 / 알림 설정 / 내 정보 (기능 플래그로 탭 동적 렌더링)
+  - [x] 내 예약 — 병원(일시·진료과·초진/재진) / 펜션(기간·객실·인원·금액) 카드 분기, 상태 배지 4종, 예약 취소
+  - [x] 문의 내역 — 답변 대기/완료 배지, 상세 보기
+  - [x] 알림 설정 — 토글 즉시 저장 (낙관적 업데이트)
+  - [x] 내 정보 — 이름·연락처·생년월일 수정, 비밀번호 변경, 소셜 계정 연결
+  - [x] `app/[tenant_slug]/member/withdraw` — 삭제 데이터 안내, 사유 선택, 비밀번호 확인, 진행 중 예약 차단 안내
+  - [x] Vitest 테스트
+- **완료 조건:** 업종별(HOSPITAL / PENSION / STARTUP) 탭 구성 차이 확인, 탈퇴 후 자동 로그아웃
+- **결과:** 커밋 `6b0d8ce`·`720f512`·`80725c5`·`3a9bcae` (feat/T-114, feat/T-113 기준) — 클라이언트 테스트 26건 추가(222건 통과) · 백엔드 694건 통과. Playwright E2E(데모 DB): 업종 HOSPITAL · PENSION → 탭 4개(내 예약 포함, 병원 · 펜션 카드), STARTUP → 탭 3개 + 예약 알림 항목 숨김 / 비로그인 마이페이지 → 로그인(next) / 알림 토글 즉시 저장 · 새로고침 유지 / 문의 상세 답변 / 이름 수정 / 탈퇴 → 진행 중 예약 차단 → 예약 취소 → 탈퇴 완료 화면 + 자동 로그아웃(헤더 전환 · refresh 401 · 로그인 401). 예약 탭 노출은 지금은 업종 기준(`/auth/options.reservations`) — T-115 에서 `MEMBER_RESERVATION` 플래그로 교체
+- ⚠️ **E2E 에서 발견 · 수정:** 탈퇴 성공 직후 세션 정리 → 로그인 확인 컴포넌트가 로그인 화면으로 먼저 이동해 완료 화면이 안 보이던 문제 (Zustand 갱신이 즉시 다시 그려짐). 완료 화면을 로그인 확인 밖으로 옮기고, 화면 전환 후 세션 정리 + 회귀 테스트 추가
+
+---
+
+### T-115: 기능 플래그 + 관리자 연동 ✅
+- **담당:** 전체
+- **참조:** `기획서 섹션 16.0, 16.2`, `기획서 섹션 14.3`
+- **작업 내용:**
+  - [x] 기능 플래그 키 `SITE_MEMBER`, `MEMBER_SOCIAL_LOGIN`, `MEMBER_RESERVATION` 시드 + `TEMPLATE_TYPE` 별 기본값
+  - [x] (T-114 연동) `/auth/options.reservations` 를 업종 기준 → `MEMBER_RESERVATION` 플래그로 교체 (클라이언트 변경 없음)
+  - [x] 슈퍼 어드민 SA-04 에서 테넌트별 ON/OFF
+  - [x] AD-04 문의 목록에 회원/비회원 표시 + 회원 정보 보기
+  - [x] AD-01 대시보드에 신규 회원 수 카드
+  - [x] (T-111 연동) AD-04 에서 회원 예약 상태 변경 (대기 → 확정 → 완료, 관리자 취소) — `member_reservations.status` 와 문의 상태 동기화, 확정 · 취소 시 회원 알림 설정(`notify_reservation_*`)에 따라 문자/메일
+  - [x] (T-111 연동) AD-04 문의 목록에 회원 여부 배지 (`inquiries.member_id`)
+- **완료 조건:** 플래그 OFF 테넌트는 회원 메뉴·API 모두 비활성
+  - [x] (추가) 테넌트 생성 시 기본 기능 켜기 — 기존에는 시드만 켜고 슈퍼 어드민이 만든 테넌트는 모든 기능 OFF 였음 (default_enabled · 요금제 · 업종)
+  - [x] (추가) 홈페이지 접수 폼(예약 · 상담 · 문의)이 로그인 회원 토큰을 보내도록 — T-111 회원 연결이 실제로 동작하게
+- **결과:** 커밋 `d4f8b00`·`8d942bb`·`db6b72c`·`1191d14`·`782be0d`·`1b9ffea` (feat/T-115, feat/T-114 기준) — 마이그레이션 0024, 백엔드 707건(신규 13 · 93%) · 관리자 126건 · 슈퍼어드민 49건 · 클라이언트 230건 통과. E2E(데모 DB · 실제 서버 · 슈퍼어드민 API · 관리자 화면): SITE_MEMBER OFF → 홈페이지 회원 메뉴 숨김 · /member/* 404 · 방문자 API 403 → ON 복구 / 회원이 홈페이지 예약 폼 제출(회원 토큰) → 내 예약 대기중 → 관리자 AD-04 회원 배지 · 회원 정보 · 예약 확정 → 마이페이지 확정 → 완료 처리 / 대시보드 신규 회원 카드
+- ⚠️ **E2E 에서 발견 · 수정:** ① 회원 화면 404 가 스트리밍 때문에 HTTP 200 → 미들웨어에서 404 (경량 API 에 `member_enabled`) ② 관리자 예약 처리 후 상세의 "상태 변경" 선택이 이전 값(대기)으로 남아 저장 시 되돌아가던 문제 → 처리 결과로 상태 · 메모 동기화 (+ 라벨 접근성 연결) ③ 홈페이지 접수 폼이 회원 토큰을 안 보내 회원 연결이 안 되던 문제
+
+---
+
+### T-116: 방문자 인증 HTML 목업 (docs/mockups) ✅
+- **담당:** 프론트엔드(퍼블리싱)
+- **참조:** `기획서 섹션 16.3 ~ 16.8`
+- **작업 내용:**
+  - [x] 로그인 — 이메일 로그인, 비밀번호 보기, 로그인 상태 유지, 소셜 버튼, 이메일/비밀번호 찾기 링크
+  - [x] 회원가입 — 간편 가입, 이메일 중복 확인, 비밀번호 조건 표시, 휴대폰 인증, 약관 동의
+  - [x] 이메일 찾기 — 휴대폰 인증 → 마스킹 결과 / 결과 없음 화면
+  - [x] 비밀번호 찾기 — 이메일 + 휴대폰 인증 → 발송 완료(재발송 60초) / 새 비밀번호 설정 / 만료 링크 화면
+  - [x] 마이페이지 — 내 예약 / 문의 내역 / 알림 설정 / 내 정보 탭
+  - [x] 회원 탈퇴 — 안내, 사유, 비밀번호 확인, 진행 중 예약 차단
+  - [x] 1440 / 390 폭 확인, 가로 스크롤·콘솔 오류 없음
+- **완료 조건:** 6개 화면 정적 목업에서 기획서 흐름 그대로 재현
+---
+
+## Phase 16: 코드형 템플릿 & 목업 이식
+
+> **목표:** 템플릿별로 SCSS / Tailwind 를 골라 쓰는 코드형 템플릿 엔진을 만들고, 디자인 목업(`docs/mockups/hospital/templates`)을 첫 코드형 템플릿으로 테넌트 홈페이지에 입힌다. 처음 적용 시 템플릿 샘플 문구·이미지로 시작한다.
+> **예상 소요:** 8일
+> **선행 조건:** Phase 8 (템플릿 시스템), Phase 9 (인라인 편집) 완료 / 회원 화면은 T-113·T-114 와 함께 진행
+> **참조:** `기획서 섹션 11.7 ~ 11.11`
+> **원칙:** 목업 폴더(`docs/mockups/hospital/templates`)는 디자인 원본 — **읽기만 하고 수정하지 않는다.** 필요한 SCSS·이미지는 `apps/client` 로 복사해서 쓴다.
+
+---
+
+### T-117: 템플릿 DB · API 확장 ✅
+- **담당:** 백엔드
+- **참조:** `기획서 섹션 11.10`
+- **작업 내용:**
+  - [x] Alembic 마이그레이션 — `templates`(renderer · styling · version · sample_content · updated_at), `sections.page_key`, `section_settings.is_sample`, `template_change_history.content_snapshot`, 인덱스
+  - [x] `SectionType` 추가 (HERO_SLIDER · VIDEO_PLAYLIST · NOTICE_LATEST · SUB_HERO · CONTENT_BLOCK · HISTORY_TIMELINE · BOARD) — 백엔드 enum + `packages/types`
+  - [x] `POST /templates/apply` — `content_mode: keep | replace_with_sample`, 교체 전 콘텐츠 스냅샷, 롤백 시 콘텐츠 복원
+  - [x] `GET /templates` 에 code · renderer · styling · version, 공개 사이트 API 섹션에 `page_key` (페이지 쿼리 대신 — 캐시 키 유지)
+  - [x] 섹션 저장 시 `is_sample=false` 갱신
+  - [x] pytest — apply keep / replace / rollback, page_key 조회, RLS 격리
+- **완료 조건:** 마이그레이션 up/down 성공, 테스트 통과, 기존 테마형 템플릿 동작 변화 없음
+- **결과:** 커밋 `39fbe88` (feat/T-117) — 마이그레이션 0017 테스트 DB up/down/up 확인, pytest 전체 480건 + 신규 12건 통과(커버리지 77.9%), 시드에 TPL_HOSPITAL_A 추가. 개발 DB(cms_db)에는 아직 미적용
+
+---
+
+### T-118: 템플릿 엔진 — 레지스트리 · 매니페스트 · 공통 계약 ✅
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 11.7`
+- **작업 내용:**
+  - [x] `packages/types` — `TemplateManifest`, `TemplatePage`
+  - [x] `apps/client/templates/registry.ts` — 템플릿 키 → 매니페스트 + 동적 import (템플릿별 청크 분리)
+  - [x] `templates/shared/contracts.ts` — 섹션·페이지 props 계약, Editable 래퍼 재사용
+  - [x] `[tenant_slug]` 렌더링 분기 — `renderer: 'theme'` 은 기존 SectionRenderer, `'code'` 는 템플릿 전용 컴포넌트
+  - [x] 페이지 루트에 `data-template="{key}"` 렌더링
+  - [x] Vitest — 레지스트리 조회, 미지원 섹션 생략, 테마형 회귀 없음
+- **완료 조건:** 빈 코드형 템플릿(테스트용)으로 렌더링 분기 동작, 기존 6종 화면 변화 없음
+- **결과:** 커밋 `db86477` — Vitest 15건. 미리보기 `/{slug}/preview?tpl=TPL_HOSPITAL_A` 로 확인 가능 (테넌트 template_id 연동은 T-117)
+
+---
+
+### T-119: SCSS 파이프라인 + 스타일 격리 ✅
+- **담당:** 프론트엔드
+- **참조:** `기획서 섹션 11.7 (스타일 격리 · 스타일링 규칙)`, 오픈 이슈 #26
+- **작업 내용:**
+  - [x] `sass` 의존성 추가, Next SCSS 설정
+  - [x] CSS 레이어 순서 고정 (`@layer base` → `components` → `template` → `utilities`)
+  - [x] 템플릿 SCSS 를 `[data-template]` 루트로 스코프하는 규칙 + stylelint 설정
+  - [x] 두 템플릿(SCSS 1 · Tailwind 1)을 연달아 열어도 스타일이 섞이지 않는지 Playwright 확인 (테마형 Tailwind 테넌트 화면 변화 없음 확인 + 스코프·레이어·이름 충돌 자동 검사 테스트)
+  - [x] CLAUDE.md 스타일 규칙 반영 확인 (템플릿 SCSS 허용 범위)
+- **완료 조건:** SCSS 템플릿·Tailwind 템플릿 공존, 서로 스타일 영향 0, 빌드·린트 통과
+- **결과:** 커밋 `8caa590` (+ 검사 테스트는 T-121 커밋). ⚠️ 오픈 이슈 #26 — Next 동적 import 로는 템플릿 CSS·JS 가 다른 테넌트 페이지에도 함께 내려옴 (화면 영향은 없음, 용량만). 분리 방식 재결정 필요 → T-125
+
+---
+
+### T-120: 샘플 콘텐츠 시스템 🚧
+- **담당:** 백엔드 + 프론트엔드
+- **참조:** `기획서 섹션 11.8`
+- **작업 내용:**
+  - [x] `templates/{key}/sample-content.json`(원본) → 백엔드 `app/data/templates/{code}.json` → 시드가 `templates.sample_content` 동기화 (불일치 시 pytest 실패)
+  - [ ] 샘플 이미지 공용 스토리지 업로드 스크립트 (`templates/{key}/{version}/…`) + `SOURCES.md` 라이선스 목록 — ⏸ 보류: 지금은 클라이언트 `public/templates/{key}/{version}/` 에서 제공, SOURCES.md 는 '출처 확인 필요' 상태 (운영 배포 전 처리)
+  - [x] 테넌트 생성(슈퍼 어드민 '시작 템플릿') · 템플릿 적용 시 샘플 복사 (`is_sample=true`), 콘텐츠 유지 적용 시 없는 섹션만 채움
+  - [x] AD-06 템플릿 변경 모달 — "내 콘텐츠 유지(기본) / 샘플로 교체" 선택 + 교체 경고
+  - [x] AD-02 · 인라인 편집 툴바 '샘플' 배지, AD-01 "샘플 n개 남음" 카드
+  - [~] 테스트 — 복사 · 유지 · 교체 · 롤백 완료 / 공용 샘플 이미지 삭제 불가는 스토리지 업로드 후
+- **완료 조건:** 새 테넌트가 템플릿 샘플로 완성된 홈페이지에서 시작, 수정한 값은 샘플 표시 해제
+- **진행:** 커밋 `c6999f4`·`c61a33e`·`836b01e`·`cdabccd` (feat/T-120) — 완료 조건 충족. 공용 스토리지 업로드·이미지 출처 확인만 남음 (운영 배포 전)
+
+---
+
+### T-121: 목업 이식 ① 공통 레이아웃 + 메인 섹션 ✅
+- **담당:** 프론트엔드
+- **참조:** 목업 `_template.html`, `components/header·footer·quick-menu`, `components/sections/*`
+- **작업 내용:**
+  - [x] `templates/hospital-a/` 생성 — manifest(`renderer: code`, `styling: scss`), 토큰을 `theme.ts` 변수로 연결
+  - [x] 목업 SCSS(`_tokens` · `_mixins` · `_base` · 블록별) 복사 후 `[data-template]` 스코프로 정리
+  - [x] Header(GNB · 모바일 메뉴 · 계정 링크) · Footer · QuickMenu
+  - [x] 메인 섹션 5종 — HeroSlider(Swiper) · BrandIntro · ServiceCards · VideoPlaylist · NoticeLatest (GSAP 스크롤 애니메이션 포함)
+  - [x] 텍스트·이미지 Editable 래핑, 섹션 settings 키 정의 (제목·설명 등 단일 값만 인라인 편집 — 슬라이드·카드 등 목록과 이미지는 관리자 AD-02 편집)
+  - [x] 샘플 콘텐츠 — 목업 문구·이미지 그대로
+- **완료 조건:** `/{slug}` 메인이 목업과 동일 (1440 / 390 스크린샷 비교), 인라인 편집으로 문구·이미지 변경 가능
+- **결과:** 커밋 `48f6985` — 목업 대비 1440 / 390 스크린샷 일치, 가로 스크롤·콘솔 오류 0, Vitest 9건 + 스타일 검사 5건
+- **남은 일:** 섹션 순서 바꾸기·숨기기 컨트롤(SectionControls)은 코드형 미적용 / 샘플 이미지 출처 확인 (`public/templates/hospital-a/1.0.0/SOURCES.md`) / Typekit 서체 도메인 등록
+
+---
+
+### T-122: 목업 이식 ② 서브 페이지 ✅
+- **담당:** 프론트엔드
+- **참조:** 목업 `about*.html`, `business.html`, `components/sub/*`, `기획서 섹션 11.9`
+- **작업 내용:**
+  - [x] 서브 페이지 라우트 `/{slug}/[page]` + 매니페스트 `pages` 기반 메뉴·하위 탭·브레드크럼
+  - [x] SubHero(이미지형 · 텍스트형) · SubNav · 콘텐츠 블록(media-row · split-story · strength-list · area-rows · banner-split · criteria-cards · value-circles · milestone-split · photo-gallery) · HistoryTimeline · 오시는 길(MAP)
+  - [x] 페이지별 샘플 콘텐츠 (소개 · 연혁 · 오시는 길 · 사업 소개)
+- **완료 조건:** 서브 4개 페이지가 목업과 동일, 각 블록 문구·이미지 편집 가능
+- **결과:** 커밋 `5cb97a0` (feat/T-122) — 1440·390 에서 섹션별 높이가 목업과 일치, 테스트 15건 추가(클라이언트 140건 통과). 제목·설명 등 단일 값은 인라인 편집, 문단·목록·이미지는 관리자 AD-02 편집. 실제 라우트의 없는 페이지는 404 화면이지만 HTTP 상태는 200 (기존 loading.tsx 스트리밍 동작 — T-125 점검)
+
+---
+
+### T-123: 목업 이식 ③ 공지 · 상담 · 예약 페이지 ✅
+- **담당:** 프론트엔드 + 백엔드
+- **참조:** 목업 `notice*.html`, `consult*.html`, `reservation.html`, 오픈 이슈 #27
+- **작업 내용:**
+  - [x] 공지 목록 · 상세 (검색 · 페이지 이동) — 데이터 저장 방식은 오픈 이슈 #27 결정에 따름
+  - [x] 온라인 상담 목록 · 상세 · 글쓰기 — 문의 API(5.5) 연동, 비밀글, 답변 표시 (AD-04 답변 연동)
+  - [x] 온라인 예약 신청 — 문의 API(예약 유형) 연동, reCAPTCHA(T-051) 재사용
+  - [x] 목업 검사 규칙 이식 (필수 순서·짧음·형식 문구 동일 — 폼이 단순해 react-hook-form 대신 공용 검사 함수)
+- **완료 조건:** 상담·예약 접수가 관리자 AD-04 에 들어오고 답변이 상세 화면에 표시
+- **결과:** 커밋 `f82f498`·`18366f1`·`c892aec` (feat/T-123) — 마이그레이션 0018, 백엔드 테스트 501건·클라이언트 153건·관리자 116건 통과. 공지·상담 목록·상세는 목업과 섹션 높이 일치, 글쓰기·예약 폼은 보안문자 칸만큼(약 100px) 짧음 (reCAPTCHA 로 대체)
+
+---
+
+### T-124: 목업 이식 ④ 회원 화면 스타일 적용 ✅
+- **담당:** 프론트엔드
+- **참조:** 목업 `login · join · join-social · find-email · find-pw · reset-pw · mypage · withdraw`, T-113 · T-114
+- **작업 내용:**
+  - [x] T-113 · T-114 의 방문자 인증 화면 로직을 hospital-a 템플릿 마크업·SCSS(member-form · mypage)로 렌더링 — `templates/hospital-a/components/member/*`, SCSS `sub/_member-form` · `sub/_mypage` 이식
+  - [x] 테마형 템플릿용 기본(Tailwind) 회원 화면과 같은 로직 공유 (화면만 템플릿별) — headless 훅 `hooks/member/useMemberForms.ts` · `useMypage.ts` 로 분리, 공통 화면도 같은 훅 사용 (마크업 변경 없음)
+- **완료 조건:** hospital-a 테넌트의 회원 화면 8종이 목업과 동일하고 실제 API 로 동작
+- **결과:** 커밋 `abeb111`·`1168053`·`db4e587` (feat/T-124, feat/T-115 기준) — 클라이언트 테스트 242건 통과(신규 11건 + 미들웨어 갱신), lint · type-check · build 통과. 미들웨어가 `MEMBER_SCREEN_TEMPLATES`(hospital-a) 테넌트의 `/{slug}/member/{page}` 를 템플릿 라우트로 rewrite (그 외 템플릿은 공통 화면 유지), 회원 화면은 noindex · 편집 툴바 없음. Playwright 시각 비교(목업 vs 실제, 1440 / 390, `main` 높이): find-email · find-password · reset(만료) · join-social · 마이페이지(알림 · 내 정보 · 예약) · withdraw 동일, 가로 스크롤 0. 의도된 차이: 로그인 목업의 데모 안내 줄 제거(−65px), 회원가입에 SNS 가입 버튼 추가(기획서 16.3, +130px), 오류 문구는 기획서 기준, 문의 내역은 상세 링크 대신 펼침. E2E(데모 DB · 실제 API): 빈 제출 오류 → 비밀번호 조건 3개 → 휴대폰 인증 타이머 → 전체 동의 → 가입 → 마이페이지 "안녕하세요, 이병원 님" · 헤더 전환 → 탈퇴 동의 누락 오류 → 탈퇴 완료 화면 유지 · 세션 표시 삭제
+
+---
+
+### T-125: 통합 검증 + 관리자 연동 🚧
+- **담당:** 전체
+- **작업 내용:**
+  - [x] AD-06 템플릿 목록에 hospital-a 추가 (썸네일 · 미리보기 · 코드형/스타일 방식 표시) — 카드 배지 "전용 디자인 · 서브 페이지 포함" · "샘플 문구·이미지 포함", 미리보기 주소는 템플릿 code 사용
+  - [x] 템플릿 전환 시나리오 E2E — 테마형 ↔ 코드형, keep / replace_with_sample, 롤백 (데모 환경 실제 API · 화면 확인, 미들웨어 캐시 60초 후 반영)
+  - [x] Playwright 시각 비교 — 목업 vs 실제 페이지 (1440 / 390), 가로 스크롤 · 콘솔 오류 0 — 7개 페이지 × 2 폭 14건 높이 동일
+  - [x] 템플릿별 라우트 분기 (오픈 이슈 #26 결정) — 미들웨어가 테넌트 템플릿을 보고 `/{slug}` 를 템플릿 전용 내부 라우트로 rewrite, 템플릿 ID 는 캐시
+  - [ ] 성능 — 템플릿 청크만 로드되는지 확인 ✅, Lighthouse 성능 90 이상 (T-052 기준) ⚠️ 데스크톱 92~96 달성 / 모바일 65~69 미달
+  - [x] 접근성 — 키보드 · 스크린리더 기본 점검 (T-044 기준) — Lighthouse 접근성 93~97. 남은 항목은 목업 디자인 자체(퀵메뉴 대비 3.03, 슬라이더 점 크기) — 디자인 변경 없이 보고만
+- **완료 조건:** 전체 시나리오 통과, 목업과 시각 차이 허용 범위 내
+- **결과:** 커밋 `0e8b50c`·`7d290db`·`3576b5e`·`26636a3` (feat/T-125) — 백엔드 503건·클라이언트 159건·관리자 119건·슈퍼어드민 48건 통과. 테마 테넌트 페이지에 hospital-a CSS·JS 0 (프로덕션 빌드 확인), 없는 페이지·`/tpl-*` 직접 접근 HTTP 404. 모바일 성능 미달 원인: 슬라이더 첫 화면 이미지 크기(LCP 6~8.6초)·웹폰트 — Typekit 킷 `font-display: swap` 변경(Adobe 킷 설정) 후 재측정 필요
+
+---
+
+*최종 업데이트: 2026-10-26*
+*총 127개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*

@@ -1,0 +1,19 @@
+{
+  "name": "mockups",
+  "version": "1.0.0",
+  "description": "앱 빌드와 분리된 **독립 HTML/CSS/JS 프로토타입** 작업 공간입니다. 실제 앱(`apps/*`)에 영향을 주지 않고 빠르게 디자인 시안을 만들고 비교한 뒤, 확정되면 Next.js / React 컴포넌트로 이식합니다. (bkit phase-3-mockup 방식)",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.3.1",
+    "gsap": "^3.15.0",
+    "remixicon": "^4.9.1",
+    "swiper": "^14.3.0"
+  }
+}

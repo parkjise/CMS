@@ -1,0 +1,57 @@
+/* ════════════════════════════════════════════════════════════════
+   병원 목업 — plain CSS 트랙 공통 스타일
+   ────────────────────────────────────────────────────────────────
+   _template.html 에서 <link rel="stylesheet" href="styles/base.css"> 로 참조.
+   :root 토큰 키는 apps/client/lib/theme.ts 의 KEY_MAP 과 동일 → 그대로 이식.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 디자인 토큰 (이 값이 그대로 이식됨) ─────────────────────── */
+:root {
+  --color-primary:        #0ea5a0;   /* 메인 색 (병원: 청록/블루 계열 권장) */
+  --color-primary-hover:  #0c8a86;
+  --color-on-primary:     #ffffff;   /* primary 위 글자색 */
+  --color-secondary:      #e8f6f5;
+  --color-accent:         #f59e0b;    /* 강조 (예약 버튼 등) */
+  --color-background:     #ffffff;
+  --color-surface:        #f8fafc;    /* 카드 배경 */
+  --color-text-primary:   #0f172a;
+  --color-text-secondary: #475569;
+  --color-border:         #e2e8f0;
+
+  --font-heading: 'Pretendard', system-ui, sans-serif;
+  --font-body:    'Pretendard', system-ui, sans-serif;
+  --border-radius-base: 10px;
+  --border-radius-card: 16px;
+  --shadow-card: 0 4px 20px rgba(0,0,0,.06);
+  --spacing-section: 80px;
+  --spacing-container: 1120px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-body); color: var(--color-text-primary); background: var(--color-background); line-height: 1.6; }
+h1,h2,h3 { font-family: var(--font-heading); line-height: 1.25; }
+.container { max-width: var(--spacing-container); margin: 0 auto; padding: 0 24px; }
+section { position: relative; padding: var(--spacing-section) 0; }
+.btn { display: inline-block; padding: 12px 24px; border-radius: var(--border-radius-base); background: var(--color-primary); color: var(--color-on-primary); text-decoration: none; font-weight: 600; }
+.btn--accent { background: var(--color-accent); }
+.card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--border-radius-card); box-shadow: var(--shadow-card); padding: 28px; }
+.muted { color: var(--color-text-secondary); }
+.grid { display: grid; gap: 24px; }
+@media (min-width: 768px) { .grid-3 { grid-template-columns: repeat(3, 1fr); } .grid-2 { grid-template-columns: repeat(2, 1fr); } }
+
+/* 섹션 라벨 (목업 확인용 — 이식 시 제거) */
+.section-tag { position: absolute; top: 8px; left: 8px; font-size: 11px; background: #0f172a; color: #fff; padding: 2px 8px; border-radius: 4px; opacity: .5; font-family: monospace; z-index: 5; }
+
+/* ── GNB (layout/Navbar.tsx) — 섹션 아님, 사이트 공통 ─────────── */
+.gnb { position: sticky; top: 0; z-index: 40; width: 100%; transition: all .2s; background: transparent; }
+.gnb.scrolled { background: color-mix(in srgb, var(--color-background) 95%, transparent); border-bottom: 1px solid var(--color-border); box-shadow: 0 1px 3px rgba(0,0,0,.05); backdrop-filter: blur(8px); }
+.gnb-inner { max-width: var(--spacing-container); margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; }
+.gnb-logo { font-size: 18px; font-weight: 700; color: var(--color-text-primary); background: none; border: 0; cursor: pointer; }
+.gnb-nav { display: none; gap: 24px; list-style: none; }
+.gnb-nav button { background: none; border: 0; cursor: pointer; font-size: 14px; color: var(--color-text-secondary); }
+.gnb-nav button:hover { color: var(--color-primary); }
+.gnb-burger { background: none; border: 0; cursor: pointer; font-size: 22px; line-height: 1; color: var(--color-text-secondary); }
+@media (min-width: 768px) { .gnb-nav { display: flex; } .gnb-burger { display: none; } }
+
+/* ── Footer (layout/Footer.tsx) ─────────────────────────────── */
+.footer { background: var(--color-text-primary); color: var(--color-on-primary); padding: 40px 0; text-align: center; }

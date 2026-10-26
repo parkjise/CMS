@@ -1,0 +1,37 @@
+<!-- AREA ROWS: 섹션 헤더 + 사진/텍스트 지그재그 행 (서브 공통)
+  용도 예: 서비스 영역, 사업 분야, 공간 구성
+  짝수 행은 .area-rows__row--reverse 로 사진·텍스트 위치를 바꾼다.
+-->
+<section class="area-rows" aria-labelledby="area-rows-title">
+  <div class="container">
+    <header class="section-head section-head--sub">
+      <p class="section-head__eyebrow" lang="en">Our Services</p>
+      <h2 class="section-head__title" id="area-rows-title">서비스 영역</h2>
+    </header>
+
+    <div class="area-rows__row">
+      <figure class="area-rows__photo">
+        <img class="area-rows__image" src="./assets/images/unsplash/business-meeting.jpg" alt="" loading="lazy" />
+      </figure>
+      <div class="area-rows__body">
+        <h3 class="area-rows__title"><a class="area-rows__link" href="#">시그니처 프로그램</a></h3>
+        <p class="area-rows__desc">
+          1:1 맞춤 상담 · 시그니처 케어 · 프리미엄 패키지 · 정기 관리 · 멤버십 전용 프로그램 ·
+          사후관리센터
+        </p>
+      </div>
+    </div>
+
+    <div class="area-rows__row area-rows__row--reverse">
+      <figure class="area-rows__photo">
+        <img class="area-rows__image" src="./assets/images/unsplash/about-hallway.jpg" alt="" loading="lazy" />
+      </figure>
+      <div class="area-rows__body">
+        <h3 class="area-rows__title"><a class="area-rows__link" href="#">라이프 케어</a></h3>
+        <p class="area-rows__desc">
+          데일리 케어 · 시즌 스페셜 · 컨디션 관리 · 원데이 클래스 · 웰니스 프로그램
+        </p>
+      </div>
+    </div>
+  </div>
+</section>

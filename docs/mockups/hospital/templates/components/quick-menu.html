@@ -1,0 +1,157 @@
+<!-- QUICK MENU → layout/QuickMenu.tsx (메인·서브 공통, footer 다음에 include)
+  md 이상: 화면 오른쪽 아래 세로 버튼 3개
+    - 퀵메뉴: 마우스를 올리거나 누르면 위로 바로가기 링크가 펼쳐짐
+    - 간편상담: 왼쪽에 상담 신청 폼 패널이 열림
+    - 상단으로
+  md 미만: 화면 하단 고정 바(전화·간편상담·카카오톡·오시는 길) + 작은 상단으로 버튼
+    - 간편상담 폼은 아래에서 올라오는 시트로 열림
+  링크·전화번호는 사이트별로 교체, 폼 전송은 API 연동 시 구현 (지금은 접수 메시지만 표시)
+-->
+<aside class="quick-menu" aria-label="빠른 메뉴">
+  <div class="quick-menu__rail">
+    <!-- 퀵메뉴 (펼침) -->
+    <div class="quick-menu__shortcut">
+      <ul class="quick-menu__links" id="quick-menu-links">
+        <li>
+          <a class="quick-menu__link" href="about.html">
+            <i class="ri-home-heart-line" aria-hidden="true"></i>브랜드 소개
+          </a>
+        </li>
+        <li>
+          <a class="quick-menu__link" href="about-history.html">
+            <i class="ri-history-line" aria-hidden="true"></i>연혁
+          </a>
+        </li>
+        <li>
+          <a class="quick-menu__link" href="#contact">
+            <i class="ri-time-line" aria-hidden="true"></i>운영 시간
+          </a>
+        </li>
+        <li>
+          <a class="quick-menu__link" href="about-location.html">
+            <i class="ri-map-pin-line" aria-hidden="true"></i>오시는 길
+          </a>
+        </li>
+        <li>
+          <a class="quick-menu__link" href="#" target="_blank" rel="noopener">
+            <i class="ri-kakao-talk-line" aria-hidden="true"></i><span>카카오톡 상담<span class="sr-only">(새 창)</span></span>
+          </a>
+        </li>
+      </ul>
+      <button
+        class="quick-menu__button quick-menu__button--toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="quick-menu-links"
+      >
+        <i class="ri-flashlight-fill" aria-hidden="true"></i>퀵메뉴
+      </button>
+    </div>
+
+    <!-- 간편상담 -->
+    <button
+      class="quick-menu__button quick-menu__button--consult"
+      type="button"
+      aria-expanded="false"
+      aria-controls="quick-consult"
+      data-consult-open
+    >
+      <i class="ri-edit-2-line" aria-hidden="true"></i>간편상담
+    </button>
+
+    <!-- 상단으로 -->
+    <button class="quick-menu__button quick-menu__button--top" type="button" aria-label="페이지 맨 위로">
+      <i class="ri-skip-up-line" aria-hidden="true"></i>
+    </button>
+  </div>
+
+  <!-- 간편상담 폼 패널 -->
+  <section class="quick-menu__panel" id="quick-consult" role="dialog" aria-labelledby="quick-consult-title">
+    <h2 class="quick-menu__panel-title" id="quick-consult-title">간편상담</h2>
+    <p class="quick-menu__panel-desc">신청을 남겨주시면 빠른 시간 안에<br />담당자가 연락드리겠습니다.</p>
+
+    <form class="quick-menu__form" novalidate>
+      <div class="quick-menu__field">
+        <input class="quick-menu__input" type="text" id="quick-name" name="name" autocomplete="name" placeholder=" " required />
+        <label class="quick-menu__label" for="quick-name">이름을 입력해주세요.<span aria-hidden="true">*</span></label>
+      </div>
+      <div class="quick-menu__field">
+        <input
+          class="quick-menu__input"
+          type="tel"
+          id="quick-phone"
+          name="phone"
+          inputmode="tel"
+          autocomplete="tel"
+          placeholder=" "
+          required
+        />
+        <label class="quick-menu__label" for="quick-phone">연락처를 입력해주세요.<span aria-hidden="true">*</span></label>
+      </div>
+      <div class="quick-menu__field quick-menu__field--select">
+        <label class="sr-only" for="quick-topic">상담 분야</label>
+        <select class="quick-menu__input" id="quick-topic" name="topic" required>
+          <option value="">상담 분야를 선택해주세요</option>
+          <option>서비스 안내</option>
+          <option>예약 · 일정</option>
+          <option>가격 · 결제</option>
+          <option>기타 문의</option>
+        </select>
+        <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+      </div>
+
+      <div class="quick-menu__agree">
+        <input class="quick-menu__check sr-only" type="checkbox" id="quick-agree-call" name="agreeCall" required />
+        <label class="quick-menu__check-label" for="quick-agree-call">
+          <i class="ri-check-line" aria-hidden="true"></i>상담 연락 수신 동의
+        </label>
+      </div>
+      <div class="quick-menu__agree">
+        <input class="quick-menu__check sr-only" type="checkbox" id="quick-agree-privacy" name="agreePrivacy" required />
+        <label class="quick-menu__check-label" for="quick-agree-privacy">
+          <i class="ri-check-line" aria-hidden="true"></i>개인정보 수집 및 이용 동의
+        </label>
+        <a class="quick-menu__more" href="#">자세히보기</a>
+      </div>
+
+      <p class="quick-menu__status" role="status" aria-live="polite"></p>
+      <button class="quick-menu__submit" type="submit">신청하기</button>
+    </form>
+
+    <button class="quick-menu__close" type="button" aria-label="간편상담 닫기">
+      <i class="ri-close-line" aria-hidden="true"></i>
+    </button>
+  </section>
+
+  <!-- 모바일 하단 바 -->
+  <nav class="quick-menu__bar" aria-label="모바일 빠른 메뉴">
+    <ul class="quick-menu__bar-list">
+      <li>
+        <a class="quick-menu__bar-item" href="tel:02-1234-5678">
+          <i class="ri-phone-line" aria-hidden="true"></i>전화 상담
+        </a>
+      </li>
+      <li>
+        <button
+          class="quick-menu__bar-item"
+          type="button"
+          aria-expanded="false"
+          aria-controls="quick-consult"
+          data-consult-open
+        >
+          <i class="ri-edit-2-line" aria-hidden="true"></i>간편상담
+        </button>
+      </li>
+      <li>
+        <a class="quick-menu__bar-item" href="#" target="_blank" rel="noopener">
+          <i class="ri-kakao-talk-line" aria-hidden="true"></i><span>카카오톡<span class="sr-only">(새 창)</span></span>
+        </a>
+      </li>
+      <li>
+        <a class="quick-menu__bar-item" href="about-location.html">
+          <i class="ri-map-pin-line" aria-hidden="true"></i>오시는 길
+        </a>
+      </li>
+    </ul>
+  </nav>
+</aside>

@@ -1,0 +1,54 @@
+<!-- JOIN FORM: 회원가입 — 이름·이메일(중복 확인)·비밀번호·휴대폰 인증·생년월일 + 약관 동의 (기획서 16.3)
+  - 입력 칸·검사: .board-form + assets/js/board-form.js (pattern·data-match·이메일 형식·data-verified 공용 검사)
+  - 이메일 중복 확인(1초 뒤 자동)·휴대폰 인증·비밀번호 조건·전체 동의: assets/js/member-form.js
+  - 목업: 이미 가입된 이메일 hong@email.com, 인증번호 123456 / 가입 완료 → 자동 로그인 후 마이페이지 이동
+-->
+<section class="board-form member-form" aria-labelledby="join-title">
+  <div class="container">
+    <form class="board-form__form" action="join.html" method="post" novalidate data-success="가입이 완료되었습니다. 마이페이지로 이동합니다." data-redirect="mypage.html">
+      <div class="board-form__panel board-form__panel--narrow">
+        <h2 class="member-form__heading" id="join-title">회원가입</h2>
+
+        <p class="board-form__note"><span class="board-form__req" aria-hidden="true">*</span>는 필수 입력 항목입니다.</p>
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="jn-name">이름<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="text" id="jn-name" name="name" placeholder="홍길동" autocomplete="name" maxlength="20" required pattern="[가-힣a-zA-Z ]{2,20}" data-error="이름을 입력해 주세요." data-error-pattern="이름을 올바르게 입력해 주세요. (2자 이상, 특수문자 불가)" />
+          </div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="jn-email">이메일<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="email" id="jn-email" name="email" placeholder="example@email.com" autocomplete="email" required data-email-check data-verified="false" data-error="이메일을 입력해 주세요." data-error-format="올바른 이메일 형식으로 입력해 주세요." data-error-verify="이메일 중복 확인 중입니다. 잠시 후 다시 시도해 주세요." />
+            <p class="member-form__result" role="status" aria-live="polite" data-email-result></p>
+          </div>
+
+          <div data-include="components/sub/password-field.html" data-id="jn-pw" data-label="비밀번호"></div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="jn-pw2">비밀번호 확인<span class="board-form__req" aria-hidden="true">*</span></label>
+            <div class="member-form__password">
+              <input class="board-form__input" type="password" id="jn-pw2" name="password_confirm" placeholder="비밀번호를 한 번 더 입력해 주세요." autocomplete="new-password" maxlength="20" required data-match="#jn-pw" data-error="비밀번호를 한 번 더 입력해 주세요." data-error-match="비밀번호가 일치하지 않습니다." />
+              <button class="member-form__eye" type="button" aria-label="비밀번호 보기" aria-pressed="false" data-pw-toggle>
+                <i class="ri-eye-line" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <div data-include="components/sub/phone-verify.html" data-id="jn"></div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="jn-birth">생년월일 <span class="member-form__optional">(선택)</span></label>
+            <input class="board-form__input" type="date" id="jn-birth" name="birth_date" min="1900-01-01" autocomplete="bday" data-max-today />
+          </div>
+        </div>
+
+        <div data-include="components/sub/member-agree.html" data-id="jn"></div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <button class="member-form__submit" type="submit">가입하기</button>
+        <p class="member-form__switch">이미 회원이신가요? <a href="login.html">로그인</a></p>
+      </div>
+    </form>
+  </div>
+</section>

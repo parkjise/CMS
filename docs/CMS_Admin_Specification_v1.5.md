@@ -3,7 +3,7 @@
 
 **문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-05-24 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15)  
+**최종 수정:** 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -26,6 +26,7 @@
 13. [AI 편집 어시스턴트](#13-ai-편집-어시스턴트-ai-edit-assistant)
 14. [슈퍼 어드민 시스템](#14-슈퍼-어드민-시스템-super-admin-system)
 15. [SaaS 운영 시스템](#15-saas-운영-시스템-결제-온보딩-도메인-구독-관리)
+16. [테넌트 사이트 방문자 인증](#16-테넌트-사이트-방문자-인증-site-member-auth)
 
 ---
 
@@ -1703,6 +1704,8 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 고객(테넌트 어드민)이 코드 없이 홈페이지 디자인 전체를 교체할 수 있는 시스템.
 **핵심 원칙: 템플릿 전환 시 콘텐츠(텍스트·이미지)는 100% 유지, 디자인(색상·폰트·레이아웃)만 교체.**
+> 예외: 고객이 명시적으로 "샘플로 교체"를 고른 경우만 콘텐츠를 템플릿 샘플로 바꾼다 (11.8). 처음 적용할 때는 템플릿 샘플 콘텐츠로 시작한다.
+> 템플릿은 공용 컴포넌트를 쓰는 **테마형**과 전용 마크업·스타일(SCSS 또는 Tailwind)을 쓰는 **코드형**이 있다 (11.7).
 
 ```
 템플릿 = CSS 변수 세트 + 섹션 레이아웃 구조 JSON
@@ -1865,7 +1868,7 @@ CREATE INDEX idx_template_history_tenant ON template_change_history(tenant_id, c
 ```json
 {
   "template_id": "TPL_MODERN_MINIMAL",
-  "preserve_content": true    // 항상 true (콘텐츠 보존 강제)
+  "content_mode": "keep"      // keep(기본, 콘텐츠 보존) | replace_with_sample (11.8 — 확인 모달 필수)
 }
 ```
 
@@ -1943,6 +1946,157 @@ CSS 변수 개별 커스터마이징 (색상 피커, 폰트 선택)
 - 별도 탭으로 `https://preview.cms.com/{tenant_slug}?tpl={template_id}` 오픈
 - 실제 테넌트 콘텐츠 + 선택한 템플릿 CSS 조합으로 렌더링
 - 쿠키/세션 없이 공개 접근 가능 (미리보기 전용 엔드포인트)
+
+### 11.7 코드형 템플릿 & 스타일링 방식 선택 (Template Engine)
+
+> **추가일:** 2026-10-25 — 디자인 목업(`docs/mockups/hospital/templates`)을 실제 테넌트 홈페이지에 입히기 위한 확장.
+
+기존 6종(11.2)은 **공용 섹션 컴포넌트 + CSS 변수만 교체**하는 "테마형" 템플릿이다.
+여기에 템플릿마다 **자기 마크업·스타일을 갖는 "코드형" 템플릿**을 추가하고, 스타일 작성 방식을 템플릿 단위로 고른다.
+
+| 구분 | 테마형 (기존) | 코드형 (신규) |
+|---|---|---|
+| 마크업 | 공용 `components/sections/*` | 템플릿 전용 `templates/{key}/components/*` |
+| 스타일 | Tailwind + CSS 변수 | `styling: 'scss'` 또는 `'tailwind'` 중 선택 |
+| 바뀌는 범위 | 색상·폰트 | 색상·폰트 + 레이아웃·마크업·애니메이션 전체 |
+| 예시 | `TPL_WARM_TRUST` 등 6종 | `TPL_HOSPITAL_A` (목업 이식, 이름은 오픈 이슈 #25) |
+
+#### 디렉토리 구조 (`apps/client`)
+
+```
+apps/client/templates/
+├── registry.ts                  ← 템플릿 키 → 매니페스트·컴포넌트 지연 로드 맵
+├── shared/                      ← 모든 템플릿이 지키는 계약
+│   ├── contracts.ts             ← 섹션 props·페이지 props 타입
+│   └── Editable*.tsx            ← 인라인 편집 래퍼 재사용 (섹션 12)
+├── hospital-a/                  ← 코드형 · SCSS (목업 이식)
+│   ├── manifest.ts              ← TemplateManifest
+│   ├── sample-content.ts        ← 처음 적용 시 넣을 샘플 문구·이미지 (11.8)
+│   ├── components/              ← Header · HeroSlider · BrandIntro … (목업 partial 1:1)
+│   └── styles/                  ← 목업 SCSS (BEM 클래스 유지)
+└── {다른 키}/                   ← 코드형 · Tailwind 도 같은 구조 (styles/ 대신 클래스 직접 사용)
+```
+
+#### TemplateManifest (`packages/types/template.ts` 추가)
+
+```typescript
+export interface TemplateManifest {
+  key: string                       // 'hospital-a'
+  id: string                        // 'TPL_HOSPITAL_A' (templates.id)
+  renderer: 'theme' | 'code'        // 테마형(공용 컴포넌트) | 코드형(전용 컴포넌트)
+  styling: 'tailwind' | 'scss'      // 코드형일 때 스타일 작성 방식
+  version: string                   // '1.0.0' — 샘플 콘텐츠·마크업 변경 추적
+  pages: TemplatePage[]             // 이 템플릿이 제공하는 페이지 (11.9)
+  sections: SectionType[]           // 지원 섹션 타입 — 없는 타입은 렌더링 생략 + 관리자에 '미지원' 표시
+  css_variables: CSSVariableSet     // 기본 토큰 (11.3 과 동일 키)
+}
+```
+
+#### 공통 계약 (스타일 방식과 무관하게 지킬 것)
+
+1. **데이터 계약 동일:** 모든 템플릿 컴포넌트는 같은 `SectionProps`(섹션 settings)를 받는다. 관리자 편집(AD-02)·인라인 편집(12)·AI 어시스턴트(13)는 템플릿 종류를 몰라도 동작한다.
+2. **토큰 이름 동일:** 색·폰트·모서리는 `--color-primary`, `--font-heading`, `--border-radius-base` 등 `theme.ts` KEY_MAP 의 CSS 변수만 읽는다. SCSS 템플릿도 색상 값을 하드코딩하지 않고 `var(--…)` 를 쓴다 → AD-06 색상 피커가 두 방식 모두에 적용된다. (외부 브랜드 고정색 — 카카오/네이버 버튼 등 — 만 예외)
+3. **스타일 격리 (필수, 두 겹):**
+   - 템플릿 스타일은 전부 `[data-template="{key}"]` 루트 아래로 스코프한다. 페이지 루트에 `data-template` 속성을 렌더링한다.
+   - 템플릿 컴포넌트·스타일은 `registry.ts` 에서 템플릿별 동적 import 로 나눠, 해당 테넌트가 쓰는 템플릿 청크만 내려받는다.
+   - Tailwind 의 preflight(기본 초기화)는 `@layer base` 에 두고 SCSS 템플릿 스타일은 그보다 뒤 레이어(`@layer template`)에 둬서 덮어쓰기 순서를 고정한다.
+4. **편집 가능 요소:** 텍스트·이미지는 `EditableText` / `EditableImage` 로 감싼다 (BEM 클래스는 `className` 으로 그대로 전달).
+5. **접근성·반응형 기준은 목업 그대로:** 1440 / 390 폭에서 가로 스크롤 없음, 키보드 조작 가능.
+
+#### 스타일링 규칙
+
+| 항목 | SCSS 템플릿 | Tailwind 템플릿 |
+|---|---|---|
+| 파일 | `templates/{key}/styles/*.scss` (`sass` 패키지, Next 기본 지원) | 컴포넌트 클래스 |
+| 이름 규칙 | BEM (`.block__element--modifier`), 컴포넌트 파일명 = SCSS 파일명 = BEM 블록명 | Tailwind 유틸리티 + 토큰 변수(`bg-[var(--color-primary)]`) |
+| 이름 충돌 | Tailwind 유틸리티와 같은 클래스 이름 금지 (`.container`·`.grid`·`.hidden` 등 — utilities 레이어가 이김). 테스트로 자동 검사 | — |
+| 린트 | stylelint (SCSS) | ESLint + prettier-plugin-tailwindcss |
+| 인라인 style | 금지 (CSS 변수 주입만 예외) | 금지 (동일) |
+
+### 11.8 템플릿 샘플 콘텐츠 (Starter Content)
+
+템플릿에는 **처음 적용 시 그대로 쓸 수 있는 샘플 문구·이미지**가 함께 들어간다. 고객은 샘플이 채워진 완성된 홈페이지에서 출발해 자기 내용으로 바꿔 나간다.
+
+#### 샘플 데이터 위치
+
+- `templates/{key}/sample-content.ts` (원본) → 시드 스크립트가 `templates.sample_content` (JSONB) 로 동기화. 섹션별 `settings` 값 + 페이지별 섹션 구성을 담는다.
+- 샘플 이미지는 공용 스토리지 `templates/{key}/{version}/…` 에 올리고 모든 테넌트가 같은 URL 을 참조한다. 고객이 이미지를 바꾸면 기존 규칙대로 테넌트 경로(`/{tenant_id}/sections/…`)에 새로 업로드된다 (공용 원본은 수정·삭제 불가).
+- 샘플 문구는 업종 무관 중립 카피, 이미지는 상업 이용 가능한 라이선스만 사용하고 출처를 `SOURCES.md` 로 관리한다 (목업 `assets/images/unsplash/SOURCES.md` 이어받음).
+
+#### 적용 시점과 동작
+
+| 시점 | 동작 |
+|---|---|
+| 테넌트 생성 · 온보딩에서 템플릿 선택 (15.1) | 샘플 콘텐츠를 테넌트 섹션으로 **복사** (참조 아님) |
+| 템플릿 변경 — 기본값 `content_mode: 'keep'` | 기존 문구·이미지 유지 (11.1 원칙). 새 템플릿에만 있는 섹션은 샘플로 채워 추가 |
+| 템플릿 변경 — `content_mode: 'replace_with_sample'` | 확인 모달("지금 내용이 새 템플릿 샘플로 바뀝니다") 후 전체를 샘플로 교체. 교체 전 콘텐츠는 `template_change_history.content_snapshot` 에 저장해 7일 롤백 가능 |
+
+#### 샘플 표시
+
+- `section_settings.is_sample = true` 로 복사되며, 고객이 해당 값을 한 번이라도 저장하면 `false` 로 바뀐다.
+- 관리자 섹션 편집기(AD-02)·인라인 편집 툴바에 "샘플 문구예요 — 내 내용으로 바꿔주세요" 배지와 남은 샘플 개수를 표시한다. 대시보드(AD-01)에는 "샘플 n개 남음" 할 일 카드.
+- 공개 홈페이지에는 표시하지 않는다 (방문자에게는 일반 콘텐츠).
+
+### 11.9 템플릿 페이지 구성 (서브 페이지)
+
+코드형 템플릿은 메인 외 서브 페이지를 가질 수 있다 (목업: 소개·연혁·오시는 길·사업 소개·공지·상담·예약·회원 화면).
+
+- `sections.page_key` (기본 `'home'`) 로 섹션이 어느 페이지에 속하는지 구분한다. 페이지 주소는 `/{slug}/{page_key}` (예: `/{slug}/about`).
+- 매니페스트 `pages` 에 페이지 키·메뉴명·기본 섹션 목록·헤더 메뉴 위치를 정의하고, 헤더/푸터 메뉴는 이 목록으로 그린다.
+- 게시판형 페이지(공지·상담)와 예약 페이지는 기존 데이터 연동: 상담·예약 → 문의 API (5.5, AD-04), 회원 화면 → 섹션 16 방문자 인증. 공지 게시판 데이터 저장 방식은 오픈 이슈 #27.
+- **구현 (T-123):** 페이지 섹션 `BOARD` 의 `board` 값으로 구분 — `notice` · `consult` · `reservation`. 상세·글쓰기 주소는 `/{slug}/{page}/{id}` (`/consult/write`), 목록 검색·페이지는 `?q=` · `?p=`.
+  - **공지:** 섹션 JSON (`items [{ id, subject, date, pinned, body [블록] }]`) — #27 옵션 A
+  - **온라인 상담:** 문의(inquiries)에 `is_board` 로 저장. 공개 API `GET /api/public/inquiries/board` (목록: 제목·가린 이름·비밀글·답변 여부·등록일, 스팸 제외 — 연락처는 절대 미노출), `GET /board/{id}` (비밀글은 `locked`), `POST /board/{id}/unlock` (작성 비밀번호 bcrypt 확인, IP당 분당 10회), `POST /board` (reCAPTCHA, 분당 3회). 답변은 AD-04 문의 상세에서 작성 → `answer` · `answered_at`, 상태 '완료'.
+  - **온라인 예약:** `POST /api/public/inquiries` 에 `inquiry_type=RESERVATION` + `subject` · `reserved_date` · `reserved_time`.
+  - 목업의 6자리 보안문자는 브라우저에서 만드는 장식이라 실제로는 보이지 않는 reCAPTCHA v3 로 대체한다.
+- 템플릿이 제공하지 않는 페이지 키로 접근하면 404.
+
+```typescript
+export interface TemplatePage {
+  key: string               // 'home' | 'about' | 'notice' …
+  title: string             // 메뉴·브레드크럼 이름
+  menu: 'gnb' | 'sub' | 'account' | 'none'
+  parent?: string           // 하위 탭 묶음 (예: about-history → about)
+  default_sections: SectionType[]
+}
+```
+
+### 11.10 DB · API 변경 요약 (11.7 ~ 11.9)
+
+```sql
+-- 구현(마이그레이션 0017): templates.id 는 UUID 이므로 템플릿 코드는 code 컬럼으로 둔다
+ALTER TABLE templates
+  ADD COLUMN code           VARCHAR(50) UNIQUE,                     -- 'TPL_HOSPITAL_A' (클라이언트 레지스트리 키)
+  ADD COLUMN renderer       VARCHAR(10) NOT NULL DEFAULT 'theme',    -- theme | code
+  ADD COLUMN styling        VARCHAR(10) NOT NULL DEFAULT 'tailwind', -- tailwind | scss
+  ADD COLUMN version        VARCHAR(20) NOT NULL DEFAULT '1.0.0',
+  ADD COLUMN sample_content JSONB NOT NULL DEFAULT '{}';         -- updated_at 은 기존 컬럼
+
+ALTER TABLE sections         ADD COLUMN page_key  VARCHAR(50) NOT NULL DEFAULT 'home';
+ALTER TABLE section_settings ADD COLUMN is_sample BOOLEAN     NOT NULL DEFAULT false;
+ALTER TABLE template_change_history ADD COLUMN content_snapshot JSONB;  -- replace_with_sample 시 교체 전 콘텐츠
+
+CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_order);
+```
+
+- `SectionType` 추가 (목업 섹션 대응): `HERO_SLIDER`, `VIDEO_PLAYLIST`, `NOTICE_LATEST`, `SUB_HERO`, `CONTENT_BLOCK`(사진+글 계열 레이아웃 변형), `HISTORY_TIMELINE`, `BOARD`. 기존 타입(`HERO_BANNER`·`INTRO`·`SERVICES` 등)과 겹치는 섹션은 기존 타입을 그대로 쓴다.
+- `POST /templates/apply` 요청의 `preserve_content` 를 `content_mode: 'keep' | 'replace_with_sample'` (기본 `keep`) 로 교체.
+- `GET /templates` 응답에 `code`, `renderer`, `styling`, `version` 추가 (`pages` 는 클라이언트 매니페스트에서 읽음).
+- 공개 사이트 API(`/api/public/site/{slug}`)는 각 섹션에 `page_key` 를 담아 전체를 반환하고, 클라이언트가 페이지별로 고른다 (사이트 캐시 키를 하나로 유지). `template` 에는 `code`·`renderer`·`styling`·`version`.
+- 업종 기본 템플릿 폴백(적용 이력이 없는 테넌트)은 테마형만 고른다 — 코드형은 직접 적용한 테넌트에만.
+- 샘플로 교체(`replace_with_sample`)는 기존 섹션을 소프트 삭제하고 샘플을 복사한다. 롤백 시 교체 전 섹션을 되살린다 (첫 적용이라도 콘텐츠 복원 가능).
+- `GET /sections` 응답 각 setting 에 `is_sample` 포함, `PATCH` 저장 시 서버가 `is_sample=false` 로 갱신.
+- (T-125 구현) 공개 경량 API `GET /api/public/site/{slug}/template` → `{code, renderer}` — 사이트 캐시가 있으면 그 값을 쓰고 없으면 계산. 클라이언트 미들웨어 전용.
+- (T-125 구현) 템플릿별 라우트 분기: `apps/client/middleware.ts` 가 위 API 로 테넌트 템플릿을 확인(60초 캐시, 2초 타임아웃)하고 코드형이면 `/{slug}[/{page}[/{id}]]` 를 `/tpl-{key}/{slug}/...` 내부 라우트(`app/(code)/tpl-{key}/`)로 rewrite. `preview`·`login`·`sitemap.xml` 은 rewrite 하지 않고, `/tpl-*` 직접 접근은 404. 테마형 라우트(`app/[tenant_slug]/page.tsx`)는 템플릿 코드를 import 하지 않아 다른 테넌트에 템플릿 CSS·JS 가 내려가지 않는다. 템플릿 전환은 최대 60초 뒤 반영.
+
+### 11.11 오픈 이슈 추가
+
+| # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
+|---|---|---|---|---|---|
+| 25 | 목업 템플릿 이름·ID | `TPL_HOSPITAL_A` (업종+순번) | 디자인 컨셉명 (예: `TPL_CLASSIC_SERIF`) | 1주차 | PM |
+| 26 | SCSS 템플릿 CSS 전달 방식 | Next 번들(동적 import 청크) — 적용 후 확인: 서버 컴포넌트 동적 import 는 청크가 나뉘지 않아 다른 테넌트에도 CSS(gzip 약 10KB)·JS 가 함께 내려옴 | **✅ 결정 (2026-10-25): 미들웨어로 템플릿별 라우트 분기** — `/{slug}` 요청을 템플릿 전용 내부 라우트로 rewrite 해 CSS·JS 를 라우트 단위로 분리 (T-125 에서 적용 — 11.10 참조) | 구현됨 | 프론트 |
+| 27 | 공지 게시판 데이터 | **✅ 결정 (2026-10-25): 섹션 settings JSON** — T-123 적용 | 별도 `posts` 테이블 + API (공지가 많아지면 이전) | 결정됨 | 백엔드 |
+| 28 | 샘플 콘텐츠 업데이트 전파 | 신규 적용분에만 반영 | `is_sample=true` 값은 새 버전으로 자동 갱신 | 2주차 | PM |
 
 ---
 
@@ -3553,6 +3707,841 @@ TRIAL_DAYS=14                          # 무료 체험 기간 (일)
 | 18 | 해지 후 데이터 보관 기간 | 30일 | 90일 | 1주차 | PM |
 | 19 | 무료 체험 카드 등록 필요 여부 | 카드 없이 체험 | 카드 등록 후 체험 | 1주차 | PM |
 | 20 | Nginx 설정 자동화 방식 | Python subprocess | Nginx API | 2주차 | 인프라 |
+
+
+---
+
+## 16. 테넌트 사이트 방문자 인증 (Site Member Auth)
+
+> **추가일:** 2026-10-25 — 원본: `테넌트_방문자_인증_기획안.md`
+> **범위:** 로그인 / 회원가입 / 이메일 찾기 / 비밀번호 찾기 / 마이페이지 / 회원 탈퇴
+> **연관 섹션:** 2.2 (멀티 테넌트 격리), 2.3 (인증 아키텍처), AD-04 (문의/예약 관리), 11 (템플릿), 14.3 (기능 플래그)
+
+### 16.0 기존 기획과의 정합 규칙
+
+이 섹션은 테넌트 어드민 인증(섹션 2.3, 5.2)과 **별도 회원 체계**다. 기존 규칙과 겹치는 부분은 아래처럼 정리한다.
+
+| 항목 | 테넌트 어드민 (기존) | 방문자 회원 (신규) |
+|---|---|---|
+| 계정 테이블 | `users` | `site_members` |
+| 로그인 화면 | `admin.도메인.com/login`, `도메인.com/{slug}/login` | `도메인.com/{slug}/member/login` |
+| API 경로 | `/api/v1/auth/...` | `/api/public/{tenant_slug}/auth/...`, `/api/public/{tenant_slug}/members/...` |
+| JWT `role` | `TENANT_ADMIN` / `TENANT_VIEWER` | `SITE_MEMBER` (`member_id`, `tenant_id` 포함) |
+| Refresh 쿠키 | `refresh_token` (도메인 `.도메인.com`) | `member_refresh_token` (테넌트 호스트 한정, 서브도메인 공유 안 함) |
+| 클라이언트 스토어 | `apps/client/lib/authStore.ts` (편집 모드) | `apps/client/lib/memberStore.ts` (방문자 전용) |
+
+- `{slug}/login` 은 이미 테넌트 어드민 로그인(CLAUDE.md 7.1)이 쓰고 있으므로, 방문자 화면은 `/{slug}/member/*` 아래에 둔다.
+  - `/member/login`, `/member/join`, `/member/find-email`, `/member/find-password`, `/member/reset-password?token=`, `/member/mypage`, `/member/withdraw`
+- 방문자 토큰으로 `/api/v1/*` (어드민 API) 를 호출하면 403 을 반환한다. 반대로 어드민 토큰은 방문자 API 를 쓸 수 없다.
+- 응답 형식·에러 코드는 섹션 5.1 공통 규격을 따른다. 방문자 전용 코드: `INVALID_CREDENTIALS`(401), `ACCOUNT_LOCKED`(429), `ACCOUNT_INACTIVE`(403), `PHONE_NOT_VERIFIED`(400), `ACTIVE_RESERVATION_EXISTS`(409), `TOKEN_EXPIRED`(400).
+- 기능 플래그 키 (섹션 14.3): `SITE_MEMBER`(회원 기능 전체), `MEMBER_SOCIAL_LOGIN`, `MEMBER_RESERVATION`(내 예약 탭). `TEMPLATE_TYPE` 기본값은 16.2 표를 따른다.
+- 회원이 남긴 예약/문의는 `inquiries.member_id`(nullable FK) 로 연결해 AD-04 에서 회원 여부를 표시한다.
+
+### 16.1 개념 정리
+
+테넌트(소상공인)가 운영하는 홈페이지에 방문하는 **일반 고객(방문자)** 이 사용하는 인증 시스템이다.  
+테넌트 어드민(관리자) 계정과는 완전히 분리된 별도 회원 체계이다.
+
+```
+OO의원.com    → 환자가 회원가입 → 진료 예약, 내 예약 확인
+강원펜션.com  → 투숙객이 회원가입 → 객실 예약, 예약 내역
+스타트업.com  → 관심 고객이 회원가입 → 문의, 소식 알림 수신
+```
+
+#### 핵심 원칙
+
+- 방문자 회원 데이터는 **테넌트별 완전 격리** (OO의원 회원이 강원펜션에 자동 로그인 불가)
+- 소셜 로그인 (카카오 / 네이버) 지원으로 가입 허들 최소화
+- 업종에 따라 기능 구성이 달라지는 **유연한 구조** (Feature Flag 기반 On/Off)
+- 테넌트 관리자(AD-04 문의 관리)와 연동: 회원이 남긴 예약/문의는 관리자 페이지에서 확인
+
+---
+
+### 16.2 업종별 기능 차이
+
+| 기능 | 병원/의원 | 펜션/숙박 | 스타트업/일반 |
+|---|---|---|---|
+| 회원가입 | ✅ | ✅ | ✅ |
+| 소셜 로그인 (카카오/네이버) | ✅ | ✅ | ✅ |
+| 예약 신청 | ✅ 진료 예약 | ✅ 객실 예약 | ❌ |
+| 예약 내역 조회 | ✅ | ✅ | ❌ |
+| 문의 내역 조회 | ✅ | ✅ | ✅ |
+| 알림 수신 설정 | ✅ 예약 확정/취소 | ✅ 예약 확정/취소 | ✅ 소식/이벤트 |
+| 마이페이지 | ✅ 풀 구성 | ✅ 풀 구성 | ✅ 간소화 |
+| 회원 탈퇴 | ✅ | ✅ | ✅ |
+
+> 업종 구분은 테넌트 생성 시 설정한 `TEMPLATE_TYPE` (HOSPITAL / PENSION / STARTUP) 값을 기준으로  
+> Feature Flag가 자동 적용되어 홈페이지 메뉴와 기능이 동적으로 렌더링된다.
+
+---
+
+### 16.3 회원가입
+
+#### 화면 설계
+
+```
+┌─────────────────────────────────────────┐
+│           [테넌트 로고]                   │
+│                                         │
+│             회원가입                     │
+│  ─────────────────────────────────────  │
+│                                         │
+│  간편 가입                               │
+│  [🟡 카카오로 시작하기 ]                  │
+│  [🟢 네이버로 시작하기 ]                  │
+│                                         │
+│  ────────── 또는 ──────────              │
+│                                         │
+│  이름 *                                  │
+│  [INP: 홍길동                      ]    │
+│                                         │
+│  이메일 *                                │
+│  [INP: example@email.com           ]    │
+│  ✅ 사용 가능한 이메일입니다              │
+│                                         │
+│  비밀번호 *                              │
+│  [INP: ••••••••               ] [👁]   │
+│  ✅ 8자↑  ✅ 영문  ✅ 숫자               │
+│                                         │
+│  비밀번호 확인 *                         │
+│  [INP: ••••••••                    ]    │
+│                                         │
+│  휴대폰 번호 *                           │
+│  [INP: 010-0000-0000    ] [인증번호 받기]│
+│  [INP: 인증번호 6자리       ] [확인]     │
+│  ✅ 인증 완료                            │
+│                                         │
+│  생년월일 (선택)                          │
+│  [INP: 1990-01-01                  ]    │
+│                                         │
+│  ☑ 이용약관 동의 (필수)   [보기]         │
+│  ☑ 개인정보처리방침 (필수) [보기]         │
+│  ☐ 마케팅/이벤트 알림 수신 (선택)        │
+│                                         │
+│  [         가입하기         ]            │
+│                                         │
+│  이미 회원이신가요? [로그인]              │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 입력 필드 검증 규칙
+
+| 필드 | 검증 조건 | 에러 메시지 |
+|---|---|---|
+| 이름 | 2자 이상, 특수문자 불가 | "이름을 올바르게 입력해주세요" |
+| 이메일 | 형식 검증 + 중복 확인 (1초 디바운스) | "이미 사용 중인 이메일입니다" |
+| 비밀번호 | 8자 이상, 영문+숫자 포함 | "영문, 숫자를 포함하여 8자 이상 입력해주세요" |
+| 비밀번호 확인 | 비밀번호 일치 여부 | "비밀번호가 일치하지 않습니다" |
+| 휴대폰 | 인증 완료 필수 | "휴대폰 인증을 완료해주세요" |
+
+#### 가입 처리 플로우
+
+```
+[가입하기 클릭]
+      ↓
+프론트엔드 검증 (이메일 중복, 인증 완료, 비밀번호 강도)
+      ↓
+POST /api/public/{tenant_slug}/auth/register
+      ↓
+성공:
+  1. 방문자 회원 생성 (tenant_id 연결)
+  2. 환영 문자/이메일 자동 발송
+     → SMS_NOTIFICATION = Y 설정 시 관리자에게 "신규 회원 가입!" 알림톡 발송
+  3. 자동 로그인
+  4. 이전 페이지 or 마이페이지 이동
+
+실패:
+  이미 가입된 이메일 → "이미 사용 중인 이메일입니다"
+  휴대폰 인증 미완료 → "휴대폰 인증을 완료해주세요"
+  서버 오류 → "잠시 후 다시 시도해주세요"
+```
+
+#### 소셜 로그인 신규 가입 — 추가 정보 화면
+
+소셜 로그인으로 신규 가입 시 휴대폰 번호만 추가 입력받는다.
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│   카카오 계정으로 가입을 완료해주세요.    │
+│                                         │
+│   휴대폰 번호 *                          │
+│   [INP: 010-0000-0000   ] [인증번호 받기]│
+│   [INP: 인증번호 6자리      ] [확인]     │
+│                                         │
+│   ☑ 이용약관 동의 (필수)                 │
+│   ☑ 개인정보처리방침 (필수)              │
+│   ☐ 마케팅 알림 수신 (선택)              │
+│                                         │
+│   [        가입 완료하기        ]        │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### 16.4 로그인
+
+#### 화면 설계
+
+```
+┌─────────────────────────────────────────┐
+│           [테넌트 로고]                   │
+│                                         │
+│              로그인                      │
+│  ─────────────────────────────────────  │
+│                                         │
+│  [🟡 카카오로 로그인 ]                   │
+│  [🟢 네이버로 로그인 ]                   │
+│                                         │
+│  ────────── 또는 ──────────              │
+│                                         │
+│  이메일                                  │
+│  [INP: example@email.com           ]    │
+│                                         │
+│  비밀번호                                │
+│  [INP: ••••••••               ] [👁]   │
+│                                         │
+│  [ ] 로그인 상태 유지                    │
+│                                         │
+│  [         로그인         ]              │
+│                                         │
+│  ─────────────────────────────────────  │
+│  이메일 찾기  |  비밀번호 찾기            │
+│                                         │
+│  아직 회원이 아니신가요? [회원가입]        │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 로그인 처리 플로우
+
+```
+[로그인 클릭]
+      ↓
+POST /api/public/{tenant_slug}/auth/login
+      ↓
+성공 → Access Token + Refresh Token 쿠키 저장
+     → 이전 페이지 or 마이페이지 이동
+
+실패 케이스:
+  이메일/비밀번호 불일치
+  → "이메일 또는 비밀번호를 확인해주세요"
+
+  비활성화 계정
+  → "사용이 중단된 계정입니다. 고객센터에 문의해주세요"
+
+  5회 연속 실패
+  → "30분 후에 다시 시도해주세요"
+  → 버튼 비활성화 + 남은 시간 카운트다운 표시
+```
+
+#### 소셜 로그인 플로우
+
+```
+[카카오로 로그인 클릭]
+      ↓
+카카오 OAuth 인증 페이지 이동
+      ↓
+인증 완료 → 콜백 URL로 리다이렉트
+      ↓
+신규 유저 → 추가 정보 입력 (휴대폰 인증)
+기존 유저 → 바로 로그인 완료
+      ↓
+이전 페이지 or 마이페이지 이동
+```
+
+---
+
+### 16.5 이메일 찾기
+
+#### Step 1: 정보 입력
+
+```
+┌─────────────────────────────────────────┐
+│  ← 로그인으로 돌아가기                   │
+│                                         │
+│         이메일 찾기                      │
+│  가입 시 등록한 정보로 찾을 수 있어요.    │
+│  ─────────────────────────────────────  │
+│                                         │
+│  이름 *                                  │
+│  [INP: 홍길동                      ]    │
+│                                         │
+│  휴대폰 번호 *                           │
+│  [INP: 010-0000-0000    ] [인증번호 받기]│
+│  [INP: 인증번호 입력        ] [확인]     │
+│                                         │
+│  [        이메일 찾기        ]           │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### Step 2: 결과 화면
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│  ✅ 이메일을 찾았어요                    │
+│                                         │
+│  등록된 이메일                           │
+│  ho****@email.com                       │
+│  (보안을 위해 일부만 표시합니다)          │
+│                                         │
+│  [        로그인하기        ]            │
+│  [     비밀번호도 찾기      ]            │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+가입된 정보가 없을 경우:
+```
+"입력하신 정보와 일치하는 계정을 찾을 수 없습니다."
+[회원가입 하기]
+```
+
+---
+
+### 16.6 비밀번호 찾기
+
+#### Step 1: 이메일 + 휴대폰 인증
+
+```
+┌─────────────────────────────────────────┐
+│  ← 로그인으로 돌아가기                   │
+│                                         │
+│        비밀번호 재설정                   │
+│  가입한 이메일과 휴대폰으로 본인 확인 후  │
+│  새 비밀번호를 설정할 수 있어요.          │
+│  ─────────────────────────────────────  │
+│                                         │
+│  이메일 *                                │
+│  [INP: 가입한 이메일 주소           ]    │
+│                                         │
+│  휴대폰 번호 *                           │
+│  [INP: 010-0000-0000    ] [인증번호 받기]│
+│  [INP: 인증번호 입력        ] [확인]     │
+│  ✅ 인증 완료                            │
+│                                         │
+│  [     재설정 링크 보내기     ]          │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### Step 2: 이메일 발송 완료
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│  📧 이메일을 확인해주세요               │
+│                                         │
+│  ho****@email.com 으로                  │
+│  비밀번호 재설정 링크를 보냈어요.         │
+│  링크는 30분간 유효합니다.               │
+│                                         │
+│  이메일을 받지 못하셨나요?               │
+│  스팸 메일함을 확인해보세요.             │
+│  [재발송하기]  ← 60초 후 활성화          │
+│                                         │
+│  [      로그인으로 돌아가기      ]       │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### Step 3: 새 비밀번호 설정 (링크 클릭 후)
+
+```
+┌─────────────────────────────────────────┐
+│                                         │
+│        새 비밀번호 설정                  │
+│  ─────────────────────────────────────  │
+│                                         │
+│  새 비밀번호 *                           │
+│  [INP: ••••••••               ] [👁]   │
+│  ✅ 8자↑  ✅ 영문  ✅ 숫자               │
+│                                         │
+│  새 비밀번호 확인 *                      │
+│  [INP: ••••••••                    ]    │
+│                                         │
+│  [      비밀번호 변경하기      ]         │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### Step 4: 변경 완료
+
+```
+✅ 비밀번호가 변경되었습니다.
+→ 3초 후 로그인 페이지로 자동 이동
+→ 보안 알림 문자/이메일 자동 발송
+   "비밀번호가 변경되었습니다. 본인이 아니라면 고객센터에 문의하세요."
+```
+
+토큰 만료 / 이미 사용된 링크 접근 시:
+```
+"유효하지 않거나 만료된 링크입니다."
+[비밀번호 찾기 다시 시도]
+```
+
+---
+
+### 16.7 마이페이지
+
+#### 공통 레이아웃
+
+```
+┌─────────────────────────────────────────┐
+│  안녕하세요, 홍길동 님 👋    [로그아웃]  │
+├─────────────────────────────────────────┤
+│                                         │
+│  [TAB: 내 예약]  [TAB: 문의 내역]         │
+│  [TAB: 알림 설정] [TAB: 내 정보]          │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+> 탭 구성은 업종별 Feature Flag에 따라 동적 렌더링.  
+> 스타트업/일반 업종은 [내 예약] 탭이 숨겨진다.
+
+#### 내 예약 탭 — 병원/의원
+
+```
+┌─────────────────────────────────────────┐
+│  내 예약 내역                            │
+│  [DRP: 전체 ▾]  [DRP: 최근 3개월 ▾]    │
+│  ─────────────────────────────────────  │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ 🟢 예약 확정                    │    │
+│  │ 2026.11.05 (목) 오전 10:00     │    │
+│  │ 내과 · 초진                     │    │
+│  │                   [예약 취소]   │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ 🔵 진료 완료                    │    │
+│  │ 2026.10.15 (목) 오후 02:00     │    │
+│  │ 정형외과 · 재진                 │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  예약 상태:                              │
+│  🟡 대기중  🟢 확정  🔵 완료  🔴 취소   │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 내 예약 탭 — 펜션/숙박
+
+```
+┌─────────────────────────────────────────┐
+│  내 예약 내역                            │
+│  ─────────────────────────────────────  │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ 🟢 예약 확정                    │    │
+│  │ 2026.12.24 (목) ~ 12.25 (금)   │    │
+│  │ 1박 · 오션뷰 A동 · 성인 2명     │    │
+│  │ 결제 금액: 150,000원            │    │
+│  │      [예약 상세]  [예약 취소]   │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 문의 내역 탭 (공통)
+
+> 방문자가 남긴 문의는 테넌트 관리자의 AD-04(문의 관리) 화면과 연동된다.
+
+```
+┌─────────────────────────────────────────┐
+│  문의 내역                               │
+│  ─────────────────────────────────────  │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ 🟡 답변 대기                    │    │
+│  │ 진료 관련 문의                  │    │
+│  │ 2026.10.23 접수                 │    │
+│  │                      [상세보기] │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+│  ┌─────────────────────────────────┐    │
+│  │ ✅ 답변 완료                    │    │
+│  │ 예약 변경 문의                  │    │
+│  │ 2026.10.15 접수                 │    │
+│  │                      [상세보기] │    │
+│  └─────────────────────────────────┘    │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 알림 설정 탭
+
+```
+┌─────────────────────────────────────────┐
+│  알림 설정                               │
+│  ─────────────────────────────────────  │
+│                                         │
+│  예약 확정 알림     [TGL: ON ]           │
+│  예약 취소 알림     [TGL: ON ]           │
+│  마케팅/이벤트 알림 [TGL: OFF]           │
+│  문자 수신          [TGL: ON ]           │
+│  이메일 수신        [TGL: OFF]           │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+#### 내 정보 탭 (공통)
+
+```
+┌─────────────────────────────────────────┐
+│  내 정보                                 │
+│  ─────────────────────────────────────  │
+│                                         │
+│  이름       홍길동              [수정]   │
+│  이메일     hong@email.com  (변경불가)   │
+│  연락처     010-1234-5678       [수정]   │
+│  생년월일   1990-01-01          [수정]   │
+│  가입일     2026.10.24                  │
+│                                         │
+│  ─────────────────────────────────────  │
+│  비밀번호 변경                  [변경]   │
+│                                         │
+│  연결된 소셜 계정                        │
+│   🟡 카카오  연결됨                      │
+│   🟢 네이버  미연결          [연결하기]  │
+│                                         │
+│  ─────────────────────────────────────  │
+│  [         회원 탈퇴         ]           │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### 16.8 회원 탈퇴
+
+```
+┌─────────────────────────────────────────┐
+│  회원 탈퇴                               │
+│  ─────────────────────────────────────  │
+│                                         │
+│  ⚠️ 탈퇴 전 확인해주세요.               │
+│                                         │
+│  탈퇴 시 아래 데이터가 삭제됩니다.       │
+│   · 예약 내역 전체                       │
+│   · 문의 내역 전체                       │
+│   · 알림 설정 전체                       │
+│                                         │
+│  진행 중인 예약이 있을 경우               │
+│  탈퇴가 제한될 수 있습니다.              │
+│                                         │
+│  탈퇴 사유 (선택)                        │
+│  [DRP: 사유를 선택해주세요 ▾        ]    │
+│    서비스 이용 불편  ·  개인정보 보호     │
+│    사업체 이용 안 함  ·  기타             │
+│                                         │
+│  비밀번호 확인 *  (소셜 가입자는 생략)   │
+│  [INP: ••••••••                    ]    │
+│                                         │
+│  [취소]              [탈퇴하기]          │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+탈퇴 처리:
+- 소프트 삭제 (`deleted_at` 기록)
+- 탈퇴 확인 문자/이메일 발송
+- 진행 중 예약 존재 시 탈퇴 차단 + 안내
+
+관리자 연동 (T-115, AD-04 · AD-01):
+- 관리자 문의 목록 `member_id`(회원 배지), 상세 `member`(이름 · 이메일 · 연락처 · 가입일 · 활성) · `reservation`(유형 · 상태 · 일시 · `next_statuses`)
+- `PATCH /api/v1/inquiries/{id}/reservation {status: CONFIRMED|COMPLETED|CANCELLED}` — 대기 → 확정/취소, 확정 → 완료/취소 (그 외 409, 비회원 문의 400). 문의 상태 동기화: 확정 → IN_PROGRESS, 완료 · 취소 → DONE (취소는 관리자 메모 `[관리자 취소]`)
+- 확정 · 취소 시 회원 알림: `notify_reservation_confirmed/cancelled` 가 켜진 회원에게 문자(`sms_agree`) · 메일(`email_agree`) — 관리자 알림 월 한도와 별개
+- 대시보드 `stats.members = {new_members_week, total_members}` (SITE_MEMBER OFF 면 null → 카드 숨김)
+
+구현 메모 (T-111):
+- `DELETE /members/me` 요청 `{password?, reason?: INCONVENIENT|PRIVACY|NOT_USING|OTHER, reason_detail?}` — 비밀번호가 있는 회원만 확인 (틀리면 401), 진행 중 예약(대기 · 확정 · 예약 시각 전) 있으면 409 `ACTIVE_RESERVATION_EXISTS`
+- **개인정보 즉시 익명화** (개인정보보호법): 이름 `탈퇴회원`, 이메일 `withdrawn-{id}@deleted.invalid`, 연락처 · 생년월일 · 비밀번호 · 소셜 ID 삭제, 수신 동의 해제. 사유는 `withdrawal_reason` 에 보관
+- 예약 · 소셜 연결 소프트 삭제, 미사용 재설정 링크 무효, 문의는 사업체 기록으로 남기고 `member_id` 연결만 해제
+- 탈퇴 안내 메일 + 문자는 익명화 전 원래 연락처로. 남은 토큰은 모두 거부, 같은 이메일 즉시 재가입 가능 (#22)
+
+---
+
+### 16.9 DB 스키마
+
+```sql
+-- 테넌트 사이트 방문자 회원
+CREATE TABLE site_members (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+    email           VARCHAR(255) NOT NULL,
+    password_hash   VARCHAR(255),              -- 소셜 가입 시 NULL
+    name            VARCHAR(100) NOT NULL,
+    phone           VARCHAR(20),
+    birth_date      DATE,
+    social_provider VARCHAR(20),               -- KAKAO, NAVER, NULL
+    social_id       VARCHAR(200),              -- 소셜 고유 ID
+    is_active       BOOLEAN NOT NULL DEFAULT true,
+    marketing_agree BOOLEAN NOT NULL DEFAULT false,
+    sms_agree       BOOLEAN NOT NULL DEFAULT true,
+    email_agree     BOOLEAN NOT NULL DEFAULT false,
+    notify_reservation_confirmed BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 확정 알림
+    notify_reservation_cancelled BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 취소 알림
+    last_login_at   TIMESTAMPTZ,
+    failed_login_count INT NOT NULL DEFAULT 0,  -- 연속 실패 횟수 (5회 → 잠금)
+    locked_until    TIMESTAMPTZ,               -- 로그인 잠금 해제 시각
+    password_changed_at TIMESTAMPTZ,           -- (T-109) 비밀번호 재설정·변경 시각 — 이전 발급 토큰 거부
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at      TIMESTAMPTZ                -- 탈퇴 시 소프트 삭제
+);
+
+-- (T-107) 테넌트별 이메일 · 소셜 계정 중복 불가 — 탈퇴 회원 제외 부분 유니크
+-- 재가입 허용 기간(즉시 / 30일, 오픈 이슈 #22)은 서비스에서 판단
+CREATE UNIQUE INDEX uq_site_members_tenant_email
+    ON site_members(tenant_id, email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX uq_site_members_tenant_social
+    ON site_members(tenant_id, social_provider, social_id)
+    WHERE deleted_at IS NULL AND social_id IS NOT NULL;
+CREATE INDEX ix_site_members_tenant_id ON site_members(tenant_id);
+CREATE INDEX idx_site_members_phone    ON site_members(tenant_id, phone);
+
+-- 방문자 예약 내역
+CREATE TABLE member_reservations (
+    id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id        UUID NOT NULL REFERENCES tenants(id),
+    member_id        UUID NOT NULL REFERENCES site_members(id),
+    inquiry_id       UUID REFERENCES inquiries(id) ON DELETE SET NULL,
+    reservation_type VARCHAR(30) NOT NULL,
+                     -- MEDICAL(진료), LODGING(숙박), GENERAL(일반)
+    status           VARCHAR(20) NOT NULL DEFAULT 'PENDING',
+                     -- PENDING(대기), CONFIRMED(확정), COMPLETED(완료), CANCELLED(취소)
+    reserved_at      TIMESTAMPTZ,
+    memo             TEXT,
+    detail           JSONB NOT NULL DEFAULT '{}', -- 업종별 항목 (진료과·초진/재진, 객실·인원·금액 등)
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    deleted_at       TIMESTAMPTZ
+);
+
+CREATE INDEX idx_member_reservations_member
+    ON member_reservations(member_id, created_at DESC);
+
+-- 휴대폰 인증 코드
+CREATE TABLE phone_verifications (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    phone       VARCHAR(20) NOT NULL,
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,  -- (T-107) NOT NULL: RLS 대상
+    code        VARCHAR(6) NOT NULL,
+    purpose     VARCHAR(20) NOT NULL,
+                -- REGISTER, FIND_EMAIL, RESET_PW
+    expires_at  TIMESTAMPTZ NOT NULL,          -- 발급 후 3분
+    verified_at TIMESTAMPTZ,
+    attempt_count INT NOT NULL DEFAULT 0,      -- 오입력 5회 초과 시 코드 무효화
+    used_at     TIMESTAMPTZ,                   -- (T-108) 가입 등에 사용한 시각 — 1회용
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 비밀번호 재설정 토큰
+CREATE TABLE member_password_reset_tokens (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,  -- (T-107) 추가: RLS 대상
+    member_id   UUID NOT NULL REFERENCES site_members(id) ON DELETE CASCADE,
+    token_hash  VARCHAR(64) UNIQUE NOT NULL,   -- 토큰 원문의 SHA-256 (hex)
+    expires_at  TIMESTAMPTZ NOT NULL,          -- 발급 후 30분
+    used_at     TIMESTAMPTZ,                   -- 1회용
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+-- 토큰 원문은 메일 링크에만 담고 DB 에는 SHA-256 해시만 저장한다 (DB 유출 시 재사용 방지)
+
+-- 회원이 남긴 문의·예약 연결 (비회원은 NULL)
+ALTER TABLE inquiries ADD COLUMN member_id UUID
+    REFERENCES site_members(id) ON DELETE SET NULL;
+
+-- RLS: 섹션 2.2 패턴 동일 적용
+ALTER TABLE site_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY site_members_tenant_isolation ON site_members
+  USING (
+    tenant_id = current_setting('app.current_tenant_id', true)::uuid
+    OR current_setting('app.is_super_admin', true) = 'true'
+  );
+-- (T-107) 네 테이블 모두 ENABLE + FORCE ROW LEVEL SECURITY + 같은 정책 (마이그레이션 0019)
+```
+
+---
+
+### 16.10 API 스펙
+
+모든 방문자 API는 `/api/public/{tenant_slug}/` 하위에 위치하며 테넌트별로 격리된다.
+
+#### 인증 API
+
+| 메서드 | 엔드포인트 | 설명 | 인증 필요 |
+|---|---|---|---|
+| POST | `/auth/register` | 일반 회원가입 | ❌ |
+| GET  | `/auth/social/{provider}/authorize` | (T-110) 소셜 로그인 주소 + state | ❌ |
+| POST | `/auth/social` | 소셜 로그인/가입 처리 | ❌ |
+| POST | `/auth/social/complete` | (T-110) 소셜 신규 가입 추가 정보 | ❌ |
+| POST | `/auth/login` | 로그인 | ❌ |
+| POST | `/auth/logout` | 로그아웃 | ✅ |
+| POST | `/auth/refresh` | 토큰 갱신 | ❌ |
+| GET  | `/auth/check-email` | 이메일 중복 확인 | ❌ |
+| POST | `/auth/phone/send` | 휴대폰 인증번호 발송 | ❌ |
+| POST | `/auth/phone/verify` | 인증번호 확인 | ❌ |
+| POST | `/auth/find-email` | 이메일 찾기 | ❌ |
+| POST | `/auth/forgot-password` | 비밀번호 재설정 링크 발송 | ❌ |
+| GET  | `/auth/reset-password/check` | (T-109 추가) 재설정 링크 유효 확인 — 화면 진입 전 | ❌ |
+| POST | `/auth/reset-password` | 새 비밀번호 저장 | ❌ |
+
+#### 마이페이지 API
+
+| 메서드 | 엔드포인트 | 설명 | 인증 필요 |
+|---|---|---|---|
+| GET    | `/members/me` | 내 정보 조회 | ✅ |
+| PATCH  | `/members/me` | 내 정보 수정 | ✅ |
+| PATCH  | `/members/me/password` | 비밀번호 변경 | ✅ |
+| PATCH  | `/members/me/notification` | 알림 설정 변경 | ✅ |
+| GET    | `/members/reservations` | 예약 내역 조회 | ✅ |
+| GET    | `/members/inquiries` | 문의 내역 조회 | ✅ |
+| DELETE | `/members/me` | 회원 탈퇴 | ✅ |
+
+#### 구현 메모 (T-108)
+
+- 경로: `app/api/public/member_auth.py` (`/api/public/{tenant_slug}/auth/*`), 서비스 `app/services/member_auth.py`
+- 토큰: access 15분 (`role=SITE_MEMBER`, `sub`·`member_id`, `tenant_id`), refresh 7일 (`type=member_refresh` — 어드민 `/api/v1/auth/refresh` 에 쓸 수 없음). refresh 는 사용할 때마다 회전하고 이전 토큰은 Redis 블랙리스트(`member_blacklist:{sha256}`)
+- `member_refresh_token` 쿠키: HttpOnly · SameSite=Lax · 도메인 미지정(호스트 한정) · **`Path=/api/public/{slug}`** (공용 도메인에서 같은 호스트의 다른 테넌트 API 로 보내지 않음). 로그인 요청 `remember_me=true` 면 7일, 아니면 세션 쿠키 (가입 직후 자동 로그인도 세션 쿠키)
+- 가입: `phone_verification_id` 필수 — 같은 테넌트 · `REGISTER` · 인증 완료 30분 이내 · 같은 번호 · 미사용(`used_at`). 성공 시 201 + 자동 로그인, Celery 로 환영 메일 + 관리자 신규 회원 알림톡(실패 시 SMS, 월 한도 차감)
+- 이메일은 소문자로 저장·비교. 탈퇴 회원 이메일은 즉시 재가입 가능 (오픈 이슈 #22 — 옵션 A 로 결정)
+- 로그인 잠금: 계정 기준 5회 연속 실패 → 30분. 429 `ACCOUNT_LOCKED` + `details[0].retry_after_seconds` + `Retry-After` 헤더. IP 기준은 Rate Limit(10회/분)로 대응. `check-email` 은 디바운스 호출을 고려해 30회/분
+- 에러는 방문자 API 만 공통 형식(5.1) — 입력 검증 실패도 400 `VALIDATION_ERROR` + 한국어 메시지 + `field`
+- 방문자 토큰으로 어드민 API 호출 시 403, 어드민 토큰으로 방문자 API 호출 시 403, 다른 테넌트 토큰 403
+
+#### 구현 메모 (T-109)
+
+- 서비스: `app/services/member_verification.py` (휴대폰 인증), `app/services/member_recovery.py` (계정 찾기 · 재설정)
+- `phone/send` → `{verification_id, expires_at, resend_after_seconds, debug_code}`. 6자리 코드(`secrets`) · 3분 · 같은 번호 하루(한국 시간) 5회(`PHONE_SEND_LIMIT` 429) · 재요청 60초(`RATE_LIMIT_EXCEEDED` 429 + `retry_after_seconds`) · 문자 실패 시 503 `SMS_SEND_FAILED`. 계정 유무와 관계없이 발송. `debug_code` 는 운영이 아니고 알림 test 모드일 때만 (로컬 화면 개발용)
+- `phone/verify` → 오입력 400 `INVALID_CODE` + `remaining_attempts`, 5회 초과 400 `CODE_ATTEMPTS_EXCEEDED`, 만료 400 `CODE_EXPIRED`, 다른 테넌트·없는 id 404
+- 인증 완료 건은 30분 안에 용도(REGISTER / FIND_EMAIL / RESET_PW)에 맞게 1회 사용 (`used_at`). 가입 · 이메일 찾기 성공 시 소모, 재설정 링크는 재발송을 위해 소모하지 않음
+- `find-email` 요청 `{name, phone_verification_id}` → `{accounts: [{masked_email, social_provider, created_at}]}` (같은 번호 여러 계정 · 탈퇴 제외). 없으면 404 (인증은 남아 이름 오타 시 재시도 가능)
+- `forgot-password` 요청 `{email, phone_verification_id}` → 계정 유무와 관계없이 같은 응답 `{masked_email, expires_in_minutes: 30, resend_after_seconds: 60}`. 이메일·번호가 일치하는 회원에게만 메일. 재발송 60초는 이메일 기준(계정 유무 무관). 새 링크 발급 시 이전 미사용 링크 무효
+- `reset-password` 성공 시 잠금 해제 · `password_changed_at` 기록 → **이전에 발급된 access/refresh 토큰 모두 거부** (토큰 `iat` 비교) · 보안 알림 메일 + 문자(수신 동의와 무관)
+- 마스킹: 아이디 앞 2자리 외 `*` (2자 이하는 첫 글자만) — `hongil@email.com` → `ho****@email.com`
+- 인증 문자는 관리자 알림 월 한도에서 차감하지 않음
+
+#### 구현 메모 (T-110)
+
+- 서비스: `app/services/social_providers.py` (카카오 · 네이버 OAuth), `app/services/member_social.py` (로그인 · 가입 · 연결)
+- 추가 API: `GET /auth/social/{provider}/authorize?return_to=` (로그인 주소), `POST /auth/social/complete` (신규 가입 추가 정보), `GET /members/me/social` · `POST /members/me/social/{provider}/authorize` · `DELETE /members/me/social/{provider}` (연결 · 해제)
+- 운영사 공용 앱 1개 (오픈 이슈 #24 — 옵션 A 결정). 콜백 주소는 메인 도메인 `/member/social/callback` 하나 (`SOCIAL_REDIRECT_URI`, 카카오 · 네이버 콘솔에 등록)
+- `state` = `{slug}.{난수}` — 공용 콜백 페이지가 테넌트를 찾는 용도로 slug 를 붙이고, 난수는 Redis 10분 · 1회용으로 테넌트 · 공급자 · 모드(login/link) 와 대조 (CSRF · 다른 테넌트 재사용 차단). 콜백 요청의 `provider` 는 생략 가능 (state 값 사용)
+- `POST /auth/social` 응답 `status`: `LOGGED_IN`(토큰 + refresh 쿠키) / `SIGNUP_REQUIRED`(`signup_token` 30분, `email_required`, `suggested_name`) / `LINKED`. 소셜 access token 은 응답에 담지 않음
+- 같은 이메일의 기존 회원이 있으면 **자동 연결하지 않고** 409 `SOCIAL_EMAIL_EXISTS` (로그인 후 마이페이지에서 연결) — 계정 탈취 방지. 카카오 미인증 이메일은 없는 것으로 취급
+- 신규 가입은 휴대폰 인증(REGISTER) + 약관 필수, 네이버가 주는 휴대폰 번호는 쓰지 않음. 소셜 가입 회원은 비밀번호 없음
+- 연결 정보는 `member_social_accounts` (회원 1명에 카카오 · 네이버 동시 연결, 해제는 소프트 삭제). `site_members.social_provider/social_id` 는 가입 방식 기록
+- 마지막 로그인 수단(비밀번호 없음 + 다른 소셜 없음)은 해제 불가 409 `LAST_LOGIN_METHOD`
+- 기능 플래그 `MEMBER_SOCIAL_LOGIN` OFF → 소셜 API 403 `FEATURE_DISABLED` (마이그레이션 0022 가 등록 · 기존 테넌트 켜기)
+- `SOCIAL_MODE=test`(기본) 는 외부 호출 없이 가짜 계정 (`stub_user` 로 같은 계정 재현) — 로컬 화면 개발용
+
+#### 구현 메모 (T-111)
+
+- 경로: `app/api/public/member_me.py`, 서비스 `member_profile.py` (내 정보 · 비밀번호 · 알림 · 탈퇴) · `member_activity.py` (예약 · 문의)
+- `GET/PATCH /members/me` — 응답에 `has_password` · `social_accounts`. 이메일 변경은 400, 연락처 변경은 새 번호 휴대폰 인증(`MYPAGE` 용도) 필수
+- `PATCH /members/me/password` — 현재 비밀번호 확인 (소셜 가입자 첫 설정은 휴대폰 인증 `MYPAGE`). 다른 기기 토큰은 무효, 응답에 이 기기용 새 access token + refresh 쿠키. 보안 알림
+- `GET/PATCH /members/me/notification` — 보낸 항목만 변경
+- `GET /members/reservations?status=&months=3|6|12` · `POST /members/reservations/{id}/cancel` — 대기 · 확정이면서 예약 시각 전만 취소 (그 외 409 `RESERVATION_NOT_CANCELLABLE`), 연결된 문의 관리자 메모에 `[회원 취소]` 기록 + 관리자 실시간 알림
+- `GET /members/inquiries` (+ `/{id}`) — 내가 남긴 문의 · 상담 글 · 예약, `answered`(답변 있음 또는 처리 완료), 상세에 답변
+- 로그인한 방문자가 공개 접수 API(문의 · 상담 게시판 · 예약)를 호출하면 `inquiries.member_id` 기록, 예약은 `member_reservations` 생성 — 업종(HOSPITAL → MEDICAL, PENSION → LODGING, 그 외 GENERAL), `reserved_at` 은 희망 날짜 · 시각(한국 시간). 비회원 접수는 그대로 (#23 옵션 A)
+
+#### 구현 메모 (T-113 — 홈페이지 화면)
+
+- 화면: `app/[tenant_slug]/member/{login,join,join-social,find-email,find-password,reset-password}` — 모든 테넌트 공통(Tailwind · 테마 색상 변수). 미들웨어는 `/{slug}/member/*` 를 코드형 템플릿 라우트로 rewrite 하지 않음. hospital-a 전용 디자인은 T-124 (아래 구현 메모)
+- 상태: `lib/memberStore.ts` — access token 은 메모리에만, 새로고침 시 refresh 쿠키로 복원. 로그인한 적 있는 테넌트만 `localStorage member_session:{slug}` 표시를 보고 복원 호출 (비회원 방문마다 401 요청 방지 — 토큰은 저장하지 않음)
+- API 호출은 TanStack Query 훅(`hooks/member/useMemberAuth.ts`), 검증은 zod(`lib/memberSchemas.ts` — 서버와 같은 규칙 · 문구)
+- 헤더 계정 메뉴: 비로그인 `로그인 · 회원가입` / 로그인 `마이페이지 · 로그아웃` (테마 Navbar · hospital-a 헤더 공통 `MemberAccountLinks`)
+- 추가 API: `GET /auth/options` → `{social_login, providers}` (소셜 버튼 노출, 기능 플래그 `MEMBER_SOCIAL_LOGIN`). `forgot-password` 응답 `debug_reset_url` 은 로컬 개발(운영 아님 + 알림 test 모드)에서만
+- 로그인 후 이동: `?next=` (같은 사이트 상대 경로만) → 없으면 마이페이지
+
+#### 구현 메모 (T-114 — 마이페이지 화면)
+
+- 화면: `app/[tenant_slug]/member/mypage?tab=reservations|inquiries|notifications|profile`, `member/withdraw` — 비로그인이면 `login?next=` 로 이동
+- 탭 구성: `GET /auth/options.reservations` 가 false 면 "내 예약" 탭과 예약 알림 항목을 숨긴다. 지금은 업종 기준(HOSPITAL · PENSION = true), T-115 에서 `MEMBER_RESERVATION` 플래그로 교체
+- 예약 카드: MEDICAL(일시 · 진료과 · 초진/재진) / LODGING(체크인 ~ 체크아웃(`detail.nights`) · 객실 · 인원 · 금액) / GENERAL(제목 · 일시), 상태 배지 4종, 대기 · 확정이면서 예약 시각 전만 취소 버튼
+- 알림 설정은 토글 즉시 저장(낙관적 업데이트, 실패 시 되돌림). 내 정보 수정 · 비밀번호 변경(새 토큰 적용) · 소셜 연결/해제(`?linked=` 안내)
+- 인증 호출은 401 이면 refresh 후 1회 재시도, 실패하면 세션 정리
+- 탈퇴 성공 → 완료 화면 후 자동 로그아웃 (서버 세션 · 쿠키는 이미 종료)
+
+#### 구현 메모 (T-115 — 기능 플래그 · 관리자 연동)
+
+- 플래그: `SITE_MEMBER`(회원 기능 전체, 기본 ON) · `MEMBER_SOCIAL_LOGIN`(기본 ON) · `MEMBER_RESERVATION`(HOSPITAL · PENSION 만 기본 ON). 하위 기능은 SITE_MEMBER 가 켜져 있을 때만 유효. 마이그레이션 0024 가 등록 + 기존 테넌트 업종별 활성화, 슈퍼 어드민 SA-04 "기능 관리" 탭의 "방문자 회원" 분류에서 테넌트별 ON/OFF
+- 판정 규칙: 슈퍼 어드민이 정한 값(tenant_features 행)이 우선, 행이 없으면 업종 기본값 (`app/services/member_features.py`)
+- **테넌트 생성 시 기본 기능 켜기** (`feature_service.apply_defaults`) — `default_enabled` · `required_plan` · 업종별 회원 기능. (이전에는 시드에서만 켜져 슈퍼 어드민이 만든 테넌트는 모든 기능 OFF)
+- SITE_MEMBER OFF: 방문자 인증 · 마이페이지 · 소셜 API 403 `FEATURE_DISABLED`(`GET /auth/options` 만 예외 — `enabled=false`), 공개 사이트 `member.enabled=false` → 헤더 회원 메뉴 숨김, `/{slug}/member/*` 는 미들웨어가 404 (경량 조회 `GET /site/{slug}/template` 에 `member_enabled`). MEMBER_RESERVATION OFF: 내 예약 · 예약 취소 API 403, 마이페이지 "내 예약" 탭 숨김. 회원 데이터는 그대로 (다시 켜면 복구)
+- 기능 변경 시 공개 사이트 캐시(`site:{slug}`)도 비움 — 토글 · 배포 · 롤백
+- 공개 사이트 API 응답 `member: {enabled, reservations, social_login}`
+- 홈페이지 접수 폼(예약 · 상담 · 문의)은 로그인한 방문자의 access token 을 보낸다 (만료 직전이면 refresh 후) → `inquiries.member_id` · 내 예약 연결
+
+#### 구현 메모 (T-124 — hospital-a 회원 화면)
+
+- 화면 로직은 headless 훅(`hooks/member/useMemberForms.ts` · `useMypage.ts`) 하나 — 공통 Tailwind 화면과 템플릿 전용 화면이 함께 사용. 템플릿은 마크업 · SCSS 만 다르다
+- `templates/memberPages.ts` 의 `MEMBER_SCREEN_TEMPLATES` 에 등록된 템플릿(현재 hospital-a)만 미들웨어가 `/{slug}/member/{page}` 를 템플릿 라우트로 rewrite. 나머지는 공통 화면. 새 코드형 템플릿은 회원 화면을 만들고 여기에 등록
+- 템플릿 회원 화면: 서브 비주얼(SubHero) + 회원 화면, `noindex`, 인라인 편집 툴바 없음. 로그인 확인(`RequireMember`) 대상은 마이페이지 · 탈퇴, 탈퇴 완료 화면은 확인 밖
+- 목업과 의도적으로 다른 점: 로그인 데모 안내 줄 제거, 회원가입 하단 SNS 가입 버튼(16.3), 오류 문구는 이 기획서 기준, 문의 내역은 상세 링크 대신 펼쳐 보기
+
+#### 응답 형식 예시
+
+```json
+// POST /auth/login 성공
+{
+  "success": true,
+  "data": {
+    "access_token": "eyJ...",
+    "member": {
+      "id": "uuid",
+      "name": "홍길동",
+      "email": "hong@email.com"
+    }
+  }
+}
+
+// 실패 공통
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "이메일 또는 비밀번호를 확인해주세요"
+  }
+}
+```
+
+---
+
+### 16.11 보안 체크리스트
+
+| 항목 | 처리 방식 |
+|---|---|
+| 비밀번호 저장 | bcrypt rounds=12 |
+| 연속 로그인 실패 | 5회 → 30분 잠금 (IP + 계정 기준) |
+| Rate Limiting | 인증 API IP당 10회/분 |
+| 이메일 마스킹 | 앞 2자리 외 `*` 처리 |
+| 재설정 토큰 | UUID, 30분 만료, 1회용 |
+| 계정 존재 여부 노출 방지 | 없는 이메일도 "링크를 보냈어요" 동일 응답 |
+| 비밀번호 변경 보안 알림 | 변경 시 기존 이메일 + 문자로 알림 자동 발송 |
+| 휴대폰 인증 | 3분 만료, 1일 5회 제한 (스팸 방지) |
+| 소셜 로그인 토큰 | 서버에서만 처리, 클라이언트 노출 금지 |
+| HTTPS | 전 구간 강제 적용 |
+| 테넌트 격리 | 모든 API에 tenant_slug 기반 RLS 적용 |
+
+### 16.12 오픈 이슈 추가
+
+| # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
+|---|---|---|---|---|---|
+| 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | **✅ 결정 (2026-10-26): 옵션 A SENS SMS** (T-109) — PASS 는 계약 후 검토 | 백엔드 |
+| 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | **✅ 결정 (2026-10-26): 옵션 A 즉시 허용** (T-108) — 30일 제한이 필요하면 서비스 검사 1곳 추가 | PM |
+| 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | **✅ 결정 (2026-10-26): 옵션 A 유지** (T-111) — 로그인 시 회원 접수로 연결 | PM |
+| 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | **✅ 결정 (2026-10-26): 옵션 A 공용 앱** (T-110) — 콜백 1개 + state 로 테넌트 구분 | 백엔드 |
 
 
 ---

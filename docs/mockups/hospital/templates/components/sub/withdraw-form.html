@@ -1,0 +1,84 @@
+<!-- WITHDRAW FORM: 회원 탈퇴 — 삭제 데이터 안내 + 진행 중 예약 차단 + 사유(선택) + 비밀번호 확인 + 동의 → 탈퇴 완료 (기획서 16.8)
+  - 검사: .board-form + assets/js/board-form.js / 사유 '기타' 입력칸·비밀번호 확인·완료 단계: assets/js/member-form.js ([data-withdraw])
+  - 목업: 비밀번호 bazzar1234 / withdraw.html#reservation 으로 열면 진행 중 예약 차단 화면
+  - 실제는 DELETE /api/public/{slug}/members/me → 소프트 삭제 + 탈퇴 안내 발송, 소셜 가입자는 비밀번호 칸 없음
+-->
+<section class="board-form member-form" aria-labelledby="withdraw-title">
+  <div class="container">
+    <form class="board-form__form" action="withdraw.html" method="post" novalidate data-withdraw data-step="form">
+      <div class="board-form__panel board-form__panel--narrow">
+        <h2 class="member-form__heading" id="withdraw-title">회원 탈퇴</h2>
+
+        <div class="member-form__warning">
+          <p class="member-form__warning-title"><i class="ri-error-warning-fill" aria-hidden="true"></i>탈퇴 전 확인해 주세요.</p>
+          <p>탈퇴하면 아래 데이터가 삭제되며 다시 되돌릴 수 없어요.</p>
+          <ul class="member-form__bullets">
+            <li>예약 내역 전체</li>
+            <li>문의 내역 전체</li>
+            <li>알림 설정 전체</li>
+          </ul>
+          <p>진행 중인 예약(대기 · 확정)이 있으면 탈퇴할 수 없어요.</p>
+        </div>
+
+        <!-- 진행 중 예약이 있을 때 (목업: #reservation) -->
+        <div class="member-form__block" data-active-reservation hidden>
+          <p class="member-form__block-title">진행 중인 예약이 1건 있어요.</p>
+          <p>2026.11.05 (목) 오전 10:00 · 1:1 상담 · 첫 방문</p>
+          <p>예약을 취소하거나 이용을 마친 뒤 탈퇴할 수 있어요.</p>
+          <a class="member-form__line-link" href="mypage.html#reservations">내 예약 보기</a>
+        </div>
+
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="wd-reason">탈퇴 사유 <span class="member-form__optional">(선택)</span></label>
+            <div class="board-form__field board-form__field--select">
+              <select class="board-form__input board-form__select" id="wd-reason" name="reason" data-reason>
+                <option value="">사유를 선택해 주세요</option>
+                <option value="inconvenient">서비스 이용이 불편해요</option>
+                <option value="privacy">개인정보가 걱정돼요</option>
+                <option value="not-using">더 이상 이용하지 않아요</option>
+                <option value="etc">기타</option>
+              </select>
+              <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+            </div>
+            <label class="sr-only" for="wd-reason-etc">기타 사유</label>
+            <textarea class="board-form__input board-form__textarea member-form__reason-etc" id="wd-reason-etc" name="reason_etc" maxlength="200" placeholder="불편했던 점을 알려주시면 서비스 개선에 참고할게요. (200자 이내)" data-reason-etc hidden></textarea>
+          </div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="wd-pw">비밀번호 확인<span class="board-form__req" aria-hidden="true">*</span></label>
+            <div class="member-form__password">
+              <input class="board-form__input" type="password" id="wd-pw" name="password" placeholder="현재 비밀번호를 입력해 주세요." autocomplete="current-password" aria-describedby="wd-pw-help" required data-error="비밀번호를 입력해 주세요." />
+              <button class="member-form__eye" type="button" aria-label="비밀번호 보기" aria-pressed="false" data-pw-toggle>
+                <i class="ri-eye-line" aria-hidden="true"></i>
+              </button>
+            </div>
+            <p class="board-form__help" id="wd-pw-help">카카오 · 네이버로 가입한 경우 비밀번호 확인 없이 탈퇴할 수 있어요.</p>
+          </div>
+
+          <div class="board-form__row board-form__row--check">
+            <input class="board-form__checkbox" type="checkbox" id="wd-agree" name="agree" required data-error="안내 사항 확인에 동의해 주세요." />
+            <label class="board-form__check" for="wd-agree">안내 사항을 모두 확인했으며 탈퇴에 동의합니다.</label>
+          </div>
+        </div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <div class="board-form__actions member-form__actions">
+          <a class="board-form__cancel" href="mypage.html#info">취소</a>
+          <button class="board-form__submit member-form__danger" type="submit">탈퇴하기</button>
+        </div>
+      </div>
+    </form>
+
+    <!-- 탈퇴 완료 -->
+    <div class="board-form__panel board-form__panel--narrow member-form__done" data-step="done" tabindex="-1" hidden>
+      <i class="ri-hand-heart-line member-form__done-icon member-form__done-icon--muted" aria-hidden="true"></i>
+      <h2 class="member-form__title">탈퇴가 완료되었어요</h2>
+      <p class="member-form__desc">그동안 BAZZAR를 이용해 주셔서 감사합니다.<br />탈퇴 안내는 문자와 이메일로 보내드렸어요.</p>
+      <div class="member-form__buttons">
+        <a class="member-form__submit" href="_template.html">홈으로</a>
+      </div>
+    </div>
+  </div>
+</section>

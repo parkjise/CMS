@@ -1,0 +1,47 @@
+<!-- LOGIN FORM: 로그인 — 로고·환영 문구 + 이메일·비밀번호 + 로그인 상태 유지 + 찾기/회원가입 링크 + 카카오/네이버 (기획서 16.4)
+  - 입력 칸·검사: 게시판 입력 폼 공용 블록 .board-form + assets/js/board-form.js
+  - 로그인 결과(불일치·비활성·5회 실패 30분 잠금 카운트다운): assets/js/member-form.js (목업 — 실제는 POST /api/public/{slug}/auth/login)
+  - 목업 계정: hong@email.com / bazzar1234 (성공 → 마이페이지) · stop@email.com (비활성 계정)
+-->
+<section class="board-form member-form" aria-labelledby="login-title">
+  <div class="container">
+    <form class="board-form__form" action="login.html" method="post" novalidate data-login>
+      <div class="board-form__panel board-form__panel--narrow">
+        <p class="member-form__logo" lang="en" aria-hidden="true">BAZZAR</p>
+        <h2 class="member-form__title" id="login-title">BAZZAR에 오신 것을 환영합니다.</h2>
+
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="lg-email">이메일</label>
+            <input class="board-form__input" type="email" id="lg-email" name="email" placeholder="example@email.com" autocomplete="email" required data-error="이메일을 입력해 주세요." data-error-format="올바른 이메일 형식으로 입력해 주세요." />
+          </div>
+          <div class="board-form__row">
+            <label class="board-form__label" for="lg-pw">비밀번호</label>
+            <div class="member-form__password">
+              <input class="board-form__input" type="password" id="lg-pw" name="password" placeholder="비밀번호를 입력해 주세요." autocomplete="current-password" required data-error="비밀번호를 입력해 주세요." />
+              <button class="member-form__eye" type="button" aria-label="비밀번호 보기" aria-pressed="false" data-pw-toggle>
+                <i class="ri-eye-line" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="board-form__row board-form__row--check">
+            <input class="board-form__checkbox" type="checkbox" id="lg-keep" name="keep_login" value="Y" />
+            <label class="board-form__check" for="lg-keep">로그인 상태 유지</label>
+          </div>
+        </div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <button class="member-form__submit" type="submit">로그인</button>
+
+        <p class="member-form__links">
+          <a href="find-email.html">이메일 찾기</a>
+          <a href="find-pw.html">비밀번호 찾기</a>
+        </p>
+        <p class="member-form__switch">아직 회원이 아니신가요? <a href="join.html">회원가입</a></p>
+        <div data-include="components/sub/member-sns.html" data-action="로그인" data-href="mypage.html"></div>
+        <p class="member-form__demo">목업 체험 계정 · hong@email.com / bazzar1234</p>
+      </div>
+    </form>
+  </div>
+</section>

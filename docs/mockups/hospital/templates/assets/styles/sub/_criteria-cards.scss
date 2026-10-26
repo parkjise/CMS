@@ -1,0 +1,64 @@
+// ── CRITERIA CARDS — 제목 | 설명 + 사진 카드 3개 ─────────────────
+// components/sub/criteria-cards.html
+@use '../mixins' as *;
+
+.criteria-cards {
+  padding: 80px 0;
+  @include lg {
+    padding: 160px 0 140px;
+  }
+
+  &__list {
+    display: grid;
+    gap: 40px;
+    margin-top: 48px;
+
+    @include md {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    @include lg {
+      margin-top: 100px;
+    }
+  }
+
+  &__item {
+    text-align: center;
+  }
+  &__media {
+    overflow: hidden;
+  }
+  &__image {
+    width: 100%;
+    @include ratio(4, 3);
+    object-fit: cover;
+    transition: transform 0.6s ease;
+    @include md {
+      @include ratio(528, 560);
+    }
+  }
+  &__item:hover &__image {
+    transform: scale(1.04);
+  }
+
+  &__title {
+    margin-top: 16px;
+    @include font-serif-ko(600);
+    font-size: 1.25rem;
+    line-height: 2.2;
+    color: #26211f;
+  }
+  &__text {
+    @include fluid-type(0.9375rem, 1.125rem);
+    font-weight: 500;
+    line-height: 1.88;
+    color: #666;
+    word-break: keep-all;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .criteria-cards__image {
+    transition: none;
+  }
+}

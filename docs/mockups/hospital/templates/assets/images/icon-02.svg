@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="100%" height="100%">
+  <defs>
+    <!-- 은은한 화이트-실버 선용 그라데이션 -->
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95" />
+      <stop offset="30%" stop-color="#cfd6e2" stop-opacity="0.8" />
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.98" />
+      <stop offset="80%" stop-color="#909cb3" stop-opacity="0.65" />
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.95" />
+    </linearGradient>
+
+    <!-- 투명 배경에서도 선이 선명하게 보이도록 돕는 미세한 빛 퍼짐 필터 -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="0.8" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- 나선형 구체 (배경 태그 제거됨) -->
+  <g transform="translate(250, 250)" stroke="url(#lineGrad)" stroke-width="1.15" fill="none" opacity="0.85" filter="url(#glow)">
+    <circle r="2" stroke-width="0.5" opacity="0.9" />
+    <circle r="7" opacity="0.8" />
+    <circle r="15" opacity="0.75" />
+
+    <g transform="rotate(0)"><ellipse rx="180" ry="176" opacity="0.95" /></g>
+    <g transform="rotate(6)"><ellipse rx="179" ry="171" opacity="0.93" /></g>
+    <g transform="rotate(12)"><ellipse rx="177" ry="165" opacity="0.91" /></g>
+    <g transform="rotate(18)"><ellipse rx="174" ry="159" opacity="0.89" /></g>
+    <g transform="rotate(24)"><ellipse rx="170" ry="153" opacity="0.87" /></g>
+    <g transform="rotate(30)"><ellipse rx="166" ry="147" opacity="0.85" /></g>
+    <g transform="rotate(36)"><ellipse rx="161" ry="141" opacity="0.83" /></g>
+    <g transform="rotate(42)"><ellipse rx="156" ry="135" opacity="0.81" /></g>
+    <g transform="rotate(48)"><ellipse rx="151" ry="129" opacity="0.79" /></g>
+    <g transform="rotate(54)"><ellipse rx="146" ry="123" opacity="0.77" /></g>
+    <g transform="rotate(60)"><ellipse rx="140" ry="117" opacity="0.75" /></g>
+    <g transform="rotate(66)"><ellipse rx="134" ry="111" opacity="0.73" /></g>
+    <g transform="rotate(72)"><ellipse rx="128" ry="105" opacity="0.71" /></g>
+    <g transform="rotate(78)"><ellipse rx="122" ry="99" opacity="0.69" /></g>
+    <g transform="rotate(84)"><ellipse rx="116" ry="93" opacity="0.67" /></g>
+    <g transform="rotate(90)"><ellipse rx="110" ry="87" opacity="0.65" /></g>
+    <g transform="rotate(96)"><ellipse rx="104" ry="81" opacity="0.63" /></g>
+    <g transform="rotate(102)"><ellipse rx="98" ry="75" opacity="0.61" /></g>
+    <g transform="rotate(108)"><ellipse rx="92" ry="69" opacity="0.59" /></g>
+    <g transform="rotate(114)"><ellipse rx="86" ry="63" opacity="0.57" /></g>
+    <g transform="rotate(120)"><ellipse rx="80" ry="57" opacity="0.55" /></g>
+    <g transform="rotate(126)"><ellipse rx="74" ry="51" opacity="0.53" /></g>
+    <g transform="rotate(132)"><ellipse rx="68" ry="45" opacity="0.51" /></g>
+    <g transform="rotate(138)"><ellipse rx="62" ry="39" opacity="0.49" /></g>
+    <g transform="rotate(144)"><ellipse rx="56" ry="33" opacity="0.47" /></g>
+    <g transform="rotate(150)"><ellipse rx="50" ry="27" opacity="0.45" /></g>
+
+    <g transform="rotate(3, 0, 0) scale(0.98)"><ellipse rx="180" ry="168" opacity="0.9" /></g>
+    <g transform="rotate(9, 0, 0) scale(0.98)"><ellipse rx="177" ry="162" opacity="0.87" /></g>
+    <g transform="rotate(15, 0, 0) scale(0.98)"><ellipse rx="173" ry="156" opacity="0.84" /></g>
+    <g transform="rotate(21, 0, 0) scale(0.98)"><ellipse rx="168" ry="150" opacity="0.81" /></g>
+    <g transform="rotate(27, 0, 0) scale(0.98)"><ellipse rx="163" ry="144" opacity="0.78" /></g>
+    <g transform="rotate(33, 0, 0) scale(0.98)"><ellipse rx="158" ry="138" opacity="0.75" /></g>
+    <g transform="rotate(39, 0, 0) scale(0.98)"><ellipse rx="152" ry="132" opacity="0.72" /></g>
+    <g transform="rotate(45, 0, 0) scale(0.98)"><ellipse rx="146" ry="126" opacity="0.69" /></g>
+    <g transform="rotate(51, 0, 0) scale(0.98)"><ellipse rx="140" ry="120" opacity="0.66" /></g>
+    <g transform="rotate(57, 0, 0) scale(0.98)"><ellipse rx="134" ry="114" opacity="0.63" /></g>
+    <g transform="rotate(63, 0, 0) scale(0.98)"><ellipse rx="128" ry="108" opacity="0.6" /></g>
+    <g transform="rotate(69, 0, 0) scale(0.98)"><ellipse rx="122" ry="102" opacity="0.57" /></g>
+    <g transform="rotate(75, 0, 0) scale(0.98)"><ellipse rx="116" ry="96" opacity="0.54" /></g>
+    <g transform="rotate(81, 0, 0) scale(0.98)"><ellipse rx="110" ry="90" opacity="0.51" /></g>
+    <g transform="rotate(87, 0, 0) scale(0.98)"><ellipse rx="104" ry="84" opacity="0.48" /></g>
+    <g transform="rotate(93, 0, 0) scale(0.98)"><ellipse rx="98" ry="78" opacity="0.45" /></g>
+    <g transform="rotate(99, 0, 0) scale(0.98)"><ellipse rx="92" ry="72" opacity="0.42" /></g>
+    <g transform="rotate(105, 0, 0) scale(0.98)"><ellipse rx="86" ry="66" opacity="0.39" /></g>
+    <g transform="rotate(111, 0, 0) scale(0.98)"><ellipse rx="80" ry="60" opacity="0.36" /></g>
+    <g transform="rotate(117, 0, 0) scale(0.98)"><ellipse rx="74" ry="54" opacity="0.33" /></g>
+    <g transform="rotate(123, 0, 0) scale(0.98)"><ellipse rx="68" ry="48" opacity="0.3" /></g>
+    <g transform="rotate(129, 0, 0) scale(0.98)"><ellipse rx="62" ry="42" opacity="0.27" /></g>
+    <g transform="rotate(135, 0, 0) scale(0.98)"><ellipse rx="56" ry="36" opacity="0.24" /></g>
+
+    <circle r="180" opacity="0.95" stroke-width="1.3" />
+  </g>
+</svg>

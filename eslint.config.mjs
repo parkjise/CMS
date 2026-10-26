@@ -16,6 +16,8 @@ export default tseslint.config(
       '**/build/**',
       '**/.vite/**',
       '**/playwright-report/**',
+      '**/vendor/**',
+      '**/*.min.js',
       '**/*.config.{js,ts,mjs,cjs}',
       '**/vite-env.d.ts',
       '**/next-env.d.ts',
@@ -25,6 +27,14 @@ export default tseslint.config(
   // 기본 JS + TypeScript 권장 규칙
   js.configs.recommended,
   ...tseslint.configs.recommended,
+
+  // HTML 목업의 브라우저 스크립트
+  {
+    files: ['docs/mockups/**/assets/js/**/*.js'],
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+  },
 
   // React (Vite 앱 + 공통 UI 패키지)
   {

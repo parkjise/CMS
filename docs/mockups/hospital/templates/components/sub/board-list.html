@@ -1,0 +1,117 @@
+<!-- BOARD LIST: 게시판 목록 — 안내 문구 + 총 건수·검색 + 목록 + 페이지 이동 (서브 공통)
+  용도 예: 공지사항, 이벤트, 보도자료
+  - 고정 글: .board-list__item--pinned + '공지' 배지 (목록 맨 위)
+  - 상세 링크는 notice-view.html (실제 이식 시 /notice/[id])
+  - 검색: assets/js/board-search.js 가 현재 목록에서 제목으로 걸러냄 (목업용, 실제는 API 검색)
+-->
+<section class="board-list" aria-labelledby="board-list-title">
+  <div class="container">
+    <h2 class="board-list__title" id="board-list-title">BAZZAR의 다양한 소식을 확인해보세요.</h2>
+
+    <div class="board-toolbar board-list__toolbar">
+      <p class="board-toolbar__total">총 <strong class="board-toolbar__count" data-board-count>48</strong>건</p>
+      <form class="board-toolbar__search" role="search" action="notice.html" data-board-search>
+        <label class="sr-only" for="board-search">공지사항 검색</label>
+        <input
+          class="board-toolbar__search-input"
+          type="search"
+          id="board-search"
+          name="q"
+          placeholder="검색어를 입력해 주세요."
+        />
+        <button class="board-toolbar__search-button" type="submit" aria-label="검색">
+          <i class="ri-search-line" aria-hidden="true"></i>
+        </button>
+      </form>
+    </div>
+
+    <ul class="board-list__list">
+      <li class="board-list__item board-list__item--pinned" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__badge">공지</span>
+          <span class="board-list__subject" data-board-subject>홈페이지 리뉴얼 오픈 안내</span>
+          <time class="board-list__date" datetime="2026-10-20">2026. 10. 20</time>
+        </a>
+      </li>
+      <li class="board-list__item board-list__item--pinned" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__badge">공지</span>
+          <span class="board-list__subject" data-board-subject>2027년 멤버십 혜택 변경 안내</span>
+          <time class="board-list__date" datetime="2026-10-08">2026. 10. 08</time>
+        </a>
+      </li>
+      <li class="board-list__item board-list__item--pinned" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__badge">공지</span>
+          <span class="board-list__subject" data-board-subject>개인정보 처리방침 개정 안내</span>
+          <time class="board-list__date" datetime="2026-10-02">2026. 10. 02</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>연말연시 운영 시간 안내</span>
+          <time class="board-list__date" datetime="2026-10-15">2026. 10. 15</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>고객 만족도 조사 결과 안내</span>
+          <time class="board-list__date" datetime="2026-09-24">2026. 09. 24</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>추석 연휴 운영 안내</span>
+          <time class="board-list__date" datetime="2026-09-10">2026. 09. 10</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>창립 14주년 고객 감사 주간 안내</span>
+          <time class="board-list__date" datetime="2026-08-19">2026. 08. 19</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>광복절 정상 운영 안내</span>
+          <time class="board-list__date" datetime="2026-08-05">2026. 08. 05</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>온라인 예약 시스템 점검 안내</span>
+          <time class="board-list__date" datetime="2026-07-10">2026. 07. 10</time>
+        </a>
+      </li>
+      <li class="board-list__item" data-board-item>
+        <a class="board-list__link" href="notice-view.html">
+          <span class="board-list__subject" data-board-subject>여름 휴가 기간 운영 안내</span>
+          <time class="board-list__date" datetime="2026-06-02">2026. 06. 02</time>
+        </a>
+      </li>
+    </ul>
+    <p class="board-list__empty" data-board-empty hidden>검색 결과가 없습니다.</p>
+
+    <nav class="pagination board-list__pagination" aria-label="페이지 이동" data-board-pagination>
+      <a class="pagination__page pagination__page--arrow" href="notice.html" aria-label="첫 페이지">
+        <i class="ri-arrow-left-double-line" aria-hidden="true"></i>
+      </a>
+      <a class="pagination__page pagination__page--arrow" href="notice.html" aria-label="이전 페이지">
+        <i class="ri-arrow-left-s-line" aria-hidden="true"></i>
+      </a>
+      <ol class="pagination__pages">
+        <li><a class="pagination__page" href="notice.html" aria-current="page">1</a></li>
+        <li><a class="pagination__page" href="notice.html">2</a></li>
+        <li><a class="pagination__page" href="notice.html">3</a></li>
+        <li><a class="pagination__page" href="notice.html">4</a></li>
+        <li><a class="pagination__page" href="notice.html">5</a></li>
+      </ol>
+      <a class="pagination__page pagination__page--arrow" href="notice.html" aria-label="다음 페이지">
+        <i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+      </a>
+      <a class="pagination__page pagination__page--arrow" href="notice.html" aria-label="마지막 페이지">
+        <i class="ri-arrow-right-double-line" aria-hidden="true"></i>
+      </a>
+    </nav>
+  </div>
+</section>

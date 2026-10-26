@@ -1,0 +1,76 @@
+// ── NOTICE — 섹션 헤더 + 최신 공지 목록 ──────────────────────────
+// 용도 예: 공지사항, 새소식, 보도자료 (신규 섹션 후보)
+@use '../mixins' as *;
+
+.notice {
+  position: relative;
+  background-color: #e5e6e6;
+  // 배경 이미지 (장식)
+  &::before {
+    content: '';
+    @include absolute-fill;
+    background-image: url('../images/newbg.webp');
+    background-repeat: no-repeat;
+    background-size: cover;
+    opacity: 0.3;
+  }
+
+  &__inner {
+    position: relative; // ::before 위로
+    @include flex(stretch, start, 32px, column);
+    @include md {
+      @include flex(center, start, 40px);
+    }
+  }
+  &__head {
+    @include md {
+      width: 35%;
+      flex-shrink: 0;
+    }
+  }
+  &__title {
+    @include font-seasons;
+  }
+  &__desc {
+    color: var(--color-text-secondary);
+    word-break: keep-all;
+  }
+  &__more {
+    margin-top: 24px;
+    border-color: var(--color-text-primary);
+    color: var(--color-text-primary);
+    @include focus-ring;
+    &:hover {
+      color: #fff;
+      background: var(--color-text-primary);
+      border-color: var(--color-text-primary);
+    }
+  }
+
+  &__list {
+    flex: 1;
+  }
+  &__item {
+    border-top: 1px solid rgba(0, 0, 0, 0.15);
+    &:last-child {
+      border-bottom: 1px solid rgba(0, 0, 0, 0.15);
+    }
+  }
+  &__link {
+    @include flex(center, space-between);
+    gap: 16px;
+    padding-block: 20px;
+    @include md {
+      padding-block: 30px;
+    }
+    @include focus-ring;
+  }
+  &__date {
+    flex-shrink: 0;
+    color: var(--color-text-secondary);
+  }
+  &__subject {
+    @include ellipsis;
+    @include fluid-type(1rem, 1.25rem);
+  }
+}

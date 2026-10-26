@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>공지사항 | BAZZAR</title>
+    <!-- 서브: 공지사항 목록 (_sub-template.html 기반, 하위 탭 없음) -->
+    <link rel="stylesheet" href="assets/vendor/swiper/swiper-bundle.min.css" />
+    <link rel="stylesheet" href="assets/css/template.css" />
+    <link rel="stylesheet" href="./assets/vendor/remixicon/remixicon.css" />
+
+    <script src="assets/vendor/swiper/swiper-bundle.min.js" defer></script>
+    <script src="./assets/vendor/gsap/gsap.min.js" defer></script>
+    <script src="./assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
+
+    <script src="assets/js/include.js" defer></script>
+    <script src="./assets/js/header.js" defer></script>
+    <script src="./assets/js/quick-menu.js" defer></script>
+    <script src="./assets/js/board-search.js" defer></script>
+  </head>
+  <body>
+    <div data-include="components/header.html"></div>
+
+    <main class="main main--sub" id="main" tabindex="-1">
+      <div
+        data-include="components/sub/sub-hero-plain.html"
+        data-eyebrow="Notice"
+        data-page-title="공지사항"
+        data-category="Notice"
+      ></div>
+
+      <!-- ↓ 본문 -->
+      <div data-include="components/sub/board-list.html"></div>
+    </main>
+
+    <div data-include="components/footer.html"></div>
+    <div data-include="components/quick-menu.html"></div>
+  </body>
+</html>

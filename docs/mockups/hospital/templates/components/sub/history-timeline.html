@@ -1,0 +1,324 @@
+<!-- HISTORY TIMELINE: 연도 구간 탭(고정) + 왼쪽 현재 연도·사진(고정) + 오른쪽 월별 연혁 (서브 공통)
+  - 연도 그룹: <li class="history-timeline__year" id="history-YYYY" data-year="YYYY" data-image="경로(선택)">
+  - 연도 제목(.history-timeline__year-title): lg 미만에서 보이고, lg 이상에선 왼쪽 고정 연도가 대신하므로 시각적으로 숨김
+  - 강조 항목: .history-timeline__event--highlight
+  - 탭 링크는 각 구간의 첫 연도(#history-YYYY)로 이동, data-from / data-to 로 구간 지정
+  JS: assets/js/history-timeline.js (스크롤 위치에 따라 왼쪽 연도·사진, 활성 탭 갱신)
+-->
+<section class="history-timeline" aria-labelledby="history-timeline-title">
+  <header class="section-head">
+    <p class="section-head__eyebrow" lang="en">Our History</p>
+    <h2 class="section-head__title" id="history-timeline-title">
+      한결같은 온도로<br />
+      걸어온 시간들
+    </h2>
+    <p class="section-head__desc">
+      2012년 첫 문을 연 이후, BAZZAR는 고객과 함께 한 걸음씩 성장해 왔습니다.
+    </p>
+  </header>
+
+  <nav class="history-timeline__nav" aria-label="연도 구간">
+    <ul class="history-timeline__nav-list">
+      <li>
+        <a
+          class="history-timeline__nav-link"
+          href="#history-2026"
+          data-from="2024"
+          data-to="2026"
+          aria-current="true"
+          >2026-2024</a
+        >
+      </li>
+      <li>
+        <a class="history-timeline__nav-link" href="#history-2023" data-from="2020" data-to="2023"
+          >2023-2020</a
+        >
+      </li>
+      <li>
+        <a class="history-timeline__nav-link" href="#history-2019" data-from="2016" data-to="2019"
+          >2019-2016</a
+        >
+      </li>
+      <li>
+        <a class="history-timeline__nav-link" href="#history-2015" data-from="2012" data-to="2015"
+          >2015-2012</a
+        >
+      </li>
+    </ul>
+  </nav>
+
+  <div class="container history-timeline__inner">
+    <!-- 현재 연도 표시 (시각용 — 연도는 목록의 sr-only 제목으로 스크린리더에 제공) -->
+    <div class="history-timeline__aside" aria-hidden="true">
+      <p class="history-timeline__current-year">2026</p>
+      <figure class="history-timeline__current-figure">
+        <img class="history-timeline__current-image" src="./assets/images/proj1.jpg" alt="" />
+      </figure>
+    </div>
+
+    <ol class="history-timeline__years">
+      <!-- 2026 -->
+      <li
+        class="history-timeline__year"
+        id="history-2026"
+        data-year="2026"
+        data-image="./assets/images/proj1.jpg"
+      >
+        <h3 class="history-timeline__year-title">2026</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2026-10"
+              >10<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                브랜드 리뉴얼 및 공식 홈페이지 오픈
+              </li>
+              <li class="history-timeline__event">2026 고객 만족도 조사 결과 발표</li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2026-07"
+              >07<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                BAZZAR 서울 플래그십 2호점 오픈
+              </li>
+              <li class="history-timeline__event">창립 14주년 기념 고객 감사 주간 운영</li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2026-03"
+              >03<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">임직원 서비스 전문 교육 프로그램 도입</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2025 -->
+      <li
+        class="history-timeline__year"
+        id="history-2025"
+        data-year="2025"
+        data-image="./assets/images/proj2.jpg"
+      >
+        <h3 class="history-timeline__year-title">2025</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2025-11"
+              >11<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                2025 소비자 선정 고객만족 브랜드 대상 수상
+              </li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2025-06"
+              >06<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">멤버십 프로그램 ‘BAZZAR CLUB’ 론칭</li>
+              <li class="history-timeline__event">지역사회 나눔 캠페인 ‘따뜻한 온도’ 진행</li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2025-02"
+              >02<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">파트너사 3곳과 전략적 업무협약(MOU) 체결</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2024 -->
+      <li
+        class="history-timeline__year"
+        id="history-2024"
+        data-year="2024"
+        data-image="./assets/images/proj3.jpg"
+      >
+        <h3 class="history-timeline__year-title">2024</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2024-09"
+              >09<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                누적 고객 10만 명 달성
+              </li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2024-04"
+              >04<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">시그니처 프로그램 2.0 출시</li>
+              <li class="history-timeline__event">고객 전담 매니저 제도 도입</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2023 -->
+      <li
+        class="history-timeline__year"
+        id="history-2023"
+        data-year="2023"
+        data-image="./assets/images/head_slide1.jpg"
+      >
+        <h3 class="history-timeline__year-title">2023</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2023-12"
+              >12<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                사후관리 전담센터 개설
+              </li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2023-05"
+              >05<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">온라인 상담·예약 시스템 도입</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2021 -->
+      <li class="history-timeline__year" id="history-2021" data-year="2021">
+        <h3 class="history-timeline__year-title">2021</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2021-08"
+              >08<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">본점 확장 이전 및 프라이빗 라운지 신설</li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2021-01"
+              >01<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                ISO 9001 품질경영시스템 인증 획득
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2020 -->
+      <li class="history-timeline__year" id="history-2020" data-year="2020">
+        <h3 class="history-timeline__year-title">2020</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2020-06"
+              >06<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">비대면 상담 서비스 시작</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2019 -->
+      <li
+        class="history-timeline__year"
+        id="history-2019"
+        data-year="2019"
+        data-image="./assets/images/photo2.avif"
+      >
+        <h3 class="history-timeline__year-title">2019</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2019-10"
+              >10<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">창립 7주년 기념 고객 감사 행사</li>
+            </ul>
+          </li>
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2019-03"
+              >03<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">분야별 전문 컨설턴트 팀 구성</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2017 -->
+      <li class="history-timeline__year" id="history-2017" data-year="2017">
+        <h3 class="history-timeline__year-title">2017</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2017-07"
+              >07<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">
+                프리미엄 케어 라인 론칭
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2015 -->
+      <li class="history-timeline__year" id="history-2015" data-year="2015">
+        <h3 class="history-timeline__year-title">2015</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2015-11"
+              >11<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event">누적 고객 1만 명 달성</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+
+      <!-- 2012 -->
+      <li
+        class="history-timeline__year"
+        id="history-2012"
+        data-year="2012"
+        data-image="./assets/images/head_slide3.png"
+      >
+        <h3 class="history-timeline__year-title">2012</h3>
+        <ol class="history-timeline__months">
+          <li class="history-timeline__month">
+            <time class="history-timeline__month-label" datetime="2012-07"
+              >07<span class="sr-only">월</span></time
+            >
+            <ul class="history-timeline__events">
+              <li class="history-timeline__event history-timeline__event--highlight">BAZZAR 설립</li>
+              <li class="history-timeline__event">서울 강남 본점 오픈</li>
+            </ul>
+          </li>
+        </ol>
+      </li>
+    </ol>
+  </div>
+</section>
