@@ -5,13 +5,15 @@ interface MemberShellProps {
   siteName: string
   title: string
   subtitle?: string
+  /** 마이페이지처럼 넓은 화면 */
+  wide?: boolean
   children: React.ReactNode
 }
 
 /** 방문자 회원 화면 공통 카드 — 테마 색상 변수 사용 (hospital-a 디자인은 T-124) */
-const MemberShell = ({ slug, siteName, title, subtitle, children }: MemberShellProps) => (
+const MemberShell = ({ slug, siteName, title, subtitle, wide, children }: MemberShellProps) => (
   <main className="flex min-h-screen items-start justify-center bg-[var(--color-surface)] px-4 py-12 sm:items-center">
-    <div className="w-full max-w-md rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] bg-[var(--color-background)] p-6 shadow-[var(--shadow-card)] sm:p-8">
+    <div className={`w-full ${wide ? 'max-w-2xl' : 'max-w-md'} rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] bg-[var(--color-background)] p-6 shadow-[var(--shadow-card)] sm:p-8`}>
       <Link
         href={`/${slug}`}
         className="block text-center text-sm font-semibold text-[color:var(--color-text-secondary)]"

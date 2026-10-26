@@ -47,6 +47,8 @@ interface MemberStore {
   initialize: (slug: string) => Promise<void>
   /** 로그인 · 가입 · 토큰 갱신 결과 저장 */
   setSession: (slug: string, session: MemberSession) => void
+  /** 비밀번호 변경 등으로 새 access token 만 받았을 때 (T-114) */
+  setAccessToken: (token: string) => void
   logout: () => Promise<void>
   /** 탈퇴 · refresh 실패 등 서버 세션이 끝났을 때 */
   clear: () => void
@@ -79,6 +81,8 @@ export const useMemberStore = create<MemberStore>((set, get) => ({
     writeMarker(slug, true)
     set({ slug, member: session.member, accessToken: session.access_token, status: 'ready' })
   },
+
+  setAccessToken: (token) => set({ accessToken: token }),
 
   logout: async () => {
     const { slug, accessToken } = get()

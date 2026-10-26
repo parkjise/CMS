@@ -52,6 +52,8 @@ export interface ForgotPasswordResult {
 export interface AuthOptions {
   social_login: boolean
   providers: SocialProvider[]
+  /** 마이페이지 "내 예약" 탭 노출 (업종 · 기능 플래그) */
+  reservations: boolean
 }
 
 export interface RegisterInput {
