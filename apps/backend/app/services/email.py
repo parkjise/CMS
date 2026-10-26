@@ -80,6 +80,16 @@ async def send_welcome_email(
     )
 
 
+async def send_member_welcome(to: str, *, member_name: str, site_name: str) -> dict:
+    """방문자 회원 가입 환영 메일 (T-108, 기획서 16.3)."""
+    return await send_email(
+        to,
+        subject=f"[{site_name}] {member_name}님, 회원가입을 환영합니다",
+        template="member_welcome",
+        variables={"member_name": member_name, "site_name": site_name},
+    )
+
+
 async def send_domain_activated(to: str, *, tenant_name: str, domain: str) -> dict:
     return await send_email(
         to,

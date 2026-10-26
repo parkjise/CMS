@@ -13,7 +13,7 @@ interface Props {
   feature?: FeatureItem | null
 }
 
-const CATEGORIES = ['CONTENT', 'NOTIFICATION', 'AI', 'SEO', 'ANALYTICS', 'INTEGRATION']
+const CATEGORIES = ['CONTENT', 'NOTIFICATION', 'AI', 'SEO', 'ANALYTICS', 'INTEGRATION', 'MEMBER']
 
 const EMPTY = {
   key: '',

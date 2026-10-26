@@ -18,6 +18,8 @@ class PublicSettingItem(BaseModel):
     field_key: str
     field_value: str | None
     value_type: str
+    # 인라인 편집 툴바 '샘플 n개' 표시용 (기획서 11.8)
+    is_sample: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -28,6 +30,7 @@ class PublicSectionResponse(BaseModel):
     label: str
     display_order: int
     is_active: bool
+    page_key: str = "home"
     settings: list[PublicSettingItem] = []
 
     model_config = {"from_attributes": True}
@@ -60,8 +63,21 @@ class PublicTemplateResponse(BaseModel):
     name: str
     css_variables: dict
     section_layouts: list
+    # 코드형 템플릿 판별 (클라이언트 templates/registry 키) — 기획서 11.7
+    code: str | None = None
+    renderer: str = "theme"
+    styling: str = "tailwind"
+    version: str = "1.0.0"
 
     model_config = {"from_attributes": True}
+
+
+class PublicMemberFlags(BaseModel):
+    """방문자 회원 기능 (T-115) — 헤더 회원 메뉴 · /member 화면 노출."""
+
+    enabled: bool = False
+    reservations: bool = False
+    social_login: bool = False
 
 
 class PublicSiteResponse(BaseModel):
@@ -70,3 +86,4 @@ class PublicSiteResponse(BaseModel):
     seo_settings: PublicSeoResponse | None
     sns_settings: PublicSnsResponse | None
     template: PublicTemplateResponse | None
+    member: PublicMemberFlags = PublicMemberFlags()

@@ -39,4 +39,34 @@ describe('CreateTenantModal', () => {
     )
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('기본은 시작 템플릿 없이 요청한다 (template_code 미포함)', async () => {
+    const user = userEvent.setup()
+    mutateAsync.mockResolvedValue({})
+    render(<CreateTenantModal open onClose={() => {}} />)
+    await user.type(screen.getByLabelText('사업체명'), '새상점')
+    await user.type(screen.getByLabelText('slug (URL 식별자)'), 'newshop')
+    await user.type(screen.getByLabelText('관리자 이메일'), 'a@shop.com')
+    await user.type(screen.getByLabelText('관리자 초기 비밀번호'), 'password123')
+    await user.click(screen.getByRole('button', { name: '생성' }))
+    await waitFor(() => expect(mutateAsync).toHaveBeenCalled())
+    expect(mutateAsync.mock.calls[0][0]).not.toHaveProperty('template_code')
+  })
+
+  it('시작 템플릿을 고르면 template_code 와 업종을 함께 보낸다 (T-120)', async () => {
+    const user = userEvent.setup()
+    mutateAsync.mockResolvedValue({})
+    render(<CreateTenantModal open onClose={() => {}} />)
+    await user.type(screen.getByLabelText('사업체명'), '새의원')
+    await user.type(screen.getByLabelText('slug (URL 식별자)'), 'newclinic')
+    await user.selectOptions(screen.getByLabelText('시작 템플릿'), 'TPL_HOSPITAL_A')
+    await user.type(screen.getByLabelText('관리자 이메일'), 'a@clinic.com')
+    await user.type(screen.getByLabelText('관리자 초기 비밀번호'), 'password123')
+    await user.click(screen.getByRole('button', { name: '생성' }))
+    await waitFor(() =>
+      expect(mutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ template_code: 'TPL_HOSPITAL_A', template_type: 'HOSPITAL' }),
+      ),
+    )
+  })
 })

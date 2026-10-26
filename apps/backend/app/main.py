@@ -1,12 +1,17 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
+from app.api.public.member_auth import options_router as member_options_router
+from app.api.public.member_auth import router as member_auth_router
+from app.api.public.member_me import router as member_me_router
+from app.api.public.member_social import router as member_social_router
 from app.api.super.router import super_router
 from app.api.v1.endpoints.analytics import public_router as analytics_public_router
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
@@ -16,6 +21,11 @@ from app.api.v1.endpoints.templates import public_router as template_public_rout
 from app.api.v1.router import api_router
 from app.api.webhook.tosspayments import router as tosspayments_webhook_router
 from app.core.config import settings
+from app.core.member_errors import (
+    MemberAuthError,
+    member_auth_error_handler,
+    validation_error_handler,
+)
 from app.core.observability import setup_observability
 from app.core.redis import close_redis
 
@@ -38,6 +48,9 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# 방문자 회원 API 는 공통 에러 형식 (T-108, 기획서 16.0)
+app.add_exception_handler(MemberAuthError, member_auth_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
 
 # 관측성: Prometheus /metrics + Sentry (T-083)
 setup_observability(app)
@@ -79,6 +92,10 @@ app.include_router(inquiry_public_router, prefix="/api/public")
 app.include_router(seo_public_router, prefix="/api/public")
 app.include_router(public_site_router, prefix="/api/public")
 app.include_router(template_public_router, prefix="/api/public")
+app.include_router(member_auth_router, prefix="/api/public")
+app.include_router(member_options_router, prefix="/api/public")
+app.include_router(member_social_router, prefix="/api/public")
+app.include_router(member_me_router, prefix="/api/public")
 
 
 @app.get("/health")

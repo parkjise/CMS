@@ -262,3 +262,73 @@ async def notify_inquiry(
         "skipped": False,
         "reason": "",
     }
+
+
+async def notify_member_joined(
+    db: AsyncSession,
+    tenant_id: UUID,
+    member_name: str,
+    member_phone: str | None,
+    joined_at: datetime,
+    tenant_name: str = "사이트",
+) -> dict:
+    """신규 방문자 회원 가입 알림 (T-108, 기획서 16.3).
+
+    알림톡 → 실패하면 SMS. 관리자 알림 설정이 꺼져 있거나 월 한도를 넘으면 건너뛴다.
+    """
+    result = await db.execute(
+        select(NotificationSetting).where(NotificationSetting.tenant_id == tenant_id)
+    )
+    setting = result.scalar_one_or_none()
+    if setting is None or not setting.recipient_phone:
+        return {
+            "kakao_sent": False,
+            "sms_sent": False,
+            "skipped": True,
+            "reason": "NO_SETTING",
+        }
+    if not (setting.alimtalk_enabled or setting.sms_enabled):
+        return {
+            "kakao_sent": False,
+            "sms_sent": False,
+            "skipped": True,
+            "reason": "DISABLED",
+        }
+
+    plan_type = await _get_plan_type(db, tenant_id)
+    try:
+        await check_monthly_limit(db, tenant_id, plan_type)
+    except MonthlyLimitExceeded as e:
+        return {
+            "kakao_sent": False,
+            "sms_sent": False,
+            "skipped": True,
+            "reason": str(e),
+        }
+
+    kakao_sent = False
+    sms_sent = False
+    if setting.alimtalk_enabled:
+        kakao_sent = await send_kakao_alimtalk(
+            to=setting.recipient_phone,
+            template_code="MEMBER_JOINED_V1",
+            variables={
+                "사이트명": tenant_name,
+                "이름": member_name,
+                "연락처": mask_phone(member_phone),
+                "가입시각": format_kr_time(joined_at),
+            },
+        )
+    if not kakao_sent and setting.sms_enabled:
+        sms_sent = await send_sms(
+            to=setting.recipient_phone,
+            message=f"[{tenant_name}] 신규 회원 가입! {member_name}",
+        )
+    if kakao_sent or sms_sent:
+        await increment_monthly_count(db, tenant_id)
+    return {
+        "kakao_sent": kakao_sent,
+        "sms_sent": sms_sent,
+        "skipped": False,
+        "reason": "",
+    }

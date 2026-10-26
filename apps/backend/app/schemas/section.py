@@ -9,6 +9,8 @@ class SectionSettingResponse(BaseModel):
     field_key: str
     field_value: str | None
     value_type: str
+    # 템플릿 샘플 값 그대로인지 (관리자 '샘플' 배지 — 기획서 11.8)
+    is_sample: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -20,6 +22,7 @@ class SectionResponse(BaseModel):
     label: str
     display_order: int
     is_active: bool
+    page_key: str = "home"
     settings: list[SectionSettingResponse] = []
     created_at: datetime
     updated_at: datetime

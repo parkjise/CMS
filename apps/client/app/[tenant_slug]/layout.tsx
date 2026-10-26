@@ -3,6 +3,8 @@ import { fetchPublicSite } from '@/lib/publicSite'
 import { resolveOgImage } from '@/lib/socialMeta'
 import { buildCssVarBody } from '@/lib/theme'
 import { AuthInitializer } from '@/components/auth/AuthInitializer'
+import MemberInitializer from '@/components/member/MemberInitializer'
+import { memberEnabled } from '@/lib/publicSite.types'
 import { RestoreDraftDialog } from '@/components/layout/RestoreDraftDialog'
 
 function getSiteUrl(): string {
@@ -82,6 +84,7 @@ export default async function TenantLayout({ children, params }: Props) {
         />
       )}
       <AuthInitializer />
+      {memberEnabled(site) && <MemberInitializer slug={tenant_slug} />}
       {children}
       <RestoreDraftDialog />
     </>

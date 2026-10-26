@@ -59,3 +59,10 @@ testpaths = ["tests"]
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.coverage.run]
+# SQLAlchemy async 는 greenlet 위에서 돌아 기본 설정으로는 await 이후 줄이
+# 실행되지 않은 것으로 집계된다 (T-112 발견) — greenlet 추적을 켠다
+concurrency = ["greenlet", "thread"]
+source = ["app"]
+

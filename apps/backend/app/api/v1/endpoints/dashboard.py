@@ -78,8 +78,20 @@ async def get_stats(
             "week_unique_visitors": int(week_visitors or 0),
             "new_inquiries_today": new_inquiries.scalar_one(),
             "pending_inquiries": pending_inquiries.scalar_one(),
+            # 방문자 회원 (T-115) — SITE_MEMBER 가 꺼져 있으면 None (카드 숨김)
+            "members": await _member_stats(db, tid, week_start),
         }
     )
+
+
+async def _member_stats(db: AsyncSession, tenant_id, week_start) -> dict | None:
+    from app.models.tenant import Tenant
+    from app.services import member_activity, member_features
+
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None or not (await member_features.flags_for(db, tenant)).enabled:
+        return None
+    return await member_activity.member_counts(db, tenant_id, week_start)
 
 
 # ── Chart ─────────────────────────────────────────────────────────────────────

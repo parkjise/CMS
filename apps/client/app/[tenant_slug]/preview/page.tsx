@@ -1,14 +1,16 @@
 import { notFound } from 'next/navigation'
-import { fetchTemplatePreview } from '@/lib/publicSite'
+import { fetchPublicSite, fetchTemplatePreview } from '@/lib/publicSite'
 import { buildCssVarBody } from '@/lib/theme'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { PreviewBanner } from '@/components/preview/PreviewBanner'
+import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
+import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string }>
+  searchParams: Promise<{ tpl?: string; content?: string; page?: string; id?: string; q?: string; p?: string }>
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -22,10 +24,41 @@ export default async function TemplatePreviewPage({
   searchParams,
 }: Props) {
   const { tenant_slug } = await params
-  const { tpl } = await searchParams
+  const { tpl, content, page, id, q, p } = await searchParams
 
   if (!tpl) {
     notFound()
+  }
+
+  // 코드형 템플릿 미리보기: 기본은 템플릿 샘플 그대로(디자인 원본),
+  // &content=mine 이면 테넌트 실제 콘텐츠 + 빈 항목만 샘플
+  const codeTemplate = findCodeTemplate(tpl)
+  if (codeTemplate) {
+    const tenantSite = await fetchPublicSite(tenant_slug)
+    if (!tenantSite) {
+      notFound()
+    }
+    const pageKey = page ?? 'home'
+    if (!codeTemplate.manifest.pages.some((p) => p.key === pageKey)) {
+      notFound()
+    }
+    const previewQuery = `tpl=${encodeURIComponent(tpl)}${content === 'mine' ? '&content=mine' : ''}`
+    return (
+      <>
+        <PreviewBanner templateName={codeTemplate.manifest.name} />
+        <CodeTemplateRenderer
+          entry={codeTemplate}
+          site={tenantSite}
+          tenantSlug={tenant_slug}
+          pageKey={pageKey}
+          preview
+          contentSource={content === 'mine' ? 'tenant' : 'sample'}
+          previewQuery={previewQuery}
+          detailId={id}
+          query={{ q, p }}
+        />
+      </>
+    )
   }
 
   const site = await fetchTemplatePreview(tenant_slug, tpl)

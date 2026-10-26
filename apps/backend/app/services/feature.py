@@ -206,6 +206,7 @@ async def toggle_feature(
     await db.commit()
     await db.refresh(tf)
     await invalidate_cache(tenant_id)
+    await purge_site_cache(db, tenant_id)
     return tf
 
 
@@ -275,6 +276,7 @@ async def deploy_feature(
     await db.commit()
     await db.refresh(deployment)
     await invalidate_cache(*target_ids)
+    await purge_site_cache(db, *target_ids)
     return deployment, len(target_ids)
 
 
@@ -313,6 +315,7 @@ async def rollback_deployment(
     await db.commit()
     await db.refresh(deployment)
     await invalidate_cache(*target_ids)
+    await purge_site_cache(db, *target_ids)
     return deployment, len(target_ids)
 
 
@@ -458,3 +461,63 @@ async def _set_enabled_bulk(
 async def _invalidate_all(db: AsyncSession) -> None:
     ids = [row[0] for row in (await db.execute(select(Tenant.id))).all()]
     await invalidate_cache(*ids)
+    await purge_site_cache(db, *ids)
+
+
+async def purge_site_cache(db: AsyncSession, *tenant_ids: uuid.UUID | str) -> None:
+    """공개 사이트 캐시(site:{slug}) — 회원 메뉴 노출이 기능 플래그를 따른다 (T-115)."""
+    if not tenant_ids:
+        return
+    slugs = (
+        (
+            await db.execute(
+                select(Tenant.slug).where(
+                    Tenant.id.in_([uuid.UUID(str(t)) for t in tenant_ids])
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if slugs:
+        redis = await get_redis()
+        await redis.delete(*[f"site:{slug}" for slug in slugs])
+
+
+PLAN_RANK = {"FREE": 0, "BASIC": 1, "STANDARD": 2, "PREMIUM": 3}
+
+
+async def apply_defaults(db: AsyncSession, tenant: Tenant) -> list[str]:
+    """새 테넌트 기본 기능 켜기 (T-115) — default_enabled · 요금제 · 업종(회원 기능).
+
+    호출한 쪽에서 commit 한다. 켠 기능 key 목록을 돌려준다.
+    """
+    from app.services.member_features import default_enabled_for
+
+    features = (
+        (await db.execute(select(Feature).where(Feature.is_active.is_(True))))
+        .scalars()
+        .all()
+    )
+    plan = PLAN_RANK.get(tenant.plan_type, 0)
+    now = datetime.now(UTC)
+    enabled: list[str] = []
+    for feature in features:
+        on = default_enabled_for(feature.key, tenant.template_type)
+        if on is None:
+            on = feature.default_enabled
+        if feature.required_plan and PLAN_RANK.get(feature.required_plan, 0) > plan:
+            on = False
+        if not on:
+            continue
+        db.add(
+            TenantFeature(
+                id=uuid.uuid4(),
+                tenant_id=tenant.id,
+                feature_id=feature.id,
+                is_enabled=True,
+                enabled_at=now,
+            )
+        )
+        enabled.append(feature.key)
+    return enabled

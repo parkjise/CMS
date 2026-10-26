@@ -30,6 +30,8 @@ class TenantCreateRequest(BaseModel):
     plan_type: str = "BASIC"
     admin_email: EmailStr
     admin_password: str = Field(..., min_length=8, max_length=100)
+    # 시작 템플릿 코드 ('TPL_HOSPITAL_A') — 주면 샘플 콘텐츠로 시작 (기획서 11.8)
+    template_code: str | None = Field(None, max_length=50)
 
 
 class TenantDetailResponse(BaseModel):

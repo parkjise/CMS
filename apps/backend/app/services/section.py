@@ -105,6 +105,7 @@ async def update_section_settings(
             if existing:
                 existing.field_value = s.field_value
                 existing.value_type = s.value_type
+                existing.is_sample = False
                 existing.updated_at = datetime.now(UTC)
             else:
                 db.add(

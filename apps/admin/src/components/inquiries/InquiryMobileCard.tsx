@@ -1,6 +1,7 @@
 import dayjs from 'dayjs'
 import { Mail, MailOpen } from 'lucide-react'
 import type { InquiryListItem, InquiryStatus } from '@/hooks/useInquiries'
+import { MemberBadge } from './MemberBadge'
 import { STATUS_OPTIONS, StatusBadge, TYPE_LABELS } from './StatusBadge'
 
 interface InquiryMobileCardProps {
@@ -50,6 +51,7 @@ export function InquiryMobileCard({
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-slate-900">
               {item.name}
+              {item.member_id && <MemberBadge />}
             </p>
             <p className="mt-0.5 truncate text-xs text-slate-500">
               {TYPE_LABELS[item.inquiry_type] ?? item.inquiry_type} ·{' '}

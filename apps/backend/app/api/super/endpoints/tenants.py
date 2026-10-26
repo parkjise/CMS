@@ -77,6 +77,7 @@ async def create_tenant(
         plan_type=body.plan_type,
         admin_email=body.admin_email,
         admin_password=body.admin_password,
+        template_code=body.template_code,
     )
     await log_action(
         db,

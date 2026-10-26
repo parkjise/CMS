@@ -15,6 +15,9 @@ interface Props {
   multiline?: boolean
   placeholder?: string
   className?: string
+  /** 제목 연결(aria-labelledby)용 id · 언어 표시 — 코드형 템플릿 마크업 유지 (T-121) */
+  id?: string
+  lang?: string
 }
 
 export function EditableText({
@@ -26,6 +29,8 @@ export function EditableText({
   multiline = false,
   placeholder,
   className,
+  id,
+  lang,
 }: Props) {
   const isEditMode = useEditStore((s) => s.isEditMode)
   const updateField = useEditStore((s) => s.updateField)
@@ -60,6 +65,8 @@ export function EditableText({
         data-field={field}
         data-section-id={sectionId}
         className={className}
+        id={id}
+        lang={lang}
       >
         {initialValue || placeholder}
       </Tag>
@@ -138,6 +145,8 @@ export function EditableText({
         data-editable="text"
         data-field={field}
         data-section-id={sectionId}
+        id={id}
+        lang={lang}
         contentEditable={editing}
         suppressContentEditableWarning
         onClick={handleClick}

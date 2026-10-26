@@ -15,6 +15,14 @@ export function buildTemplatePreviewUrl(
   return `${base}/${slug}/preview?tpl=${tpl}`
 }
 
+/**
+ * 미리보기에 넘길 템플릿 식별자 — 코드형은 템플릿 코드('TPL_HOSPITAL_A'),
+ * 테마형은 템플릿 ID. 홈페이지 미리보기가 코드로 코드형 화면을 고른다 (T-125).
+ */
+export function previewTemplateRef(template: { id: string; code?: string | null }): string {
+  return template.code ?? template.id
+}
+
 /** 미리보기 URL을 새 탭에서 연다 (noopener). */
 export function openTemplatePreview(
   tenantSlug: string,

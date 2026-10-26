@@ -3,13 +3,19 @@
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import type { PublicSection } from '@/lib/publicSite.types'
+import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 
 interface NavbarProps {
   tenantName: string
   sections: PublicSection[]
+  /** 있으면 우측에 방문자 계정 메뉴 (로그인 · 회원가입 / 마이페이지 · 로그아웃, T-113) */
+  tenantSlug?: string
 }
 
-export function Navbar({ tenantName, sections }: NavbarProps) {
+const accountLinkClass =
+  'text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]'
+
+export function Navbar({ tenantName, sections, tenantSlug }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -65,6 +71,12 @@ export function Navbar({ tenantName, sections }: NavbarProps) {
             ))}
           </ul>
         </nav>
+
+        {tenantSlug && (
+          <div className="ml-auto mr-4 flex items-center gap-4 md:ml-6 md:mr-0 md:order-last">
+            <MemberAccountLinks slug={tenantSlug} linkClassName={accountLinkClass} />
+          </div>
+        )}
 
         <button
           type="button"

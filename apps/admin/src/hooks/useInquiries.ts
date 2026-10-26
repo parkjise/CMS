@@ -13,7 +13,36 @@ export interface InquiryListItem {
   status: InquiryStatus
   is_read: boolean
   admin_memo: string | null
+  /** 상담 게시판 · 예약 (T-123) */
+  subject?: string | null
+  is_board?: boolean
+  answered_at?: string | null
+  reserved_date?: string | null
+  reserved_time?: string | null
   created_at: string
+  /** 방문자 회원 문의 (T-115) — 비회원은 null */
+  member_id?: string | null
+}
+
+export type MemberReservationStatus = 'PENDING' | 'CONFIRMED' | 'COMPLETED' | 'CANCELLED'
+
+export interface InquiryMemberInfo {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  created_at: string
+  is_active: boolean
+}
+
+export interface InquiryReservationInfo {
+  id: string
+  reservation_type: 'MEDICAL' | 'LODGING' | 'GENERAL'
+  status: MemberReservationStatus
+  reserved_at: string | null
+  detail: Record<string, unknown>
+  /** 관리자가 바꿀 수 있는 다음 상태 */
+  next_statuses: MemberReservationStatus[]
 }
 
 export interface InquiryListResponse {
@@ -26,6 +55,9 @@ export interface InquiryListResponse {
 export interface InquiryDetail extends InquiryListItem {
   tenant_id: string
   message: string
+  is_secret?: boolean
+  /** 상담 게시판에 공개되는 답변 */
+  answer?: string | null
   attachments: Array<{
     id: string
     file_url: string
@@ -33,6 +65,9 @@ export interface InquiryDetail extends InquiryListItem {
     file_size: number
   }>
   updated_at: string
+  /** 회원 정보 · 회원 예약 (T-115) */
+  member?: InquiryMemberInfo | null
+  reservation?: InquiryReservationInfo | null
 }
 
 export interface InquiryFilters {
@@ -48,6 +83,8 @@ export interface InquiryUpdate {
   status?: InquiryStatus
   is_read?: boolean
   admin_memo?: string | null
+  /** 상담 게시판 답변 — 빈 문자열이면 답변 삭제 */
+  answer?: string
 }
 
 const cleanParams = (filters: InquiryFilters) => {
@@ -104,6 +141,28 @@ export function useUpdateInquiry() {
       queryClient.invalidateQueries({ queryKey: ['inquiries'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'recent'] })
+    },
+  })
+}
+
+/** 회원 예약 상태 변경 — 확정 · 완료 · 취소 (회원에게 알림, T-115) */
+export function useUpdateMemberReservation() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string
+      status: Exclude<MemberReservationStatus, 'PENDING'>
+    }): Promise<InquiryDetail> => {
+      const { data } = await api.patch(`/v1/inquiries/${id}/reservation`, { status })
+      return data.data
+    },
+    onSuccess: (updated) => {
+      queryClient.setQueryData(['inquiry', updated.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
     },
   })
 }
