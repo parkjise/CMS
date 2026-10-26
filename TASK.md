@@ -29,9 +29,9 @@
 | Phase 12: 테스트 & 배포 | 6 | 6 | 100% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **Phase 15: 방문자 인증** | **10** | **1** | **10%** |
+| **Phase 15: 방문자 인증** | **10** | **2** | **20%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **6** | **67%** |
-| **합계** | **127** | **115** | **91%** |
+| **합계** | **127** | **116** | **91%** |
 
 ---
 
@@ -2084,16 +2084,18 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-107: 방문자 회원 DB 스키마 + 마이그레이션
+### T-107: 방문자 회원 DB 스키마 + 마이그레이션 ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 16.9 (DB 스키마)`
 - **작업 내용:**
-  - [ ] `app/models/site_member.py` — SiteMember, MemberReservation, PhoneVerification, MemberPasswordResetToken 모델
-  - [ ] `inquiries.member_id` (nullable FK → site_members) 컬럼 추가
-  - [ ] Alembic 마이그레이션 생성 및 적용 (4개 테이블 + RLS 정책 + 인덱스)
-  - [ ] `app/schemas/site_member.py` — 가입/로그인/내 정보/알림 설정/예약 Pydantic 스키마
-  - [ ] `scripts/seed.py`에 테스트용 방문자 회원·예약 데이터 추가 (업종별 1명 이상)
+  - [x] `app/models/site_member.py` — SiteMember, MemberReservation, PhoneVerification, MemberPasswordResetToken 모델
+  - [x] `inquiries.member_id` (nullable FK → site_members) 컬럼 추가
+  - [x] Alembic 마이그레이션 생성 및 적용 (4개 테이블 + RLS 정책 + 인덱스)
+  - [x] `app/schemas/site_member.py` — 가입/로그인/내 정보/알림 설정/예약 Pydantic 스키마
+  - [x] `scripts/seed.py`에 테스트용 방문자 회원·예약 데이터 추가 (업종별 1명 이상)
 - **완료 조건:** `alembic upgrade head` / `downgrade -1` 성공, 다른 테넌트 회원 조회 시 RLS 로 0건
+- **결과:** 커밋 `f979fe2`·`b925e1c`·`51d3071` (feat/T-107, feat/T-125 기준) — 마이그레이션 0019, 테스트 19건 추가 (백엔드 522건 통과 · 커버리지 78%). 기획서 16.9 대비 변경: phone_verifications · member_password_reset_tokens 에 tenant_id NOT NULL + RLS, 이메일·소셜 유니크는 탈퇴 제외 부분 인덱스(#22), 알림 설정용 notify_reservation_confirmed/cancelled 컬럼 추가, 토큰 컬럼 token_hash(SHA-256). 시드: test-tenant 회원 3명(이메일 hong@member.test / member1234 · 카카오 · 네이버) + 예약 4건(MEDICAL·LODGING·GENERAL)
+- ⚠️ **발견:** 로컬·테스트 DB 접속 계정 `cms_user` 가 슈퍼유저(BYPASSRLS)라 앱 전체에서 RLS 가 실제로는 적용되지 않음 (격리는 서비스 쿼리의 tenant_id 조건에 의존). T-107 테스트는 일반 권한 역할로 바꿔 정책을 검증. 운영은 일반 권한 앱 계정 분리 필요 — 별도 태스크 제안
 
 ---
 

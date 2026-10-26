@@ -4274,25 +4274,32 @@ CREATE TABLE site_members (
     marketing_agree BOOLEAN NOT NULL DEFAULT false,
     sms_agree       BOOLEAN NOT NULL DEFAULT true,
     email_agree     BOOLEAN NOT NULL DEFAULT false,
+    notify_reservation_confirmed BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 확정 알림
+    notify_reservation_cancelled BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 취소 알림
     last_login_at   TIMESTAMPTZ,
     failed_login_count INT NOT NULL DEFAULT 0,  -- 연속 실패 횟수 (5회 → 잠금)
     locked_until    TIMESTAMPTZ,               -- 로그인 잠금 해제 시각
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at      TIMESTAMPTZ,               -- 탈퇴 시 소프트 삭제
-    UNIQUE (tenant_id, email)                  -- 테넌트별 이메일 중복 불가
-    -- 탈퇴 후 재가입 허용 시: 부분 유니크 인덱스(WHERE deleted_at IS NULL)로 교체 (오픈 이슈 #22)
+    deleted_at      TIMESTAMPTZ                -- 탈퇴 시 소프트 삭제
 );
 
-CREATE INDEX idx_site_members_tenant ON site_members(tenant_id);
-CREATE INDEX idx_site_members_phone  ON site_members(tenant_id, phone);
+-- (T-107) 테넌트별 이메일 · 소셜 계정 중복 불가 — 탈퇴 회원 제외 부분 유니크
+-- 재가입 허용 기간(즉시 / 30일, 오픈 이슈 #22)은 서비스에서 판단
+CREATE UNIQUE INDEX uq_site_members_tenant_email
+    ON site_members(tenant_id, email) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX uq_site_members_tenant_social
+    ON site_members(tenant_id, social_provider, social_id)
+    WHERE deleted_at IS NULL AND social_id IS NOT NULL;
+CREATE INDEX ix_site_members_tenant_id ON site_members(tenant_id);
+CREATE INDEX idx_site_members_phone    ON site_members(tenant_id, phone);
 
 -- 방문자 예약 내역
 CREATE TABLE member_reservations (
     id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id        UUID NOT NULL REFERENCES tenants(id),
     member_id        UUID NOT NULL REFERENCES site_members(id),
-    inquiry_id       UUID REFERENCES inquiries(id),
+    inquiry_id       UUID REFERENCES inquiries(id) ON DELETE SET NULL,
     reservation_type VARCHAR(30) NOT NULL,
                      -- MEDICAL(진료), LODGING(숙박), GENERAL(일반)
     status           VARCHAR(20) NOT NULL DEFAULT 'PENDING',
@@ -4312,7 +4319,7 @@ CREATE INDEX idx_member_reservations_member
 CREATE TABLE phone_verifications (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     phone       VARCHAR(20) NOT NULL,
-    tenant_id   UUID REFERENCES tenants(id),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,  -- (T-107) NOT NULL: RLS 대상
     code        VARCHAR(6) NOT NULL,
     purpose     VARCHAR(20) NOT NULL,
                 -- REGISTER, FIND_EMAIL, RESET_PW
@@ -4326,14 +4333,19 @@ CREATE TABLE phone_verifications (
 -- 비밀번호 재설정 토큰
 CREATE TABLE member_password_reset_tokens (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id   UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,  -- (T-107) 추가: RLS 대상
     member_id   UUID NOT NULL REFERENCES site_members(id) ON DELETE CASCADE,
-    token       VARCHAR(200) UNIQUE NOT NULL,
+    token_hash  VARCHAR(64) UNIQUE NOT NULL,   -- 토큰 원문의 SHA-256 (hex)
     expires_at  TIMESTAMPTZ NOT NULL,          -- 발급 후 30분
     used_at     TIMESTAMPTZ,                   -- 1회용
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
--- token 은 원문 대신 SHA-256 해시를 저장한다 (DB 유출 시 재사용 방지)
+-- 토큰 원문은 메일 링크에만 담고 DB 에는 SHA-256 해시만 저장한다 (DB 유출 시 재사용 방지)
+
+-- 회원이 남긴 문의·예약 연결 (비회원은 NULL)
+ALTER TABLE inquiries ADD COLUMN member_id UUID
+    REFERENCES site_members(id) ON DELETE SET NULL;
 
 -- RLS: 섹션 2.2 패턴 동일 적용
 ALTER TABLE site_members ENABLE ROW LEVEL SECURITY;
@@ -4342,8 +4354,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
     tenant_id = current_setting('app.current_tenant_id', true)::uuid
     OR current_setting('app.is_super_admin', true) = 'true'
   );
--- member_reservations · phone_verifications 동일 정책 적용
--- member_password_reset_tokens 는 tenant_id 가 없으므로 site_members 조인 기준으로 조회
+-- (T-107) 네 테이블 모두 ENABLE + FORCE ROW LEVEL SECURITY + 같은 정책 (마이그레이션 0019)
 ```
 
 ---
