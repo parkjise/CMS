@@ -68,7 +68,11 @@ def create_member_access_token(member_id: UUID, tenant_id: UUID) -> str:
         user_id=member_id,
         tenant_id=tenant_id,
         role=SITE_MEMBER_ROLE,
-        extra_claims={"member_id": str(member_id)},
+        extra_claims={
+            "member_id": str(member_id),
+            # 비밀번호 변경 전 발급 토큰 판별용 (T-109) — 초 단위 소수까지
+            "iat": datetime.now(UTC).timestamp(),
+        },
     )
 
 
@@ -82,10 +86,19 @@ def create_member_refresh_token(
         "tenant_id": str(tenant_id),
         "type": MEMBER_REFRESH_TYPE,
         "remember": remember,
+        "iat": datetime.now(UTC).timestamp(),
         "jti": str(_uuid.uuid4()),
         "exp": expire,
     }
     return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
+
+
+def issued_before(payload: dict, moment: datetime | None) -> bool:
+    """토큰 iat 가 moment(예: 비밀번호 변경 시각)보다 이전이면 True."""
+    if moment is None:
+        return False
+    iat = payload.get("iat")
+    return iat is None or float(iat) < moment.timestamp()
 
 
 def decode_token(token: str) -> dict:

@@ -1,6 +1,6 @@
 """T-108 방문자 회원 인증 서비스 (기획서 16.3 · 16.4 · 16.11).
 
-- 가입: 이메일 중복 · 휴대폰 인증(REGISTER, 30분 이내, 1회용) 확인 후 생성
+- 가입: 이메일 중복 · 휴대폰 인증(REGISTER · 30분 이내 · 1회용) 확인 후 생성
 - 로그인: 연속 5회 실패 → 30분 잠금, 성공 시 실패 횟수 초기화
 - 토큰: access 15분 / refresh 7일 (회전 + Redis 블랙리스트)
 
@@ -9,7 +9,6 @@
 """
 
 import hashlib
-import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
@@ -27,16 +26,17 @@ from app.core.security import (
     create_member_refresh_token,
     decode_token,
     hash_password,
+    issued_before,
     verify_password,
 )
-from app.models.site_member import PhoneVerification, SiteMember
+from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.site_member import MemberRegisterRequest
+from app.services import member_verification
+from app.services.member_verification import normalize_phone
 
 MAX_FAILED_LOGINS = 5
 LOCK_MINUTES = 30
-# 인증 완료 후 가입까지 허용 시간
-VERIFICATION_VALID_MINUTES = 30
 
 _BLACKLIST_PREFIX = "member_blacklist:"
 # 존재하지 않는 계정도 bcrypt 비교 시간을 같게 맞추기 위한 더미 해시
@@ -45,12 +45,6 @@ _DUMMY_HASH = hash_password("dummy-password-for-timing")
 
 def normalize_email(email: str) -> str:
     return email.strip().lower()
-
-
-def normalize_phone(phone: str) -> str:
-    """010-1234-5678 형식으로 맞춘다."""
-    digits = re.sub(r"\D", "", phone)
-    return f"{digits[:3]}-{digits[3:-4]}-{digits[-4:]}"
 
 
 def _now() -> datetime:
@@ -105,30 +99,6 @@ async def is_email_available(db: AsyncSession, tenant_id: UUID, email: str) -> b
 # ── 가입 ──────────────────────────────────────────────────────────────────
 
 
-async def _take_register_verification(
-    db: AsyncSession, tenant_id: UUID, verification_id: UUID, phone: str
-) -> PhoneVerification:
-    result = await db.execute(
-        select(PhoneVerification)
-        .where(
-            PhoneVerification.id == verification_id,
-            PhoneVerification.tenant_id == tenant_id,
-            PhoneVerification.purpose == "REGISTER",
-            PhoneVerification.verified_at.is_not(None),
-            PhoneVerification.used_at.is_(None),
-            PhoneVerification.verified_at
-            >= _now() - timedelta(minutes=VERIFICATION_VALID_MINUTES),
-        )
-        .with_for_update()
-    )
-    verification = result.scalar_one_or_none()
-    if verification is None or normalize_phone(verification.phone) != phone:
-        raise MemberAuthError(
-            400, "PHONE_NOT_VERIFIED", errors.PHONE_NOT_VERIFIED, field="phone"
-        )
-    return verification
-
-
 async def register(
     db: AsyncSession, tenant: Tenant, body: MemberRegisterRequest
 ) -> SiteMember:
@@ -137,8 +107,8 @@ async def register(
     if not await is_email_available(db, tenant.id, email):
         raise MemberAuthError(409, "CONFLICT", errors.EMAIL_TAKEN, field="email")
 
-    verification = await _take_register_verification(
-        db, tenant.id, body.phone_verification_id, phone
+    await member_verification.take_verified(
+        db, tenant.id, body.phone_verification_id, "REGISTER", phone=phone
     )
     now = _now()
     member = SiteMember(
@@ -151,7 +121,6 @@ async def register(
         marketing_agree=body.marketing_agree,
         last_login_at=now,
     )
-    verification.used_at = now
     db.add(member)
     try:
         await db.commit()
@@ -272,7 +241,7 @@ async def refresh(
     payload = _decode_refresh(refresh_token, tenant)
 
     member = await get_active_member(db, tenant.id, UUID(payload["sub"]))
-    if member is None:
+    if member is None or issued_before(payload, member.password_changed_at):
         raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
 
     remember = bool(payload.get("remember"))

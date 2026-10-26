@@ -114,3 +114,58 @@ async def _send_member_joined_alert(tenant_id: str, member_id: str) -> dict:
             tenant_name=tenant.name,
         )
     return {"welcome_sent": bool(welcome.get("sent")), **alert}
+
+
+@celery_app.task(
+    name="app.workers.notification.send_member_password_changed",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def send_member_password_changed(self, tenant_id: str, member_id: str) -> dict:
+    """방문자 비밀번호 변경 보안 알림 — 메일 + 문자 (T-109, 기획서 16.11)."""
+    return asyncio.run(_send_member_password_changed(tenant_id, member_id))
+
+
+async def _send_member_password_changed(tenant_id: str, member_id: str) -> dict:
+    from app.db.session import AsyncSessionLocal
+    from app.models.site_member import SiteMember
+    from app.services import email as email_service
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        member = (
+            await db.execute(select(SiteMember).where(SiteMember.id == member_id))
+        ).scalar_one_or_none()
+        tenant = (
+            await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        ).scalar_one_or_none()
+    if member is None or tenant is None:
+        return {"email_sent": False, "sms_sent": False, "reason": "NOT_FOUND"}
+
+    changed_at = notification_service.format_kr_time(
+        member.password_changed_at or member.updated_at
+    )
+    email = await email_service.send_email(
+        member.email,
+        subject=f"[{tenant.name}] 비밀번호가 변경되었습니다",
+        template="member_password_changed",
+        variables={
+            "member_name": member.name,
+            "site_name": tenant.name,
+            "changed_at": changed_at,
+        },
+    )
+    # 보안 알림은 문자 수신 동의(sms_agree)와 관계없이 발송한다
+    sms_sent = False
+    if member.phone:
+        sms_sent = await notification_service.send_sms(
+            to=member.phone,
+            message=(
+                f"[{tenant.name}] 비밀번호가 변경되었습니다. "
+                "본인이 아니라면 고객센터에 문의하세요."
+            ),
+        )
+    return {"email_sent": bool(email.get("sent")), "sms_sent": sms_sent, "reason": ""}

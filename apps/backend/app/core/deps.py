@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
 from app.core.member_errors import MemberAuthError
-from app.core.security import SITE_MEMBER_ROLE, decode_token
+from app.core.security import SITE_MEMBER_ROLE, decode_token, issued_before
 from app.db.session import AsyncSessionLocal, set_rls_context
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
@@ -156,6 +156,7 @@ async def get_current_member(
     member = await member_auth_service.get_active_member(
         db, tenant.id, UUID(payload["sub"])
     )
-    if member is None:
+    # 비밀번호 변경 전에 발급된 access token 도 거부 (T-109)
+    if member is None or issued_before(payload, member.password_changed_at):
         raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
     return member

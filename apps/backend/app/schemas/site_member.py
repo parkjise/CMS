@@ -123,11 +123,19 @@ class PhoneVerifyRequest(BaseModel):
 
 class FindEmailRequest(BaseModel):
     name: str = Field(..., max_length=100)
+    # POST /auth/phone/verify 로 인증 완료된 FIND_EMAIL 용 id
     phone_verification_id: uuid.UUID
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        return _check_name(v)
 
 
 class ForgotPasswordRequest(BaseModel):
     email: EmailStr
+    # POST /auth/phone/verify 로 인증 완료된 RESET_PW 용 id (재발송 시 재사용 가능)
+    phone_verification_id: uuid.UUID
 
 
 class ResetPasswordRequest(BaseModel):
@@ -276,10 +284,40 @@ class MemberReservationResponse(BaseModel):
 class PhoneSendResponse(BaseModel):
     verification_id: uuid.UUID
     expires_at: datetime
+    # 재발송 가능까지 남은 초
+    resend_after_seconds: int
+    # 로컬 개발 전용 (운영 · 실발송 모드에서는 항상 None)
+    debug_code: str | None = None
 
 
-class FindEmailResponse(BaseModel):
-    # 가린 이메일 (예: ho**@email.com) + 가입 방식
+class PhoneVerifyResponse(BaseModel):
+    verification_id: uuid.UUID
+    verified: bool
+
+
+class FoundAccount(BaseModel):
+    # 가린 이메일 (예: ho****@email.com) + 가입 방식
     masked_email: str
     social_provider: SocialProvider | None
     created_at: datetime
+
+
+class FindEmailResponse(BaseModel):
+    accounts: list[FoundAccount]
+
+
+class ForgotPasswordResponse(BaseModel):
+    """계정 유무와 관계없이 같은 응답 (기획서 16.11)."""
+
+    masked_email: str
+    expires_in_minutes: int
+    resend_after_seconds: int
+
+
+class ResetTokenCheckResponse(BaseModel):
+    valid: bool
+    masked_email: str
+
+
+class ResetPasswordResponse(BaseModel):
+    reset: bool

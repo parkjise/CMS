@@ -27,6 +27,16 @@ TENANT_NOT_FOUND = "사이트를 찾을 수 없습니다"
 VALIDATION_ERROR = "입력값을 확인해주세요"
 INVALID_EMAIL = "올바른 이메일 형식이 아닙니다"
 REQUIRED_FIELD = "필수 입력 항목입니다"
+# 휴대폰 인증 · 계정 찾기 · 비밀번호 재설정 (기획서 16.5 · 16.6, T-109)
+PHONE_SEND_LIMIT = "오늘 인증번호 요청 한도(5회)를 넘었습니다. 내일 다시 시도해주세요"
+RESEND_WAIT = "잠시 후 다시 요청해주세요"
+SMS_SEND_FAILED = "인증번호 발송에 실패했습니다. 잠시 후 다시 시도해주세요"
+VERIFICATION_NOT_FOUND = "인증 요청을 찾을 수 없습니다. 인증번호를 다시 요청해주세요"
+INVALID_CODE = "인증번호가 일치하지 않습니다"
+CODE_EXPIRED = "인증번호가 만료되었습니다. 다시 요청해주세요"
+CODE_ATTEMPTS_EXCEEDED = "인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요"
+ACCOUNT_NOT_FOUND = "입력하신 정보와 일치하는 계정을 찾을 수 없습니다."
+TOKEN_EXPIRED = "유효하지 않거나 만료된 링크입니다."
 
 _MEMBER_PATH = re.compile(r"^/api/public/[^/]+/(auth|members)(/|$)")
 

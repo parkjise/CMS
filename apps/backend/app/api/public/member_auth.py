@@ -19,12 +19,25 @@ from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
 from app.schemas.site_member import (
     EmailCheckResponse,
+    FindEmailRequest,
+    FindEmailResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
+    FoundAccount,
     MemberAuthResponse,
     MemberLoginRequest,
     MemberRegisterRequest,
     MemberSummary,
+    PhoneSendRequest,
+    PhoneSendResponse,
+    PhoneVerifyRequest,
+    PhoneVerifyResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
+    ResetTokenCheckResponse,
 )
 from app.services import member_auth as member_auth_service
+from app.services import member_recovery, member_verification
 
 router = APIRouter(prefix="/{tenant_slug}/auth", tags=["public-member"])
 
@@ -152,3 +165,120 @@ async def check_email(
             email=member_auth_service.normalize_email(email), available=available
         )
     )
+
+
+# ── 휴대폰 인증 · 계정 찾기 · 비밀번호 재설정 (T-109, 기획서 16.5 · 16.6) ──
+
+
+@router.post("/phone/send", response_model=ApiResponse[PhoneSendResponse])
+@limiter.limit(_RATE)
+async def send_phone_code(
+    request: Request,
+    body: PhoneSendRequest,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """인증번호 문자 발송 (3분 · 하루 5회 · 60초 간격)."""
+    verification, resend_after = await member_verification.send_code(
+        db, tenant, body.phone, body.purpose
+    )
+    return ApiResponse.ok(
+        PhoneSendResponse(
+            verification_id=verification.id,
+            expires_at=verification.expires_at,
+            resend_after_seconds=resend_after,
+            debug_code=(
+                verification.code if member_verification.debug_code_enabled() else None
+            ),
+        )
+    )
+
+
+@router.post("/phone/verify", response_model=ApiResponse[PhoneVerifyResponse])
+@limiter.limit(_RATE)
+async def verify_phone_code(
+    request: Request,
+    body: PhoneVerifyRequest,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    verification = await member_verification.verify_code(
+        db, tenant, body.verification_id, body.code
+    )
+    return ApiResponse.ok(
+        PhoneVerifyResponse(verification_id=verification.id, verified=True)
+    )
+
+
+@router.post("/find-email", response_model=ApiResponse[FindEmailResponse])
+@limiter.limit(_RATE)
+async def find_email(
+    request: Request,
+    body: FindEmailRequest,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    members = await member_recovery.find_email(
+        db, tenant, body.name, body.phone_verification_id
+    )
+    return ApiResponse.ok(
+        FindEmailResponse(
+            accounts=[
+                FoundAccount(
+                    masked_email=member_recovery.mask_email(m.email),
+                    social_provider=m.social_provider,  # type: ignore[arg-type]
+                    created_at=m.created_at,
+                )
+                for m in members
+            ]
+        )
+    )
+
+
+@router.post("/forgot-password", response_model=ApiResponse[ForgotPasswordResponse])
+@limiter.limit(_RATE)
+async def forgot_password(
+    request: Request,
+    body: ForgotPasswordRequest,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """재설정 링크 발송 — 계정이 없어도 같은 응답 (기획서 16.11)."""
+    masked = await member_recovery.request_reset(
+        db, tenant, body.email, body.phone_verification_id
+    )
+    return ApiResponse.ok(
+        ForgotPasswordResponse(
+            masked_email=masked,
+            expires_in_minutes=member_recovery.RESET_TOKEN_MINUTES,
+            resend_after_seconds=member_recovery.RESET_RESEND_SECONDS,
+        )
+    )
+
+
+@router.get(
+    "/reset-password/check", response_model=ApiResponse[ResetTokenCheckResponse]
+)
+@limiter.limit(_RATE)
+async def check_reset_token(
+    request: Request,
+    token: str,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """재설정 화면 진입 전 링크 확인 — 만료·사용된 링크는 400 TOKEN_EXPIRED."""
+    masked = await member_recovery.check_reset_token(db, tenant, token)
+    return ApiResponse.ok(ResetTokenCheckResponse(valid=True, masked_email=masked))
+
+
+@router.post("/reset-password", response_model=ApiResponse[ResetPasswordResponse])
+@limiter.limit(_RATE)
+async def reset_password(
+    request: Request,
+    body: ResetPasswordRequest,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """새 비밀번호 저장 — 다른 기기 로그인 해제 + 보안 알림."""
+    await member_recovery.reset_password(db, tenant, body)
+    return ApiResponse.ok(ResetPasswordResponse(reset=True))

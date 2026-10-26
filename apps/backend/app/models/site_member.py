@@ -103,6 +103,10 @@ class SiteMember(Base, TimestampMixin, SoftDeleteMixin):
     locked_until: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 비밀번호 재설정·변경 시각 — 이전에 발급된 refresh 토큰 거부 (T-109)
+    password_changed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class MemberReservation(Base, TimestampMixin, SoftDeleteMixin):
