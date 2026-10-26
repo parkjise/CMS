@@ -308,6 +308,11 @@ class TestCrossTenantIds:
         self, client: AsyncClient, two_sites
     ):
         a, b = two_sites
+        # 예약 기능이 있는 업종 (T-115 MEMBER_RESERVATION 기본값)
+        await _sql(
+            "UPDATE tenants SET template_type = 'HOSPITAL' WHERE id IN (:a, :b)",
+            {"a": a["id"], "b": b["id"]},
+        )
         rid = (
             await _sql(
                 "INSERT INTO member_reservations (tenant_id, member_id,"

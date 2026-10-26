@@ -586,8 +586,17 @@ class TestFeatureFlag:
         callback = await _callback(client, tenant["slug"], "KAKAO", "c", "s" * 20)
         assert callback.status_code == 403
 
-    async def test_missing_flag_is_off(self, client: AsyncClient, test_tenant: dict):
-        resp = await client.get(
-            f"{_base(test_tenant['slug'])}/auth/social/kakao/authorize"
-        )
-        assert resp.status_code == 403
+    async def test_no_row_follows_default_explicit_off_wins(
+        self, client: AsyncClient, test_tenant: dict
+    ):
+        """T-115: 슈퍼 어드민이 정한 값(행)이 우선, 행이 없으면 업종 기본값(소셜 ON)."""
+        url = f"{_base(test_tenant['slug'])}/auth/social/kakao/authorize"
+        assert (await client.get(url)).status_code == 200
+        await _set_flag(test_tenant["id"], False)
+        try:
+            assert (await client.get(url)).status_code == 403
+        finally:
+            await _sql(
+                "DELETE FROM tenant_features WHERE tenant_id = :t",
+                {"t": test_tenant["id"]},
+            )
