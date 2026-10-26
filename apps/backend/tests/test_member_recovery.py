@@ -377,11 +377,13 @@ class TestPasswordReset:
         return url.split("token=")[1]
 
     async def test_same_response_whether_account_exists(
-        self, client: AsyncClient, test_tenant: dict, outbox: dict
+        self, client: AsyncClient, test_tenant: dict, outbox: dict, monkeypatch
     ):
         slug = test_tenant["slug"]
         await _signup(client, slug, email="hongil@example.com")
         vid = await _verified(client, slug, "RESET_PW")
+        # 운영 응답 기준 (로컬 개발의 debug_reset_url 은 계정이 있을 때만 채워짐)
+        monkeypatch.setattr(member_verification.settings, "app_env", "production")
         known = await self._forgot(client, slug, "hongil@example.com", vid)
         unknown = await self._forgot(client, slug, "hongim@example.com", vid)
         assert known.status_code == unknown.status_code == 200
@@ -394,6 +396,25 @@ class TestPasswordReset:
         assert (
             f"/{slug}/member/reset-password?token=" in outbox["email"][0]["reset_url"]
         )
+
+    async def test_debug_reset_url_only_in_local_dev(
+        self, client: AsyncClient, test_tenant: dict, outbox: dict, monkeypatch
+    ):
+        slug = test_tenant["slug"]
+        await _signup(client, slug)
+        vid = await _verified(client, slug, "RESET_PW")
+        dev = await self._forgot(client, slug, "hong@example.com", vid)
+        url = dev.json()["data"]["debug_reset_url"]
+        assert url == outbox["email"][-1]["reset_url"]
+
+        from app.core.redis import get_redis
+
+        await (await get_redis()).delete(
+            f"member_reset_cooldown:{test_tenant['id']}:hong@example.com"
+        )
+        monkeypatch.setattr(member_verification.settings, "app_env", "production")
+        prod = await self._forgot(client, slug, "hong@example.com", vid)
+        assert prod.json()["data"]["debug_reset_url"] is None
 
     async def test_phone_mismatch_sends_nothing(
         self, client: AsyncClient, test_tenant: dict, outbox: dict

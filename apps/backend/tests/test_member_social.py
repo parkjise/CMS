@@ -554,6 +554,17 @@ class TestLinking:
 
 
 class TestFeatureFlag:
+    async def test_auth_options_reflect_flag(self, client: AsyncClient, tenant: dict):
+        url = f"{_base(tenant['slug'])}/auth/options"
+        on = await client.get(url)
+        assert on.json()["data"] == {
+            "social_login": True,
+            "providers": ["KAKAO", "NAVER"],
+        }
+        await _set_flag(tenant["id"], False)
+        off = await client.get(url)
+        assert off.json()["data"] == {"social_login": False, "providers": []}
+
     async def test_disabled_returns_403(self, client: AsyncClient, tenant: dict):
         await _set_flag(tenant["id"], False)
         resp = await client.get(f"{_base(tenant['slug'])}/auth/social/kakao/authorize")
