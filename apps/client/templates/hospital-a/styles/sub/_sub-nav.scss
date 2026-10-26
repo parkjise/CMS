@@ -1,0 +1,54 @@
+// ── SUB NAV — 같은 카테고리 안의 페이지 탭 ────────────────────────
+// components/sub/sub-nav.html  /  현재 탭: [aria-current='page']
+@use '../mixins' as *;
+
+.sub-nav {
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-background);
+
+  &__list {
+    @include flex(stretch, safe center); // 넘치면 왼쪽부터 스크롤
+    @include hide-scrollbar;
+    overflow-x: auto;
+  }
+  &__link {
+    position: relative;
+    display: block;
+    padding: 16px 18px;
+    font-size: 15px;
+    @include md {
+      padding: 22px 32px;
+      font-size: 16px;
+    }
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    transition: color 0.2s;
+    @include focus-ring(var(--color-primary), -4px);
+
+    &:hover {
+      color: var(--color-text-primary);
+    }
+    &[aria-current='page'] {
+      color: var(--color-text-primary);
+      font-weight: 600;
+      &::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: -1px;
+        height: 2px;
+        background: var(--color-text-primary);
+      }
+    }
+  }
+}
+
+// 서브 탭 바로 다음 본문 섹션 — 모든 서브 페이지 공통 상단 여백
+// (padding 이라 섹션에 배경색이 있어도 탭 아래까지 이어짐)
+.sub-nav + section {
+  padding-top: 64px;
+  @include md {
+    padding-top: 120px;
+  }
+}

@@ -6,6 +6,8 @@ import { Footer } from '@/components/layout/Footer'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
+import { countSampleSettings } from '@/lib/sampleCount'
+import { memberEnabled } from '@/lib/publicSite.types'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -19,8 +21,13 @@ export default async function TenantHomePage({ params }: Props) {
     notFound()
   }
 
-  const activeSections = site.sections.filter((s) => s.is_active)
   const jsonLd = buildLocalBusinessJsonLd(site)
+  const sampleCount = countSampleSettings(site.sections)
+
+  // 코드형 템플릿 테넌트는 middleware.ts 가 템플릿 전용 라우트(app/(code)/tpl-{key})로 보낸다.
+  // 이 라우트는 테마형 전용 — 코드형 템플릿 화면을 import 하지 않아야 다른 템플릿 CSS·JS 가 섞이지 않는다.
+
+  const activeSections = site.sections.filter((s) => s.is_active)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
@@ -29,8 +36,8 @@ export default async function TenantHomePage({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
 
-      <EditToolbar />
-      <Navbar tenantName={site.tenant.name} sections={activeSections} />
+      <EditToolbar sampleCount={sampleCount} />
+      <Navbar tenantName={site.tenant.name} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (

@@ -14,7 +14,16 @@ export interface TemplateItem {
   is_active: boolean
   min_plan: string
   locked: boolean
+  /** 코드형 템플릿 (기획서 11.7) */
+  code?: string | null
+  renderer?: 'theme' | 'code'
+  styling?: 'tailwind' | 'scss'
+  /** 샘플로 교체(replace_with_sample) 가능 여부 (기획서 11.8) */
+  has_sample_content?: boolean
 }
+
+/** 템플릿 적용 시 콘텐츠 처리 — keep: 유지(기본) / replace_with_sample: 샘플로 교체 */
+export type ContentMode = 'keep' | 'replace_with_sample'
 
 export interface TemplateList {
   templates: TemplateItem[]
@@ -60,25 +69,42 @@ function useInvalidateTemplates() {
 
 export function useApplyTemplate() {
   const invalidate = useInvalidateTemplates()
+  const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (templateId: string): Promise<TemplateOverride> => {
+    mutationFn: async ({
+      templateId,
+      contentMode = 'keep',
+    }: {
+      templateId: string
+      contentMode?: ContentMode
+    }): Promise<TemplateOverride> => {
       const { data } = await api.post('/v1/templates/apply', {
         template_id: templateId,
+        content_mode: contentMode,
       })
       return data.data
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      // 코드형 템플릿은 없는 섹션을 샘플로 채우거나(유지) 교체하므로 섹션 목록도 갱신
+      queryClient.invalidateQueries({ queryKey: ['sections'] })
+    },
   })
 }
 
 export function useRollbackTemplate() {
   const invalidate = useInvalidateTemplates()
+  const queryClient = useQueryClient()
   return useMutation({
     mutationFn: async (): Promise<TemplateOverride> => {
       const { data } = await api.post('/v1/templates/rollback')
       return data.data
     },
-    onSuccess: invalidate,
+    onSuccess: () => {
+      invalidate()
+      // 샘플 교체를 되돌리면 이전 섹션이 복원된다
+      queryClient.invalidateQueries({ queryKey: ['sections'] })
+    },
   })
 }
 

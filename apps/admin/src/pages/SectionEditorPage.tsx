@@ -5,6 +5,7 @@ import { toast } from '@cms/ui'
 import { getFormForType } from '@/components/content/forms'
 import type { SettingUpdate } from '@/hooks/useSection'
 import { useSection, useUpdateSection } from '@/hooks/useSection'
+import { sampleKeys } from '@/lib/sampleContent'
 
 type SubTab = 'desktop' | 'mobile'
 
@@ -59,6 +60,7 @@ export function SectionEditorPage() {
 
   const section = sectionQuery.data
   const Form = getFormForType(section.section_type)
+  const samples = sampleKeys(section)
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -79,6 +81,21 @@ export function SectionEditorPage() {
           입력한 내용은 [변경사항 저장] 버튼을 눌러야 반영됩니다.
         </p>
       </div>
+
+      {samples.length > 0 && (
+        <div
+          role="note"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"
+        >
+          <p className="font-medium">
+            샘플 문구예요 — 내 내용으로 바꿔주세요 ({samples.length}개 남음)
+          </p>
+          <p className="mt-1 text-amber-700">
+            템플릿 샘플이 그대로 남아 있는 항목: {samples.join(', ')}. 저장하면
+            샘플 표시가 사라집니다.
+          </p>
+        </div>
+      )}
 
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex gap-6">

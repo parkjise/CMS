@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="ko">
+  <body style="font-family: sans-serif; color: #1e293b;">
+    <h2>예약이 {{ status_label }}되었습니다</h2>
+    <p>{{ member_name }}님, {{ site_name }} 예약이 {{ status_label }}되었습니다.</p>
+    {% if reserved_at %}<p>예약 일시: <b>{{ reserved_at }}</b></p>{% endif %}
+    <p>자세한 내용은 홈페이지 마이페이지 &gt; 내 예약에서 확인하실 수 있습니다.</p>
+    <p style="color: #64748b; font-size: 12px;">
+      알림을 받고 싶지 않으시면 마이페이지 &gt; 알림 설정에서 끌 수 있습니다.
+    </p>
+  </body>
+</html>

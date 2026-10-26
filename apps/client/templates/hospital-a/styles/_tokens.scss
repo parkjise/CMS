@@ -1,0 +1,56 @@
+// ════════════════════════════════════════════════════════════════
+// 공통 토큰 — SCSS 변수(작성 편의) + :root 변수(이식 anchor)
+// ────────────────────────────────────────────────────────────────
+// SCSS 변수($primary)는 믹스인/연산용. 실제 적용은 var(--color-primary)로
+// 하여, 이 :root 값이 그대로 TemplateTheme.cssVariables 로 이식되게 한다.
+// 키 이름은 apps/client/lib/theme.ts 의 KEY_MAP 과 동일하게 유지할 것.
+// ════════════════════════════════════════════════════════════════
+
+// --- SCSS 변수 (lighten/darken 등 연산에 사용) ---
+$primary: #0ea5a0;
+$accent: #f59e0b;
+$text-primary: #333333;
+
+// --- 브레이크포인트 (미디어쿼리 믹스인은 _mixins.scss) ---
+$bp-sm: 480px;
+$bp-md: 768px;
+$bp-lg: 1024px;
+$bp-xl: 1280px;
+
+// --- CSS 변수로 노출 — 템플릿 루트([data-template])에 include (styles/index.scss) ---
+// apps/client 이식: :root 대신 템플릿 루트에 선언해 다른 템플릿·테마와 섞이지 않게 함
+@mixin root-tokens {
+  --color-primary: #{$primary};
+  --color-primary-hover: #0c8a86;
+  --color-on-primary: #ffffff;
+  --color-secondary: #e8f6f5;
+  --color-accent: #{$accent};
+  --color-background: #ffffff;
+  --color-surface: #f8fafc;
+  --color-text-primary: #{$text-primary};
+  --color-text-secondary: #475569;
+  --color-border: #e2e8f0;
+
+  --font-heading: 'Pretendard', system-ui, sans-serif;
+  --font-body: 'Pretendard', system-ui, sans-serif;
+  --border-radius-base: 10px;
+  --border-radius-card: 16px;
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
+  --spacing-section: 80px;
+  --spacing-gutter: 20px; // 화면 좌우 여백 (container)
+  --spacing-frame: 20px; // 헤더·히어로 좌우 기준선
+  --spacing-container: 1640px;
+
+  // 태블릿 이상 좌우 여백·섹션 간격
+  @media (min-width: $bp-md) {
+    & {
+      --spacing-gutter: 40px;
+      --spacing-frame: 80px;
+    }
+  }
+  @media (max-width: ($bp-md - 0.02px)) {
+    & {
+      --spacing-section: 60px;
+    }
+  }
+}

@@ -10,6 +10,13 @@ from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
 from app.models.section import Section, SectionSetting
 from app.models.seo import SeoSetting
+from app.models.site_member import (
+    MemberPasswordResetToken,
+    MemberReservation,
+    MemberSocialAccount,
+    PhoneVerification,
+    SiteMember,
+)
 from app.models.sns import NotificationSetting, SnsChannelSetting
 from app.models.template import Template, TemplateChangeHistory, TenantTemplateOverride
 from app.models.tenant import Tenant
@@ -42,4 +49,9 @@ __all__ = [
     "PlanChangeHistory",
     "TenantDomain",
     "AuditLog",
+    "SiteMember",
+    "MemberReservation",
+    "PhoneVerification",
+    "MemberPasswordResetToken",
+    "MemberSocialAccount",
 ]

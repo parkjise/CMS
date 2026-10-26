@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router'
 import { Toggle } from '@cms/ui'
 import type { Section } from '@/hooks/useSections'
+import { sampleKeys } from '@/lib/sampleContent'
 
 const SECTION_ICONS: Record<string, LucideIcon> = {
   HERO_BANNER: ImageIcon,
@@ -66,6 +67,7 @@ export function SectionListItem({
     isDragging,
   } = useSortable({ id: section.id })
 
+  const sampleCount = sampleKeys(section).length
   const Icon = SECTION_ICONS[section.section_type] ?? Layout
   const typeLabel =
     SECTION_TYPE_LABELS[section.section_type] ?? section.section_type
@@ -105,8 +107,18 @@ export function SectionListItem({
         className="group flex min-w-0 flex-1 items-center gap-2 hover:text-blue-600"
       >
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600">
-            {section.label}
+          <div className="flex items-center gap-2">
+            <span className="truncate text-sm font-medium text-slate-900 group-hover:text-blue-600">
+              {section.label}
+            </span>
+            {sampleCount > 0 && (
+              <span
+                className="flex-shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-700"
+                title="템플릿 샘플 문구·이미지가 그대로 남아 있어요"
+              >
+                샘플 {sampleCount}
+              </span>
+            )}
           </div>
           <div className="mt-0.5 text-xs text-slate-500">{typeLabel}</div>
         </div>

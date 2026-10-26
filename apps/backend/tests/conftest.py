@@ -42,6 +42,7 @@ _deps.AsyncSessionLocal = _nullpool_session
 
 # Disable rate limiting during tests — all requests share 127.0.0.1 so the per-IP
 # limit would be exhausted after 3 inquiry submissions across the entire test suite.
+from app.api.public.member_auth import limiter as _member_limiter  # noqa: E402
 from app.api.v1.endpoints.auth import limiter as _auth_limiter  # noqa: E402
 from app.api.v1.endpoints.billing import _limiter as _billing_limiter  # noqa: E402
 from app.api.v1.endpoints.inquiries import _limiter as _inquiry_limiter  # noqa: E402
@@ -49,6 +50,7 @@ from app.api.v1.endpoints.inquiries import _limiter as _inquiry_limiter  # noqa:
 _inquiry_limiter.enabled = False
 _auth_limiter.enabled = False
 _billing_limiter.enabled = False
+_member_limiter.enabled = False
 
 
 async def _bypass_session() -> AsyncSession:

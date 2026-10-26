@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -14,6 +15,12 @@ class TemplateResponse(BaseModel):
     section_layouts: list
     is_active: bool
     min_plan: str
+    # 코드형 템플릿 (기획서 11.7)
+    code: str | None = None
+    renderer: str = "theme"
+    styling: str = "tailwind"
+    version: str = "1.0.0"
+    has_sample_content: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -31,6 +38,9 @@ class TemplateListResponse(BaseModel):
 
 class TemplateApplyRequest(BaseModel):
     template_id: uuid.UUID
+    # keep(기본): 콘텐츠 유지 / replace_with_sample: 샘플로 교체
+    # (기획서 11.8 — 관리자 화면에서 확인 모달 필수)
+    content_mode: Literal["keep", "replace_with_sample"] = "keep"
 
 
 class TemplateCssOverrideUpdate(BaseModel):

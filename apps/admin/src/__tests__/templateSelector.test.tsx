@@ -115,3 +115,30 @@ describe('ApplyConfirmDialog', () => {
     expect(screen.queryByText('이 템플릿을 적용할까요?')).not.toBeInTheDocument()
   })
 })
+
+describe('코드형 템플릿 표시 · 미리보기 (T-125)', () => {
+  it('코드형 템플릿 카드는 전용 디자인 · 샘플 포함 배지를 보여준다', () => {
+    render(
+      <TemplateCard
+        template={{ ...baseTemplate, renderer: 'code', code: 'TPL_HOSPITAL_A', has_sample_content: true }}
+        isCurrent={false}
+        onApply={vi.fn()}
+        onPreview={vi.fn()}
+      />,
+    )
+    expect(screen.getByText('전용 디자인 · 서브 페이지 포함')).toBeInTheDocument()
+    expect(screen.getByText('샘플 문구·이미지 포함')).toBeInTheDocument()
+  })
+
+  it('테마형 카드에는 배지가 없다', () => {
+    render(<TemplateCard template={baseTemplate} isCurrent={false} onApply={vi.fn()} onPreview={vi.fn()} />)
+    expect(screen.queryByText('전용 디자인 · 서브 페이지 포함')).not.toBeInTheDocument()
+  })
+
+  it('미리보기 식별자: 코드형은 코드, 테마형은 ID', async () => {
+    const { previewTemplateRef, buildTemplatePreviewUrl } = await import('@/lib/previewUrl')
+    expect(previewTemplateRef({ id: 'uuid-1', code: 'TPL_HOSPITAL_A' })).toBe('TPL_HOSPITAL_A')
+    expect(previewTemplateRef({ id: 'uuid-1', code: null })).toBe('uuid-1')
+    expect(buildTemplatePreviewUrl('demo', 'TPL_HOSPITAL_A')).toBe('http://localhost:3000/demo/preview?tpl=TPL_HOSPITAL_A')
+  })
+})

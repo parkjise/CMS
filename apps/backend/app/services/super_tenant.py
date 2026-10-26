@@ -16,6 +16,7 @@ from app.models.audit import AuditLog
 from app.models.file import UploadedFile
 from app.models.inquiry import Inquiry
 from app.models.section import Section
+from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -111,6 +112,7 @@ async def create_tenant(
     plan_type: str,
     admin_email: str,
     admin_password: str,
+    template_code: str | None = None,
 ) -> Tenant:
     existing = await db.execute(select(Tenant).where(Tenant.slug == slug))
     if existing.scalar_one_or_none():
@@ -140,17 +142,50 @@ async def create_tenant(
             is_active=True,
         )
     )
-    for order, (section_type, label) in enumerate(DEFAULT_SECTIONS):
+    start_template: Template | None = None
+    if template_code:
+        start_template = (
+            await db.execute(
+                select(Template).where(
+                    Template.code == template_code, Template.is_active.is_(True)
+                )
+            )
+        ).scalar_one_or_none()
+        if start_template is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="시작 템플릿을 찾을 수 없습니다.",
+            )
+
+    if start_template is not None:
+        # 템플릿 샘플 콘텐츠로 완성된 홈페이지에서 시작 (기획서 11.8)
+        from app.services.template import copy_sample_sections
+
         db.add(
-            Section(
-                id=uuid.uuid4(),
+            TenantTemplateOverride(
                 tenant_id=tenant.id,
-                section_type=section_type,
-                label=label,
-                display_order=order,
-                is_active=True,
+                template_id=start_template.id,
+                css_overrides={},
             )
         )
+        await copy_sample_sections(db, tenant.id, start_template)
+    else:
+        for order, (section_type, label) in enumerate(DEFAULT_SECTIONS):
+            db.add(
+                Section(
+                    id=uuid.uuid4(),
+                    tenant_id=tenant.id,
+                    section_type=section_type,
+                    label=label,
+                    display_order=order,
+                    is_active=True,
+                )
+            )
+
+    # 기본 기능 켜기 (T-115) — default_enabled · 요금제 · 업종별 회원 기능
+    from app.services import feature as feature_service
+
+    await feature_service.apply_defaults(db, tenant)
 
     await db.commit()
     await db.refresh(tenant)

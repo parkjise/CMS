@@ -47,6 +47,15 @@ class Settings(BaseSettings):
 
     # 알림톡
     kakao_api_key: str = ""
+    # 방문자 소셜 로그인 (T-110, 오픈 이슈 #24 — 운영사 공용 앱 1개)
+    # "test" | "live" — test 모드는 카카오 · 네이버 호출 없이 가짜 계정으로 동작
+    social_mode: str = "test"
+    kakao_rest_api_key: str = ""
+    kakao_client_secret: str = ""
+    naver_client_id: str = ""
+    naver_client_secret: str = ""
+    # 공용 콜백 페이지 (메인 도메인) — 카카오 · 네이버 개발자 콘솔에 등록하는 주소
+    social_redirect_uri: str = "http://localhost:3000/member/social/callback"
     kakao_sender_key: str = ""
 
     # 네이버 클라우드 SENS (알림톡/SMS 발송)

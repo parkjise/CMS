@@ -51,6 +51,8 @@ export interface CreateTenantInput {
   plan_type: string
   admin_email: string
   admin_password: string
+  /** 시작 템플릿 코드 — 주면 템플릿 샘플 콘텐츠로 시작 (기획서 11.8) */
+  template_code?: string
 }
 
 export function useCreateTenant() {

@@ -1,0 +1,45 @@
+// 템플릿 루트 아래로 중첩될 규칙 모음 (index.scss 의 meta.load-css 대상)
+// 파일명 = 컴포넌트명 = BEM 블록명 (components/*.tsx 와 1:1)
+@use 'reset';
+@use 'base'; // 레이아웃 · 공용 컴포넌트 (.page-container · .card-grid · .section-head · .btn · .sr-only)
+
+@use 'header/header'; // Header.tsx
+
+@use 'main/hero-slider'; // sections/HeroSlider.tsx (HERO_SLIDER)
+@use 'main/brand-intro'; // sections/BrandIntro.tsx (INTRO)
+@use 'main/service-cards'; // sections/ServiceCards.tsx (SERVICES)
+@use 'main/video-playlist'; // sections/VideoPlaylist.tsx (VIDEO_PLAYLIST)
+@use 'main/notice'; // sections/NoticeLatest.tsx (NOTICE_LATEST)
+@use 'main/location'; // sections/Location.tsx (MAP)
+
+// 서브 페이지 (T-122) — 파일명 = 컴포넌트명 = BEM 블록명
+@use 'sub/sub-hero'; // sub/SubHero.tsx (SUB_HERO)
+@use 'sub/page-intro'; // sub/PageIntro.tsx (CONTENT_BLOCK layout=page-intro)
+@use 'sub/sub-nav'; // sub/SubNav.tsx (페이지 하위 탭 — 매니페스트 parent)
+@use 'sub/media-row';
+@use 'sub/strength-list';
+@use 'sub/area-rows';
+@use 'sub/photo-gallery';
+@use 'sub/consult-links';
+@use 'sub/history-timeline'; // sub/HistoryTimeline.tsx (HISTORY_TIMELINE)
+@use 'sub/story-text'; // 큰 영문 제목 + 국문 소제목 + 설명 (아래 블록 공용)
+@use 'sub/split-story';
+@use 'sub/milestone-split';
+@use 'sub/banner-split';
+@use 'sub/criteria-cards';
+@use 'sub/value-circles';
+
+// 게시판 · 입력 폼 (T-123)
+@use 'sub/board-toolbar'; // 총 건수 | 검색 (공용)
+@use 'sub/pagination'; // 페이지 이동 (공용)
+@use 'sub/board-list'; // 공지 목록
+@use 'sub/board-view'; // 공지·상담 상세 (+ 답변 박스)
+@use 'sub/consult-board'; // 상담 목록 (표)
+@use 'sub/board-form'; // 상담 글쓰기 · 예약 폼
+
+// 방문자 회원 화면 (T-124) — 로그인 · 가입 · 찾기 · 재설정 · 탈퇴 / 마이페이지
+@use 'sub/member-form'; // member/*Form.tsx (.board-form 재사용)
+@use 'sub/mypage'; // member/Mypage.tsx
+
+@use 'footer/footer'; // Footer.tsx
+@use 'quick-menu/quick-menu'; // QuickMenu.tsx

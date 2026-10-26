@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Input, Modal, toast } from '@cms/ui'
 import { PLAN_TYPES } from '@/lib/plans'
+import { START_TEMPLATES } from '@/lib/startTemplates'
 import { useCreateTenant } from '@/hooks/useTenants'
 
 interface Props {
@@ -15,6 +16,7 @@ const EMPTY = {
   plan_type: 'BASIC',
   admin_email: '',
   admin_password: '',
+  template_code: '',
 }
 
 export function CreateTenantModal({ open, onClose }: Props) {
@@ -36,7 +38,13 @@ export function CreateTenantModal({ open, onClose }: Props) {
       return
     }
     try {
-      await create.mutateAsync(form)
+      const { template_code, ...rest } = form
+      const start = START_TEMPLATES.find((t) => t.code === template_code)
+      await create.mutateAsync({
+        ...rest,
+        template_type: start?.templateType ?? rest.template_type,
+        ...(template_code ? { template_code } : {}),
+      })
       toast.success('테넌트가 생성되었습니다.')
       setForm(EMPTY)
       onClose()
@@ -74,6 +82,29 @@ export function CreateTenantModal({ open, onClose }: Props) {
               </option>
             ))}
           </select>
+        </div>
+        <div>
+          <label
+            htmlFor="start-template"
+            className="mb-1 block text-sm font-medium text-slate-700"
+          >
+            시작 템플릿
+          </label>
+          <select
+            id="start-template"
+            value={form.template_code}
+            onChange={(e) => set('template_code', e.target.value)}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          >
+            {START_TEMPLATES.map((t) => (
+              <option key={t.code || 'default'} value={t.code}>
+                {t.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-1 text-xs text-slate-500">
+            템플릿을 고르면 샘플 문구·이미지가 채워진 홈페이지로 시작합니다.
+          </p>
         </div>
         <Input
           label="관리자 이메일"

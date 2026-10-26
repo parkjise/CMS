@@ -70,4 +70,19 @@ describe('FeaturesTab (SA-03)', () => {
     expect(screen.getByText('BETA')).toBeInTheDocument()
     expect(screen.getByText('미배포')).toBeInTheDocument()
   })
+
+  it('방문자 회원 기능은 "방문자 회원" 분류로 켜고 끈다 (T-115)', async () => {
+    const user = userEvent.setup()
+    useTenantFeatures.mockReturnValue({
+      data: [
+        feat({ key: 'SITE_MEMBER', name: '방문자 회원', category: 'MEMBER', is_enabled: true }),
+        feat({ key: 'MEMBER_RESERVATION', name: '회원 예약 내역', category: 'MEMBER' }),
+      ],
+      isLoading: false,
+    })
+    render(<FeaturesTab tenantId="t1" tenantPlan="FREE" />)
+    expect(screen.getAllByText('방문자 회원').length).toBeGreaterThanOrEqual(1)
+    await user.click(screen.getByRole('checkbox', { name: '방문자 회원 토글' }))
+    expect(toggleMutate).toHaveBeenCalledWith({ featureId: 'SITE_MEMBER', enabled: false })
+  })
 })

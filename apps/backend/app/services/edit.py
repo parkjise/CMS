@@ -74,6 +74,7 @@ async def batch_save(
             existing = existing_row.scalar_one_or_none()
             if existing:
                 existing.field_value = change.value
+                existing.is_sample = False
                 existing.updated_at = datetime.now(UTC)
             else:
                 db.add(

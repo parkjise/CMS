@@ -1,0 +1,74 @@
+// ── SPLIT STORY — 글 | 사진 2단 ──────────────────────────────────
+// components/sub/split-story.html, split-story-reverse.html
+// --lined: 위 구분선 + 가운데 세로선 / --reverse: 사진 왼쪽, 글 오른쪽
+@use '../mixins' as *;
+
+.split-story {
+  padding: 80px 0;
+  @include lg {
+    padding: 140px 0;
+  }
+
+  &--lined {
+    @include center-divider;
+  }
+
+  &__inner {
+    display: grid;
+    gap: 48px;
+
+    @include lg {
+      grid-template-columns: 708fr 606fr;
+      align-items: center;
+      column-gap: clamp(40px, 8.75vw, 126px);
+    }
+  }
+
+  &__text {
+    position: relative; // 세로선 위로
+    @include lg {
+      max-width: 34rem;
+    }
+  }
+
+  &__media {
+    position: relative;
+  }
+  &__image {
+    width: 100%;
+    @include ratio(698, 841);
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  &__caption {
+    margin-top: 24px;
+    font-size: 0.875rem;
+    font-weight: 300;
+    line-height: 1.86;
+    color: #666;
+    word-break: keep-all;
+    @include md {
+      margin-top: 50px;
+      font-size: 0.9375rem;
+    }
+  }
+
+  // 사진 왼쪽, 글은 오른쪽 칸의 끝에 붙임
+  &--reverse {
+    @include lg {
+      .split-story__inner {
+        grid-template-columns: 606fr 708fr;
+      }
+
+      .split-story__text {
+        justify-self: end;
+        width: 100%;
+      }
+    }
+    @include down(lg) {
+      .split-story__media {
+        order: 1;
+      }
+    }
+  }
+}

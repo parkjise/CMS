@@ -1,0 +1,1154 @@
+{
+  "version": "1.0.0",
+  "site": {
+    "brand_name": "BAZZAR",
+    "logo_url": "/templates/hospital-a/1.0.0/logo.svg",
+    "phone": "02-1234-5678",
+    "kakao_url": "#",
+    "hours_weekday": "오전 10:00 - 오후 7:00",
+    "hours_saturday": "오전 10:00 - 오후 4:00",
+    "hours_note": "일요일 · 공휴일 휴무",
+    "address": "서울특별시 강남구 테헤란로 123, 4층",
+    "naver_map_url": "#",
+    "kakao_map_url": "#",
+    "tmap_url": "#",
+    "parking": "건물 내 주차 2시간 무료 · 발렛 서비스 가능",
+    "ceo": "김온도",
+    "business_number": "123-45-67890",
+    "terms_url": "#",
+    "privacy_url": "#"
+  },
+  "pages": {
+    "home": [
+      {
+        "section_type": "HERO_SLIDER",
+        "label": "메인 비주얼",
+        "settings": {
+          "slides": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/head_slide2.jpg",
+              "title": "당신의 하루에 알맞은 온도",
+              "copy_primary": "Warm Moments",
+              "copy_secondary": "Crafted with Care"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/head_slide1.jpg",
+              "title": "오래 머물고 싶은 경험을 설계합니다",
+              "copy_primary": "Timeless Value",
+              "copy_secondary": "Designed to Last"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/head_slide3.jpg",
+              "title": "작은 차이가 만드는 깊은 신뢰",
+              "copy_primary": "Quiet Confidence",
+              "copy_secondary": "In Every Detail"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "INTRO",
+        "label": "브랜드 소개",
+        "settings": {
+          "title": "Every Detail\nBegins with You",
+          "description": "보이지 않는 곳까지 세심하게. 머무는 모든 순간이 특별해지도록 BAZZAR가 먼저 생각합니다.",
+          "gallery": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/proj1.jpg",
+              "alt": "브랜드 대표 이미지 1"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/proj2.jpg",
+              "alt": "브랜드 대표 이미지 2"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/proj3.jpg",
+              "alt": "브랜드 대표 이미지 3"
+            }
+          ],
+          "signature_title": "BAZZAR\nSIGNATURE",
+          "signature_desc": "365일, 처음과 같은 마음으로.",
+          "features": [
+            {
+              "name": "맞춤 컨설팅",
+              "name_en": "Personal Consulting",
+              "icon_url": "/templates/hospital-a/1.0.0/icon-01.svg",
+              "link_url": "#"
+            },
+            {
+              "name": "프리미엄 케어",
+              "name_en": "Premium Care",
+              "icon_url": "/templates/hospital-a/1.0.0/icon-02.svg",
+              "link_url": "#"
+            },
+            {
+              "name": "멤버십 혜택",
+              "name_en": "Membership Benefits",
+              "icon_url": "/templates/hospital-a/1.0.0/icon-03.svg",
+              "link_url": "#"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "SERVICES",
+        "label": "서비스",
+        "settings": {
+          "eyebrow": "Our Expertise",
+          "title": "한 분야에 깊이 집중해 온 시간,\n그 시간이 곧 신뢰가 됩니다.",
+          "description": "처음 만나는 순간부터 그 이후까지, 가장 가까운 곳에서 함께하겠습니다.",
+          "cards": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/card1.avif",
+              "eyebrow": "Signature",
+              "title": "시그니처",
+              "description": "BAZZAR만의 프로그램",
+              "link_url": "#"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/card2.avif",
+              "eyebrow": "Consulting",
+              "title": "1:1 컨설팅",
+              "description": "목표에 꼭 맞춘 맞춤형 제안",
+              "link_url": "#"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/card3.avif",
+              "eyebrow": "Premium",
+              "title": "프리미엄",
+              "description": "한 단계 높은 경험을 위한 선택",
+              "link_url": "#"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/card4.avif",
+              "eyebrow": "Care",
+              "title": "케어 서비스",
+              "description": "세심한 관리로 완성되는 만족",
+              "link_url": "#"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/card5.avif",
+              "eyebrow": "Membership",
+              "title": "멤버십",
+              "description": "오래 함께할수록 커지는 혜택",
+              "link_url": "#"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "VIDEO_PLAYLIST",
+        "label": "영상",
+        "settings": {
+          "eyebrow": "BAZZAR Youtube",
+          "title": "BAZZAR가 전하는 이야기,\n영상으로 만나보세요",
+          "description": "브랜드의 철학과 일상의 순간을 담은 공식 유튜브 채널",
+          "channel_url": "https://www.youtube.com/@CHANNEL_HANDLE",
+          "videos": [
+            {
+              "video_id": "VIDEO_ID_1",
+              "title": "브랜드 필름 — 당신의 하루에 알맞은 온도",
+              "duration": "2:48",
+              "thumb_url": "/templates/hospital-a/1.0.0/photo1.avif"
+            },
+            {
+              "video_id": "VIDEO_ID_2",
+              "title": "BAZZAR가 일하는 방식 — 보이지 않는 곳까지 세심하게",
+              "duration": "4:12",
+              "thumb_url": "/templates/hospital-a/1.0.0/photo2.avif"
+            },
+            {
+              "video_id": "VIDEO_ID_3",
+              "title": "처음 방문하셨나요? 3분 만에 살펴보는 BAZZAR 이용 가이드",
+              "duration": "3:05",
+              "thumb_url": "/templates/hospital-a/1.0.0/photo3.avif"
+            },
+            {
+              "video_id": "VIDEO_ID_4",
+              "title": "고객이 직접 전하는 이야기 | 다시 찾게 되는 이유",
+              "duration": "5:30",
+              "thumb_url": "/templates/hospital-a/1.0.0/photo4.avif"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "NOTICE_LATEST",
+        "label": "공지",
+        "settings": {
+          "title": "NOTICE",
+          "description": "BAZZAR의 새로운 소식과 안내를 가장 먼저 전해드립니다.",
+          "items": [
+            {
+              "subject": "홈페이지 리뉴얼 오픈 안내",
+              "date": "2026-10-20",
+              "id": "n1"
+            },
+            {
+              "subject": "연말연시 운영 시간 안내",
+              "date": "2026-10-15",
+              "id": "n4"
+            },
+            {
+              "subject": "개인정보 처리방침 개정 안내",
+              "date": "2026-10-02",
+              "id": "n3"
+            },
+            {
+              "subject": "고객 만족도 조사 결과 안내",
+              "date": "2026-09-24",
+              "id": "n5"
+            }
+          ]
+        }
+      }
+    ],
+    "about": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단 비주얼",
+        "settings": {
+          "eyebrow": "About",
+          "title": "브랜드 소개",
+          "category": "About",
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hero.jpg"
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "브랜드 이야기",
+        "settings": {
+          "layout": "media-row",
+          "eyebrow": "Our Story",
+          "title": "작은 온기가 모여\n오래 기억되는 브랜드가 됩니다.",
+          "description": "BAZZAR는 처음 만나는 순간부터 그 이후까지, 한결같은 마음으로 곁을 지킵니다.",
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/about-lounge.jpg",
+          "image_alt": "원형 좌석과 따뜻한 조명이 있는 넓은 라운지",
+          "body_title": "왜 BAZZAR는 처음부터 끝까지\n한 곳에서 함께할까요?",
+          "body_text": "상담부터 관리까지, 고객에게 필요한 모든 과정을\n하나의 공간에서 끊김 없이 이어갑니다.\n준비와 실행, 회복과 관리가 자연스럽게 연결되는\n— 오래 머물고 싶은 경험을 지향합니다."
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "약속",
+        "settings": {
+          "layout": "strength-list",
+          "eyebrow": "Why BAZZAR",
+          "title": "BAZZAR의 약속",
+          "items": [
+            "처음부터 끝까지 한 곳에서 이어지는 토탈 케어",
+            "분야별 전문가가 직접 상담하고 진행",
+            "검증된 프로세스로 지키는 안전과 신뢰",
+            "다양한 고난도 사례로 쌓아온 경험",
+            "이용 후에도 이어지는 전담 사후관리",
+            "1:1 맞춤 진행 · 프라이빗 공간"
+          ],
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/about-reception.jpg",
+          "image_alt": "부드러운 채광과 조각 장식이 있는 리셉션 공간"
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "서비스 영역",
+        "settings": {
+          "layout": "area-rows",
+          "eyebrow": "Our Services",
+          "title": "서비스 영역",
+          "rows": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-meeting.jpg",
+              "title": "시그니처 프로그램",
+              "link_url": "#",
+              "description": "1:1 맞춤 상담 · 시그니처 케어 · 프리미엄 패키지 · 정기 관리 · 멤버십 전용 프로그램 · 사후관리센터"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hallway.jpg",
+              "title": "라이프 케어",
+              "link_url": "#",
+              "description": "데일리 케어 · 시즌 스페셜 · 컨디션 관리 · 원데이 클래스 · 웰니스 프로그램"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "공간 둘러보기",
+        "settings": {
+          "layout": "photo-gallery",
+          "eyebrow": "Space Tour",
+          "title": "BAZZAR 둘러보기",
+          "photos": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/about-lounge.jpg",
+              "alt": "라운지"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/about-reception.jpg",
+              "alt": "안내 데스크"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-meeting.jpg",
+              "alt": "회의 공간"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-hero.jpg",
+              "alt": "건물 외관"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hero.jpg",
+              "alt": "소파와 안락의자가 있는 밝은 휴게 공간"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hallway.jpg",
+              "alt": "창가 의자로 이어지는 조용한 복도"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "상담 · 예약 안내",
+        "settings": {
+          "layout": "consult-links",
+          "eyebrow": "Consultation & Reservation",
+          "title": "상담 · 예약 안내"
+        }
+      }
+    ],
+    "about-history": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단 비주얼",
+        "settings": {
+          "eyebrow": "History",
+          "title": "연혁",
+          "category": "About",
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hero.jpg"
+        }
+      },
+      {
+        "section_type": "HISTORY_TIMELINE",
+        "label": "연혁",
+        "settings": {
+          "eyebrow": "Our History",
+          "title": "한결같은 온도로\n걸어온 시간들",
+          "description": "2012년 첫 문을 연 이후, BAZZAR는 고객과 함께 한 걸음씩 성장해 왔습니다.",
+          "ranges": [
+            {
+              "from": 2024,
+              "to": 2026
+            },
+            {
+              "from": 2020,
+              "to": 2023
+            },
+            {
+              "from": 2016,
+              "to": 2019
+            },
+            {
+              "from": 2012,
+              "to": 2015
+            }
+          ],
+          "years": [
+            {
+              "year": 2026,
+              "image_url": "/templates/hospital-a/1.0.0/proj1.jpg",
+              "months": [
+                {
+                  "month": 10,
+                  "events": [
+                    {
+                      "text": "브랜드 리뉴얼 및 공식 홈페이지 오픈",
+                      "highlight": true
+                    },
+                    {
+                      "text": "2026 고객 만족도 조사 결과 발표",
+                      "highlight": false
+                    }
+                  ]
+                },
+                {
+                  "month": 7,
+                  "events": [
+                    {
+                      "text": "BAZZAR 서울 플래그십 2호점 오픈",
+                      "highlight": true
+                    },
+                    {
+                      "text": "창립 14주년 기념 고객 감사 주간 운영",
+                      "highlight": false
+                    }
+                  ]
+                },
+                {
+                  "month": 3,
+                  "events": [
+                    {
+                      "text": "임직원 서비스 전문 교육 프로그램 도입",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2025,
+              "image_url": "/templates/hospital-a/1.0.0/proj2.jpg",
+              "months": [
+                {
+                  "month": 11,
+                  "events": [
+                    {
+                      "text": "2025 소비자 선정 고객만족 브랜드 대상 수상",
+                      "highlight": true
+                    }
+                  ]
+                },
+                {
+                  "month": 6,
+                  "events": [
+                    {
+                      "text": "멤버십 프로그램 ‘BAZZAR CLUB’ 론칭",
+                      "highlight": false
+                    },
+                    {
+                      "text": "지역사회 나눔 캠페인 ‘따뜻한 온도’ 진행",
+                      "highlight": false
+                    }
+                  ]
+                },
+                {
+                  "month": 2,
+                  "events": [
+                    {
+                      "text": "파트너사 3곳과 전략적 업무협약(MOU) 체결",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2024,
+              "image_url": "/templates/hospital-a/1.0.0/proj3.jpg",
+              "months": [
+                {
+                  "month": 9,
+                  "events": [
+                    {
+                      "text": "누적 고객 10만 명 달성",
+                      "highlight": true
+                    }
+                  ]
+                },
+                {
+                  "month": 4,
+                  "events": [
+                    {
+                      "text": "시그니처 프로그램 2.0 출시",
+                      "highlight": false
+                    },
+                    {
+                      "text": "고객 전담 매니저 제도 도입",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2023,
+              "image_url": "/templates/hospital-a/1.0.0/head_slide1.jpg",
+              "months": [
+                {
+                  "month": 12,
+                  "events": [
+                    {
+                      "text": "사후관리 전담센터 개설",
+                      "highlight": true
+                    }
+                  ]
+                },
+                {
+                  "month": 5,
+                  "events": [
+                    {
+                      "text": "온라인 상담·예약 시스템 도입",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2021,
+              "months": [
+                {
+                  "month": 8,
+                  "events": [
+                    {
+                      "text": "본점 확장 이전 및 프라이빗 라운지 신설",
+                      "highlight": false
+                    }
+                  ]
+                },
+                {
+                  "month": 1,
+                  "events": [
+                    {
+                      "text": "ISO 9001 품질경영시스템 인증 획득",
+                      "highlight": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2020,
+              "months": [
+                {
+                  "month": 6,
+                  "events": [
+                    {
+                      "text": "비대면 상담 서비스 시작",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2019,
+              "image_url": "/templates/hospital-a/1.0.0/photo2.avif",
+              "months": [
+                {
+                  "month": 10,
+                  "events": [
+                    {
+                      "text": "창립 7주년 기념 고객 감사 행사",
+                      "highlight": false
+                    }
+                  ]
+                },
+                {
+                  "month": 3,
+                  "events": [
+                    {
+                      "text": "분야별 전문 컨설턴트 팀 구성",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2017,
+              "months": [
+                {
+                  "month": 7,
+                  "events": [
+                    {
+                      "text": "프리미엄 케어 라인 론칭",
+                      "highlight": true
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2015,
+              "months": [
+                {
+                  "month": 11,
+                  "events": [
+                    {
+                      "text": "누적 고객 1만 명 달성",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "year": 2012,
+              "image_url": "/templates/hospital-a/1.0.0/head_slide3.jpg",
+              "months": [
+                {
+                  "month": 7,
+                  "events": [
+                    {
+                      "text": "BAZZAR 설립",
+                      "highlight": true
+                    },
+                    {
+                      "text": "서울 강남 본점 오픈",
+                      "highlight": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "about-location": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단 비주얼",
+        "settings": {
+          "eyebrow": "Location",
+          "title": "오시는 길",
+          "category": "About",
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/about-hero.jpg"
+        }
+      },
+      {
+        "section_type": "MAP",
+        "label": "오시는 길",
+        "settings": {
+          "eyebrow": "Location",
+          "title": "찾아오시는 길",
+          "description": "강남역 인근, 편안하게 찾아오실 수 있는 곳에서 기다리고 있습니다.",
+          "address": "서울특별시 강남구 테헤란로 123, 4층",
+          "phone": "02-1234-5678",
+          "transit": "지하철 2호선 강남역 4번 출구에서 도보 5분\n간선 140 · 402 / 지선 4412 ‘강남역’ 정류장 하차",
+          "parking": "건물 내 주차 2시간 무료 · 발렛 서비스 가능",
+          "map_embed_url": ""
+        }
+      }
+    ],
+    "business": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단 비주얼",
+        "settings": {
+          "eyebrow": "Business",
+          "title": "사업 소개",
+          "category": "Business",
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/business-detail.jpg"
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "사업 소개 문구",
+        "settings": {
+          "layout": "page-intro",
+          "eyebrow": "Our Business",
+          "title": "사람을 향한 생각으로\n더 나은 경험을 만듭니다.",
+          "description": "상담부터 실행, 사후 관리까지. BAZZAR는 모든 과정에 한결같은 기준과 진심을 담습니다."
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "관점",
+        "settings": {
+          "layout": "split-story",
+          "lined": true,
+          "en_title": "BAZZAR PERSPECTIVE",
+          "sub_title": "좋은 서비스,\n왜 ‘온도’에서 시작할까요?",
+          "paragraphs": [
+            "만족은 결과만으로 만들어지지 않습니다.\n처음 건네는 인사, 기다리는 시간, 마지막 배웅까지\n작은 순간이 쌓여 하나의 경험이 됩니다.",
+            "신뢰도 마찬가지입니다.\n설명의 깊이, 약속을 지키는 태도, 꾸준한 관리가\n함께 맞물릴 때 비로소 단단해집니다.",
+            "화려한 기능을 더하는 것만으로는 한계가 있습니다.\n**사람과 사람 사이의 온도가 맞아야 고객이 다시 찾고, 오래 머무는 관계**가 됩니다.",
+            "BAZZAR가 서비스의 ‘온도’에 주목해 온 이유는 바로 이 지점에 있습니다."
+          ],
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/business-office.jpg",
+          "image_alt": "목재 마감과 자연광이 어우러진 업무 공간"
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "일하는 방식",
+        "settings": {
+          "layout": "split-story-reverse",
+          "en_title": "OUR APPROACH",
+          "sub_title": "결과 자체보다\n‘과정이 만드는 신뢰’에 주목합니다",
+          "paragraphs": [
+            "좋은 결과는 혼자 만들어지지 않습니다.\n충분한 상담과 정확한 진단, 꼼꼼한 준비가\n고객의 선택과 경험 전체에 영향을 줍니다.",
+            "한 번에 많은 것을 바꾸는 것이 아니라\n지금 필요한 것부터 차근차근 설계하고 확인하는 것.\n이것이 BAZZAR가 일하는 방식이며\n모든 서비스의 출발점입니다.",
+            "**BAZZAR는 고객이 안심하고 맡길 수 있는\n과정을 어떻게 설계할 것인가에 초점을 둡니다.**"
+          ],
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/business-meeting.jpg",
+          "image_alt": "긴 목재 테이블과 의자가 배치된 회의실",
+          "caption": "사례와 결과는 모든 고객에게 동일하게 나타나지 않습니다.\n실제 진행은 고객의 목적, 일정, 예산, 환경을 함께 고려해 결정합니다."
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "주요 이력",
+        "settings": {
+          "layout": "milestone-split",
+          "en_title": "TRACK RECORD",
+          "sub_title": "14년의 경험이 지금 이곳에 있습니다",
+          "paragraphs": [
+            "BAZZAR의 서비스 철학은\n오랜 현장 경험에서 출발했습니다.",
+            "BAZZAR의 노하우는 책 속의 이론이 아닙니다.\n14년 동안 쌓아 온 경험이 오늘의 서비스에 있습니다."
+          ],
+          "left_image_url": "/templates/hospital-a/1.0.0/unsplash/business-office.jpg",
+          "left_image_alt": "채광이 풍부한 현대적인 업무 공간",
+          "right_image_url": "/templates/hospital-a/1.0.0/unsplash/business-meeting.jpg",
+          "right_image_alt": "협업을 위한 회의 공간",
+          "milestones": [
+            {
+              "year": "2012",
+              "text": "BAZZAR 첫 문을 열다\n‘한결같은 온도’를 약속하며 서울 강남에서 시작"
+            },
+            {
+              "year": "2021",
+              "text": "본점 확장 이전\n프라이빗 라운지 신설로 1:1 상담 환경 완성"
+            },
+            {
+              "year": "2024",
+              "text": "시그니처 프로그램 2.0 출시\n고객 전담 매니저 제도 도입으로 사후 관리 강화"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "품질 인증",
+        "settings": {
+          "layout": "banner-split",
+          "en_title": "CERTIFIED\nSERVICE\nQUALITY",
+          "sub_title": "서비스 품질 인증, BAZZAR",
+          "paragraphs": [
+            "서비스 품질 인증은 고객 응대, 운영 절차, 사후 관리 등\n서비스 전 과정을 객관적인 기준으로 평가하는 제도입니다.",
+            "전문 인증 기관이 공간, 인력, 운영 매뉴얼,\n고객 만족 관리 체계를 엄격하게 심사해\n기준을 충족한 곳에만 인증을 부여합니다.",
+            "**BAZZAR는 그 전문성과 신뢰성을 공식적으로 인정받았습니다.**"
+          ],
+          "image_url": "/templates/hospital-a/1.0.0/unsplash/business-entrance.jpg",
+          "image_alt": "빛이 들어오는 콘크리트 계단과 아치형 입구"
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "맞춤 설계",
+        "settings": {
+          "layout": "criteria-cards",
+          "en_title": "PERSONALIZED PLAN",
+          "sub_title": "모든 서비스는\n개인별 상담에서 시작합니다",
+          "paragraphs": [
+            "좋은 서비스는 누구에게나 똑같이 적용되는 패키지가 아닙니다.\n같은 요청이라도 고객마다 필요한 것은 모두 다릅니다.",
+            "BAZZAR는 상품명보다 현재 상황을 먼저 살피고\n진행의 우선순위를 정하는 과정을 중요하게 생각합니다."
+          ],
+          "cards": [
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-meeting.jpg",
+              "title": "상담",
+              "text": "목적 · 일정 · 예산 · 선호"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-detail.jpg",
+              "title": "설계",
+              "text": "우선순위 · 범위 · 진행 방식"
+            },
+            {
+              "image_url": "/templates/hospital-a/1.0.0/unsplash/business-office.jpg",
+              "title": "관리",
+              "text": "진행 점검 · 사후 관리 · 피드백"
+            }
+          ]
+        }
+      },
+      {
+        "section_type": "CONTENT_BLOCK",
+        "label": "약속",
+        "settings": {
+          "layout": "value-circles",
+          "en_title": "BAZZAR PROMISE",
+          "sub_title": "화려한 약속보다 정직한 설명",
+          "paragraphs": [
+            "BAZZAR의 목표는\n고객이 오래 만족할 수 있는 조건을 이해하고\n그 조건을 고객 한 분 한 분에게 맞게 설계하는 것입니다.",
+            "시간이 만든 신뢰는\n시간과 계획을 가지고 지켜 가야 합니다."
+          ],
+          "bg_image_url": "/templates/hospital-a/1.0.0/unsplash/business-hero.jpg",
+          "values": [
+            "화려한 약속보다\n정직한 설명",
+            "무리한 진행보다\n안전한 계획",
+            "일시적 만족보다\n오래 이어질\n신뢰"
+          ],
+          "more_label": "BAZZAR만의 서비스 더 알아보기",
+          "more_page": "home",
+          "more_hash": "services"
+        }
+      }
+    ],
+    "notice": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단",
+        "settings": {
+          "eyebrow": "Notice",
+          "title": "공지사항",
+          "category": "Notice",
+          "plain": true
+        }
+      },
+      {
+        "section_type": "BOARD",
+        "label": "공지사항",
+        "settings": {
+          "board": "notice",
+          "title": "BAZZAR의 다양한 소식을 확인해보세요.",
+          "items": [
+            {
+              "id": "n1",
+              "subject": "홈페이지 리뉴얼 오픈 안내",
+              "date": "2026-10-20",
+              "body": [
+                {
+                  "type": "image",
+                  "src": "/templates/hospital-a/1.0.0/head_slide1.jpg",
+                  "alt": "새롭게 단장한 BAZZAR 홈페이지 메인 화면"
+                },
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n고객 여러분께 더 편리하고 따뜻한 경험을 드리기 위해 홈페이지를 새롭게 단장했습니다."
+                },
+                {
+                  "type": "p",
+                  "text": "**주요 변경 사항**"
+                },
+                {
+                  "type": "ul",
+                  "items": [
+                    "모바일·태블릿에서도 보기 편한 반응형 화면",
+                    "화면 아래 간편상담으로 빠른 상담 신청",
+                    "사업 소개·연혁·오시는 길 메뉴 정리"
+                  ]
+                },
+                {
+                  "type": "p",
+                  "text": "이용 중 불편한 점이 있으시면 고객 상담(02-1234-5678)으로 알려주세요.\n앞으로도 한결같은 온도로 곁을 지키겠습니다. 감사합니다."
+                }
+              ],
+              "pinned": true
+            },
+            {
+              "id": "n2",
+              "subject": "2027년 멤버십 혜택 변경 안내",
+              "date": "2026-10-08",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n2027년 멤버십 혜택 변경 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ],
+              "pinned": true
+            },
+            {
+              "id": "n3",
+              "subject": "개인정보 처리방침 개정 안내",
+              "date": "2026-10-02",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n개인정보 처리방침 개정 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ],
+              "pinned": true
+            },
+            {
+              "id": "n4",
+              "subject": "연말연시 운영 시간 안내",
+              "date": "2026-10-15",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n연말연시 운영 시간 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n5",
+              "subject": "고객 만족도 조사 결과 안내",
+              "date": "2026-09-24",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n고객 만족도 조사 결과 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n6",
+              "subject": "추석 연휴 운영 안내",
+              "date": "2026-09-10",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n추석 연휴 운영 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n7",
+              "subject": "창립 14주년 고객 감사 주간 안내",
+              "date": "2026-08-19",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n창립 14주년 고객 감사 주간 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n8",
+              "subject": "광복절 정상 운영 안내",
+              "date": "2026-08-05",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n광복절 정상 운영 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n9",
+              "subject": "온라인 예약 시스템 점검 안내",
+              "date": "2026-07-10",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n온라인 예약 시스템 점검 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            },
+            {
+              "id": "n10",
+              "subject": "여름 휴가 기간 운영 안내",
+              "date": "2026-06-02",
+              "body": [
+                {
+                  "type": "p",
+                  "text": "안녕하세요, BAZZAR입니다.\n여름 휴가 기간 운영 안내 드립니다."
+                },
+                {
+                  "type": "p",
+                  "text": "자세한 내용은 고객 상담(02-1234-5678)으로 문의해 주세요. 감사합니다."
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "consult": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단",
+        "settings": {
+          "eyebrow": "Consult",
+          "title": "온라인 상담",
+          "category": "Consult",
+          "plain": true
+        }
+      },
+      {
+        "section_type": "BOARD",
+        "label": "온라인 상담",
+        "settings": {
+          "board": "consult",
+          "title": "궁금한 점을 남겨주시면 빠르게 답변드립니다.",
+          "sample_posts": [
+            {
+              "id": "sample-consult-12",
+              "subject": "멤버십 가입 절차가 궁금합니다",
+              "author": "김**",
+              "is_secret": true,
+              "answered": false,
+              "created_at": "2026-10-23T10:12:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": null,
+              "answered_at": null
+            },
+            {
+              "id": "sample-consult-11",
+              "subject": "첫 상담 예약 시 준비할 서류 문의",
+              "author": "이**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-10-21T14:31:00+09:00",
+              "message": "안녕하세요. 다음 주에 처음으로 방문 상담을 받아 보려고 합니다.\n상담 예약을 할 때 미리 준비해 가야 하는 서류나 자료가 있을까요?\n\n그리고 가족과 함께 방문해도 되는지, 상담 시간은 보통 얼마나 걸리는지도 궁금합니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n**첫 상담 시 준비하실 것**\n\n신분증 (본인 확인용) · 기존에 받으신 상담·이용 내역 · 궁금하신 점 메모\n\n가족분과 함께 방문하셔도 괜찮으며, 첫 상담은 보통 40분~1시간 정도 소요됩니다.\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-10-22T10:05:00+09:00"
+            },
+            {
+              "id": "sample-consult-10",
+              "subject": "주말 상담 가능 여부",
+              "author": "박**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-10-17T09:48:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-10-17T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-9",
+              "subject": "맞춤 플랜 비용 문의드려요",
+              "author": "정**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-10-07T20:11:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-10-07T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-8",
+              "subject": "기존 예약 일정 변경 요청",
+              "author": "최**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-10-06T15:46:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-10-06T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-7",
+              "subject": "방문 상담 소요 시간 문의",
+              "author": "한**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-09-21T11:51:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-09-21T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-6",
+              "subject": "주차 가능 여부 문의",
+              "author": "o**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-09-11T16:13:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-09-11T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-5",
+              "subject": "가족 단위 상담도 가능한가요",
+              "author": "강**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-09-07T21:42:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-09-07T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-4",
+              "subject": "사후 관리 프로그램 문의",
+              "author": "윤**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-09-04T12:32:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-09-04T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-3",
+              "subject": "온라인 상담 후 방문 예약 방법",
+              "author": "서**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-09-03T08:08:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-09-03T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-2",
+              "subject": "멤버십 혜택 적용 기간 문의",
+              "author": "임**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-08-28T13:20:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-08-28T18:00:00+09:00"
+            },
+            {
+              "id": "sample-consult-1",
+              "subject": "상담 내용 변경 요청드립니다",
+              "author": "조**",
+              "is_secret": true,
+              "answered": true,
+              "created_at": "2026-08-19T17:05:00+09:00",
+              "message": "안녕하세요. 상담 관련해 궁금한 점이 있어 문의드립니다.\n\n자세한 안내 부탁드립니다.",
+              "answer": "안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.\n\n추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.",
+              "answered_at": "2026-08-19T18:00:00+09:00"
+            }
+          ]
+        }
+      }
+    ],
+    "reservation": [
+      {
+        "section_type": "SUB_HERO",
+        "label": "상단",
+        "settings": {
+          "eyebrow": "Consult",
+          "title": "온라인 예약",
+          "category": "Consult",
+          "plain": true
+        }
+      },
+      {
+        "section_type": "BOARD",
+        "label": "온라인 예약",
+        "settings": {
+          "board": "reservation",
+          "times": [
+            "10:00",
+            "11:00",
+            "12:00",
+            "14:00",
+            "15:00",
+            "16:00",
+            "17:00"
+          ]
+        }
+      }
+    ]
+  }
+}
