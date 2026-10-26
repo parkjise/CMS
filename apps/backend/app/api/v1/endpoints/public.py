@@ -15,6 +15,7 @@ from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import (
+    PublicMemberFlags,
     PublicSectionResponse,
     PublicSeoResponse,
     PublicSiteResponse,
@@ -22,6 +23,7 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
+from app.services import member_features
 
 router = APIRouter(tags=["public"])
 
@@ -108,12 +110,18 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
                 **css_overrides,
             }
 
+    flags = await member_features.flags_for(db, tenant)
     return PublicSiteResponse(
         tenant=PublicTenantResponse.model_validate(tenant),
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
         seo_settings=PublicSeoResponse.model_validate(seo) if seo else None,
         sns_settings=PublicSnsResponse.model_validate(sns) if sns else None,
         template=template_payload,
+        member=PublicMemberFlags(
+            enabled=flags.enabled,
+            reservations=flags.reservations,
+            social_login=flags.social_login,
+        ),
     )
 
 
@@ -171,10 +179,12 @@ async def get_site_sections(
 
 
 class PublicTemplateRef(BaseModel):
-    """미들웨어용 — 테넌트가 쓰는 템플릿 코드만 (기획서 11.11 #26)."""
+    """미들웨어용 — 템플릿 코드 (기획서 11.11 #26) + 회원 기능 (T-115)."""
 
     code: str | None
     renderer: str
+    # 회원 기능(SITE_MEMBER) — 꺼져 있으면 미들웨어가 /{slug}/member/* 를 404 로
+    member_enabled: bool = False
 
 
 @router.get(
@@ -191,10 +201,13 @@ async def get_site_template(
     redis = await get_redis()
     cached = await redis.get(_site_cache_key(tenant_slug))
     if cached:
-        template = json.loads(cached).get("template") or {}
+        data = json.loads(cached)
+        template = data.get("template") or {}
         return ApiResponse.ok(
             PublicTemplateRef(
-                code=template.get("code"), renderer=template.get("renderer", "theme")
+                code=template.get("code"),
+                renderer=template.get("renderer", "theme"),
+                member_enabled=bool((data.get("member") or {}).get("enabled")),
             )
         )
 
@@ -203,8 +216,10 @@ async def get_site_template(
     if not tenant or not tenant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     template, _ = await _resolve_template(db, tenant)
+    flags = await member_features.flags_for(db, tenant)
     return ApiResponse.ok(
         PublicTemplateRef(
+            member_enabled=flags.enabled,
             code=template.code if template else None,
             renderer=template.renderer if template else "theme",
         )

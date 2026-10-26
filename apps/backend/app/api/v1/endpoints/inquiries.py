@@ -22,6 +22,7 @@ from app.schemas.inquiry import (
     InquiryListResponse,
     InquiryResponse,
     InquiryUpdate,
+    ReservationStatusUpdate,
 )
 from app.schemas.inquiry_board import (
     BoardListResponse,
@@ -32,6 +33,7 @@ from app.schemas.inquiry_board import (
 from app.services import inquiry as inquiry_service
 from app.services import inquiry_board as board_service
 from app.services import member_activity
+from app.services import member_reservation_admin as reservation_admin
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
 router = APIRouter(prefix="/inquiries", tags=["inquiries"])
@@ -225,7 +227,32 @@ async def get_inquiry(
     )
     if not inquiry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-    return ApiResponse.ok(InquiryResponse.model_validate(inquiry))
+    return ApiResponse.ok(await _detail(db, inquiry))
+
+
+async def _detail(db: AsyncSession, inquiry) -> InquiryResponse:
+    """관리자 문의 상세 — 회원 정보 · 회원 예약 상태 포함 (T-115)."""
+    response = InquiryResponse.model_validate(inquiry)
+    response.member, response.reservation = await reservation_admin.extras(db, inquiry)
+    return response
+
+
+@router.patch("/{inquiry_id}/reservation", response_model=ApiResponse[InquiryResponse])
+async def update_member_reservation(
+    inquiry_id: UUID,
+    body: ReservationStatusUpdate,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """회원 예약 상태 변경 (대기 → 확정 → 완료, 관리자 취소) + 회원 알림 (T-115)."""
+    inquiry = await inquiry_service.get_inquiry_by_id(
+        db, inquiry_id, current_user.tenant_id
+    )
+    if not inquiry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    await reservation_admin.change_status(db, inquiry, body.status)
+    await db.refresh(inquiry)
+    return ApiResponse.ok(await _detail(db, inquiry))
 
 
 @router.patch("/{inquiry_id}", response_model=ApiResponse[InquiryResponse])
@@ -244,7 +271,7 @@ async def update_inquiry(
 
     if not inquiry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-    return ApiResponse.ok(InquiryResponse.model_validate(inquiry))
+    return ApiResponse.ok(await _detail(db, inquiry))
 
 
 @router.delete("/{inquiry_id}", response_model=ApiResponse[None])

@@ -175,3 +175,13 @@ def optional_member_payload(
     if payload.get("role") != SITE_MEMBER_ROLE or payload.get("type"):
         return None
     return payload
+
+
+async def require_site_member(
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+) -> None:
+    """기능 플래그 SITE_MEMBER OFF 테넌트는 방문자 회원 API 전체 403 (T-115)."""
+    from app.services import member_features
+
+    await member_features.ensure(db, tenant, member_features.SITE_MEMBER)

@@ -14,7 +14,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
 from app.core.config import settings
-from app.core.deps import get_current_member, get_member_db, get_member_tenant
+from app.core.deps import (
+    get_current_member,
+    get_member_db,
+    get_member_tenant,
+    require_site_member,
+)
 from app.core.member_errors import MemberAuthError
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
@@ -44,18 +49,27 @@ from app.schemas.site_member import (
     SocialCompleteRequest,
 )
 from app.services import member_auth as member_auth_service
-from app.services import member_recovery, member_social, member_verification
+from app.services import (
+    member_features,
+    member_recovery,
+    member_social,
+    member_verification,
+)
 from app.services.social_providers import PROVIDERS, Provider
 
-router = APIRouter(prefix="/{tenant_slug}/auth", tags=["public-member"])
+# 기능 플래그 SITE_MEMBER OFF 테넌트는 전체 403 (T-115) — 화면 구성 조회(options)만 예외
+router = APIRouter(
+    prefix="/{tenant_slug}/auth",
+    tags=["public-member"],
+    dependencies=[Depends(require_site_member)],
+)
+options_router = APIRouter(prefix="/{tenant_slug}/auth", tags=["public-member"])
 
 # 인증 API IP 당 10회/분 (기획서 16.11)
 limiter = Limiter(key_func=get_remote_address)
 _RATE = "10/minute"
 
 REFRESH_COOKIE = "member_refresh_token"
-# 예약 기능이 있는 업종 (기획서 16.2) — T-115 에서 MEMBER_RESERVATION 플래그로 교체
-RESERVATION_INDUSTRIES = ("HOSPITAL", "PENSION")
 _COOKIE_MAX_AGE = 60 * 60 * 24 * settings.refresh_token_expire_days
 
 
@@ -389,19 +403,22 @@ async def social_complete(
     )
 
 
-@router.get("/options", response_model=ApiResponse[MemberAuthOptions])
+@options_router.get("/options", response_model=ApiResponse[MemberAuthOptions])
 async def auth_options(
     tenant: Tenant = Depends(get_member_tenant),
     db: AsyncSession = Depends(get_member_db),
 ):
-    """홈페이지 회원 화면 구성 (T-113) — 기능 플래그 MEMBER_SOCIAL_LOGIN."""
-    from app.services import feature as feature_service
+    """홈페이지 회원 화면 구성 — 기능 플래그 (T-113 · T-115).
 
-    social = await feature_service.is_enabled(db, tenant.id, member_social.FEATURE_KEY)
+    SITE_MEMBER · MEMBER_SOCIAL_LOGIN · MEMBER_RESERVATION 을 따른다.
+    회원 기능이 꺼져 있으면 enabled=false (회원 메뉴 숨김, /member 화면 404).
+    """
+    flags = await member_features.flags_for(db, tenant)
     return ApiResponse.ok(
         MemberAuthOptions(
-            social_login=social,
-            providers=list(PROVIDERS) if social else [],
-            reservations=tenant.template_type in RESERVATION_INDUSTRIES,
+            enabled=flags.enabled,
+            social_login=flags.social_login,
+            providers=list(PROVIDERS) if flags.social_login else [],
+            reservations=flags.reservations,
         )
     )

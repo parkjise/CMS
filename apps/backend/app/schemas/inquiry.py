@@ -1,6 +1,7 @@
 import re
 import uuid
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
@@ -57,8 +58,36 @@ class InquiryResponse(BaseModel):
     attachments: list[InquiryAttachmentResponse] = []
     created_at: datetime
     updated_at: datetime
+    # 방문자 회원 연동 (T-115) — 회원 문의면 회원 정보, 회원 예약이면 예약 상태
+    member_id: uuid.UUID | None = None
+    member: "InquiryMemberInfo | None" = None
+    reservation: "InquiryReservationInfo | None" = None
 
     model_config = {"from_attributes": True}
+
+
+class InquiryMemberInfo(BaseModel):
+    id: uuid.UUID
+    name: str
+    email: str
+    phone: str | None
+    created_at: datetime
+    # 탈퇴 등으로 비활성
+    is_active: bool
+
+
+class InquiryReservationInfo(BaseModel):
+    id: uuid.UUID
+    reservation_type: str
+    status: str
+    reserved_at: datetime | None
+    detail: dict
+    # 관리자가 지금 바꿀 수 있는 상태 (대기 → 확정/취소, 확정 → 완료/취소)
+    next_statuses: list[str]
+
+
+class ReservationStatusUpdate(BaseModel):
+    status: Literal["CONFIRMED", "COMPLETED", "CANCELLED"]
 
 
 class InquiryListItem(BaseModel):
@@ -76,6 +105,8 @@ class InquiryListItem(BaseModel):
     reserved_date: date | None = None
     reserved_time: str | None = None
     created_at: datetime
+    # 회원 문의 배지 (T-115)
+    member_id: uuid.UUID | None = None
 
     model_config = {"from_attributes": True}
 
@@ -93,3 +124,6 @@ class InquiryUpdate(BaseModel):
     admin_memo: str | None = None
     # 상담 게시판 답변 (빈 문자열이면 답변 삭제) — T-123
     answer: str | None = Field(None, max_length=5000)
+
+
+InquiryResponse.model_rebuild()

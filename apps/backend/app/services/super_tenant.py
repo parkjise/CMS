@@ -182,6 +182,11 @@ async def create_tenant(
                 )
             )
 
+    # 기본 기능 켜기 (T-115) — default_enabled · 요금제 · 업종별 회원 기능
+    from app.services import feature as feature_service
+
+    await feature_service.apply_defaults(db, tenant)
+
     await db.commit()
     await db.refresh(tenant)
 

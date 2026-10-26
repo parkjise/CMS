@@ -227,3 +227,20 @@ async def get_inquiry(
 
 def is_answered(inquiry: Inquiry) -> bool:
     return bool(inquiry.answer) or inquiry.status == "DONE"
+
+
+# ── 관리자 대시보드 (T-115) ─────────────────────────────────────────────────
+
+
+async def member_counts(
+    db: AsyncSession, tenant_id: UUID, week_start: date
+) -> dict[str, int]:
+    """AD-01 신규 회원 카드 — 이번 주 가입 · 전체 회원 (탈퇴 제외)."""
+    base = select(func.count(SiteMember.id)).where(
+        SiteMember.tenant_id == tenant_id, SiteMember.deleted_at.is_(None)
+    )
+    total = (await db.execute(base)).scalar_one()
+    week = (
+        await db.execute(base.where(func.date(SiteMember.created_at) >= week_start))
+    ).scalar_one()
+    return {"new_members_week": week, "total_members": total}

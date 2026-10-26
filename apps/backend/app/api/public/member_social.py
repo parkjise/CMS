@@ -8,7 +8,12 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.public.member_auth import _RATE, limiter, parse_provider
-from app.core.deps import get_current_member, get_member_db, get_member_tenant
+from app.core.deps import (
+    get_current_member,
+    get_member_db,
+    get_member_tenant,
+    require_site_member,
+)
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
@@ -19,7 +24,11 @@ from app.schemas.site_member import (
 )
 from app.services import member_social
 
-router = APIRouter(prefix="/{tenant_slug}/members/me/social", tags=["public-member"])
+router = APIRouter(
+    prefix="/{tenant_slug}/members/me/social",
+    tags=["public-member"],
+    dependencies=[Depends(require_site_member)],
+)
 
 
 async def _accounts_response(

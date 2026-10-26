@@ -28,12 +28,10 @@ from app.core.redis import get_redis
 from app.models.site_member import MemberSocialAccount, SiteMember
 from app.models.tenant import Tenant
 from app.schemas.site_member import SocialCompleteRequest
-from app.services import feature as feature_service
-from app.services import member_auth, member_verification
+from app.services import member_auth, member_features, member_verification
 from app.services import social_providers as providers
 from app.services.social_providers import Provider, SocialAuthError, SocialProfile
 
-FEATURE_KEY = "MEMBER_SOCIAL_LOGIN"
 STATE_TTL_SECONDS = 600
 SIGNUP_TTL_SECONDS = 1800
 _STATE_PREFIX = "member_social_state:"
@@ -58,8 +56,8 @@ class CallbackResult:
 
 
 async def ensure_enabled(db: AsyncSession, tenant: Tenant) -> None:
-    if not await feature_service.is_enabled(db, tenant.id, FEATURE_KEY):
-        raise MemberAuthError(403, "FEATURE_DISABLED", errors.FEATURE_DISABLED)
+    """MEMBER_SOCIAL_LOGIN (SITE_MEMBER 포함) — 꺼져 있으면 403."""
+    await member_features.ensure(db, tenant, member_features.MEMBER_SOCIAL_LOGIN)
 
 
 def safe_return_to(tenant: Tenant, return_to: str | None) -> str:

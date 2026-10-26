@@ -362,12 +362,13 @@ class ForgotPasswordResponse(BaseModel):
 
 
 class MemberAuthOptions(BaseModel):
-    """홈페이지 회원 화면 구성 (T-113) — 소셜 버튼 노출 등."""
+    """홈페이지 회원 화면 구성 (T-113 · T-115) — 기능 플래그."""
 
+    # SITE_MEMBER — 꺼져 있으면 회원 메뉴 · 화면 숨김
+    enabled: bool
     social_login: bool
     providers: list[SocialProvider]
-    # 마이페이지 "내 예약" 탭 — 지금은 업종 기준(병원 · 펜션),
-    # T-115 에서 MEMBER_RESERVATION 플래그로 교체
+    # 마이페이지 "내 예약" 탭 — MEMBER_RESERVATION
     reservations: bool
 
 

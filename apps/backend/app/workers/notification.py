@@ -210,3 +210,80 @@ async def _send_member_withdrawn(
             ),
         )
     return {"email_sent": bool(sent.get("sent")), "sms_sent": sms_sent}
+
+
+RESERVATION_STATUS_LABELS = {"CONFIRMED": "확정", "CANCELLED": "취소"}
+
+
+@celery_app.task(
+    name="app.workers.notification.send_member_reservation_notice",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def send_member_reservation_notice(
+    self, tenant_id: str, reservation_id: str, status: str
+) -> dict:
+    """회원 예약 확정 · 취소 알림 (T-115) — 회원 알림 설정 · 수신 동의에 따라."""
+    return asyncio.run(
+        _send_member_reservation_notice(tenant_id, reservation_id, status)
+    )
+
+
+async def _send_member_reservation_notice(
+    tenant_id: str, reservation_id: str, status: str
+) -> dict:
+    from app.db.session import AsyncSessionLocal
+    from app.models.site_member import MemberReservation, SiteMember
+    from app.services import email as email_service
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        reservation = await db.get(MemberReservation, reservation_id)
+        tenant = (
+            await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        ).scalar_one_or_none()
+        member = (
+            await db.get(SiteMember, reservation.member_id) if reservation else None
+        )
+    if reservation is None or tenant is None or member is None:
+        return {"sms_sent": False, "email_sent": False, "reason": "NOT_FOUND"}
+    wants = {
+        "CONFIRMED": member.notify_reservation_confirmed,
+        "CANCELLED": member.notify_reservation_cancelled,
+    }.get(status, False)
+    if not wants or member.deleted_at is not None or not member.is_active:
+        return {"sms_sent": False, "email_sent": False, "reason": "OPTED_OUT"}
+
+    label = RESERVATION_STATUS_LABELS.get(status, status)
+    when = (
+        notification_service.format_kr_time(reservation.reserved_at)
+        if reservation.reserved_at
+        else None
+    )
+    sms_sent = False
+    if member.sms_agree and member.phone:
+        sms_sent = await notification_service.send_sms(
+            to=member.phone,
+            message=(
+                f"[{tenant.name}] 예약이 {label}되었습니다."
+                + (f" ({when})" if when else "")
+            ),
+        )
+    email_sent = False
+    if member.email_agree:
+        result = await email_service.send_email(
+            member.email,
+            subject=f"[{tenant.name}] 예약이 {label}되었습니다",
+            template="member_reservation_status",
+            variables={
+                "member_name": member.name,
+                "site_name": tenant.name,
+                "status_label": label,
+                "reserved_at": when,
+            },
+        )
+        email_sent = bool(result.get("sent"))
+    return {"sms_sent": sms_sent, "email_sent": email_sent, "reason": ""}

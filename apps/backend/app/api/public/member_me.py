@@ -11,7 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.public.member_auth import _delete_refresh_cookie, _set_refresh_cookie
 from app.core import member_errors as errors
-from app.core.deps import get_current_member, get_member_db, get_member_tenant
+from app.core.deps import (
+    get_current_member,
+    get_member_db,
+    get_member_tenant,
+    require_site_member,
+)
 from app.core.member_errors import MemberAuthError
 from app.models.inquiry import Inquiry
 from app.models.site_member import SiteMember
@@ -31,10 +36,14 @@ from app.schemas.site_member import (
     MemberWithdrawRequest,
     ReservationStatus,
 )
-from app.services import member_activity, member_profile
+from app.services import member_activity, member_features, member_profile
 from app.services import member_auth as member_auth_service
 
-router = APIRouter(prefix="/{tenant_slug}/members", tags=["public-member"])
+router = APIRouter(
+    prefix="/{tenant_slug}/members",
+    tags=["public-member"],
+    dependencies=[Depends(require_site_member)],
+)
 
 NOTIFICATION_FIELDS = tuple(MemberNotificationSettings.model_fields)
 RESERVATION_MONTHS = (3, 6, 12)
@@ -139,9 +148,11 @@ async def withdraw(
 async def list_reservations(
     status: ReservationStatus | None = None,
     months: int | None = Query(None, description="최근 N개월 (3 · 6 · 12)"),
+    tenant: Tenant = Depends(get_member_tenant),
     db: AsyncSession = Depends(get_member_db),
     member: SiteMember = Depends(get_current_member),
 ):
+    await member_features.ensure(db, tenant, member_features.MEMBER_RESERVATION)
     if months is not None and months not in RESERVATION_MONTHS:
         raise MemberAuthError(
             400, "VALIDATION_ERROR", errors.VALIDATION_ERROR, field="months"
@@ -160,9 +171,11 @@ async def list_reservations(
 )
 async def cancel_reservation(
     reservation_id: UUID,
+    tenant: Tenant = Depends(get_member_tenant),
     db: AsyncSession = Depends(get_member_db),
     member: SiteMember = Depends(get_current_member),
 ):
+    await member_features.ensure(db, tenant, member_features.MEMBER_RESERVATION)
     reservation = await member_activity.cancel_reservation(db, member, reservation_id)
     return ApiResponse.ok(MemberReservationResponse.model_validate(reservation))
 

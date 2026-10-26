@@ -72,9 +72,18 @@ class PublicTemplateResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PublicMemberFlags(BaseModel):
+    """방문자 회원 기능 (T-115) — 헤더 회원 메뉴 · /member 화면 노출."""
+
+    enabled: bool = False
+    reservations: bool = False
+    social_login: bool = False
+
+
 class PublicSiteResponse(BaseModel):
     tenant: PublicTenantResponse
     sections: list[PublicSectionResponse]
     seo_settings: PublicSeoResponse | None
     sns_settings: PublicSnsResponse | None
     template: PublicTemplateResponse | None
+    member: PublicMemberFlags = PublicMemberFlags()
