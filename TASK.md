@@ -29,9 +29,9 @@
 | Phase 12: 테스트 & 배포 | 6 | 6 | 100% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **Phase 15: 방문자 인증** | **10** | **2** | **20%** |
+| **Phase 15: 방문자 인증** | **10** | **3** | **30%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **6** | **67%** |
-| **합계** | **127** | **116** | **91%** |
+| **합계** | **127** | **117** | **92%** |
 
 ---
 
@@ -2094,22 +2094,23 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
   - [x] `app/schemas/site_member.py` — 가입/로그인/내 정보/알림 설정/예약 Pydantic 스키마
   - [x] `scripts/seed.py`에 테스트용 방문자 회원·예약 데이터 추가 (업종별 1명 이상)
 - **완료 조건:** `alembic upgrade head` / `downgrade -1` 성공, 다른 테넌트 회원 조회 시 RLS 로 0건
-- **결과:** 커밋 `f979fe2`·`b925e1c`·`51d3071` (feat/T-107, feat/T-125 기준) — 마이그레이션 0019, 테스트 19건 추가 (백엔드 522건 통과 · 커버리지 78%). 기획서 16.9 대비 변경: phone_verifications · member_password_reset_tokens 에 tenant_id NOT NULL + RLS, 이메일·소셜 유니크는 탈퇴 제외 부분 인덱스(#22), 알림 설정용 notify_reservation_confirmed/cancelled 컬럼 추가, 토큰 컬럼 token_hash(SHA-256). 시드: test-tenant 회원 3명(이메일 hong@member.test / member1234 · 카카오 · 네이버) + 예약 4건(MEDICAL·LODGING·GENERAL)
+- **결과:** 커밋 `f979fe2`·`b925e1c`·`51d3071` (feat/T-107, feat/T-125 기준) — 마이그레이션 0019, 테스트 19건 추가 (백엔드 522건 통과 · 커버리지 78%). 기획서 16.9 대비 변경: phone_verifications · member_password_reset_tokens 에 tenant_id NOT NULL + RLS, 이메일·소셜 유니크는 탈퇴 제외 부분 인덱스(#22), 알림 설정용 notify_reservation_confirmed/cancelled 컬럼 추가, 토큰 컬럼 token_hash(SHA-256). 시드: test-tenant 회원 3명(이메일 hong@example.com / member1234 · 카카오 · 네이버 — `.test` 도메인은 이메일 검증에서 거부돼 T-108 에서 수정) + 예약 4건(MEDICAL·LODGING·GENERAL)
 - ⚠️ **발견:** 로컬·테스트 DB 접속 계정 `cms_user` 가 슈퍼유저(BYPASSRLS)라 앱 전체에서 RLS 가 실제로는 적용되지 않음 (격리는 서비스 쿼리의 tenant_id 조건에 의존). T-107 테스트는 일반 권한 역할로 바꿔 정책을 검증. 운영은 일반 권한 앱 계정 분리 필요 — 별도 태스크 제안
 
 ---
 
-### T-108: 방문자 인증 서비스 + API (가입·로그인)
+### T-108: 방문자 인증 서비스 + API (가입·로그인) ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 16.3, 16.4, 16.10, 16.11`
 - **작업 내용:**
-  - [ ] `app/services/member_auth.py` — 가입, 로그인, 로그아웃, 토큰 갱신, 이메일 중복 확인
-  - [ ] `app/api/public/member_auth.py` — `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/refresh`, `GET /auth/check-email`
-  - [ ] JWT `role=SITE_MEMBER` 발급 + `member_refresh_token` 쿠키 (테넌트 호스트 한정)
-  - [ ] `get_current_member` 의존성 — 어드민 API 에 방문자 토큰 사용 시 403 (반대도 동일)
-  - [ ] 연속 실패 5회 → 30분 잠금 (`ACCOUNT_LOCKED`, 남은 시간 응답), 인증 API IP당 10회/분 Rate Limit
-  - [ ] 가입 성공 시 환영 메일 + `SMS_NOTIFICATION=Y` 테넌트는 관리자에게 신규 회원 알림톡
+  - [x] `app/services/member_auth.py` — 가입, 로그인, 로그아웃, 토큰 갱신, 이메일 중복 확인
+  - [x] `app/api/public/member_auth.py` — `POST /auth/register`, `/auth/login`, `/auth/logout`, `/auth/refresh`, `GET /auth/check-email`
+  - [x] JWT `role=SITE_MEMBER` 발급 + `member_refresh_token` 쿠키 (테넌트 호스트 한정)
+  - [x] `get_current_member` 의존성 — 어드민 API 에 방문자 토큰 사용 시 403 (반대도 동일)
+  - [x] 연속 실패 5회 → 30분 잠금 (`ACCOUNT_LOCKED`, 남은 시간 응답), 인증 API IP당 10회/분 Rate Limit
+  - [x] 가입 성공 시 환영 메일 + `SMS_NOTIFICATION=Y` 테넌트는 관리자에게 신규 회원 알림톡
 - **완료 조건:** 가입 → 자동 로그인 → 토큰 갱신 → 로그아웃 동작, 잠금·Rate Limit 동작
+- **결과:** 커밋 `c535ff7`·`b6ec3d1`·`0018294`·`0677990` (feat/T-108, feat/T-107 기준) — 마이그레이션 0020(`phone_verifications.used_at`), 테스트 24건 추가 (백엔드 546건 통과 · 커버리지 78%). 실제 HTTP(데모 DB)로 가입 → refresh → 어드민 API 403 → 로그아웃 → refresh 401 → 시드 회원 로그인 확인. 오픈 이슈 #22 옵션 A(즉시 재가입) 결정. 방문자 API 만 공통 에러 형식(5.1) 적용 — 기존 API 의 `{"detail": ...}` 형식은 그대로 (별도 정리 필요). 남은 연동: 휴대폰 인증 발송·확인 API(T-109), `SITE_MEMBER` 기능 플래그 검사(T-115)
 
 ---
 

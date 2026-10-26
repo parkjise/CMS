@@ -4326,6 +4326,7 @@ CREATE TABLE phone_verifications (
     expires_at  TIMESTAMPTZ NOT NULL,          -- 발급 후 3분
     verified_at TIMESTAMPTZ,
     attempt_count INT NOT NULL DEFAULT 0,      -- 오입력 5회 초과 시 코드 무효화
+    used_at     TIMESTAMPTZ,                   -- (T-108) 가입 등에 사용한 시각 — 1회용
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -4391,6 +4392,17 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | GET    | `/members/inquiries` | 문의 내역 조회 | ✅ |
 | DELETE | `/members/me` | 회원 탈퇴 | ✅ |
 
+#### 구현 메모 (T-108)
+
+- 경로: `app/api/public/member_auth.py` (`/api/public/{tenant_slug}/auth/*`), 서비스 `app/services/member_auth.py`
+- 토큰: access 15분 (`role=SITE_MEMBER`, `sub`·`member_id`, `tenant_id`), refresh 7일 (`type=member_refresh` — 어드민 `/api/v1/auth/refresh` 에 쓸 수 없음). refresh 는 사용할 때마다 회전하고 이전 토큰은 Redis 블랙리스트(`member_blacklist:{sha256}`)
+- `member_refresh_token` 쿠키: HttpOnly · SameSite=Lax · 도메인 미지정(호스트 한정) · **`Path=/api/public/{slug}`** (공용 도메인에서 같은 호스트의 다른 테넌트 API 로 보내지 않음). 로그인 요청 `remember_me=true` 면 7일, 아니면 세션 쿠키 (가입 직후 자동 로그인도 세션 쿠키)
+- 가입: `phone_verification_id` 필수 — 같은 테넌트 · `REGISTER` · 인증 완료 30분 이내 · 같은 번호 · 미사용(`used_at`). 성공 시 201 + 자동 로그인, Celery 로 환영 메일 + 관리자 신규 회원 알림톡(실패 시 SMS, 월 한도 차감)
+- 이메일은 소문자로 저장·비교. 탈퇴 회원 이메일은 즉시 재가입 가능 (오픈 이슈 #22 — 옵션 A 로 결정)
+- 로그인 잠금: 계정 기준 5회 연속 실패 → 30분. 429 `ACCOUNT_LOCKED` + `details[0].retry_after_seconds` + `Retry-After` 헤더. IP 기준은 Rate Limit(10회/분)로 대응. `check-email` 은 디바운스 호출을 고려해 30회/분
+- 에러는 방문자 API 만 공통 형식(5.1) — 입력 검증 실패도 400 `VALIDATION_ERROR` + 한국어 메시지 + `field`
+- 방문자 토큰으로 어드민 API 호출 시 403, 어드민 토큰으로 방문자 API 호출 시 403, 다른 테넌트 토큰 403
+
 #### 응답 형식 예시
 
 ```json
@@ -4440,7 +4452,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
 |---|---|---|---|---|---|
 | 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | 1주차 | 백엔드 |
-| 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | 1주차 | PM |
+| 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | **✅ 결정 (2026-10-26): 옵션 A 즉시 허용** (T-108) — 30일 제한이 필요하면 서비스 검사 1곳 추가 | PM |
 | 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | 2주차 | PM |
 | 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | 2주차 | 백엔드 |
 
