@@ -5,8 +5,15 @@ import { clearTemplateCache, middleware } from '@/middleware'
 /** 미들웨어 — 코드형 템플릿 라우트 분기 (T-125, 오픈 이슈 #26) */
 const fetchMock = vi.fn()
 
-const templateResponse = (code: string | null, renderer = code ? 'code' : 'theme') =>
-  new Response(JSON.stringify({ success: true, data: { code, renderer } }), { status: 200 })
+const templateResponse = (
+  code: string | null,
+  renderer = code ? 'code' : 'theme',
+  memberEnabled = true,
+) =>
+  new Response(
+    JSON.stringify({ success: true, data: { code, renderer, member_enabled: memberEnabled } }),
+    { status: 200 },
+  )
 
 const run = (path: string) => middleware(new NextRequest(new URL(path, 'http://localhost:3000')))
 const rewriteOf = (res: Response) => res.headers.get('x-middleware-rewrite')
@@ -33,8 +40,23 @@ describe('middleware — 템플릿별 라우트 분기', () => {
 
   it('방문자 회원 화면(/{slug}/member/*)은 코드형 템플릿이어도 rewrite 하지 않는다 (T-113)', async () => {
     fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
-    expect(rewriteOf(await run('/clinic/member/login'))).toBeNull()
+    const res = await run('/clinic/member/login')
+    expect(rewriteOf(res)).toBeNull()
+    expect(res.status).toBe(200)
     expect(rewriteOf(await run('/clinic/member/reset-password?token=x'))).toBeNull()
+  })
+
+  it('회원 기능이 꺼진 테넌트의 회원 화면은 404 (T-115)', async () => {
+    fetchMock.mockResolvedValue(templateResponse(null, 'theme', false))
+    expect((await run('/shop/member/login')).status).toBe(404)
+    expect((await run('/shop/member/mypage')).status).toBe(404)
+    // 다른 페이지는 그대로
+    expect((await run('/shop')).status).toBe(200)
+  })
+
+  it('백엔드 장애면 회원 화면도 통과 (레이아웃에서 한 번 더 확인)', async () => {
+    fetchMock.mockRejectedValue(new Error('down'))
+    expect((await run('/shop/member/login')).status).toBe(200)
   })
 
   it('소셜 공용 콜백(/member/...)은 테넌트로 보지 않는다 (T-110)', async () => {

@@ -106,3 +106,34 @@ export const useMemberStore = create<MemberStore>((set, get) => ({
 /** 이 테넌트에 로그인돼 있는지 (다른 테넌트 세션은 무시) */
 export const useIsMember = (slug: string): boolean =>
   useMemberStore((s) => s.slug === slug && s.member !== null)
+
+/** JWT exp(초) — 서명 확인 없이 만료 시각만 읽는다 (서버가 다시 검증) */
+const tokenExpiresAt = (token: string): number => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : 0
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * 공개 접수(문의 · 상담 · 예약)에 붙일 방문자 토큰 헤더 (T-115)
+ * 로그인한 회원이면 내 문의 · 내 예약에 연결된다. 만료됐으면 refresh 쿠키로 먼저 갱신,
+ * 실패하거나 비회원이면 빈 헤더 (비회원 접수 — 오픈 이슈 #23 옵션 A).
+ */
+export const memberAuthHeader = async (slug: string): Promise<Record<string, string>> => {
+  const state = useMemberStore.getState()
+  if (state.slug !== slug || !state.member || !state.accessToken) return {}
+  let token = state.accessToken
+  if (tokenExpiresAt(token) - Date.now() < 30_000) {
+    try {
+      const session = await refreshSession(slug)
+      state.setSession(slug, session)
+      token = session.access_token
+    } catch {
+      return {}
+    }
+  }
+  return { Authorization: `Bearer ${token}` }
+}

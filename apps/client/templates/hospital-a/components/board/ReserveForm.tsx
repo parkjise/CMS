@@ -4,6 +4,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { publicApi } from '@/lib/api'
 import { executeRecaptcha } from '@/lib/recaptcha'
 import { digitsOnly, formatPhone, validateBoardForm } from './formValidation'
+import { memberAuthHeader } from '@/lib/memberStore'
 
 interface Props {
   tenantSlug: string
@@ -51,7 +52,8 @@ export function ReserveForm({ tenantSlug, times }: Props) {
           reserved_time: String(data.get('time')),
           recaptcha_token: recaptchaToken ?? undefined,
         },
-        { params: { tenant_slug: tenantSlug } },
+        // 로그인한 방문자면 내 문의 · 내 예약에 연결 (T-111 · T-115)
+        { params: { tenant_slug: tenantSlug }, headers: await memberAuthHeader(tenantSlug) },
       )
       setSuccess(true)
       setStatus('예약 신청이 접수되었습니다. 확인 후 연락드리겠습니다.')

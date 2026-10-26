@@ -7,6 +7,7 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { countSampleSettings } from '@/lib/sampleCount'
+import { memberEnabled } from '@/lib/publicSite.types'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -36,7 +37,7 @@ export default async function TenantHomePage({ params }: Props) {
       />
 
       <EditToolbar sampleCount={sampleCount} />
-      <Navbar tenantName={site.tenant.name} sections={activeSections} tenantSlug={site.tenant.slug} />
+      <Navbar tenantName={site.tenant.name} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (

@@ -56,10 +56,22 @@ export interface PublicTemplate {
   section_layouts: unknown[]
 }
 
+/** 방문자 회원 기능 (T-115) — 기능 플래그 SITE_MEMBER · MEMBER_RESERVATION · MEMBER_SOCIAL_LOGIN */
+export interface PublicMemberFlags {
+  enabled: boolean
+  reservations: boolean
+  social_login: boolean
+}
+
 export interface PublicSite {
   tenant: PublicTenant
   sections: PublicSection[]
   seo_settings: PublicSeoSettings | null
   sns_settings: PublicSnsSettings | null
   template: PublicTemplate | null
+  member?: PublicMemberFlags
 }
+
+/** 회원 메뉴 · 화면을 보여줄지 — 응답에 없으면(이전 버전 캐시 등) 숨긴다 */
+export const memberEnabled = (site: PublicSite | null | undefined): boolean =>
+  Boolean(site?.member?.enabled)

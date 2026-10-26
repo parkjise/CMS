@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react'
 import { publicApi } from '@/lib/api'
 import { executeRecaptcha } from '@/lib/recaptcha'
 import { digitsOnly, formatPhone, validateBoardForm } from './formValidation'
+import { memberAuthHeader } from '@/lib/memberStore'
 
 interface Props {
   tenantSlug: string
@@ -45,7 +46,8 @@ export function ConsultWrite({ tenantSlug, listHref, detailHrefTemplate }: Props
           is_secret: data.get('secret') === 'on',
           recaptcha_token: recaptchaToken ?? undefined,
         },
-        { params: { tenant_slug: tenantSlug } },
+        // 로그인한 방문자면 내 문의 · 내 예약에 연결 (T-111 · T-115)
+        { params: { tenant_slug: tenantSlug }, headers: await memberAuthHeader(tenantSlug) },
       )
       setSuccess(true)
       setStatus('상담 글이 등록되었습니다. 확인 후 빠르게 답변드리겠습니다.')

@@ -38,6 +38,7 @@ import { ConsultBoard } from './components/board/ConsultBoard'
 import { NoticeBoard } from './components/board/NoticeBoard'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
+import { memberEnabled } from '@/lib/publicSite.types'
 
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
@@ -56,6 +57,7 @@ const IMG_BASE = `/templates/${hospitalAManifest.key}/${hospitalAManifest.versio
  * 섹션 순서는 매니페스트 페이지 정의를 따른다 (resolvePageSections)
  */
 export default function HospitalATemplate({
+  site,
   tenantSlug,
   pageKey,
   sections,
@@ -227,6 +229,7 @@ export default function HospitalATemplate({
         menu={menu}
         account={account}
         tenantSlug={tenantSlug}
+        memberEnabled={memberEnabled(site)}
       />
 
       <main className={`main${pageKey === 'home' ? '' : ' main--sub'}`} id="main" tabIndex={-1}>

@@ -10,6 +10,7 @@ import { executeRecaptcha } from '@/lib/recaptcha'
 import { getBoolean, getString } from '@/lib/sectionSettings'
 import { EditableText } from '@/components/edit/EditableText'
 import type { SectionProps } from './types'
+import { memberAuthHeader } from '@/lib/memberStore'
 
 const PHONE_RE = /^01[016789]-?\d{3,4}-?\d{4}$/
 const MESSAGE_MIN = 10
@@ -108,7 +109,8 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
           message: values.message,
           recaptcha_token: recaptchaToken ?? undefined,
         },
-        { params: { tenant_slug: tenantSlug } },
+        // 로그인한 방문자면 내 문의 · 내 예약에 연결 (T-111 · T-115)
+        { params: { tenant_slug: tenantSlug }, headers: await memberAuthHeader(tenantSlug) },
       )
       toast.success('문의가 접수되었습니다. 빠른 시일 내 연락드리겠습니다.')
       reset()

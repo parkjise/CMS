@@ -96,6 +96,7 @@ const renderUi = (ui: React.ReactElement) =>
 
 const options = (reservations: boolean, social = false) =>
   auth.fetchAuthOptions.mockResolvedValue({
+    enabled: true,
     social_login: social,
     providers: social ? ['KAKAO', 'NAVER'] : [],
     reservations,

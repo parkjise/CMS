@@ -7,7 +7,7 @@ import {
   toMemberError,
 } from '@/lib/memberAuth'
 import { joinSchema, passwordChecks, MESSAGES } from '@/lib/memberSchemas'
-import { useMemberStore } from '@/lib/memberStore'
+import { memberAuthHeader, useMemberStore } from '@/lib/memberStore'
 
 /** 방문자 회원 — 검증 규칙 · 에러 변환 · 스토어 (T-113) */
 
@@ -138,5 +138,42 @@ describe('memberStore', () => {
     })
     expect(useMemberStore.getState().member).toBeNull()
     expect(window.localStorage.getItem('member_session:clinic')).toBeNull()
+  })
+})
+
+describe('memberAuthHeader (T-115 — 공개 접수에 회원 연결)', () => {
+  const jwt = (expSeconds: number) =>
+    `h.${btoa(JSON.stringify({ exp: expSeconds })).replace(/=+$/, '')}.s`
+  const post = vi.spyOn(memberHttp, 'post')
+
+  beforeEach(() => {
+    post.mockReset()
+    useMemberStore.setState({ slug: null, member: null, accessToken: null, status: 'ready' })
+  })
+
+  it('비회원 · 다른 테넌트 세션이면 빈 헤더', async () => {
+    expect(await memberAuthHeader('clinic')).toEqual({})
+    useMemberStore.getState().setSession('other', { ...session, access_token: jwt(9_999_999_999) })
+    expect(await memberAuthHeader('clinic')).toEqual({})
+  })
+
+  it('유효한 토큰은 그대로', async () => {
+    const token = jwt(Math.floor(Date.now() / 1000) + 600)
+    useMemberStore.getState().setSession('clinic', { ...session, access_token: token })
+    expect(await memberAuthHeader('clinic')).toEqual({ Authorization: `Bearer ${token}` })
+    expect(post).not.toHaveBeenCalled()
+  })
+
+  it('만료 직전이면 refresh 후 새 토큰', async () => {
+    useMemberStore.getState().setSession('clinic', { ...session, access_token: jwt(1) })
+    post.mockResolvedValue({ data: { data: { ...session, access_token: 'fresh' } } })
+    expect(await memberAuthHeader('clinic')).toEqual({ Authorization: 'Bearer fresh' })
+    expect(post).toHaveBeenCalledWith('/clinic/auth/refresh')
+  })
+
+  it('refresh 실패면 비회원 접수 (빈 헤더)', async () => {
+    useMemberStore.getState().setSession('clinic', { ...session, access_token: jwt(1) })
+    post.mockRejectedValue(new Error('401'))
+    expect(await memberAuthHeader('clinic')).toEqual({})
   })
 })

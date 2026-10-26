@@ -50,6 +50,7 @@ beforeAll(() => {
 })
 
 const site: PublicSite = {
+  member: { enabled: true, reservations: true, social_login: true },
   tenant: {
     id: 't-1',
     slug: 'demo',
@@ -106,6 +107,21 @@ describe('hospital-a 매니페스트 · 샘플 (T-121)', () => {
 })
 
 describe('hospital-a 화면 (T-121)', () => {
+  it('회원 기능(SITE_MEMBER)이 꺼진 사이트는 헤더 계정 메뉴를 숨긴다 (T-115)', () => {
+    render(
+      <HospitalATemplate
+        site={{ ...site, member: { enabled: false, reservations: false, social_login: false } }}
+        tenantSlug="demo"
+        pageKey="home"
+        sections={sections}
+        siteInfo={resolveSiteInfo(hospitalASample, site)}
+        preview={false}
+      />,
+    )
+    expect(screen.queryByRole('link', { name: '로그인' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '회원가입' })).not.toBeInTheDocument()
+  })
+
   it('템플릿 루트: 헤더 메뉴 · 메인 · 푸터 · 퀵메뉴를 그린다', () => {
     const info = resolveSiteInfo(hospitalASample, site)
     render(

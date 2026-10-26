@@ -50,6 +50,8 @@ export interface ForgotPasswordResult {
 }
 
 export interface AuthOptions {
+  /** 회원 기능 전체 (SITE_MEMBER) */
+  enabled: boolean
   social_login: boolean
   providers: SocialProvider[]
   /** 마이페이지 "내 예약" 탭 노출 (업종 · 기능 플래그) */

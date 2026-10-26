@@ -20,6 +20,7 @@ import { ConsultUnlock } from '@/templates/hospital-a/components/board/ConsultUn
 import { ConsultWrite } from '@/templates/hospital-a/components/board/ConsultWrite'
 import { ReserveForm } from '@/templates/hospital-a/components/board/ReserveForm'
 import { formatPhone } from '@/templates/hospital-a/components/board/formValidation'
+import { useMemberStore } from '@/lib/memberStore'
 
 const sampleSection = (page: string): PublicSection => {
   const s = hospitalASample.pages[page].find((x) => x.section_type === 'BOARD')!
@@ -191,7 +192,7 @@ describe('상담 글쓰기 · 예약 폼 (T-123)', () => {
     expect(post).toHaveBeenCalledWith(
       '/inquiries/board',
       expect.objectContaining({ name: '홍길동', password: '1234', phone: '010-1234-5678', subject: '주차 문의', is_secret: true, recaptcha_token: 'token-1' }),
-      { params: { tenant_slug: 'demo' } },
+      { params: { tenant_slug: 'demo' }, headers: {} }, // 비회원 접수
     )
     expect(await screen.findByText(/상담 글이 등록되었습니다/)).toBeInTheDocument()
   })
@@ -218,8 +219,32 @@ describe('상담 글쓰기 · 예약 폼 (T-123)', () => {
     expect(post).toHaveBeenCalledWith(
       '/inquiries',
       expect.objectContaining({ inquiry_type: 'RESERVATION', reserved_date: '2026-11-05', reserved_time: '10:00', phone: '010-1234-5678' }),
-      { params: { tenant_slug: 'demo' } },
+      { params: { tenant_slug: 'demo' }, headers: {} },
     )
     expect(await screen.findByText(/예약 신청이 접수되었습니다/)).toBeInTheDocument()
+  })
+
+  it('로그인한 방문자의 예약은 회원 토큰을 붙여 보낸다 (T-115 — 내 예약 연결)', async () => {
+    const token = `h.${btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 600 })).replace(/=+$/, '')}.s`
+    useMemberStore.getState().setSession('demo', {
+      access_token: token,
+      member: { id: 'm1', name: '홍길동', email: 'hong@example.com' },
+    })
+    post.mockResolvedValue({ data: { data: { inquiry_id: 'r1' } } })
+    render(<ReserveForm tenantSlug="demo" times={['10:00']} />)
+    fireEvent.change(screen.getByLabelText(/^이름/), { target: { value: '홍길동' } })
+    fireEvent.change(screen.getByLabelText('희망 날짜'), { target: { value: '2026-11-05' } })
+    fireEvent.change(screen.getByLabelText('희망 시간대'), { target: { value: '10:00' } })
+    fireEvent.input(screen.getByLabelText(/^연락처/), { target: { value: '01012345678' } })
+    fireEvent.change(screen.getByLabelText(/^제목/), { target: { value: '첫 방문' } })
+    fireEvent.change(screen.getByLabelText(/^내용/), { target: { value: '오전 상담 받고 싶습니다.' } })
+    fireEvent.click(screen.getByLabelText(/이용약관/))
+    fireEvent.click(screen.getByRole('button', { name: '등록' }))
+    await waitFor(() => expect(post).toHaveBeenCalled())
+    expect(post.mock.calls[0][2]).toEqual({
+      params: { tenant_slug: 'demo' },
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    useMemberStore.getState().clear()
   })
 })
