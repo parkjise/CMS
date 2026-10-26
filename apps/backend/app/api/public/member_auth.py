@@ -12,8 +12,10 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import member_errors as errors
 from app.core.config import settings
 from app.core.deps import get_current_member, get_member_db, get_member_tenant
+from app.core.member_errors import MemberAuthError
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
@@ -27,6 +29,7 @@ from app.schemas.site_member import (
     MemberAuthResponse,
     MemberLoginRequest,
     MemberRegisterRequest,
+    MemberSocialRequest,
     MemberSummary,
     PhoneSendRequest,
     PhoneSendResponse,
@@ -35,9 +38,13 @@ from app.schemas.site_member import (
     ResetPasswordRequest,
     ResetPasswordResponse,
     ResetTokenCheckResponse,
+    SocialAuthorizeResponse,
+    SocialCallbackResponse,
+    SocialCompleteRequest,
 )
 from app.services import member_auth as member_auth_service
-from app.services import member_recovery, member_verification
+from app.services import member_recovery, member_social, member_verification
+from app.services.social_providers import PROVIDERS, Provider
 
 router = APIRouter(prefix="/{tenant_slug}/auth", tags=["public-member"])
 
@@ -282,3 +289,95 @@ async def reset_password(
     """새 비밀번호 저장 — 다른 기기 로그인 해제 + 보안 알림."""
     await member_recovery.reset_password(db, tenant, body)
     return ApiResponse.ok(ResetPasswordResponse(reset=True))
+
+
+# ── 소셜 로그인 (T-110, 기획서 16.3 · 16.4) ─────────────────────────────────
+
+
+def parse_provider(provider: str) -> Provider:
+    value = provider.upper()
+    if value not in PROVIDERS:
+        raise MemberAuthError(
+            400, "VALIDATION_ERROR", errors.VALIDATION_ERROR, field="provider"
+        )
+    return value  # type: ignore[return-value]
+
+
+@router.get(
+    "/social/{provider}/authorize",
+    response_model=ApiResponse[SocialAuthorizeResponse],
+)
+@limiter.limit(_RATE)
+async def social_authorize(
+    request: Request,
+    provider: str,
+    return_to: str | None = None,
+    stub_user: str | None = None,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """소셜 로그인 주소 (state 포함). stub_user 는 test 모드에서만 쓰인다."""
+    await member_social.ensure_enabled(db, tenant)
+    url, state = await member_social.start(
+        tenant, parse_provider(provider), "login", return_to, stub_user=stub_user
+    )
+    return ApiResponse.ok(SocialAuthorizeResponse(authorize_url=url, state=state))
+
+
+@router.post("/social", response_model=ApiResponse[SocialCallbackResponse])
+@limiter.limit(_RATE)
+async def social_callback(
+    request: Request,
+    body: MemberSocialRequest,
+    response: Response,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """콜백 페이지가 받은 code · state 처리 — 소셜 토큰은 응답에 담지 않는다."""
+    await member_social.ensure_enabled(db, tenant)
+    result = await member_social.handle_callback(
+        db, tenant, body.provider, body.code, body.state
+    )
+    data = SocialCallbackResponse(
+        status=result.status,
+        provider=result.provider,
+        return_to=result.return_to,
+        signup_token=result.signup_token,
+        email_required=result.email_required,
+        suggested_name=result.suggested_name,
+    )
+    if result.status == "LOGGED_IN" and result.member is not None:
+        access, refresh = member_auth_service.issue_tokens(result.member, False)
+        _set_refresh_cookie(response, tenant, refresh, False)
+        data.access_token = access
+        data.member = MemberSummary.model_validate(result.member)
+    return ApiResponse.ok(data)
+
+
+@router.post(
+    "/social/complete",
+    response_model=ApiResponse[SocialCallbackResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+@limiter.limit(_RATE)
+async def social_complete(
+    request: Request,
+    body: SocialCompleteRequest,
+    response: Response,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """소셜 신규 가입 — 휴대폰 인증 · 약관 동의 후 자동 로그인."""
+    await member_social.ensure_enabled(db, tenant)
+    member, return_to = await member_social.complete_signup(db, tenant, body)
+    access, refresh = member_auth_service.issue_tokens(member, False)
+    _set_refresh_cookie(response, tenant, refresh, False)
+    return ApiResponse.ok(
+        SocialCallbackResponse(
+            status="LOGGED_IN",
+            provider=member.social_provider,  # type: ignore[arg-type]
+            return_to=return_to,
+            access_token=access,
+            member=MemberSummary.model_validate(member),
+        )
+    )

@@ -13,6 +13,7 @@ from app.models.seo import SeoSetting
 from app.models.site_member import (
     MemberPasswordResetToken,
     MemberReservation,
+    MemberSocialAccount,
     PhoneVerification,
     SiteMember,
 )
@@ -52,4 +53,5 @@ __all__ = [
     "MemberReservation",
     "PhoneVerification",
     "MemberPasswordResetToken",
+    "MemberSocialAccount",
 ]

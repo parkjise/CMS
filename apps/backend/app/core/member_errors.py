@@ -37,6 +37,23 @@ CODE_EXPIRED = "인증번호가 만료되었습니다. 다시 요청해주세요
 CODE_ATTEMPTS_EXCEEDED = "인증 시도 횟수를 초과했습니다. 인증번호를 다시 요청해주세요"
 ACCOUNT_NOT_FOUND = "입력하신 정보와 일치하는 계정을 찾을 수 없습니다."
 TOKEN_EXPIRED = "유효하지 않거나 만료된 링크입니다."
+# 소셜 로그인 (기획서 16.4 · 16.7, T-110)
+FEATURE_DISABLED = "이 기능은 현재 비활성화되어 있습니다."
+INVALID_STATE = "로그인 요청이 만료되었거나 올바르지 않습니다. 다시 시도해주세요"
+SOCIAL_AUTH_FAILED = "소셜 로그인에 실패했습니다. 잠시 후 다시 시도해주세요"
+SOCIAL_EMAIL_EXISTS = (
+    "이미 이메일로 가입된 계정입니다. 로그인 후 마이페이지에서 연결해주세요"
+)
+SOCIAL_ALREADY_LINKED = "이미 다른 회원에 연결된 소셜 계정입니다"
+SOCIAL_PROVIDER_LINKED = (
+    "이미 연결된 계정이 있습니다. 연결을 해제한 뒤 다시 시도해주세요"
+)
+SOCIAL_NOT_LINKED = "연결되지 않은 소셜 계정입니다"
+LAST_LOGIN_METHOD = (
+    "다른 로그인 방법이 없어 연결을 해제할 수 없습니다. 비밀번호를 먼저 설정해주세요"
+)
+SIGNUP_EXPIRED = "가입 시간이 만료되었습니다. 소셜 로그인을 다시 시도해주세요"
+EMAIL_REQUIRED = "이메일을 입력해주세요"
 
 _MEMBER_PATH = re.compile(r"^/api/public/[^/]+/(auth|members)(/|$)")
 

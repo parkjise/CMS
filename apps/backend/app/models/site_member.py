@@ -201,3 +201,45 @@ class MemberPasswordResetToken(Base, TimestampMixin):
     used_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class MemberSocialAccount(Base, TimestampMixin, SoftDeleteMixin):
+    """회원에 연결된 소셜 계정 (T-110) — 카카오 · 네이버를 함께 연결할 수 있다.
+
+    연결 해제 · 탈퇴는 소프트 삭제. 연결 중인 계정만 중복 불가 (부분 유니크).
+    """
+
+    __tablename__ = "member_social_accounts"
+    __table_args__ = (
+        Index(
+            "uq_member_social_accounts_provider_user",
+            "tenant_id",
+            "provider",
+            "provider_user_id",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+        Index(
+            "uq_member_social_accounts_member_provider",
+            "member_id",
+            "provider",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = _tenant_fk()
+    member_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("site_members.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    # KAKAO, NAVER
+    provider: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_user_id: Mapped[str] = mapped_column(String(200), nullable=False)
+    # 소셜 계정 이메일 (제공 동의한 경우만)
+    email: Mapped[str | None] = mapped_column(String(255), nullable=True)

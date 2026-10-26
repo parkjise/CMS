@@ -89,11 +89,42 @@ class MemberRegisterRequest(BaseModel):
 
 
 class MemberSocialRequest(BaseModel):
-    provider: SocialProvider
-    # 소셜 인가 코드 (서버가 토큰 교환 · 프로필 조회)
+    """소셜 콜백 — 인가 코드는 서버가 토큰으로 교환 (클라이언트에 토큰 노출 금지)."""
+
+    # 콜백 주소에는 공급자가 없으므로 생략 가능 (state 에 저장된 값 사용, 보내면 대조)
+    provider: SocialProvider | None = None
     code: str = Field(..., min_length=1, max_length=500)
-    state: str | None = Field(None, max_length=200)
-    redirect_uri: str | None = Field(None, max_length=500)
+    state: str = Field(..., min_length=16, max_length=200)
+
+
+class SocialCompleteRequest(BaseModel):
+    """소셜 신규 가입 추가 정보 (16.3) — 휴대폰 인증 + 약관."""
+
+    signup_token: str = Field(..., min_length=16, max_length=200)
+    # 소셜이 이메일을 주지 않은 경우에만 필수
+    email: EmailStr | None = None
+    name: str | None = Field(None, max_length=100)
+    phone: str = Field(..., max_length=20)
+    phone_verification_id: uuid.UUID
+    terms_agree: bool
+    privacy_agree: bool
+    marketing_agree: bool = False
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        return _check_phone(v)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str | None) -> str | None:
+        return None if v is None else _check_name(v)
+
+    @model_validator(mode="after")
+    def check_terms(self) -> "SocialCompleteRequest":
+        if not (self.terms_agree and self.privacy_agree):
+            raise ValueError(TERMS_ERROR)
+        return self
 
 
 class MemberLoginRequest(BaseModel):
@@ -321,3 +352,37 @@ class ResetTokenCheckResponse(BaseModel):
 
 class ResetPasswordResponse(BaseModel):
     reset: bool
+
+
+# ── 소셜 로그인 (T-110) ────────────────────────────────────────────────────
+
+
+class SocialAuthorizeResponse(BaseModel):
+    authorize_url: str
+    state: str
+
+
+class SocialCallbackResponse(BaseModel):
+    """LOGGED_IN: 로그인 완료 / SIGNUP_REQUIRED: 추가 정보 화면 / LINKED: 연결 완료."""
+
+    status: Literal["LOGGED_IN", "SIGNUP_REQUIRED", "LINKED"]
+    provider: SocialProvider
+    return_to: str
+    access_token: str | None = None
+    member: MemberSummary | None = None
+    signup_token: str | None = None
+    # 소셜이 이메일을 주지 않아 추가 정보 화면에서 받아야 함
+    email_required: bool = False
+    suggested_name: str | None = None
+
+
+class SocialAccountItem(BaseModel):
+    provider: SocialProvider
+    email: str | None
+    linked_at: datetime
+
+
+class SocialAccountsResponse(BaseModel):
+    accounts: list[SocialAccountItem]
+    # 비밀번호가 없으면 마지막 소셜 계정은 해제할 수 없다
+    has_password: bool

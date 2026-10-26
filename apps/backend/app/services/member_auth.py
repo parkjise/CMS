@@ -129,11 +129,11 @@ async def register(
         await db.rollback()
         raise MemberAuthError(409, "CONFLICT", errors.EMAIL_TAKEN, field="email")
     await db.refresh(member)
-    _enqueue_joined_alert(tenant.id, member.id)
+    enqueue_joined_alert(tenant.id, member.id)
     return member
 
 
-def _enqueue_joined_alert(tenant_id: UUID, member_id: UUID) -> None:
+def enqueue_joined_alert(tenant_id: UUID, member_id: UUID) -> None:
     """환영 메일 + 관리자 신규 회원 알림 (Celery)."""
     try:
         from app.workers.notification import send_member_joined_alert
