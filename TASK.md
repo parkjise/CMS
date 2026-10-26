@@ -29,9 +29,9 @@
 | Phase 12: 테스트 & 배포 | 6 | 6 | 100% |
 | **Phase 13: 슈퍼 어드민 시스템** | **11** | **11** | **100%** |
 | **Phase 14: SaaS 운영 시스템** | **12** | **12** | **100%** |
-| **Phase 15: 방문자 인증** | **10** | **5** | **50%** |
+| **Phase 15: 방문자 인증** | **10** | **6** | **60%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **9** | **6** | **67%** |
-| **합계** | **127** | **119** | **94%** |
+| **합계** | **127** | **120** | **94%** |
 
 ---
 
@@ -2140,15 +2140,17 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 ---
 
-### T-111: 마이페이지 + 회원 탈퇴 API
+### T-111: 마이페이지 + 회원 탈퇴 API ✅
 - **담당:** 백엔드
 - **참조:** `기획서 섹션 16.7, 16.8, 16.10`
 - **작업 내용:**
-  - [ ] `GET/PATCH /members/me` (이메일 변경 불가), `PATCH /members/me/password`, `PATCH /members/me/notification`
-  - [ ] `GET /members/reservations` — 상태·기간 필터, 업종별 `detail` 포함 / `POST /members/reservations/{id}/cancel`
-  - [ ] `GET /members/inquiries` — AD-04 문의와 `member_id` 로 연동, 답변 상태 포함
-  - [ ] `DELETE /members/me` — 비밀번호 확인(소셜 가입자 생략), 진행 중 예약 있으면 `ACTIVE_RESERVATION_EXISTS`, 소프트 삭제 + 탈퇴 안내 발송
+  - [x] `GET/PATCH /members/me` (이메일 변경 불가), `PATCH /members/me/password`, `PATCH /members/me/notification`
+  - [x] `GET /members/reservations` — 상태·기간 필터, 업종별 `detail` 포함 / `POST /members/reservations/{id}/cancel`
+  - [x] `GET /members/inquiries` — AD-04 문의와 `member_id` 로 연동, 답변 상태 포함
+  - [x] `DELETE /members/me` — 비밀번호 확인(소셜 가입자 생략), 진행 중 예약 있으면 `ACTIVE_RESERVATION_EXISTS`, 소프트 삭제 + 탈퇴 안내 발송
 - **완료 조건:** 내 정보 수정·알림 설정·예약 취소·탈퇴 동작, 탈퇴 회원 로그인 불가
+  - [x] (추가) 로그인한 방문자의 문의 · 상담 글 · 예약 접수에 `member_id` 기록, 예약은 `member_reservations` 생성 (업종별 유형)
+- **결과:** 커밋 `0e33765`·`205840a`·`e67ef39` (feat/T-111, feat/T-110 기준) — 마이그레이션 0023(`withdrawal_reason`), 테스트 16건 추가 (백엔드 607건 통과 · 커버리지 78%). 실제 HTTP(데모 DB)로 내 정보 · 예약(업종별 detail) · 문의 · 알림 설정 · 탈퇴(비밀번호 오류 401 / 진행 중 예약 409) 확인. 탈퇴 시 개인정보 즉시 익명화(개인정보보호법 — 법무 확인 권장), 예약 · 소셜 연결 소프트 삭제, 문의는 연결만 해제. 소셜 가입자 첫 비밀번호 · 연락처 변경은 휴대폰 인증(MYPAGE). 관리자 예약 확정 · 완료 처리는 T-115
 
 ---
 
@@ -2205,6 +2207,8 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
   - [ ] 슈퍼 어드민 SA-04 에서 테넌트별 ON/OFF
   - [ ] AD-04 문의 목록에 회원/비회원 표시 + 회원 정보 보기
   - [ ] AD-01 대시보드에 신규 회원 수 카드
+  - [ ] (T-111 연동) AD-04 에서 회원 예약 상태 변경 (대기 → 확정 → 완료, 관리자 취소) — `member_reservations.status` 와 문의 상태 동기화, 확정 · 취소 시 회원 알림 설정(`notify_reservation_*`)에 따라 문자/메일
+  - [ ] (T-111 연동) AD-04 문의 목록에 회원 여부 배지 (`inquiries.member_id`)
 - **완료 조건:** 플래그 OFF 테넌트는 회원 메뉴·API 모두 비활성
 
 ---

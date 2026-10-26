@@ -4254,6 +4254,12 @@ POST /api/public/{tenant_slug}/auth/login
 - 탈퇴 확인 문자/이메일 발송
 - 진행 중 예약 존재 시 탈퇴 차단 + 안내
 
+구현 메모 (T-111):
+- `DELETE /members/me` 요청 `{password?, reason?: INCONVENIENT|PRIVACY|NOT_USING|OTHER, reason_detail?}` — 비밀번호가 있는 회원만 확인 (틀리면 401), 진행 중 예약(대기 · 확정 · 예약 시각 전) 있으면 409 `ACTIVE_RESERVATION_EXISTS`
+- **개인정보 즉시 익명화** (개인정보보호법): 이름 `탈퇴회원`, 이메일 `withdrawn-{id}@deleted.invalid`, 연락처 · 생년월일 · 비밀번호 · 소셜 ID 삭제, 수신 동의 해제. 사유는 `withdrawal_reason` 에 보관
+- 예약 · 소셜 연결 소프트 삭제, 미사용 재설정 링크 무효, 문의는 사업체 기록으로 남기고 `member_id` 연결만 해제
+- 탈퇴 안내 메일 + 문자는 익명화 전 원래 연락처로. 남은 토큰은 모두 거부, 같은 이메일 즉시 재가입 가능 (#22)
+
 ---
 
 ### 16.9 DB 스키마
@@ -4433,6 +4439,16 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 기능 플래그 `MEMBER_SOCIAL_LOGIN` OFF → 소셜 API 403 `FEATURE_DISABLED` (마이그레이션 0022 가 등록 · 기존 테넌트 켜기)
 - `SOCIAL_MODE=test`(기본) 는 외부 호출 없이 가짜 계정 (`stub_user` 로 같은 계정 재현) — 로컬 화면 개발용
 
+#### 구현 메모 (T-111)
+
+- 경로: `app/api/public/member_me.py`, 서비스 `member_profile.py` (내 정보 · 비밀번호 · 알림 · 탈퇴) · `member_activity.py` (예약 · 문의)
+- `GET/PATCH /members/me` — 응답에 `has_password` · `social_accounts`. 이메일 변경은 400, 연락처 변경은 새 번호 휴대폰 인증(`MYPAGE` 용도) 필수
+- `PATCH /members/me/password` — 현재 비밀번호 확인 (소셜 가입자 첫 설정은 휴대폰 인증 `MYPAGE`). 다른 기기 토큰은 무효, 응답에 이 기기용 새 access token + refresh 쿠키. 보안 알림
+- `GET/PATCH /members/me/notification` — 보낸 항목만 변경
+- `GET /members/reservations?status=&months=3|6|12` · `POST /members/reservations/{id}/cancel` — 대기 · 확정이면서 예약 시각 전만 취소 (그 외 409 `RESERVATION_NOT_CANCELLABLE`), 연결된 문의 관리자 메모에 `[회원 취소]` 기록 + 관리자 실시간 알림
+- `GET /members/inquiries` (+ `/{id}`) — 내가 남긴 문의 · 상담 글 · 예약, `answered`(답변 있음 또는 처리 완료), 상세에 답변
+- 로그인한 방문자가 공개 접수 API(문의 · 상담 게시판 · 예약)를 호출하면 `inquiries.member_id` 기록, 예약은 `member_reservations` 생성 — 업종(HOSPITAL → MEDICAL, PENSION → LODGING, 그 외 GENERAL), `reserved_at` 은 희망 날짜 · 시각(한국 시간). 비회원 접수는 그대로 (#23 옵션 A)
+
 #### 응답 형식 예시
 
 ```json
@@ -4483,7 +4499,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 |---|---|---|---|---|---|
 | 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | **✅ 결정 (2026-10-26): 옵션 A SENS SMS** (T-109) — PASS 는 계약 후 검토 | 백엔드 |
 | 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | **✅ 결정 (2026-10-26): 옵션 A 즉시 허용** (T-108) — 30일 제한이 필요하면 서비스 검사 1곳 추가 | PM |
-| 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | 2주차 | PM |
+| 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | **✅ 결정 (2026-10-26): 옵션 A 유지** (T-111) — 로그인 시 회원 접수로 연결 | PM |
 | 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | **✅ 결정 (2026-10-26): 옵션 A 공용 앱** (T-110) — 콜백 1개 + state 로 테넌트 구분 | 백엔드 |
 
 
