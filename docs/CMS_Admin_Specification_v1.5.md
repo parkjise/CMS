@@ -2086,13 +2086,15 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 - 업종 기본 템플릿 폴백(적용 이력이 없는 테넌트)은 테마형만 고른다 — 코드형은 직접 적용한 테넌트에만.
 - 샘플로 교체(`replace_with_sample`)는 기존 섹션을 소프트 삭제하고 샘플을 복사한다. 롤백 시 교체 전 섹션을 되살린다 (첫 적용이라도 콘텐츠 복원 가능).
 - `GET /sections` 응답 각 setting 에 `is_sample` 포함, `PATCH` 저장 시 서버가 `is_sample=false` 로 갱신.
+- (T-125 구현) 공개 경량 API `GET /api/public/site/{slug}/template` → `{code, renderer}` — 사이트 캐시가 있으면 그 값을 쓰고 없으면 계산. 클라이언트 미들웨어 전용.
+- (T-125 구현) 템플릿별 라우트 분기: `apps/client/middleware.ts` 가 위 API 로 테넌트 템플릿을 확인(60초 캐시, 2초 타임아웃)하고 코드형이면 `/{slug}[/{page}[/{id}]]` 를 `/tpl-{key}/{slug}/...` 내부 라우트(`app/(code)/tpl-{key}/`)로 rewrite. `preview`·`login`·`sitemap.xml` 은 rewrite 하지 않고, `/tpl-*` 직접 접근은 404. 테마형 라우트(`app/[tenant_slug]/page.tsx`)는 템플릿 코드를 import 하지 않아 다른 테넌트에 템플릿 CSS·JS 가 내려가지 않는다. 템플릿 전환은 최대 60초 뒤 반영.
 
 ### 11.11 오픈 이슈 추가
 
 | # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
 |---|---|---|---|---|---|
 | 25 | 목업 템플릿 이름·ID | `TPL_HOSPITAL_A` (업종+순번) | 디자인 컨셉명 (예: `TPL_CLASSIC_SERIF`) | 1주차 | PM |
-| 26 | SCSS 템플릿 CSS 전달 방식 | Next 번들(동적 import 청크) — 적용 후 확인: 서버 컴포넌트 동적 import 는 청크가 나뉘지 않아 다른 테넌트에도 CSS(gzip 약 10KB)·JS 가 함께 내려옴 | **✅ 결정 (2026-10-25): 미들웨어로 템플릿별 라우트 분기** — `/{slug}` 요청을 템플릿 전용 내부 라우트로 rewrite 해 CSS·JS 를 라우트 단위로 분리 (T-125 에서 적용) | 결정됨 | 프론트 |
+| 26 | SCSS 템플릿 CSS 전달 방식 | Next 번들(동적 import 청크) — 적용 후 확인: 서버 컴포넌트 동적 import 는 청크가 나뉘지 않아 다른 테넌트에도 CSS(gzip 약 10KB)·JS 가 함께 내려옴 | **✅ 결정 (2026-10-25): 미들웨어로 템플릿별 라우트 분기** — `/{slug}` 요청을 템플릿 전용 내부 라우트로 rewrite 해 CSS·JS 를 라우트 단위로 분리 (T-125 에서 적용 — 11.10 참조) | 구현됨 | 프론트 |
 | 27 | 공지 게시판 데이터 | **✅ 결정 (2026-10-25): 섹션 settings JSON** — T-123 적용 | 별도 `posts` 테이블 + API (공지가 많아지면 이전) | 결정됨 | 백엔드 |
 | 28 | 샘플 콘텐츠 업데이트 전파 | 신규 적용분에만 반영 | `is_sample=true` 값은 새 버전으로 자동 갱신 | 2주차 | PM |
 
