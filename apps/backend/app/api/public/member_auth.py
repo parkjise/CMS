@@ -54,6 +54,8 @@ limiter = Limiter(key_func=get_remote_address)
 _RATE = "10/minute"
 
 REFRESH_COOKIE = "member_refresh_token"
+# 예약 기능이 있는 업종 (기획서 16.2) — T-115 에서 MEMBER_RESERVATION 플래그로 교체
+RESERVATION_INDUSTRIES = ("HOSPITAL", "PENSION")
 _COOKIE_MAX_AGE = 60 * 60 * 24 * settings.refresh_token_expire_days
 
 
@@ -398,6 +400,8 @@ async def auth_options(
     social = await feature_service.is_enabled(db, tenant.id, member_social.FEATURE_KEY)
     return ApiResponse.ok(
         MemberAuthOptions(
-            social_login=social, providers=list(PROVIDERS) if social else []
+            social_login=social,
+            providers=list(PROVIDERS) if social else [],
+            reservations=tenant.template_type in RESERVATION_INDUSTRIES,
         )
     )

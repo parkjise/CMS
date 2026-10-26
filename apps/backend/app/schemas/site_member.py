@@ -366,6 +366,9 @@ class MemberAuthOptions(BaseModel):
 
     social_login: bool
     providers: list[SocialProvider]
+    # 마이페이지 "내 예약" 탭 — 지금은 업종 기준(병원 · 펜션),
+    # T-115 에서 MEMBER_RESERVATION 플래그로 교체
+    reservations: bool
 
 
 class ResetTokenCheckResponse(BaseModel):
