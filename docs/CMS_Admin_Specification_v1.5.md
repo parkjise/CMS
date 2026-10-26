@@ -4370,7 +4370,9 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | 메서드 | 엔드포인트 | 설명 | 인증 필요 |
 |---|---|---|---|
 | POST | `/auth/register` | 일반 회원가입 | ❌ |
+| GET  | `/auth/social/{provider}/authorize` | (T-110) 소셜 로그인 주소 + state | ❌ |
 | POST | `/auth/social` | 소셜 로그인/가입 처리 | ❌ |
+| POST | `/auth/social/complete` | (T-110) 소셜 신규 가입 추가 정보 | ❌ |
 | POST | `/auth/login` | 로그인 | ❌ |
 | POST | `/auth/logout` | 로그아웃 | ✅ |
 | POST | `/auth/refresh` | 토큰 갱신 | ❌ |
@@ -4416,6 +4418,20 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - `reset-password` 성공 시 잠금 해제 · `password_changed_at` 기록 → **이전에 발급된 access/refresh 토큰 모두 거부** (토큰 `iat` 비교) · 보안 알림 메일 + 문자(수신 동의와 무관)
 - 마스킹: 아이디 앞 2자리 외 `*` (2자 이하는 첫 글자만) — `hongil@email.com` → `ho****@email.com`
 - 인증 문자는 관리자 알림 월 한도에서 차감하지 않음
+
+#### 구현 메모 (T-110)
+
+- 서비스: `app/services/social_providers.py` (카카오 · 네이버 OAuth), `app/services/member_social.py` (로그인 · 가입 · 연결)
+- 추가 API: `GET /auth/social/{provider}/authorize?return_to=` (로그인 주소), `POST /auth/social/complete` (신규 가입 추가 정보), `GET /members/me/social` · `POST /members/me/social/{provider}/authorize` · `DELETE /members/me/social/{provider}` (연결 · 해제)
+- 운영사 공용 앱 1개 (오픈 이슈 #24 — 옵션 A 결정). 콜백 주소는 메인 도메인 `/member/social/callback` 하나 (`SOCIAL_REDIRECT_URI`, 카카오 · 네이버 콘솔에 등록)
+- `state` = `{slug}.{난수}` — 공용 콜백 페이지가 테넌트를 찾는 용도로 slug 를 붙이고, 난수는 Redis 10분 · 1회용으로 테넌트 · 공급자 · 모드(login/link) 와 대조 (CSRF · 다른 테넌트 재사용 차단). 콜백 요청의 `provider` 는 생략 가능 (state 값 사용)
+- `POST /auth/social` 응답 `status`: `LOGGED_IN`(토큰 + refresh 쿠키) / `SIGNUP_REQUIRED`(`signup_token` 30분, `email_required`, `suggested_name`) / `LINKED`. 소셜 access token 은 응답에 담지 않음
+- 같은 이메일의 기존 회원이 있으면 **자동 연결하지 않고** 409 `SOCIAL_EMAIL_EXISTS` (로그인 후 마이페이지에서 연결) — 계정 탈취 방지. 카카오 미인증 이메일은 없는 것으로 취급
+- 신규 가입은 휴대폰 인증(REGISTER) + 약관 필수, 네이버가 주는 휴대폰 번호는 쓰지 않음. 소셜 가입 회원은 비밀번호 없음
+- 연결 정보는 `member_social_accounts` (회원 1명에 카카오 · 네이버 동시 연결, 해제는 소프트 삭제). `site_members.social_provider/social_id` 는 가입 방식 기록
+- 마지막 로그인 수단(비밀번호 없음 + 다른 소셜 없음)은 해제 불가 409 `LAST_LOGIN_METHOD`
+- 기능 플래그 `MEMBER_SOCIAL_LOGIN` OFF → 소셜 API 403 `FEATURE_DISABLED` (마이그레이션 0022 가 등록 · 기존 테넌트 켜기)
+- `SOCIAL_MODE=test`(기본) 는 외부 호출 없이 가짜 계정 (`stub_user` 로 같은 계정 재현) — 로컬 화면 개발용
 
 #### 응답 형식 예시
 
@@ -4468,7 +4484,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | **✅ 결정 (2026-10-26): 옵션 A SENS SMS** (T-109) — PASS 는 계약 후 검토 | 백엔드 |
 | 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | **✅ 결정 (2026-10-26): 옵션 A 즉시 허용** (T-108) — 30일 제한이 필요하면 서비스 검사 1곳 추가 | PM |
 | 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | 2주차 | PM |
-| 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | 2주차 | 백엔드 |
+| 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | **✅ 결정 (2026-10-26): 옵션 A 공용 앱** (T-110) — 콜백 1개 + state 로 테넌트 구분 | 백엔드 |
 
 
 ---
