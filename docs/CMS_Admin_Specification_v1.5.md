@@ -2023,6 +2023,13 @@ export interface TemplateManifest {
 - 샘플 이미지는 공용 스토리지 `templates/{key}/{version}/…` 에 올리고 모든 테넌트가 같은 URL 을 참조한다. 고객이 이미지를 바꾸면 기존 규칙대로 테넌트 경로(`/{tenant_id}/sections/…`)에 새로 업로드된다 (공용 원본은 수정·삭제 불가).
 - 샘플 문구는 업종 무관 중립 카피, 이미지는 상업 이용 가능한 라이선스만 사용하고 출처를 `SOURCES.md` 로 관리한다 (목업 `assets/images/unsplash/SOURCES.md` 이어받음).
 
+#### 구현 메모 (T-120 — 공용 스토리지)
+
+- 원본은 클라이언트 `public/templates/{key}/{version}/`. `scripts/upload_template_assets.py` 가 버킷의 `templates/{key}/{version}/…` 로 올린다 (동일 파일 건너뜀, `Cache-Control: immutable`, `templates/*` 공개 읽기 정책 추가)
+- 버전 폴더마다 `SOURCES.md` 필수, '확인 필요' 가 남아 있으면 업로드 거부 (개발 환경만 `--allow-unverified`)
+- `TEMPLATE_ASSET_BASE_URL`(운영 = `CDN_BASE_URL`)이 있으면 샘플 복사 시 `/templates/…` 주소를 공용 주소로 바꿔 저장. 비우면 상대 주소(클라이언트 public) 그대로. 이미 만든 테넌트 주소는 바꾸지 않으므로 `public/templates` 는 계속 둔다
+- 공용 원본 보호: 스토리지 업로드 · 삭제 함수와 고아 파일 정리 작업이 `templates/` 경로를 거부
+
 #### 적용 시점과 동작
 
 | 시점 | 동작 |
