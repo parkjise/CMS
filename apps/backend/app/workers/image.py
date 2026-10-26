@@ -9,6 +9,7 @@ from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
 from app.models.section import SectionSetting
 from app.services import image as image_service
+from app.services import template_assets
 from app.workers.celery_app import celery_app
 
 THUMB_WIDTH = 400
@@ -134,6 +135,8 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
 
             # MinIO 삭제 (실패해도 DB는 정리)
             for k in keys_to_delete:
+                if template_assets.is_protected_key(k):
+                    continue  # 공용 템플릿 원본은 지우지 않는다 (11.8)
                 try:
                     client.delete_object(Bucket=settings.minio_bucket_name, Key=k)
                 except Exception:

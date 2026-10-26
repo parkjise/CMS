@@ -38,6 +38,9 @@ class Settings(BaseSettings):
     minio_bucket_name: str = "cms-media"
     minio_use_ssl: bool = False
     cdn_base_url: str = "http://localhost:9000/cms-media"
+    # 템플릿 샘플 이미지 공용 주소 (기획서 11.8, T-120). 비우면 클라이언트
+    # public 의 상대 주소(/templates/...) 그대로, 운영은 CDN_BASE_URL 과 같은 값
+    template_asset_base_url: str = ""
 
     # OpenAI
     openai_api_key: str = ""

@@ -36,6 +36,7 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
+from app.services.template_assets import resolve_sample_value
 
 logger = logging.getLogger("app.template")
 
@@ -197,7 +198,8 @@ async def copy_sample_sections(
                     updated_at=now,
                 )
             )
-            for key, value in (item.get("settings") or {}).items():
+            for key, raw in (item.get("settings") or {}).items():
+                value = resolve_sample_value(raw)  # 샘플 이미지 → 공용 스토리지 주소
                 is_json = not isinstance(value, str)
                 db.add(
                     SectionSetting(
