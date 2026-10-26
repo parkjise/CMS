@@ -142,7 +142,7 @@ class TestMigration:
             assert "0018" in alembic("current")
         finally:
             alembic("upgrade", "head")
-        assert "0019" in alembic("current")
+        assert "(head)" in alembic("current")
 
 
 class TestRowLevelSecurity:
