@@ -31,6 +31,12 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     )
   })
 
+  it('소셜 공용 콜백(/member/...)은 테넌트로 보지 않는다 (T-110)', async () => {
+    const res = await run('/member/social/callback?code=c&state=clinic.x')
+    expect(rewriteOf(res)).toBeNull()
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
+
   it('같은 테넌트는 캐시 — 백엔드를 한 번만 조회', async () => {
     fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
     await run('/clinic')
