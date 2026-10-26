@@ -4254,6 +4254,12 @@ POST /api/public/{tenant_slug}/auth/login
 - 탈퇴 확인 문자/이메일 발송
 - 진행 중 예약 존재 시 탈퇴 차단 + 안내
 
+관리자 연동 (T-115, AD-04 · AD-01):
+- 관리자 문의 목록 `member_id`(회원 배지), 상세 `member`(이름 · 이메일 · 연락처 · 가입일 · 활성) · `reservation`(유형 · 상태 · 일시 · `next_statuses`)
+- `PATCH /api/v1/inquiries/{id}/reservation {status: CONFIRMED|COMPLETED|CANCELLED}` — 대기 → 확정/취소, 확정 → 완료/취소 (그 외 409, 비회원 문의 400). 문의 상태 동기화: 확정 → IN_PROGRESS, 완료 · 취소 → DONE (취소는 관리자 메모 `[관리자 취소]`)
+- 확정 · 취소 시 회원 알림: `notify_reservation_confirmed/cancelled` 가 켜진 회원에게 문자(`sms_agree`) · 메일(`email_agree`) — 관리자 알림 월 한도와 별개
+- 대시보드 `stats.members = {new_members_week, total_members}` (SITE_MEMBER OFF 면 null → 카드 숨김)
+
 구현 메모 (T-111):
 - `DELETE /members/me` 요청 `{password?, reason?: INCONVENIENT|PRIVACY|NOT_USING|OTHER, reason_detail?}` — 비밀번호가 있는 회원만 확인 (틀리면 401), 진행 중 예약(대기 · 확정 · 예약 시각 전) 있으면 409 `ACTIVE_RESERVATION_EXISTS`
 - **개인정보 즉시 익명화** (개인정보보호법): 이름 `탈퇴회원`, 이메일 `withdrawn-{id}@deleted.invalid`, 연락처 · 생년월일 · 비밀번호 · 소셜 ID 삭제, 수신 동의 해제. 사유는 `withdrawal_reason` 에 보관
@@ -4466,6 +4472,16 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 알림 설정은 토글 즉시 저장(낙관적 업데이트, 실패 시 되돌림). 내 정보 수정 · 비밀번호 변경(새 토큰 적용) · 소셜 연결/해제(`?linked=` 안내)
 - 인증 호출은 401 이면 refresh 후 1회 재시도, 실패하면 세션 정리
 - 탈퇴 성공 → 완료 화면 후 자동 로그아웃 (서버 세션 · 쿠키는 이미 종료)
+
+#### 구현 메모 (T-115 — 기능 플래그 · 관리자 연동)
+
+- 플래그: `SITE_MEMBER`(회원 기능 전체, 기본 ON) · `MEMBER_SOCIAL_LOGIN`(기본 ON) · `MEMBER_RESERVATION`(HOSPITAL · PENSION 만 기본 ON). 하위 기능은 SITE_MEMBER 가 켜져 있을 때만 유효. 마이그레이션 0024 가 등록 + 기존 테넌트 업종별 활성화, 슈퍼 어드민 SA-04 "기능 관리" 탭의 "방문자 회원" 분류에서 테넌트별 ON/OFF
+- 판정 규칙: 슈퍼 어드민이 정한 값(tenant_features 행)이 우선, 행이 없으면 업종 기본값 (`app/services/member_features.py`)
+- **테넌트 생성 시 기본 기능 켜기** (`feature_service.apply_defaults`) — `default_enabled` · `required_plan` · 업종별 회원 기능. (이전에는 시드에서만 켜져 슈퍼 어드민이 만든 테넌트는 모든 기능 OFF)
+- SITE_MEMBER OFF: 방문자 인증 · 마이페이지 · 소셜 API 403 `FEATURE_DISABLED`(`GET /auth/options` 만 예외 — `enabled=false`), 공개 사이트 `member.enabled=false` → 헤더 회원 메뉴 숨김, `/{slug}/member/*` 는 미들웨어가 404 (경량 조회 `GET /site/{slug}/template` 에 `member_enabled`). MEMBER_RESERVATION OFF: 내 예약 · 예약 취소 API 403, 마이페이지 "내 예약" 탭 숨김. 회원 데이터는 그대로 (다시 켜면 복구)
+- 기능 변경 시 공개 사이트 캐시(`site:{slug}`)도 비움 — 토글 · 배포 · 롤백
+- 공개 사이트 API 응답 `member: {enabled, reservations, social_login}`
+- 홈페이지 접수 폼(예약 · 상담 · 문의)은 로그인한 방문자의 access token 을 보낸다 (만료 직전이면 refresh 후) → `inquiries.member_id` · 내 예약 연결
 
 #### 응답 형식 예시
 
