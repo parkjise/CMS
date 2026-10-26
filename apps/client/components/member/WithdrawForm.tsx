@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useMe, useWithdraw } from '@/hooks/member/useMemberAccount'
+import { useWithdrawForm } from '@/hooks/member/useMypage'
 import type { WithdrawalReason } from '@/lib/memberAccount'
 import {
   Field,
@@ -28,40 +27,12 @@ interface WithdrawFormProps {
 
 /** 회원 탈퇴 (기획서 16.8) — 진행 중 예약이 있으면 차단 안내, 성공 시 자동 로그아웃 */
 const WithdrawForm = ({ slug, onDone }: WithdrawFormProps) => {
-  const me = useMe(slug)
-  const withdraw = useWithdraw(slug)
-  const [reason, setReason] = useState<WithdrawalReason | ''>('')
-  const [detail, setDetail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [blocked, setBlocked] = useState(false)
-
-  if (!me.data) return <FormError message={me.error?.message} />
-  const needsPassword = me.data.has_password
-
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setBlocked(false)
-    if (needsPassword && !password) return setError('비밀번호를 입력해주세요')
-    withdraw.mutate(
-      {
-        ...(needsPassword ? { password } : {}),
-        reason: reason || null,
-        ...(reason === 'OTHER' && detail.trim() ? { reason_detail: detail.trim() } : {}),
-      },
-      {
-        onSuccess: onDone,
-        onError: (err) => {
-          if (err.code === 'ACTIVE_RESERVATION_EXISTS') setBlocked(true)
-          setError(err.message)
-        },
-      },
-    )
-  }
+  const w = useWithdrawForm(slug, onDone)
+  if (!w.loaded) return <FormError message={w.loadError} />
+  const { reason, setReason, detail, setDetail, password, setPassword, needsPassword, error, blocked } = w
 
   return (
-    <form noValidate onSubmit={submit} className="space-y-5">
+    <form noValidate onSubmit={w.submit} className="space-y-5">
       <div className="space-y-2 rounded-md bg-amber-50 p-4 text-sm text-amber-900">
         <p className="font-semibold">⚠️ 탈퇴 전 확인해주세요.</p>
         <p>탈퇴 시 아래 데이터가 삭제됩니다.</p>
@@ -106,7 +77,7 @@ const WithdrawForm = ({ slug, onDone }: WithdrawFormProps) => {
         <Link href={`/${slug}/member/mypage?tab=profile`} className={`text-center ${secondaryButtonClass}`}>
           취소
         </Link>
-        <button type="submit" className="rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" disabled={withdraw.isPending}>
+        <button type="submit" className="rounded-md bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60" disabled={w.pending}>
           탈퇴하기
         </button>
       </div>

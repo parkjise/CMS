@@ -1,13 +1,8 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useEmailAvailability, useRegister } from '@/hooks/member/useMemberAuth'
-import { safeNext } from '@/lib/memberAuth'
-import { MESSAGES, joinSchema, type JoinValues } from '@/lib/memberSchemas'
+import { useJoinForm } from '@/hooks/member/useMemberForms'
+import { MESSAGES } from '@/lib/memberSchemas'
 import { Checkbox, Field, FormError, TextInput, primaryButtonClass } from './fields'
 import PasswordStrength from './PasswordStrength'
 import PhoneVerification from './PhoneVerification'
@@ -18,77 +13,27 @@ interface JoinFormProps {
   next?: string | null
 }
 
-/** 일반 회원가입 (기획서 16.3) */
+/** 일반 회원가입 (기획서 16.3) — 공통 화면 (로직: useJoinForm) */
 const JoinForm = ({ slug, next }: JoinFormProps) => {
-  const router = useRouter()
-  const registerMutation = useRegister(slug)
-  const [formError, setFormError] = useState<string | null>(null)
+  const join = useJoinForm(slug, next)
   const {
     register,
-    handleSubmit,
-    watch,
-    setValue,
-    setError,
-    clearErrors,
     formState: { errors },
-  } = useForm<JoinValues>({
-    resolver: zodResolver(joinSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      password: '',
-      password_confirm: '',
-      phone: '',
-      phone_verification_id: '',
-      birth_date: '',
-      terms_agree: false,
-      privacy_agree: false,
-      marketing_agree: false,
-    },
-  })
-  const email = watch('email')
-  const password = watch('password')
-  const phone = watch('phone')
-  const verificationId = watch('phone_verification_id')
-  const availability = useEmailAvailability(slug, email)
-  const emailTaken = availability.data?.available === false
-  const target = safeNext(slug, next)
+  } = join.form
+  const { password, phone } = join
 
-  const onSubmit = (values: JoinValues) => {
-    setFormError(null)
-    if (emailTaken) {
-      setError('email', { message: '이미 사용 중인 이메일입니다' })
-      return
-    }
-    registerMutation.mutate(
-      {
-        ...values,
-        name: values.name.trim(),
-        email: values.email.trim(),
-        birth_date: values.birth_date || null,
-      },
-      {
-        onSuccess: () => router.replace(target),
-        onError: (error) => {
-          const field = error.field as keyof JoinValues | null
-          if (field && field in values) setError(field, { message: error.message })
-          else setFormError(error.message)
-        },
-      },
+  const emailHint =
+    join.emailAvailable === null ? null : join.emailAvailable ? (
+      <span className="text-emerald-600">✓ 사용 가능한 이메일입니다</span>
+    ) : (
+      <span className="text-red-600">이미 사용 중인 이메일입니다</span>
     )
-  }
-
-  const emailHint = availability.data
-    ? availability.data.available
-      ? <span className="text-emerald-600">✓ 사용 가능한 이메일입니다</span>
-      : <span className="text-red-600">이미 사용 중인 이메일입니다</span>
-    : null
 
   return (
     <div className="space-y-6">
-      <SocialButtons slug={slug} mode="join" returnTo={target} />
+      <SocialButtons slug={slug} mode="join" returnTo={join.target} />
 
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form noValidate onSubmit={join.onSubmit} className="space-y-4">
         <Field id="name" label="이름" required error={errors.name?.message}>
           <TextInput id="name" autoComplete="name" placeholder="홍길동"
             invalid={Boolean(errors.name)} {...register('name')} />
@@ -111,16 +56,13 @@ const JoinForm = ({ slug, next }: JoinFormProps) => {
         <PhoneVerification
           slug={slug}
           purpose="REGISTER"
-          phone={phone}
-          onPhoneChange={(value) => setValue('phone', value, { shouldValidate: false })}
-          verified={Boolean(verificationId)}
-          onVerified={(id) => {
-            setValue('phone_verification_id', id)
-            clearErrors(['phone', 'phone_verification_id'])
-          }}
-          onReset={() => setValue('phone_verification_id', '')}
-          phoneError={errors.phone?.message}
-          verifyError={errors.phone_verification_id?.message}
+          phone={phone.phone}
+          onPhoneChange={phone.setPhone}
+          verified={phone.verified}
+          onVerified={phone.onVerified}
+          onReset={phone.onReset}
+          phoneError={phone.phoneError}
+          verifyError={phone.verifyError}
         />
 
         <Field id="birth_date" label="생년월일 (선택)">
@@ -138,8 +80,8 @@ const JoinForm = ({ slug, next }: JoinFormProps) => {
           )}
         </fieldset>
 
-        <FormError message={formError} />
-        <button type="submit" className={primaryButtonClass} disabled={registerMutation.isPending}>
+        <FormError message={join.formError} />
+        <button type="submit" className={primaryButtonClass} disabled={join.pending}>
           가입하기
         </button>
       </form>

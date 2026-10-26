@@ -1,16 +1,8 @@
 'use client'
 
 import { useNotifications, useUpdateNotification } from '@/hooks/member/useMemberAccount'
-import type { NotificationSettings } from '@/lib/memberAccount'
+import { NOTIFICATION_ITEMS } from '@/hooks/member/useMypage'
 import { FormError } from '../fields'
-
-const ITEMS: { key: keyof NotificationSettings; label: string; reservation?: boolean }[] = [
-  { key: 'notify_reservation_confirmed', label: '예약 확정 알림', reservation: true },
-  { key: 'notify_reservation_cancelled', label: '예약 취소 알림', reservation: true },
-  { key: 'marketing_agree', label: '마케팅/이벤트 알림' },
-  { key: 'sms_agree', label: '문자 수신' },
-  { key: 'email_agree', label: '이메일 수신' },
-]
 
 interface NotificationsTabProps {
   slug: string
@@ -27,7 +19,7 @@ const NotificationsTab = ({ slug, reservations }: NotificationsTabProps) => {
   return (
     <section className="space-y-1">
       <ul className="divide-y divide-[color:var(--color-border)]">
-        {ITEMS.filter((item) => reservations || !item.reservation).map((item) => {
+        {NOTIFICATION_ITEMS.filter((item) => reservations || !('reservation' in item)).map((item) => {
           const on = settings.data[item.key]
           return (
             <li key={item.key} className="flex items-center justify-between py-3">

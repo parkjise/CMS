@@ -1,14 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useCountdown } from '@/hooks/useCountdown'
-import { useLogin } from '@/hooks/member/useMemberAuth'
-import { safeNext } from '@/lib/memberAuth'
-import { loginSchema, type LoginValues } from '@/lib/memberSchemas'
+import { useLoginForm } from '@/hooks/member/useMemberForms'
 import { Checkbox, Field, FormError, TextInput, primaryButtonClass } from './fields'
 import LockNotice from './LockNotice'
 import SocialButtons from './SocialButtons'
@@ -18,41 +11,19 @@ interface MemberLoginFormProps {
   next?: string | null
 }
 
-/** 방문자 로그인 (기획서 16.4) */
+/** 방문자 로그인 (기획서 16.4) — 공통 화면 (로직: useLoginForm) */
 const MemberLoginForm = ({ slug, next }: MemberLoginFormProps) => {
-  const router = useRouter()
-  const loginMutation = useLogin(slug)
-  const lock = useCountdown()
-  const [formError, setFormError] = useState<string | null>(null)
+  const login = useLoginForm(slug, next)
   const {
     register,
-    handleSubmit,
     formState: { errors },
-  } = useForm<LoginValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: { email: '', password: '', remember_me: false },
-  })
-  const target = safeNext(slug, next)
-
-  const onSubmit = (values: LoginValues) => {
-    setFormError(null)
-    loginMutation.mutate(values, {
-      onSuccess: () => router.replace(target),
-      onError: (error) => {
-        if (error.code === 'ACCOUNT_LOCKED') {
-          lock.start(error.retryAfterSeconds ?? 1800)
-          return
-        }
-        setFormError(error.message)
-      },
-    })
-  }
+  } = login.form
 
   return (
     <div className="space-y-6">
-      <SocialButtons slug={slug} mode="login" returnTo={target} />
+      <SocialButtons slug={slug} mode="login" returnTo={login.target} />
 
-      <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form noValidate onSubmit={login.onSubmit} className="space-y-4">
         <Field id="email" label="이메일" error={errors.email?.message}>
           <TextInput
             id="email"
@@ -74,13 +45,13 @@ const MemberLoginForm = ({ slug, next }: MemberLoginFormProps) => {
         </Field>
         <Checkbox id="remember_me" label="로그인 상태 유지" {...register('remember_me')} />
 
-        {lock.active ? <LockNotice remaining={lock.remaining} /> : <FormError message={formError} />}
+        {login.locked ? (
+          <LockNotice remaining={login.lockRemaining} />
+        ) : (
+          <FormError message={login.formError} />
+        )}
 
-        <button
-          type="submit"
-          className={primaryButtonClass}
-          disabled={lock.active || loginMutation.isPending}
-        >
+        <button type="submit" className={primaryButtonClass} disabled={login.locked || login.pending}>
           로그인
         </button>
       </form>

@@ -1,12 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useFindEmail } from '@/hooks/member/useMemberAuth'
-import type { FoundAccount } from '@/lib/memberAuth'
-import { findEmailSchema, type FindEmailValues } from '@/lib/memberSchemas'
+import { useFindEmailForm } from '@/hooks/member/useMemberForms'
 import { providerLabel } from '@/lib/memberSocial'
 import { Field, FormError, TextInput, primaryButtonClass, secondaryButtonClass } from './fields'
 import PhoneVerification from './PhoneVerification'
@@ -17,36 +12,12 @@ interface FindEmailFormProps {
 
 /** 이메일 찾기 (기획서 16.5) — 이름 + 휴대폰 인증 → 가린 이메일 */
 const FindEmailForm = ({ slug }: FindEmailFormProps) => {
-  const find = useFindEmail(slug)
-  const [accounts, setAccounts] = useState<FoundAccount[] | null>(null)
-  const [notFound, setNotFound] = useState(false)
-  const [formError, setFormError] = useState<string | null>(null)
+  const find = useFindEmailForm(slug)
   const {
     register,
-    handleSubmit,
-    watch,
-    setValue,
-    clearErrors,
     formState: { errors },
-  } = useForm<FindEmailValues>({
-    resolver: zodResolver(findEmailSchema),
-    defaultValues: { name: '', phone: '', phone_verification_id: '' },
-  })
-  const phone = watch('phone')
-  const verificationId = watch('phone_verification_id')
-
-  const onSubmit = (values: FindEmailValues) => {
-    setFormError(null)
-    setNotFound(false)
-    find.mutate(
-      { name: values.name.trim(), verificationId: values.phone_verification_id },
-      {
-        onSuccess: (result) => setAccounts(result.accounts),
-        onError: (error) =>
-          error.status === 404 ? setNotFound(true) : setFormError(error.message),
-      },
-    )
-  }
+  } = find.form
+  const { accounts, notFound, phone } = find
 
   if (accounts) {
     return (
@@ -85,7 +56,7 @@ const FindEmailForm = ({ slug }: FindEmailFormProps) => {
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+    <form noValidate onSubmit={find.onSubmit} className="space-y-4">
       <Field id="name" label="이름" required error={errors.name?.message}>
         <TextInput id="name" autoComplete="name" placeholder="홍길동"
           invalid={Boolean(errors.name)} {...register('name')} />
@@ -93,16 +64,13 @@ const FindEmailForm = ({ slug }: FindEmailFormProps) => {
       <PhoneVerification
         slug={slug}
         purpose="FIND_EMAIL"
-        phone={phone}
-        onPhoneChange={(value) => setValue('phone', value)}
-        verified={Boolean(verificationId)}
-        onVerified={(id) => {
-          setValue('phone_verification_id', id)
-          clearErrors(['phone', 'phone_verification_id'])
-        }}
-        onReset={() => setValue('phone_verification_id', '')}
-        phoneError={errors.phone?.message}
-        verifyError={errors.phone_verification_id?.message}
+        phone={phone.phone}
+        onPhoneChange={phone.setPhone}
+        verified={phone.verified}
+        onVerified={phone.onVerified}
+        onReset={phone.onReset}
+        phoneError={phone.phoneError}
+        verifyError={phone.verifyError}
       />
       {notFound && (
         <div role="alert" className="space-y-2 rounded-md bg-[var(--color-surface)] p-3 text-center text-sm">
@@ -112,8 +80,8 @@ const FindEmailForm = ({ slug }: FindEmailFormProps) => {
           </Link>
         </div>
       )}
-      <FormError message={formError} />
-      <button type="submit" className={primaryButtonClass} disabled={find.isPending}>
+      <FormError message={find.formError} />
+      <button type="submit" className={primaryButtonClass} disabled={find.pending}>
         이메일 찾기
       </button>
       <Link href={`/${slug}/member/login`} className="block text-center text-sm text-[color:var(--color-text-muted)]">

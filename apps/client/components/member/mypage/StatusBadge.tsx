@@ -28,6 +28,4 @@ export const AnswerBadge = ({ answered }: { answered: boolean }) => (
   </span>
 )
 
-export const STATUS_LABELS = Object.fromEntries(
-  Object.entries(STYLES).map(([key, value]) => [key, value.label]),
-) as Record<ReservationStatus, string>
+export { RESERVATION_STATUS_LABELS as STATUS_LABELS } from '@/hooks/member/useMypage'

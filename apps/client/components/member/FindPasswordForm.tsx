@@ -1,13 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useCountdown } from '@/hooks/useCountdown'
-import { useForgotPassword } from '@/hooks/member/useMemberAuth'
-import type { ForgotPasswordResult } from '@/lib/memberAuth'
-import { findPasswordSchema, type FindPasswordValues } from '@/lib/memberSchemas'
+import { useFindPasswordForm } from '@/hooks/member/useMemberForms'
 import { Field, FormError, TextInput, primaryButtonClass, secondaryButtonClass } from './fields'
 import PhoneVerification from './PhoneVerification'
 
@@ -17,41 +11,12 @@ interface FindPasswordFormProps {
 
 /** 비밀번호 찾기 (기획서 16.6) — 이메일 + 휴대폰 인증 → 재설정 링크 메일 */
 const FindPasswordForm = ({ slug }: FindPasswordFormProps) => {
-  const forgot = useForgotPassword(slug)
-  const resend = useCountdown()
-  const [sent, setSent] = useState<ForgotPasswordResult | null>(null)
-  const [formError, setFormError] = useState<string | null>(null)
+  const find = useFindPasswordForm(slug)
   const {
     register,
-    handleSubmit,
-    watch,
-    setValue,
-    getValues,
-    clearErrors,
     formState: { errors },
-  } = useForm<FindPasswordValues>({
-    resolver: zodResolver(findPasswordSchema),
-    defaultValues: { email: '', phone: '', phone_verification_id: '' },
-  })
-  const phone = watch('phone')
-  const verificationId = watch('phone_verification_id')
-
-  const request = (values: FindPasswordValues) => {
-    setFormError(null)
-    forgot.mutate(
-      { email: values.email.trim(), verificationId: values.phone_verification_id },
-      {
-        onSuccess: (result) => {
-          setSent(result)
-          resend.start(result.resend_after_seconds)
-        },
-        onError: (error) => {
-          if (error.retryAfterSeconds) resend.start(error.retryAfterSeconds)
-          setFormError(error.message)
-        },
-      },
-    )
-  }
+  } = find.form
+  const { sent, phone } = find
 
   if (sent) {
     return (
@@ -70,12 +35,12 @@ const FindPasswordForm = ({ slug }: FindPasswordFormProps) => {
         <button
           type="button"
           className={`w-full ${secondaryButtonClass}`}
-          disabled={resend.active || forgot.isPending}
-          onClick={() => request(getValues())}
+          disabled={!find.canResend}
+          onClick={find.resendLink}
         >
-          {resend.active ? `재발송하기 (${resend.remaining}초)` : '재발송하기'}
+          {find.resendRemaining > 0 ? `재발송하기 (${find.resendRemaining}초)` : '재발송하기'}
         </button>
-        <FormError message={formError} />
+        <FormError message={find.formError} />
         {sent.debug_reset_url && (
           <a href={sent.debug_reset_url} className="block text-xs text-amber-600 underline">
             개발용: 재설정 링크 열기
@@ -89,7 +54,7 @@ const FindPasswordForm = ({ slug }: FindPasswordFormProps) => {
   }
 
   return (
-    <form noValidate onSubmit={handleSubmit(request)} className="space-y-4">
+    <form noValidate onSubmit={find.onSubmit} className="space-y-4">
       <Field id="email" label="이메일" required error={errors.email?.message}>
         <TextInput id="email" type="email" autoComplete="email" placeholder="가입한 이메일 주소"
           invalid={Boolean(errors.email)} {...register('email')} />
@@ -97,19 +62,16 @@ const FindPasswordForm = ({ slug }: FindPasswordFormProps) => {
       <PhoneVerification
         slug={slug}
         purpose="RESET_PW"
-        phone={phone}
-        onPhoneChange={(value) => setValue('phone', value)}
-        verified={Boolean(verificationId)}
-        onVerified={(id) => {
-          setValue('phone_verification_id', id)
-          clearErrors(['phone', 'phone_verification_id'])
-        }}
-        onReset={() => setValue('phone_verification_id', '')}
-        phoneError={errors.phone?.message}
-        verifyError={errors.phone_verification_id?.message}
+        phone={phone.phone}
+        onPhoneChange={phone.setPhone}
+        verified={phone.verified}
+        onVerified={phone.onVerified}
+        onReset={phone.onReset}
+        phoneError={phone.phoneError}
+        verifyError={phone.verifyError}
       />
-      <FormError message={formError} />
-      <button type="submit" className={primaryButtonClass} disabled={forgot.isPending}>
+      <FormError message={find.formError} />
+      <button type="submit" className={primaryButtonClass} disabled={find.pending}>
         재설정 링크 보내기
       </button>
       <Link href={`/${slug}/member/login`} className="block text-center text-sm text-[color:var(--color-text-muted)]">

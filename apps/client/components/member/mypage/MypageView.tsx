@@ -1,57 +1,17 @@
 'use client'
 
-import { useMemo } from 'react'
-import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useAuthOptions } from '@/hooks/member/useMemberAuth'
-import { useMemberStore } from '@/lib/memberStore'
-import { providerLabel, type SocialProvider } from '@/lib/memberSocial'
+import { useMypageView } from '@/hooks/member/useMypage'
 import InquiriesTab from './InquiriesTab'
 import NotificationsTab from './NotificationsTab'
 import ProfileTab from './ProfileTab'
 import ReservationsTab from './ReservationsTab'
 
-type TabKey = 'reservations' | 'inquiries' | 'notifications' | 'profile'
-
-const TABS: { key: TabKey; label: string }[] = [
-  { key: 'reservations', label: '내 예약' },
-  { key: 'inquiries', label: '문의 내역' },
-  { key: 'notifications', label: '알림 설정' },
-  { key: 'profile', label: '내 정보' },
-]
-
 /** 마이페이지 (기획서 16.7) — 업종별 탭 구성 (예약 기능이 없으면 "내 예약" 숨김) */
 const MypageView = ({ slug }: { slug: string }) => {
-  const router = useRouter()
-  const pathname = usePathname()
-  const search = useSearchParams()
-  const member = useMemberStore((s) => s.member)
-  const logout = useMemberStore((s) => s.logout)
-  const options = useAuthOptions(slug)
-  const reservations = options.data?.reservations ?? false
+  const view = useMypageView(slug)
+  const { tabs, active, select, reservations } = view
 
-  const tabs = useMemo(
-    () => TABS.filter((tab) => tab.key !== 'reservations' || reservations),
-    [reservations],
-  )
-  const requested = search.get('tab') as TabKey | null
-  const active: TabKey = tabs.some((t) => t.key === requested)
-    ? (requested as TabKey)
-    : tabs[0].key
-  const linked = search.get('linked')?.toUpperCase() as SocialProvider | undefined
-
-  const select = (key: TabKey) => {
-    const params = new URLSearchParams(search.toString())
-    params.set('tab', key)
-    params.delete('linked')
-    router.replace(`${pathname}?${params.toString()}`)
-  }
-
-  const handleLogout = async () => {
-    await logout()
-    window.location.assign(`/${slug}`)
-  }
-
-  if (!options.data) {
+  if (!view.ready) {
     return <p className="text-center text-sm text-[color:var(--color-text-muted)]">불러오는 중…</p>
   }
 
@@ -59,16 +19,16 @@ const MypageView = ({ slug }: { slug: string }) => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-lg font-semibold text-[color:var(--color-text-primary)]">
-          안녕하세요, {member?.name} 님 👋
+          안녕하세요, {view.memberName} 님 👋
         </p>
-        <button type="button" className="text-sm text-[color:var(--color-text-muted)] underline" onClick={handleLogout}>
+        <button type="button" className="text-sm text-[color:var(--color-text-muted)] underline" onClick={view.signOut}>
           로그아웃
         </button>
       </div>
 
-      {linked && (linked === 'KAKAO' || linked === 'NAVER') && (
+      {view.linkedNotice && (
         <p role="status" className="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          {providerLabel(linked)} 계정이 연결되었습니다.
+          {view.linkedNotice}
         </p>
       )}
 

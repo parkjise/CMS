@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { describeReservation } from '@/hooks/member/useMypage'
 import type { MemberReservation } from '@/lib/memberAccount'
-import { addDays, formatDate, formatTime, formatWon } from '@/lib/memberFormat'
 import { StatusBadge } from './StatusBadge'
 
 interface ReservationCardProps {
@@ -11,73 +11,20 @@ interface ReservationCardProps {
   cancelling: boolean
 }
 
-const text = (value: unknown): string | null =>
-  typeof value === 'string' && value.trim() ? value : null
-const num = (value: unknown): number | null =>
-  typeof value === 'number' && Number.isFinite(value) ? value : null
-
-const VISIT_TYPES: Record<string, string> = { FIRST: '초진', REVISIT: '재진' }
-
-const isCancellable = (r: MemberReservation) =>
-  (r.status === 'PENDING' || r.status === 'CONFIRMED') &&
-  (r.reserved_at === null || new Date(r.reserved_at).getTime() > Date.now())
-
-/** 업종별 예약 내용 (기획서 16.7 — 병원: 일시 · 진료과 · 초진/재진, 펜션: 기간 · 객실 · 인원 · 금액) */
-const Body = ({ reservation: r }: { reservation: MemberReservation }) => {
-  const d = r.detail
-  if (r.reservation_type === 'LODGING') {
-    const nights = num(d.nights)
-    const guests = num(d.guests)
-    const amount = num(d.amount)
-    const facts = [nights && `${nights}박`, text(d.room), guests && `성인 ${guests}명`].filter(Boolean)
-    return (
-      <>
-        {r.reserved_at && (
-          <p className="font-semibold text-[color:var(--color-text-primary)]">
-            {formatDate(r.reserved_at)}
-            {nights ? ` ~ ${formatDate(addDays(r.reserved_at, nights)).slice(5)}` : ''}
-          </p>
-        )}
-        {facts.length > 0 && <p className="text-sm text-[color:var(--color-text-secondary)]">{facts.join(' · ')}</p>}
-        {amount !== null && (
-          <p className="text-sm text-[color:var(--color-text-secondary)]">결제 금액: {formatWon(amount)}</p>
-        )}
-      </>
-    )
-  }
-  const when = r.reserved_at && (
-    <p className="font-semibold text-[color:var(--color-text-primary)]">
-      {formatDate(r.reserved_at)} {formatTime(r.reserved_at)}
-    </p>
-  )
-  if (r.reservation_type === 'MEDICAL') {
-    const visit = text(d.visit_type)
-    const facts = [text(d.department), visit && (VISIT_TYPES[visit] ?? visit)].filter(Boolean)
-    return (
-      <>
-        {when}
-        {facts.length > 0 && <p className="text-sm text-[color:var(--color-text-secondary)]">{facts.join(' · ')}</p>}
-        {facts.length === 0 && text(d.subject) && (
-          <p className="text-sm text-[color:var(--color-text-secondary)]">{text(d.subject)}</p>
-        )}
-      </>
-    )
-  }
-  return (
-    <>
-      {text(d.subject) && <p className="font-semibold text-[color:var(--color-text-primary)]">{text(d.subject)}</p>}
-      {when}
-    </>
-  )
-}
-
+/** 예약 카드 — 공통 화면 (업종별 내용: describeReservation) */
 const ReservationCard = ({ reservation, onCancel, cancelling }: ReservationCardProps) => {
   const [confirming, setConfirming] = useState(false)
+  const view = describeReservation(reservation)
+  const strong = 'font-semibold text-[color:var(--color-text-primary)]'
+  const muted = 'text-sm text-[color:var(--color-text-secondary)]'
   return (
     <li className="space-y-2 rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] p-4" data-testid="reservation-card">
       <StatusBadge status={reservation.status} />
-      <Body reservation={reservation} />
-      {isCancellable(reservation) && (
+      {view.title && <p className={strong}>{view.title}</p>}
+      {view.when && <p className={strong}>{view.when}</p>}
+      {view.meta && <p className={muted}>{view.meta}</p>}
+      {view.amount && <p className={muted}>{view.amount}</p>}
+      {view.cancellable && (
         <div className="flex justify-end gap-2 pt-1">
           {confirming ? (
             <>
