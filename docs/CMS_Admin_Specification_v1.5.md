@@ -4279,6 +4279,7 @@ CREATE TABLE site_members (
     last_login_at   TIMESTAMPTZ,
     failed_login_count INT NOT NULL DEFAULT 0,  -- 연속 실패 횟수 (5회 → 잠금)
     locked_until    TIMESTAMPTZ,               -- 로그인 잠금 해제 시각
+    password_changed_at TIMESTAMPTZ,           -- (T-109) 비밀번호 재설정·변경 시각 — 이전 발급 토큰 거부
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     deleted_at      TIMESTAMPTZ                -- 탈퇴 시 소프트 삭제
@@ -4378,6 +4379,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | POST | `/auth/phone/verify` | 인증번호 확인 | ❌ |
 | POST | `/auth/find-email` | 이메일 찾기 | ❌ |
 | POST | `/auth/forgot-password` | 비밀번호 재설정 링크 발송 | ❌ |
+| GET  | `/auth/reset-password/check` | (T-109 추가) 재설정 링크 유효 확인 — 화면 진입 전 | ❌ |
 | POST | `/auth/reset-password` | 새 비밀번호 저장 | ❌ |
 
 #### 마이페이지 API
@@ -4402,6 +4404,18 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 로그인 잠금: 계정 기준 5회 연속 실패 → 30분. 429 `ACCOUNT_LOCKED` + `details[0].retry_after_seconds` + `Retry-After` 헤더. IP 기준은 Rate Limit(10회/분)로 대응. `check-email` 은 디바운스 호출을 고려해 30회/분
 - 에러는 방문자 API 만 공통 형식(5.1) — 입력 검증 실패도 400 `VALIDATION_ERROR` + 한국어 메시지 + `field`
 - 방문자 토큰으로 어드민 API 호출 시 403, 어드민 토큰으로 방문자 API 호출 시 403, 다른 테넌트 토큰 403
+
+#### 구현 메모 (T-109)
+
+- 서비스: `app/services/member_verification.py` (휴대폰 인증), `app/services/member_recovery.py` (계정 찾기 · 재설정)
+- `phone/send` → `{verification_id, expires_at, resend_after_seconds, debug_code}`. 6자리 코드(`secrets`) · 3분 · 같은 번호 하루(한국 시간) 5회(`PHONE_SEND_LIMIT` 429) · 재요청 60초(`RATE_LIMIT_EXCEEDED` 429 + `retry_after_seconds`) · 문자 실패 시 503 `SMS_SEND_FAILED`. 계정 유무와 관계없이 발송. `debug_code` 는 운영이 아니고 알림 test 모드일 때만 (로컬 화면 개발용)
+- `phone/verify` → 오입력 400 `INVALID_CODE` + `remaining_attempts`, 5회 초과 400 `CODE_ATTEMPTS_EXCEEDED`, 만료 400 `CODE_EXPIRED`, 다른 테넌트·없는 id 404
+- 인증 완료 건은 30분 안에 용도(REGISTER / FIND_EMAIL / RESET_PW)에 맞게 1회 사용 (`used_at`). 가입 · 이메일 찾기 성공 시 소모, 재설정 링크는 재발송을 위해 소모하지 않음
+- `find-email` 요청 `{name, phone_verification_id}` → `{accounts: [{masked_email, social_provider, created_at}]}` (같은 번호 여러 계정 · 탈퇴 제외). 없으면 404 (인증은 남아 이름 오타 시 재시도 가능)
+- `forgot-password` 요청 `{email, phone_verification_id}` → 계정 유무와 관계없이 같은 응답 `{masked_email, expires_in_minutes: 30, resend_after_seconds: 60}`. 이메일·번호가 일치하는 회원에게만 메일. 재발송 60초는 이메일 기준(계정 유무 무관). 새 링크 발급 시 이전 미사용 링크 무효
+- `reset-password` 성공 시 잠금 해제 · `password_changed_at` 기록 → **이전에 발급된 access/refresh 토큰 모두 거부** (토큰 `iat` 비교) · 보안 알림 메일 + 문자(수신 동의와 무관)
+- 마스킹: 아이디 앞 2자리 외 `*` (2자 이하는 첫 글자만) — `hongil@email.com` → `ho****@email.com`
+- 인증 문자는 관리자 알림 월 한도에서 차감하지 않음
 
 #### 응답 형식 예시
 
@@ -4451,7 +4465,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 
 | # | 이슈 | 옵션 A | 옵션 B | 결정 기한 | 담당 |
 |---|---|---|---|---|---|
-| 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | 1주차 | 백엔드 |
+| 21 | 휴대폰 인증 발송 채널 | 네이버 클라우드 SENS SMS (7.1 재사용) | 별도 본인인증(PASS) 연동 | **✅ 결정 (2026-10-26): 옵션 A SENS SMS** (T-109) — PASS 는 계약 후 검토 | 백엔드 |
 | 22 | 탈퇴 회원 재가입 | 같은 이메일 즉시 재가입 허용 | 30일 후 허용 | **✅ 결정 (2026-10-26): 옵션 A 즉시 허용** (T-108) — 30일 제한이 필요하면 서비스 검사 1곳 추가 | PM |
 | 23 | 비회원 예약/문의 | 비회원 허용 유지 (현행) | 회원 전용으로 전환 (테넌트 설정) | 2주차 | PM |
 | 24 | 소셜 로그인 앱 키 | 운영사 공용 앱 1개 | 테넌트별 앱 등록 | 2주차 | 백엔드 |
