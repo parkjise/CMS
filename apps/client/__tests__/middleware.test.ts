@@ -38,12 +38,23 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     )
   })
 
-  it('방문자 회원 화면(/{slug}/member/*)은 코드형 템플릿이어도 rewrite 하지 않는다 (T-113)', async () => {
+  it('회원 화면을 그리는 코드형 템플릿(hospital-a)이면 템플릿 라우트로 rewrite (T-124)', async () => {
     fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
-    const res = await run('/clinic/member/login')
+    expect(rewriteOf(await run('/clinic/member/login'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/member/login',
+    )
+    expect(rewriteOf(await run('/clinic/member/reset-password?token=x'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/member/reset-password?token=x',
+    )
+    // 없는 회원 화면은 그대로 통과 (공통 라우트에서 404)
+    expect(rewriteOf(await run('/clinic/member/unknown'))).toBeNull()
+  })
+
+  it('테마형 테넌트의 회원 화면은 공통 라우트 그대로 (T-113)', async () => {
+    fetchMock.mockResolvedValue(templateResponse(null, 'theme'))
+    const res = await run('/shop/member/login')
     expect(rewriteOf(res)).toBeNull()
     expect(res.status).toBe(200)
-    expect(rewriteOf(await run('/clinic/member/reset-password?token=x'))).toBeNull()
   })
 
   it('회원 기능이 꺼진 테넌트의 회원 화면은 404 (T-115)', async () => {

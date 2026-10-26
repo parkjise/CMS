@@ -8,7 +8,8 @@ import { hospitalAEntry } from '@/templates/hospital-a/entry'
  */
 interface Props {
   params: Promise<CodeRouteParams>
-  searchParams: Promise<{ q?: string; p?: string }>
+  /** q · p (게시판) · next · token (회원 화면) */
+  searchParams: Promise<Record<string, string | undefined>>
 }
 
 export async function generateMetadata({ params }: Pick<Props, 'params'>): Promise<Metadata> {

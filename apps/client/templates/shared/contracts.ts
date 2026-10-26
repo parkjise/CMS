@@ -7,6 +7,7 @@
 import type { ComponentType } from 'react'
 import type { SectionType, TemplateManifest } from '@cms/types'
 import type { PublicSection, PublicSite } from '@/lib/publicSite.types'
+import type { MemberPageKey } from '../memberPages'
 
 /** 템플릿 섹션 컴포넌트가 받는 props */
 export interface CodeSectionProps {
@@ -37,6 +38,17 @@ export interface CodeTemplateProps {
   detailId?: string
   /** 목록 검색어(q) · 페이지(p) */
   query?: { q?: string; p?: string }
+  /**
+   * 방문자 회원 화면 (/{slug}/member/{page}, T-124) — 있으면 페이지 섹션 대신
+   * 템플릿 디자인의 회원 화면을 헤더 · 서브 히어로 · 푸터 안에 그린다
+   */
+  member?: MemberRoute
+}
+
+export interface MemberRoute {
+  page: MemberPageKey
+  /** next(로그인 후 이동) · token(비밀번호 재설정) 등 */
+  query: Record<string, string | undefined>
 }
 
 export interface HrefExtra {

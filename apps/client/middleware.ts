@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
+import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 
 /**
  * 코드형 템플릿 라우트 분기 (기획서 11.11 오픈 이슈 #26 — 결정: 미들웨어 rewrite)
@@ -70,6 +71,13 @@ export async function middleware(request: NextRequest) {
   if (page === MEMBER_PAGE) {
     const route = await siteRouteOf(slug)
     if (route && !route.memberEnabled) return new NextResponse('Not Found', { status: 404 })
+    // 회원 화면을 직접 그리는 코드형 템플릿이면 그 템플릿 라우트로 (헤더 · 푸터 안, T-124)
+    const key = codeTemplateKey(route?.code ?? null)
+    if (key && MEMBER_SCREEN_TEMPLATES.has(key) && segments.length === 3 && isMemberPage(segments[2])) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`
+      return NextResponse.rewrite(url)
+    }
     return NextResponse.next()
   }
   if (segments.length > 3 || (page && RESERVED_PAGES.has(page))) return NextResponse.next()

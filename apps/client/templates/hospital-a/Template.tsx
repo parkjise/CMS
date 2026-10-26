@@ -39,6 +39,9 @@ import { NoticeBoard } from './components/board/NoticeBoard'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
 import { memberEnabled } from '@/lib/publicSite.types'
+import type { PublicSection } from '@/lib/publicSite.types'
+import { MEMBER_PAGES } from '../memberPages'
+import { MemberScreen } from './components/member/MemberScreen'
 
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
@@ -49,6 +52,22 @@ const FONT_URLS = [
   'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&display=swap',
   'https://use.typekit.net/ley8ols.css',
 ]
+
+/** 회원 화면 상단 — 이미지 없는 서브 히어로 (목업 sub-hero-plain: eyebrow · category "Member") */
+const memberHero = (title: string): PublicSection => ({
+  id: 'member-hero',
+  section_type: 'SUB_HERO',
+  label: title,
+  display_order: 0,
+  is_active: true,
+  page_key: 'member',
+  settings: [
+    { field_key: 'eyebrow', field_value: 'Member', value_type: 'STRING' },
+    { field_key: 'title', field_value: title, value_type: 'STRING' },
+    { field_key: 'category', field_value: 'Member', value_type: 'STRING' },
+    { field_key: 'plain', field_value: 'true', value_type: 'BOOLEAN' },
+  ],
+})
 
 const IMG_BASE = `/templates/${hospitalAManifest.key}/${hospitalAManifest.version}`
 
@@ -65,6 +84,7 @@ export default function HospitalATemplate({
   previewQuery,
   detailId,
   query,
+  member,
 }: CodeTemplateProps) {
   const hrefFor = (key: string) => pageHref(tenantSlug, key, previewQuery)
   // 게시판 페이지 주소 (상세 id · 검색 q · 페이지 p) — 미리보기면 미리보기 주소 유지
@@ -234,9 +254,23 @@ export default function HospitalATemplate({
 
       <main className={`main${pageKey === 'home' ? '' : ' main--sub'}`} id="main" tabIndex={-1}>
         {/* 섹션을 감싸지 않는다 — 목업의 형제 선택자(.sub-nav + section 등)가 그대로 동작하도록 */}
-        {sections.map(({ section, editable }) => (
-          <Fragment key={section.id}>{renderSection({ section, editable, tenantSlug })}</Fragment>
-        ))}
+        {member ? (
+          // 방문자 회원 화면 (T-124) — 목업 sub-hero-plain + 회원 화면
+          <>
+            <SubHero
+              section={memberHero(MEMBER_PAGES[member.page])}
+              editable={false}
+              tenantSlug={tenantSlug}
+              homeHref={hrefFor('home')}
+              scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
+            />
+            <MemberScreen slug={tenantSlug} brandName={siteInfo.brand_name} route={member} />
+          </>
+        ) : (
+          sections.map(({ section, editable }) => (
+            <Fragment key={section.id}>{renderSection({ section, editable, tenantSlug })}</Fragment>
+          ))
+        )}
       </main>
 
       <Footer info={siteInfo} />

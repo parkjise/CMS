@@ -37,5 +37,9 @@
 @use 'sub/consult-board'; // 상담 목록 (표)
 @use 'sub/board-form'; // 상담 글쓰기 · 예약 폼
 
+// 방문자 회원 화면 (T-124) — 로그인 · 가입 · 찾기 · 재설정 · 탈퇴 / 마이페이지
+@use 'sub/member-form'; // member/*Form.tsx (.board-form 재사용)
+@use 'sub/mypage'; // member/Mypage.tsx
+
 @use 'footer/footer'; // Footer.tsx
 @use 'quick-menu/quick-menu'; // QuickMenu.tsx

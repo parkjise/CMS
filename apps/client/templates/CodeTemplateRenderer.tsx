@@ -1,6 +1,6 @@
 import { buildCssVarBody } from '@/lib/theme'
 import type { PublicSite } from '@/lib/publicSite.types'
-import type { CodeTemplateEntry } from './shared/contracts'
+import type { CodeTemplateEntry, MemberRoute } from './shared/contracts'
 import { resolvePageSections, resolveSiteInfo } from './shared/resolveSections'
 
 interface Props {
@@ -17,6 +17,7 @@ interface Props {
   previewQuery?: string
   detailId?: string
   query?: { q?: string; p?: string }
+  member?: MemberRoute
 }
 
 /**
@@ -35,6 +36,7 @@ export async function CodeTemplateRenderer({
   previewQuery,
   detailId,
   query,
+  member,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -66,6 +68,7 @@ export async function CodeTemplateRenderer({
         previewQuery={previewQuery}
         detailId={detailId}
         query={query}
+        member={member}
       />
     </div>
   )
