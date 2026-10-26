@@ -90,8 +90,10 @@ async def find_email(
 
 async def request_reset(
     db: AsyncSession, tenant: Tenant, email: str, verification_id: UUID
-) -> str:
-    """재설정 링크 발송 → 응답에 쓸 가린 이메일.
+) -> tuple[str, str | None]:
+    """재설정 링크 발송 → (응답에 쓸 가린 이메일, 발급한 링크 — 계정이 없으면 None).
+
+    링크는 로컬 개발 응답(`debug_reset_url`)에만 쓰고 운영 응답에는 담지 않는다.
 
     인증이 틀리면 400, 그 외에는 계정이 없어도 같은 응답을 돌려준다.
     재발송 간격(60초)은 계정 유무와 관계없이 이메일 기준으로 적용한다.
@@ -126,14 +128,15 @@ async def request_reset(
     phone_matches = member is not None and member.phone == (
         member_verification.normalize_phone(verification.phone)
     )
+    reset_url = None
     if member is not None and phone_matches:
-        await _issue_reset_token(db, tenant, member)
-    return mask_email(email)
+        reset_url = await _issue_reset_token(db, tenant, member)
+    return mask_email(email), reset_url
 
 
 async def _issue_reset_token(
     db: AsyncSession, tenant: Tenant, member: SiteMember
-) -> None:
+) -> str:
     now = _now()
     # 이전에 발급한 미사용 링크는 무효화 (가장 최근 링크만 유효)
     await db.execute(
@@ -165,6 +168,7 @@ async def _issue_reset_token(
             "expires_minutes": RESET_TOKEN_MINUTES,
         },
     )
+    return reset_link(tenant, token)
 
 
 def _enqueue_email(to: str, *, subject: str, template: str, variables: dict) -> None:

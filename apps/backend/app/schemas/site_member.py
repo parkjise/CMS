@@ -357,6 +357,15 @@ class ForgotPasswordResponse(BaseModel):
     masked_email: str
     expires_in_minutes: int
     resend_after_seconds: int
+    # 로컬 개발 전용 — 메일 대신 재설정 링크 (운영 · 실발송 모드에서는 항상 None)
+    debug_reset_url: str | None = None
+
+
+class MemberAuthOptions(BaseModel):
+    """홈페이지 회원 화면 구성 (T-113) — 소셜 버튼 노출 등."""
+
+    social_login: bool
+    providers: list[SocialProvider]
 
 
 class ResetTokenCheckResponse(BaseModel):

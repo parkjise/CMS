@@ -26,6 +26,7 @@ from app.schemas.site_member import (
     ForgotPasswordRequest,
     ForgotPasswordResponse,
     FoundAccount,
+    MemberAuthOptions,
     MemberAuthResponse,
     MemberLoginRequest,
     MemberRegisterRequest,
@@ -251,7 +252,7 @@ async def forgot_password(
     db: AsyncSession = Depends(get_member_db),
 ):
     """재설정 링크 발송 — 계정이 없어도 같은 응답 (기획서 16.11)."""
-    masked = await member_recovery.request_reset(
+    masked, reset_url = await member_recovery.request_reset(
         db, tenant, body.email, body.phone_verification_id
     )
     return ApiResponse.ok(
@@ -259,6 +260,9 @@ async def forgot_password(
             masked_email=masked,
             expires_in_minutes=member_recovery.RESET_TOKEN_MINUTES,
             resend_after_seconds=member_recovery.RESET_RESEND_SECONDS,
+            debug_reset_url=(
+                reset_url if member_verification.debug_code_enabled() else None
+            ),
         )
     )
 
@@ -379,5 +383,21 @@ async def social_complete(
             return_to=return_to,
             access_token=access,
             member=MemberSummary.model_validate(member),
+        )
+    )
+
+
+@router.get("/options", response_model=ApiResponse[MemberAuthOptions])
+async def auth_options(
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """홈페이지 회원 화면 구성 (T-113) — 기능 플래그 MEMBER_SOCIAL_LOGIN."""
+    from app.services import feature as feature_service
+
+    social = await feature_service.is_enabled(db, tenant.id, member_social.FEATURE_KEY)
+    return ApiResponse.ok(
+        MemberAuthOptions(
+            social_login=social, providers=list(PROVIDERS) if social else []
         )
     )
