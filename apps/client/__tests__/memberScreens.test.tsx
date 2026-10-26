@@ -90,7 +90,7 @@ beforeEach(() => {
   window.localStorage.clear()
   window.sessionStorage.clear()
   useMemberStore.setState({ slug: null, member: null, accessToken: null, status: 'idle' })
-  mocked.fetchAuthOptions.mockResolvedValue({ social_login: false, providers: [] })
+  mocked.fetchAuthOptions.mockResolvedValue({ social_login: false, providers: [], reservations: false })
   mocked.sendPhoneCode.mockResolvedValue(sendResult())
   mocked.verifyPhoneCode.mockResolvedValue({ verification_id: 'v1', verified: true })
 })
@@ -193,7 +193,7 @@ describe('MemberLoginForm', () => {
   })
 
   it('소셜 버튼은 기능 플래그가 켜졌을 때만', async () => {
-    mocked.fetchAuthOptions.mockResolvedValue({ social_login: true, providers: ['KAKAO', 'NAVER'] })
+    mocked.fetchAuthOptions.mockResolvedValue({ social_login: true, providers: ['KAKAO', 'NAVER'], reservations: false })
     renderUi(<MemberLoginForm slug="clinic" />)
     expect(await screen.findByRole('button', { name: '카카오로 로그인' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: '네이버로 로그인' })).toBeInTheDocument()
