@@ -168,6 +168,10 @@ class PhoneVerification(Base, TimestampMixin):
     attempt_count: Mapped[int] = mapped_column(
         Integer, nullable=False, default=0, server_default="0"
     )
+    # 인증 완료 건을 가입 등에 사용한 시각 — 1회용 (T-108)
+    used_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
 
 class MemberPasswordResetToken(Base, TimestampMixin):

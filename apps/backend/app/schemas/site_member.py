@@ -99,6 +99,8 @@ class MemberSocialRequest(BaseModel):
 class MemberLoginRequest(BaseModel):
     email: EmailStr
     password: str = Field(..., min_length=1, max_length=100)
+    # 로그인 상태 유지 — true 면 refresh 쿠키 7일, false 면 세션 쿠키
+    remember_me: bool = False
 
 
 # ── 휴대폰 인증 · 계정 찾기 ────────────────────────────────────────────────
@@ -217,6 +219,11 @@ class MemberSummary(BaseModel):
 class MemberAuthResponse(BaseModel):
     access_token: str
     member: MemberSummary
+
+
+class EmailCheckResponse(BaseModel):
+    email: str
+    available: bool
 
 
 class MemberResponse(BaseModel):

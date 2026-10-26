@@ -71,3 +71,46 @@ async def _send_inquiry_alert(tenant_id: str, inquiry_id: str) -> dict:
             await db.commit()
 
         return {**result, "notified": notified}
+
+
+@celery_app.task(
+    name="app.workers.notification.send_member_joined_alert",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def send_member_joined_alert(self, tenant_id: str, member_id: str) -> dict:
+    """방문자 회원 가입 후 환영 메일 + 관리자 신규 회원 알림 (T-108)."""
+    return asyncio.run(_send_member_joined_alert(tenant_id, member_id))
+
+
+async def _send_member_joined_alert(tenant_id: str, member_id: str) -> dict:
+    from app.db.session import AsyncSessionLocal
+    from app.models.site_member import SiteMember
+    from app.services import email as email_service
+
+    async with AsyncSessionLocal() as db:
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        member = (
+            await db.execute(select(SiteMember).where(SiteMember.id == member_id))
+        ).scalar_one_or_none()
+        tenant = (
+            await db.execute(select(Tenant).where(Tenant.id == tenant_id))
+        ).scalar_one_or_none()
+        if member is None or tenant is None:
+            return {"welcome_sent": False, "skipped": True, "reason": "NOT_FOUND"}
+
+        welcome = await email_service.send_member_welcome(
+            member.email, member_name=member.name, site_name=tenant.name
+        )
+        alert = await notification_service.notify_member_joined(
+            db,
+            tenant_id=tenant.id,
+            member_name=member.name,
+            member_phone=member.phone,
+            joined_at=member.created_at,
+            tenant_name=tenant.name,
+        )
+    return {"welcome_sent": bool(welcome.get("sent")), **alert}

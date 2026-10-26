@@ -57,6 +57,37 @@ def create_refresh_token(user_id: UUID) -> str:
     return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
 
 
+# ── 방문자 회원 토큰 (T-108, 기획서 16.0) ─────────────────────────────────
+SITE_MEMBER_ROLE = "SITE_MEMBER"
+MEMBER_REFRESH_TYPE = "member_refresh"
+
+
+def create_member_access_token(member_id: UUID, tenant_id: UUID) -> str:
+    """방문자 access token — role=SITE_MEMBER, member_id·tenant_id 포함."""
+    return create_access_token(
+        user_id=member_id,
+        tenant_id=tenant_id,
+        role=SITE_MEMBER_ROLE,
+        extra_claims={"member_id": str(member_id)},
+    )
+
+
+def create_member_refresh_token(
+    member_id: UUID, tenant_id: UUID, remember: bool
+) -> str:
+    """방문자 refresh token — type 이 달라 어드민 /auth/refresh 에 쓸 수 없다."""
+    expire = datetime.now(UTC) + timedelta(days=settings.refresh_token_expire_days)
+    payload = {
+        "sub": str(member_id),
+        "tenant_id": str(tenant_id),
+        "type": MEMBER_REFRESH_TYPE,
+        "remember": remember,
+        "jti": str(_uuid.uuid4()),
+        "exp": expire,
+    }
+    return jwt.encode(payload, settings.app_secret_key, algorithm=ALGORITHM)
+
+
 def decode_token(token: str) -> dict:
     try:
         return jwt.decode(token, settings.app_secret_key, algorithms=[ALGORITHM])

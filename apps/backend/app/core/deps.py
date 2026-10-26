@@ -6,8 +6,12 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import decode_token
+from app.core import member_errors as errors
+from app.core.member_errors import MemberAuthError
+from app.core.security import SITE_MEMBER_ROLE, decode_token
 from app.db.session import AsyncSessionLocal, set_rls_context
+from app.models.site_member import SiteMember
+from app.models.tenant import Tenant
 from app.models.user import User
 
 bearer = HTTPBearer(auto_error=False)
@@ -33,11 +37,15 @@ def _extract_token(
 
 def get_current_user_payload(token: str = Depends(_extract_token)) -> dict:
     try:
-        return decode_token(token)
+        payload = decode_token(token)
     except ValueError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
+    # 방문자 회원 토큰으로는 어드민 API 를 쓸 수 없다 (기획서 16.0)
+    if payload.get("role") == SITE_MEMBER_ROLE:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FORBIDDEN")
+    return payload
 
 
 async def get_db_with_rls(
@@ -99,3 +107,55 @@ def require_feature(feature_key: str):
             )
 
     return checker
+
+
+# ── 방문자 회원 (T-108, 기획서 16.0) ──────────────────────────────────────
+
+
+async def get_member_tenant(tenant_slug: str) -> Tenant:
+    """URL 의 tenant_slug → 운영 중인 테넌트. 없으면 404."""
+    from app.services import member_auth as member_auth_service
+
+    async with AsyncSessionLocal() as db:
+        # 테넌트 식별 단계 — tenants 조회만 RLS 우회 (get_current_user 와 동일)
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        tenant = await member_auth_service.get_active_tenant(db, tenant_slug)
+    if tenant is None:
+        raise MemberAuthError(404, "NOT_FOUND", errors.TENANT_NOT_FOUND)
+    return tenant
+
+
+async def get_member_db(
+    tenant: Tenant = Depends(get_member_tenant),
+) -> AsyncGenerator[AsyncSession, None]:
+    """방문자 API 세션 — URL 테넌트로 RLS 컨텍스트 설정."""
+    async with AsyncSessionLocal() as session:
+        await set_rls_context(session, tenant.id)
+        yield session
+
+
+async def get_current_member(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+) -> SiteMember:
+    """방문자 access token 검증. 어드민 토큰·다른 테넌트 토큰은 403."""
+    from app.services import member_auth as member_auth_service
+
+    if not credentials:
+        raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
+    try:
+        payload = decode_token(credentials.credentials)
+    except ValueError:
+        raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
+    if payload.get("role") != SITE_MEMBER_ROLE or payload.get("type"):
+        raise MemberAuthError(403, "FORBIDDEN", errors.FORBIDDEN)
+    if payload.get("tenant_id") != str(tenant.id):
+        raise MemberAuthError(403, "FORBIDDEN", errors.FORBIDDEN)
+
+    member = await member_auth_service.get_active_member(
+        db, tenant.id, UUID(payload["sub"])
+    )
+    if member is None:
+        raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
+    return member
