@@ -47,6 +47,14 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     reserved_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     reserved_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
 
+    # ── 방문자 회원 연결 (T-107, 기획서 16.1) — 비회원 문의는 NULL ──
+    member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("site_members.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
     attachments: Mapped[list["InquiryAttachment"]] = relationship(
         "InquiryAttachment",
         back_populates="inquiry",

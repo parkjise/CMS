@@ -19,6 +19,7 @@ from app.core.security import hash_password
 from app.db.session import AsyncSessionLocal
 from app.models.billing import Subscription
 from app.models.feature import Feature, TenantFeature
+from app.models.site_member import MemberReservation, SiteMember
 from app.data.template_samples import load_sample
 from app.models.template import Template
 from app.models.tenant import Tenant
@@ -398,6 +399,121 @@ async def seed_test_subscription(db: AsyncSession, tenant_id: uuid.UUID) -> None
     print("✅ 테스트 구독 생성: STANDARD / ACTIVE")
 
 
+# 방문자 회원 (T-107, 기획서 16.9) — 테스트 테넌트에 가입 방식별 회원 + 업종별 예약
+SITE_MEMBER_PASSWORD = "member1234"
+SITE_MEMBERS = [
+    {
+        "email": "hong@member.test",
+        "name": "홍길동",
+        "phone": "010-1111-2222",
+        "with_password": True,
+        "marketing_agree": True,
+        "email_agree": True,
+    },
+    {
+        "email": "kim@member.test",
+        "name": "김카카오",
+        "phone": "010-3333-4444",
+        "social_provider": "KAKAO",
+        "social_id": "kakao-seed-0001",
+    },
+    {
+        "email": "lee@member.test",
+        "name": "이네이버",
+        "phone": "010-5555-6666",
+        "social_provider": "NAVER",
+        "social_id": "naver-seed-0001",
+        "sms_agree": False,
+    },
+]
+# (회원 이메일, 예약 유형, 상태, 며칠 뒤, 메모, 업종별 항목)
+SITE_MEMBER_RESERVATIONS = [
+    (
+        "hong@member.test",
+        "MEDICAL",
+        "CONFIRMED",
+        3,
+        "첫 방문 상담",
+        {"department": "내과", "visit_type": "FIRST"},
+    ),
+    (
+        "hong@member.test",
+        "GENERAL",
+        "COMPLETED",
+        -10,
+        None,
+        {"subject": "서류 발급 문의"},
+    ),
+    (
+        "kim@member.test",
+        "LODGING",
+        "PENDING",
+        14,
+        "늦은 체크인 예정",
+        {"room": "오션뷰 디럭스", "guests": 2, "nights": 2, "amount": 320000},
+    ),
+    (
+        "lee@member.test",
+        "MEDICAL",
+        "CANCELLED",
+        1,
+        None,
+        {"department": "정형외과", "visit_type": "REVISIT"},
+    ),
+]
+
+
+async def seed_site_members(db: AsyncSession) -> None:
+    """테스트 테넌트 방문자 회원 3명(이메일·카카오·네이버) + 예약 4건."""
+    tenant = (
+        await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
+    ).scalar_one_or_none()
+    if tenant is None:
+        print("ℹ️  테스트 테넌트 없음 — 방문자 회원 건너뜀")
+        return
+    exists = await db.execute(
+        select(SiteMember.id).where(SiteMember.tenant_id == tenant.id).limit(1)
+    )
+    if exists.first():
+        print("ℹ️  방문자 회원 이미 존재 — 건너뜀")
+        return
+
+    members: dict[str, SiteMember] = {}
+    for spec in SITE_MEMBERS:
+        data = dict(spec)
+        with_password = data.pop("with_password", False)
+        member = SiteMember(
+            tenant_id=tenant.id,
+            password_hash=(
+                hash_password(SITE_MEMBER_PASSWORD) if with_password else None
+            ),
+            **data,
+        )
+        db.add(member)
+        members[member.email] = member
+    await db.flush()
+
+    now = datetime.now().astimezone()
+    for email, rtype, status, days, memo, detail in SITE_MEMBER_RESERVATIONS:
+        db.add(
+            MemberReservation(
+                tenant_id=tenant.id,
+                member_id=members[email].id,
+                reservation_type=rtype,
+                status=status,
+                reserved_at=now + timedelta(days=days),
+                memo=memo,
+                detail=detail,
+            )
+        )
+    await db.commit()
+    print(
+        f"✅ 방문자 회원 {len(SITE_MEMBERS)}명 · 예약 "
+        f"{len(SITE_MEMBER_RESERVATIONS)}건 생성 "
+        f"(hong@member.test / {SITE_MEMBER_PASSWORD})"
+    )
+
+
 async def main() -> None:
     # templates는 RLS 없이 super admin 컨텍스트로 삽입
     async with AsyncSessionLocal() as db:
@@ -406,6 +522,7 @@ async def main() -> None:
         await seed_features(db)
         await seed_super_admin(db)
         await seed_test_tenant(db)
+        await seed_site_members(db)
 
     print("\n🎉 시드 데이터 삽입 완료")
 
