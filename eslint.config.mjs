@@ -16,6 +16,8 @@ export default tseslint.config(
       '**/build/**',
       '**/.vite/**',
       '**/playwright-report/**',
+      '**/vendor/**',
+      '**/*.min.js',
       '**/*.config.{js,ts,mjs,cjs}',
       '**/vite-env.d.ts',
       '**/next-env.d.ts',
