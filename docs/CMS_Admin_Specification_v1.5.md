@@ -4458,6 +4458,15 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 추가 API: `GET /auth/options` → `{social_login, providers}` (소셜 버튼 노출, 기능 플래그 `MEMBER_SOCIAL_LOGIN`). `forgot-password` 응답 `debug_reset_url` 은 로컬 개발(운영 아님 + 알림 test 모드)에서만
 - 로그인 후 이동: `?next=` (같은 사이트 상대 경로만) → 없으면 마이페이지
 
+#### 구현 메모 (T-114 — 마이페이지 화면)
+
+- 화면: `app/[tenant_slug]/member/mypage?tab=reservations|inquiries|notifications|profile`, `member/withdraw` — 비로그인이면 `login?next=` 로 이동
+- 탭 구성: `GET /auth/options.reservations` 가 false 면 "내 예약" 탭과 예약 알림 항목을 숨긴다. 지금은 업종 기준(HOSPITAL · PENSION = true), T-115 에서 `MEMBER_RESERVATION` 플래그로 교체
+- 예약 카드: MEDICAL(일시 · 진료과 · 초진/재진) / LODGING(체크인 ~ 체크아웃(`detail.nights`) · 객실 · 인원 · 금액) / GENERAL(제목 · 일시), 상태 배지 4종, 대기 · 확정이면서 예약 시각 전만 취소 버튼
+- 알림 설정은 토글 즉시 저장(낙관적 업데이트, 실패 시 되돌림). 내 정보 수정 · 비밀번호 변경(새 토큰 적용) · 소셜 연결/해제(`?linked=` 안내)
+- 인증 호출은 401 이면 refresh 후 1회 재시도, 실패하면 세션 정리
+- 탈퇴 성공 → 완료 화면 후 자동 로그아웃 (서버 세션 · 쿠키는 이미 종료)
+
 #### 응답 형식 예시
 
 ```json
