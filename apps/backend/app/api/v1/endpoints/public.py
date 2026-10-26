@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -38,33 +39,15 @@ async def _get_tenant(db: AsyncSession, tenant_slug: str) -> Tenant | None:
     return result.scalar_one_or_none()
 
 
-async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteResponse:
-    tid = tenant.id
-
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tid)},
-    )
-
-    sections_result = await db.execute(
-        select(Section)
-        .where(Section.deleted_at.is_(None))
-        .order_by(Section.display_order)
-        .options(selectinload(Section.settings))
-    )
-    sections = list(sections_result.scalars().all())
-
-    seo_result = await db.execute(select(SeoSetting))
-    seo = seo_result.scalar_one_or_none()
-
-    sns_result = await db.execute(select(SnsChannelSetting))
-    sns = sns_result.scalar_one_or_none()
-
+async def _resolve_template(
+    db: AsyncSession, tenant: Tenant
+) -> tuple[Template | None, dict]:
+    """적용된 템플릿(override) 우선, 없으면 업종 기본(테마형). RLS 는 호출 쪽에서."""
     # 적용된 템플릿(override)을 우선 사용하고, 없으면 업종 기본 템플릿으로 폴백
     override = (
         await db.execute(
             select(TenantTemplateOverride).where(
-                TenantTemplateOverride.tenant_id == tid
+                TenantTemplateOverride.tenant_id == tenant.id
             )
         )
     ).scalar_one_or_none()
@@ -87,6 +70,33 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
                 .limit(1)
             )
         ).scalar_one_or_none()
+
+    return template, css_overrides
+
+
+async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteResponse:
+    tid = tenant.id
+
+    await db.execute(
+        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
+        {"tid": str(tid)},
+    )
+
+    sections_result = await db.execute(
+        select(Section)
+        .where(Section.deleted_at.is_(None))
+        .order_by(Section.display_order)
+        .options(selectinload(Section.settings))
+    )
+    sections = list(sections_result.scalars().all())
+
+    seo_result = await db.execute(select(SeoSetting))
+    seo = seo_result.scalar_one_or_none()
+
+    sns_result = await db.execute(select(SnsChannelSetting))
+    sns = sns_result.scalar_one_or_none()
+
+    template, css_overrides = await _resolve_template(db, tenant)
 
     template_payload: PublicTemplateResponse | None = None
     if template is not None:
@@ -158,3 +168,44 @@ async def get_site_sections(
     )
     sections = list(result.scalars().all())
     return ApiResponse.ok([PublicSectionResponse.model_validate(s) for s in sections])
+
+
+class PublicTemplateRef(BaseModel):
+    """미들웨어용 — 테넌트가 쓰는 템플릿 코드만 (기획서 11.11 #26)."""
+
+    code: str | None
+    renderer: str
+
+
+@router.get(
+    "/site/{tenant_slug}/template", response_model=ApiResponse[PublicTemplateRef]
+)
+async def get_site_template(
+    tenant_slug: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """홈페이지 미들웨어가 템플릿별 라우트로 나눌 때 쓰는 가벼운 조회.
+
+    사이트 캐시가 있으면 그 값을, 없으면 템플릿만 계산한다 (섹션은 읽지 않음).
+    """
+    redis = await get_redis()
+    cached = await redis.get(_site_cache_key(tenant_slug))
+    if cached:
+        template = json.loads(cached).get("template") or {}
+        return ApiResponse.ok(
+            PublicTemplateRef(
+                code=template.get("code"), renderer=template.get("renderer", "theme")
+            )
+        )
+
+    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    tenant = await _get_tenant(db, tenant_slug)
+    if not tenant or not tenant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    template, _ = await _resolve_template(db, tenant)
+    return ApiResponse.ok(
+        PublicTemplateRef(
+            code=template.code if template else None,
+            renderer=template.renderer if template else "theme",
+        )
+    )

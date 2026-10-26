@@ -349,3 +349,25 @@ class TestTenantIsolation:
                     {"id": str(other_tenant)},
                 )
                 await session.commit()
+
+
+class TestPublicTemplateRef:
+    """미들웨어용 템플릿 코드 조회 (T-125, 오픈 이슈 #26)."""
+
+    async def test_returns_code_after_apply_and_theme_before(
+        self, client: AsyncClient, auth_headers, test_tenant, code_templates
+    ):
+        url = f"/api/public/site/{test_tenant['slug']}/template"
+        before = await client.get(url)
+        assert before.status_code == 200
+        assert before.json()["data"]["renderer"] == "theme"
+
+        await _apply(client, auth_headers, code_templates["code"])
+        after = await client.get(url)
+        data = after.json()["data"]
+        assert data["renderer"] == "code"
+        assert data["code"].startswith("TPL_TEST_")
+
+    async def test_unknown_tenant_404(self, client: AsyncClient):
+        resp = await client.get("/api/public/site/no-such-tenant/template")
+        assert resp.status_code == 404
