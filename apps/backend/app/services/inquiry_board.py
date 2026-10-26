@@ -140,7 +140,10 @@ async def get_post(
 
 
 async def create_post(
-    db: AsyncSession, tenant_id: uuid.UUID, data: BoardPostCreate
+    db: AsyncSession,
+    tenant_id: uuid.UUID,
+    data: BoardPostCreate,
+    member_id: uuid.UUID | None = None,
 ) -> Inquiry:
     now = datetime.now(UTC)
     post = Inquiry(
@@ -153,6 +156,8 @@ async def create_post(
         is_board=True,
         is_secret=data.is_secret,
         password_hash=hash_password(data.password),
+        # 로그인한 방문자 글은 마이페이지 문의 내역에 표시 (T-111)
+        member_id=member_id,
         status="PENDING",
         is_read=False,
         created_at=now,

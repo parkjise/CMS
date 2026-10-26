@@ -12,7 +12,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 SocialProvider = Literal["KAKAO", "NAVER"]
-VerificationPurpose = Literal["REGISTER", "FIND_EMAIL", "RESET_PW"]
+# MYPAGE: 마이페이지 연락처 변경 · 소셜 가입자 첫 비밀번호 설정 (T-111)
+VerificationPurpose = Literal["REGISTER", "FIND_EMAIL", "RESET_PW", "MYPAGE"]
 ReservationType = Literal["MEDICAL", "LODGING", "GENERAL"]
 ReservationStatus = Literal["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED"]
 
@@ -190,11 +191,13 @@ class ResetPasswordRequest(BaseModel):
 
 
 class MemberUpdateRequest(BaseModel):
-    """내 정보 수정 — 이메일은 변경 불가."""
+    """내 정보 수정 — 이메일은 변경 불가 (보내면 400)."""
+
+    model_config = {"extra": "forbid"}
 
     name: str | None = Field(None, max_length=100)
     phone: str | None = Field(None, max_length=20)
-    # 연락처 변경 시 새 번호의 인증 완료 id 필요 (T-111 에서 검사)
+    # 연락처 변경 시 새 번호의 인증 완료 id 필요 (MYPAGE 용도)
     phone_verification_id: uuid.UUID | None = None
     birth_date: date | None = None
 
@@ -210,7 +213,10 @@ class MemberUpdateRequest(BaseModel):
 
 
 class MemberPasswordChangeRequest(BaseModel):
-    current_password: str = Field(..., min_length=1, max_length=100)
+    # 비밀번호가 있는 회원은 필수
+    current_password: str | None = Field(None, max_length=100)
+    # 소셜 가입자(비밀번호 없음)의 첫 비밀번호 설정은 휴대폰 인증(MYPAGE) 필수
+    phone_verification_id: uuid.UUID | None = None
     password: str = Field(..., max_length=100)
     password_confirm: str = Field(..., max_length=100)
 
@@ -236,10 +242,15 @@ class MemberNotificationSettings(BaseModel):
     email_agree: bool | None = None
 
 
+WithdrawalReason = Literal["INCONVENIENT", "PRIVACY", "NOT_USING", "OTHER"]
+
+
 class MemberWithdrawRequest(BaseModel):
     # 소셜 가입 회원은 비밀번호가 없으므로 선택
     password: str | None = Field(None, max_length=100)
-    reason: str | None = Field(None, max_length=500)
+    # 서비스 이용 불편 · 개인정보 보호 · 사업체 이용 안 함 · 기타 (16.8)
+    reason: WithdrawalReason | None = None
+    reason_detail: str | None = Field(None, max_length=400)
 
 
 # ── 응답 ───────────────────────────────────────────────────────────────────
@@ -281,6 +292,8 @@ class MemberResponse(BaseModel):
     notify_reservation_confirmed: bool
     notify_reservation_cancelled: bool
     created_at: datetime
+    # 연결된 소셜 계정 (T-110)
+    social_accounts: list[SocialProvider] = []
 
     model_config = {"from_attributes": True}
 
@@ -290,10 +303,11 @@ class MemberResponse(BaseModel):
         if isinstance(data, dict):
             data.setdefault("has_password", bool(data.get("password_hash")))
             return data
+        # ORM 객체 — 소셜 계정 목록은 별도 조회라 비워 두고 엔드포인트에서 채운다
         values = {
             name: getattr(data, name, None)
             for name in cls.model_fields
-            if name != "has_password"
+            if name not in ("has_password", "social_accounts")
         }
         values["has_password"] = bool(getattr(data, "password_hash", None))
         return values
@@ -386,3 +400,37 @@ class SocialAccountsResponse(BaseModel):
     accounts: list[SocialAccountItem]
     # 비밀번호가 없으면 마지막 소셜 계정은 해제할 수 없다
     has_password: bool
+
+
+# ── 마이페이지 (T-111) ─────────────────────────────────────────────────────
+
+
+class MemberPasswordChangeResponse(BaseModel):
+    """다른 기기 로그인은 해제되고 이 기기에는 새 토큰을 준다."""
+
+    access_token: str
+
+
+class MemberReservationList(BaseModel):
+    items: list[MemberReservationResponse]
+
+
+class MemberInquiryItem(BaseModel):
+    id: uuid.UUID
+    inquiry_type: str
+    subject: str | None
+    is_board: bool
+    answered: bool
+    created_at: datetime
+
+
+class MemberInquiryList(BaseModel):
+    items: list[MemberInquiryItem]
+
+
+class MemberInquiryDetail(MemberInquiryItem):
+    message: str
+    answer: str | None
+    answered_at: datetime | None
+    reserved_date: date | None
+    reserved_time: str | None

@@ -54,6 +54,15 @@ LAST_LOGIN_METHOD = (
 )
 SIGNUP_EXPIRED = "가입 시간이 만료되었습니다. 소셜 로그인을 다시 시도해주세요"
 EMAIL_REQUIRED = "이메일을 입력해주세요"
+# 마이페이지 · 탈퇴 (기획서 16.7 · 16.8, T-111)
+WRONG_PASSWORD = "비밀번호가 일치하지 않습니다"
+CURRENT_PASSWORD_REQUIRED = "현재 비밀번호를 입력해주세요"
+RESERVATION_NOT_FOUND = "예약을 찾을 수 없습니다"
+RESERVATION_NOT_CANCELLABLE = "취소할 수 없는 예약입니다"
+INQUIRY_NOT_FOUND = "문의를 찾을 수 없습니다"
+ACTIVE_RESERVATION_EXISTS = (
+    "진행 중인 예약이 있어 탈퇴할 수 없습니다. 예약을 먼저 취소해주세요"
+)
 
 _MEMBER_PATH = re.compile(r"^/api/public/[^/]+/(auth|members)(/|$)")
 

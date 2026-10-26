@@ -160,3 +160,18 @@ async def get_current_member(
     if member is None or issued_before(payload, member.password_changed_at):
         raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
     return member
+
+
+def optional_member_payload(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> dict | None:
+    """공개 접수 API — 방문자 토큰이 있으면 payload, 없거나 잘못되면 비회원 (T-111)."""
+    if not credentials:
+        return None
+    try:
+        payload = decode_token(credentials.credentials)
+    except ValueError:
+        return None
+    if payload.get("role") != SITE_MEMBER_ROLE or payload.get("type"):
+        return None
+    return payload

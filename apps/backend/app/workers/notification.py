@@ -169,3 +169,44 @@ async def _send_member_password_changed(tenant_id: str, member_id: str) -> dict:
             ),
         )
     return {"email_sent": bool(email.get("sent")), "sms_sent": sms_sent, "reason": ""}
+
+
+@celery_app.task(
+    name="app.workers.notification.send_member_withdrawn",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=2,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def send_member_withdrawn(
+    self, site_name: str, name: str, email: str, phone: str | None
+) -> dict:
+    """방문자 탈퇴 안내 — 메일 + 문자 (T-111, 기획서 16.8).
+
+    회원 정보는 이미 익명화돼 있으므로 원래 연락처를 인자로 받는다.
+    """
+    return asyncio.run(_send_member_withdrawn(site_name, name, email, phone))
+
+
+async def _send_member_withdrawn(
+    site_name: str, name: str, email: str, phone: str | None
+) -> dict:
+    from app.services import email as email_service
+
+    sent = await email_service.send_email(
+        email,
+        subject=f"[{site_name}] 회원 탈퇴가 완료되었습니다",
+        template="member_withdrawn",
+        variables={"member_name": name, "site_name": site_name},
+    )
+    sms_sent = False
+    if phone:
+        sms_sent = await notification_service.send_sms(
+            to=phone,
+            message=(
+                f"[{site_name}] 회원 탈퇴가 완료되었습니다."
+                " 그동안 이용해주셔서 감사합니다."
+            ),
+        )
+    return {"email_sent": bool(sent.get("sent")), "sms_sent": sms_sent}

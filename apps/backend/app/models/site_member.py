@@ -107,6 +107,8 @@ class SiteMember(Base, TimestampMixin, SoftDeleteMixin):
     password_changed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 탈퇴 사유 코드 (+ 기타 입력) — 탈퇴 시 개인정보는 익명화 (T-111)
+    withdrawal_reason: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
 
 class MemberReservation(Base, TimestampMixin, SoftDeleteMixin):

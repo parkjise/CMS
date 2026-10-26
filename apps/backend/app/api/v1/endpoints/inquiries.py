@@ -8,7 +8,12 @@ from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.core.deps import (
+    get_current_user,
+    get_db,
+    get_db_with_rls,
+    optional_member_payload,
+)
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -26,6 +31,7 @@ from app.schemas.inquiry_board import (
 )
 from app.services import inquiry as inquiry_service
 from app.services import inquiry_board as board_service
+from app.services import member_activity
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
 router = APIRouter(prefix="/inquiries", tags=["inquiries"])
@@ -83,10 +89,14 @@ async def submit_inquiry(
     body: InquiryCreate,
     tenant_slug: str = Query(..., description="테넌트 슬러그"),
     db: AsyncSession = Depends(get_db),
+    member_payload: dict | None = Depends(optional_member_payload),
 ):
     await _verify_recaptcha(body.recaptcha_token)
     tenant = await _resolve_public_tenant(db, tenant_slug)
-    inquiry = await inquiry_service.create_inquiry(db, tenant.id, body)
+    member_id = await member_activity.active_member_id(db, tenant, member_payload)
+    inquiry = await inquiry_service.create_inquiry(
+        db, tenant.id, body, member_id=member_id, tenant=tenant
+    )
     return ApiResponse.ok(
         {"inquiry_id": str(inquiry.id), "message": "문의가 접수되었습니다."}
     )
@@ -114,10 +124,12 @@ async def create_board_post(
     body: BoardPostCreate,
     tenant_slug: str = Query(..., description="테넌트 슬러그"),
     db: AsyncSession = Depends(get_db),
+    member_payload: dict | None = Depends(optional_member_payload),
 ):
     await _verify_recaptcha(body.recaptcha_token)
     tenant = await _resolve_public_tenant(db, tenant_slug)
-    post = await board_service.create_post(db, tenant.id, body)
+    member_id = await member_activity.active_member_id(db, tenant, member_payload)
+    post = await board_service.create_post(db, tenant.id, body, member_id=member_id)
     return ApiResponse.ok(
         {"post_id": str(post.id), "message": "상담 글이 등록되었습니다."}
     )

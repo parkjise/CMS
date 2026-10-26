@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.redis import get_redis
 from app.models.inquiry import Inquiry
+from app.models.tenant import Tenant
 from app.schemas.inquiry import InquiryCreate, InquiryListResponse, InquiryUpdate
 
 _VALID_STATUSES = {"PENDING", "IN_PROGRESS", "DONE", "SPAM"}
@@ -19,7 +20,13 @@ async def create_inquiry(
     db: AsyncSession,
     tenant_id: UUID,
     data: InquiryCreate,
+    member_id: UUID | None = None,
+    tenant: Tenant | None = None,
 ) -> Inquiry:
+    """문의 · 예약 접수.
+
+    member_id 가 있으면 회원 문의 — 예약이면 내 예약에도 추가 (T-111).
+    """
     inquiry = Inquiry(
         tenant_id=tenant_id,
         inquiry_type=data.inquiry_type,
@@ -32,10 +39,20 @@ async def create_inquiry(
         reserved_time=data.reserved_time,
         status="PENDING",
         is_read=False,
+        member_id=member_id,
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
     )
     db.add(inquiry)
+    if (
+        member_id is not None
+        and tenant is not None
+        and data.inquiry_type == ("RESERVATION")
+    ):
+        from app.services.member_activity import add_member_reservation
+
+        await db.flush()
+        add_member_reservation(db, tenant, member_id, inquiry)
     await db.commit()
     await db.refresh(inquiry)
 

@@ -9,6 +9,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
 
 from app.api.public.member_auth import router as member_auth_router
+from app.api.public.member_me import router as member_me_router
 from app.api.public.member_social import router as member_social_router
 from app.api.super.router import super_router
 from app.api.v1.endpoints.analytics import public_router as analytics_public_router
@@ -92,6 +93,7 @@ app.include_router(public_site_router, prefix="/api/public")
 app.include_router(template_public_router, prefix="/api/public")
 app.include_router(member_auth_router, prefix="/api/public")
 app.include_router(member_social_router, prefix="/api/public")
+app.include_router(member_me_router, prefix="/api/public")
 
 
 @app.get("/health")
