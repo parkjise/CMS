@@ -8,6 +8,8 @@ export interface DashboardStats {
   week_unique_visitors: number
   new_inquiries_today: number
   pending_inquiries: number
+  /** 방문자 회원 (T-115) — 회원 기능(SITE_MEMBER)이 꺼져 있으면 null */
+  members?: { new_members_week: number; total_members: number } | null
 }
 
 export interface ChartPoint {

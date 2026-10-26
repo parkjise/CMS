@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { Eye, MessageCircle, MessageSquare, Users } from 'lucide-react'
+import { Eye, MessageCircle, MessageSquare, UserPlus, Users } from 'lucide-react'
 import { RecentInquiryList } from '@/components/dashboard/RecentInquiryList'
 import { SampleReminder } from '@/components/dashboard/SampleReminder'
 import { StatCard } from '@/components/dashboard/StatCard'
@@ -52,8 +52,12 @@ export function DashboardPage() {
       {/* 템플릿 샘플이 남아 있으면 할 일 안내 (기획서 11.8) */}
       <SampleReminder />
 
-      {/* 통계 카드 4개 */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 통계 카드 — 회원 기능이 켜져 있으면 신규 회원 카드 추가 (T-115) */}
+      <div
+        className={`grid grid-cols-1 gap-4 sm:grid-cols-2 ${
+          stats.data?.members ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}
+      >
         <StatCard
           title="오늘 방문자"
           value={stats.data?.today_unique_visitors ?? 0}
@@ -85,6 +89,15 @@ export function DashboardPage() {
           isLoading={stats.isLoading}
           accent="rose"
         />
+        {stats.data?.members && (
+          <StatCard
+            title="이번주 신규 회원"
+            value={stats.data.members.new_members_week}
+            secondary={`전체 회원 ${stats.data.members.total_members}명`}
+            icon={UserPlus}
+            accent="emerald"
+          />
+        )}
       </div>
 
       {/* 차트 + 미확인 문의 목록 */}

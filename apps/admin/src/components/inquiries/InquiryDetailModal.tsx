@@ -8,6 +8,7 @@ import {
   useInquiry,
   useUpdateInquiry,
 } from '@/hooks/useInquiries'
+import { MemberReservationPanel } from './MemberReservationPanel'
 import { STATUS_OPTIONS, StatusBadge, TYPE_LABELS } from './StatusBadge'
 
 interface InquiryDetailModalProps {
@@ -157,6 +158,16 @@ export function InquiryDetailModal({
             </div>
           </div>
 
+          {/* 회원 정보 · 회원 예약 처리 (T-115) */}
+          <MemberReservationPanel
+            inquiry={inquiryQuery.data}
+            onChanged={(updated) => {
+              // 예약 처리로 바뀐 문의 상태 · 메모를 폼에 반영 (그대로 저장해도 되돌아가지 않게)
+              setStatus(updated.status)
+              setMemo(updated.admin_memo ?? '')
+            }}
+          />
+
           {/* 메시지 */}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-700">
@@ -193,10 +204,14 @@ export function InquiryDetailModal({
 
           {/* 상태 변경 */}
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="inquiry-status"
+              className="mb-1.5 block text-sm font-medium text-slate-700"
+            >
               상태 변경
             </label>
             <select
+              id="inquiry-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as InquiryStatus)}
               className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"

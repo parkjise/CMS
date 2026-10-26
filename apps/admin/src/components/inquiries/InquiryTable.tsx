@@ -9,6 +9,7 @@ import {
   useUpdateInquiry,
 } from '@/hooks/useInquiries'
 import { InquiryMobileCard } from './InquiryMobileCard'
+import { MemberBadge } from './MemberBadge'
 import { STATUS_OPTIONS, TYPE_LABELS } from './StatusBadge'
 
 interface InquiryTableProps {
@@ -144,6 +145,7 @@ export function InquiryTable({
                   </td>
                   <td className="px-3 py-3 font-medium text-slate-900">
                     {item.name}
+                    {item.member_id && <MemberBadge />}
                   </td>
                   <td className="px-3 py-3 text-slate-600">
                     {TYPE_LABELS[item.inquiry_type] ?? item.inquiry_type}
