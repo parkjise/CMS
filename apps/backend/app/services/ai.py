@@ -123,6 +123,9 @@ async def _call_model(messages: list) -> tuple[str, int]:  # pragma: no cover
     return content, tokens
 
 
+COPY_FAILED_MESSAGE = "AI 문구 생성에 실패했습니다. 잠시 후 다시 시도해주세요."
+
+
 async def generate_suggestions(
     request: CopySuggestRequest,
     *,
@@ -142,7 +145,15 @@ async def generate_suggestions(
 
     last_error: Exception | None = None
     for _ in range(MAX_PARSE_RETRIES + 1):
-        content, tokens = await _call_model(messages)
+        try:
+            content, tokens = await _call_model(messages)
+        except Exception as exc:  # noqa: BLE001 - OpenAI 장애 · 키 오류 · 시간 초과
+            # 전에는 그대로 500 — 사용자에겐 "잠시 후 다시" 안내가 맞다 (T-078-A)
+            logger.warning("AI 모델 호출 실패", exc_info=True)
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=COPY_FAILED_MESSAGE,
+            ) from exc
         try:
             return parse_suggestions(content, request.count), tokens
         except ValueError as exc:
@@ -150,7 +161,7 @@ async def generate_suggestions(
 
     raise HTTPException(
         status_code=status.HTTP_502_BAD_GATEWAY,
-        detail="AI 문구 생성에 실패했습니다. 잠시 후 다시 시도해주세요.",
+        detail=COPY_FAILED_MESSAGE,
     ) from last_error
 
 

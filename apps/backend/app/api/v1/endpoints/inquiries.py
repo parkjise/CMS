@@ -84,7 +84,7 @@ async def _resolve_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant:
 
 
 @public_router.post("", response_model=ApiResponse[dict])
-@_limiter.limit("3/minute")
+@_limiter.limit(lambda: settings.inquiry_rate_limit)
 async def submit_inquiry(
     request: Request,
     body: InquiryCreate,
@@ -139,7 +139,7 @@ async def list_board_posts(
 
 
 @public_router.post("/board", response_model=ApiResponse[dict])
-@_limiter.limit("3/minute")
+@_limiter.limit(lambda: settings.inquiry_rate_limit)
 async def create_board_post(
     request: Request,
     body: BoardPostCreate,

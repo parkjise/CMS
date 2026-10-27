@@ -95,3 +95,30 @@ export async function saveFields(
   expect(res.ok()).toBeTruthy()
   expect((await res.json()).data.failed_count).toBe(0)
 }
+
+// ── 통합 E2E (T-078-A) ──
+
+/** 슈퍼 어드민 계정 — 시드 값 (scripts/seed.py: SUPER_ADMIN_EMAIL · SUPER_ADMIN_PASSWORD) */
+export const SUPER_ADMIN = {
+  email: process.env.E2E_SUPER_EMAIL ?? 'admin@cms.io',
+  password: process.env.E2E_SUPER_PASSWORD ?? '',
+}
+
+/** 격리 테스트의 "다른 사업체" — 시드 TEST_TENANTS */
+export const OTHER_TENANT_ADMIN = {
+  email: 'admin@other-tenant.com',
+  password: 'password123',
+  slug: 'other-tenant',
+}
+
+/** POST /api/super/v1/auth/login — 2FA 없는 슈퍼 어드민 토큰 */
+export async function superLogin(request: APIRequestContext): Promise<string> {
+  expect(SUPER_ADMIN.password, 'E2E_SUPER_PASSWORD 를 시드의 SUPER_ADMIN_PASSWORD 로').toBeTruthy()
+  const res = await request.post(`${BACKEND_URL}/api/super/v1/auth/login`, {
+    data: { email: SUPER_ADMIN.email, password: SUPER_ADMIN.password },
+  })
+  expect(res.ok()).toBeTruthy()
+  const body = await res.json()
+  expect(body.data.requires_2fa).toBe(false)
+  return body.data.access_token
+}

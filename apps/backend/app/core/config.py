@@ -119,6 +119,11 @@ class Settings(BaseSettings):
     # 슈퍼 어드민 액세스 토큰 만료 (분) — 보안 강화로 짧게 유지
     super_admin_token_expire_minutes: int = 5
 
+    # 요청 한도 (IP 당) — 운영 기본값.
+    # E2E CI 처럼 한 IP 에서 많이 부를 때만 올린다 (T-078-A)
+    login_rate_limit: str = "10/minute"
+    inquiry_rate_limit: str = "3/minute"
+
     # reCAPTCHA (없으면 검증 스킵)
     recaptcha_secret_key: str = ""
     recaptcha_min_score: float = 0.5

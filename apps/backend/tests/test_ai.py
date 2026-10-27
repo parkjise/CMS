@@ -140,6 +140,22 @@ class TestGenerateSuggestions:
             )
         assert exc.value.status_code == 502
 
+    async def test_model_error_raises_502_not_500(self, monkeypatch):
+        """T-078-A: OpenAI 장애 · 키 오류도 '잠시 후 다시' 안내(502) — 전에는 500."""
+        from fastapi import HTTPException
+
+        async def down_call(_messages):
+            raise RuntimeError("Incorrect API key provided")
+
+        monkeypatch.setattr(ai_service, "_call_model", down_call)
+        req = CopySuggestRequest(section_type="HERO_BANNER", count=3)
+        with pytest.raises(HTTPException) as exc:
+            await ai_service.generate_suggestions(
+                req, template_type="GENERAL", business_name="가게"
+            )
+        assert exc.value.status_code == 502
+        assert exc.value.detail == ai_service.COPY_FAILED_MESSAGE
+
 
 # ───────────────────────── 엔드포인트 (DB + LLM 모킹) ─────────────────────────
 

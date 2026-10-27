@@ -342,15 +342,29 @@ async def seed_super_admin(db: AsyncSession) -> None:
     print(f"✅ 슈퍼 어드민 계정 생성: {settings.super_admin_email}")
 
 
-async def seed_test_tenant(db: AsyncSession) -> None:
-    existing = await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
+# E2E 용 테넌트 — (슬러그, 이름, 관리자 이메일), 비밀번호는 모두 password123
+# other-tenant: tenant-isolation.spec 의 "다른 사업체" (T-078-A)
+TEST_TENANTS: list[tuple[str, str, str]] = [
+    ("test-tenant", "테스트 사업체", "admin@test-tenant.com"),
+    ("other-tenant", "다른 사업체", "admin@other-tenant.com"),
+]
+TEST_TENANT_PASSWORD = "password123"
+
+
+async def seed_test_tenant(
+    db: AsyncSession,
+    slug: str = "test-tenant",
+    name: str = "테스트 사업체",
+    email: str = "admin@test-tenant.com",
+) -> None:
+    existing = await db.execute(select(Tenant).where(Tenant.slug == slug))
     if existing.scalars().first():
-        print("ℹ️  테스트 테넌트 이미 존재 — 건너뜀")
+        print(f"ℹ️  테스트 테넌트 {slug} 이미 존재 — 건너뜀")
         return
 
     tenant = Tenant(
-        slug="test-tenant",
-        name="테스트 사업체",
+        slug=slug,
+        name=name,
         template_type="GENERAL",
         plan_type="STANDARD",
         is_active=True,
@@ -361,15 +375,15 @@ async def seed_test_tenant(db: AsyncSession) -> None:
     db.add(
         User(
             tenant_id=tenant.id,
-            email="admin@test-tenant.com",
-            password_hash=hash_password("password123"),
+            email=email,
+            password_hash=hash_password(TEST_TENANT_PASSWORD),
             role="TENANT_ADMIN",
         )
     )
     await db.commit()
     await enable_default_features_for_tenant(db, tenant.id)
     await seed_test_subscription(db, tenant.id)
-    print(f"✅ 테스트 테넌트 생성: {tenant.slug} (admin@test-tenant.com / password123)")
+    print(f"✅ 테스트 테넌트 생성: {slug} ({email} / {TEST_TENANT_PASSWORD})")
 
 
 # test-tenant E2E 용 섹션 — 없으면 만들고 있으면 그대로 (값도 건드리지 않음)
@@ -407,10 +421,10 @@ TEST_SECTIONS: list[tuple[str, str, int, dict[str, str], dict[str, str]]] = [
 ]
 
 
-async def seed_test_sections(db: AsyncSession) -> None:
-    """test-tenant 홈에 E2E 가 쓰는 섹션 타입이 없으면 하나씩 만든다."""
+async def seed_test_sections(db: AsyncSession, slug: str = "test-tenant") -> None:
+    """테스트 테넌트 홈에 E2E 가 쓰는 섹션 타입이 없으면 하나씩 만든다."""
     tenant = (
-        await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
+        await db.execute(select(Tenant).where(Tenant.slug == slug))
     ).scalar_one_or_none()
     if tenant is None:
         return
@@ -603,8 +617,9 @@ async def main() -> None:
         await seed_templates(db)
         await seed_features(db)
         await seed_super_admin(db)
-        await seed_test_tenant(db)
-        await seed_test_sections(db)
+        for slug, name, email in TEST_TENANTS:
+            await seed_test_tenant(db, slug, name, email)
+            await seed_test_sections(db, slug)
         await seed_site_members(db)
 
     print("\n🎉 시드 데이터 삽입 완료")

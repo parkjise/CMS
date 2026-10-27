@@ -144,6 +144,12 @@ jobs:
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
       NEXT_PUBLIC_SITE_URL: http://localhost:3000
       NEXT_TELEMETRY_DISABLED: "1"
+      # 한 IP 에서 로그인 · 문의를 여러 번 한다 — 운영 기본값(10/분 · 3/분)은 그대로 (T-078-A)
+      LOGIN_RATE_LIMIT: 200/minute
+      INQUIRY_RATE_LIMIT: 50/minute
+      # 프론트 3개(홈 · 관리자 · 슈퍼 어드민) 통합 시나리오 · 테넌트 격리까지
+      E2E_FULL_STACK: "1"
+      E2E_SUPER_PASSWORD: ci-only-super-admin-password
     steps:
       - uses: actions/checkout@v4
 
@@ -211,20 +217,24 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build homepage
-        working-directory: apps/client
-        run: pnpm build
+      - name: Build homepage, admin, super admin
+        run: |
+          pnpm --filter @cms/client build
+          pnpm --filter @cms/admin build
+          pnpm --filter @cms/superadmin build
 
       - name: Install Playwright browser
         working-directory: apps/client
         run: pnpm exec playwright install --with-deps chromium
 
-      # full-journey · tenant-isolation 은 프론트 3개가 필요해 제외 (E2E_FULL_STACK)
+      # 전체 E2E — 빌드본으로 (홈 next start · 관리자 · 슈퍼 어드민 vite preview)
       - name: Playwright E2E
         working-directory: apps/client
         env:
           E2E_WEB_COMMAND: pnpm start
-        run: pnpm exec playwright test e2e/editmode.spec.ts e2e/inquiry.spec.ts e2e/homepage.spec.ts e2e/seo.spec.ts
+          E2E_ADMIN_COMMAND: pnpm --filter @cms/admin preview
+          E2E_SYSTEM_COMMAND: pnpm --filter @cms/superadmin preview
+        run: pnpm exec playwright test
 
       - name: Upload E2E report
         if: failure()
