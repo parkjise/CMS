@@ -6,6 +6,7 @@ import { isAxiosError } from 'axios'
 import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEditStore } from '@/lib/editStore'
+import { GalleryGrid } from '@/components/sections/GalleryGrid'
 import { uploadImage, validateImageFile } from '@/lib/uploadImage'
 import type { GalleryItem } from '@/components/sections/types'
 
@@ -45,6 +46,7 @@ const uploadErrorMessage = (err: unknown): string | null => {
 
 export function EditableGallery({ sectionId, initialItems, children }: Props) {
   const isEditMode = useEditStore((s) => s.isEditMode)
+  const isPreview = useEditStore((s) => s.isPreview)
   const pending = useEditStore((s) => s.pendingChanges[`${sectionId}:${GALLERY_FIELD}`])
   const updateField = useEditStore((s) => s.updateField)
 
@@ -54,6 +56,8 @@ export function EditableGallery({ sectionId, initialItems, children }: Props) {
   if (!isEditMode && !pending) return <>{children}</>
 
   const items = parseItems(pending?.new_value, initialItems)
+  // 미리보기 — 고친 사진 목록을 방문자 화면 그대로 (T-065-B)
+  if (isPreview) return <GalleryGrid items={items} />
 
   const commit = (next: GalleryItem[]) =>
     updateField(sectionId, GALLERY_FIELD, JSON.stringify(next), JSON.stringify(initialItems))

@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { authApi } from '@/lib/api'
-import { useEditStore } from '@/lib/editStore'
+import { selectEditingUi, useEditStore } from '@/lib/editStore'
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
 const WRAPPER_SELECTOR = '[data-section-wrapper]'
@@ -47,7 +47,8 @@ const buildOrderPayload = (wrappers: HTMLElement[]): OrderPayloadItem[] => {
 }
 
 export function SectionControls({ sectionId, label }: Props) {
-  const isEditMode = useEditStore((s) => s.isEditMode)
+  // 미리보기 중에는 편집 UI 를 숨긴다 (T-065-B)
+  const isEditMode = useEditStore(selectEditingUi)
 
   const barRef = useRef<HTMLDivElement | null>(null)
   const [canUp, setCanUp] = useState(false)

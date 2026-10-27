@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { ImagePlus } from 'lucide-react'
-import { useEditStore } from '@/lib/editStore'
+import { selectEditingUi, useEditStore } from '@/lib/editStore'
 import { ImageUploadModal } from './ImageUploadModal'
 
 interface Props {
@@ -17,7 +17,8 @@ interface Props {
  * 우상단 플로팅 버튼으로 업로드 모달을 띄운다.
  */
 export function HeroBgImageEditor({ sectionId, field, initialUrl }: Props) {
-  const isEditMode = useEditStore((s) => s.isEditMode)
+  // 미리보기 중에는 편집 UI 를 숨긴다 (T-065-B)
+  const isEditMode = useEditStore(selectEditingUi)
   const updateField = useEditStore((s) => s.updateField)
   const [open, setOpen] = useState(false)
 

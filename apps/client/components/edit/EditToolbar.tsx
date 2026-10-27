@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import {
+  Eye,
   ExternalLink,
   LayoutGrid,
   Loader2,
@@ -29,20 +30,33 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
   const exitEditMode = useEditStore((s) => s.exitEditMode)
   const isAiPanelOpen = useEditStore((s) => s.isAiPanelOpen)
   const toggleAiPanel = useEditStore((s) => s.toggleAiPanel)
+  const isPreview = useEditStore((s) => s.isPreview)
+  const setPreview = useEditStore((s) => s.setPreview)
 
   const [saving, setSaving] = useState(false)
   const [exitOpen, setExitOpen] = useState(false)
 
   const changeCount = Object.keys(pendingChanges).length
 
-  // body 클래스 토글 (T-063+ 인라인 편집 UI 스타일 제어용)
+  // body 클래스 토글 (T-063+ 인라인 편집 UI 스타일 제어용) — 미리보기 중에는 편집 표시를 끈다
+  const editingUi = isEditMode && !isPreview
   useEffect(() => {
     if (typeof document === 'undefined') return
-    document.body.classList.toggle('edit-mode', isEditMode)
+    document.body.classList.toggle('edit-mode', editingUi)
     return () => {
       document.body.classList.remove('edit-mode')
     }
-  }, [isEditMode])
+  }, [editingUi])
+
+  // 미리보기는 Esc 로도 끝낸다
+  useEffect(() => {
+    if (!isPreview) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPreview(false)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isPreview, setPreview])
 
   // 페이지 이탈 방지 (isDirty 시)
   useEffect(() => {
@@ -56,6 +70,30 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
   }, [isEditMode, isDirty])
 
   if (!isEditMode) return null
+
+  // 미리보기 (기획서 12.2, T-065-B) — 저장 전 내용을 방문자 화면처럼, 끝내기 버튼만 남긴다
+  if (isPreview) {
+    return (
+      <div
+        role="toolbar"
+        aria-label="미리보기 툴바"
+        className="sticky top-0 z-50 flex w-full items-center justify-between gap-2 border-b border-[color:var(--color-border)] bg-[var(--color-text-primary)] px-4 py-2 text-sm text-[color:var(--color-background)]"
+      >
+        <span>
+          미리보기 중 — 방문자에게 보일 화면입니다
+          {changeCount > 0 && ` (저장 전 변경 ${changeCount}개 포함)`}
+        </span>
+        <button
+          type="button"
+          onClick={() => setPreview(false)}
+          className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+        >
+          <X className="h-3.5 w-3.5" aria-hidden="true" />
+          미리보기 끝내기
+        </button>
+      </div>
+    )
+  }
 
   const handleSave = async () => {
     if (changeCount === 0) return
@@ -122,6 +160,16 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
         </div>
 
         <div className="flex flex-1 items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setPreview(true)}
+            aria-label="미리보기"
+            className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+          >
+            <Eye className="h-3.5 w-3.5" aria-hidden="true" />
+            <span className="hidden sm:inline">미리보기</span>
+          </button>
+
           <button
             type="button"
             onClick={toggleAiPanel}
