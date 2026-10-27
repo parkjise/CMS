@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Textarea } from '@cms/ui'
 import { CharCounter } from './CharCounter'
 import { FormField } from './FormField'
-import { ImageUrlField } from './ImageUrlField'
+import { ImageUploadField } from './ImageUploadField'
 import { SaveBar } from './HeroBannerForm'
 import { getSetting, isRichSetting, strSetting, urlSetting } from './utils'
 import type { SectionFormProps } from './types'
@@ -47,7 +47,13 @@ export function IntroForm({ section, isSaving, onSubmit }: SectionFormProps) {
         />
       </FormField>
 
-      <ImageUrlField label="소개 이미지" value={introImage} onChange={setIntroImage} />
+      <ImageUploadField
+        label="소개 이미지"
+        value={introImage}
+        onChange={setIntroImage}
+        sectionId={section.id}
+        context="intro"
+      />
 
       <SaveBar isSaving={isSaving} disabled={overLimit} />
     </form>
