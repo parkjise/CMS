@@ -21,6 +21,14 @@ RUN pnpm install --frozen-lockfile
 # 2) 소스 복사 후 빌드 (@cms/ui·types는 소스로 번들되므로 packages 전체 필요)
 COPY packages/ packages/
 COPY apps/admin/ apps/admin/
+# VITE_* 는 빌드 결과에 고정된다 → 빌드 인자로 받는다 (docker-compose.prod.yml build.args)
+ARG VITE_API_BASE_URL
+ARG VITE_CLIENT_BASE_URL
+ARG VITE_SENTRY_DSN
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL} \
+    VITE_CLIENT_BASE_URL=${VITE_CLIENT_BASE_URL} \
+    VITE_SENTRY_DSN=${VITE_SENTRY_DSN}
+RUN test -n "$VITE_API_BASE_URL" || (echo "VITE_API_BASE_URL 빌드 인자가 필요합니다" && exit 1)
 RUN pnpm --filter @cms/admin build
 
 # ── Stage 2: runtime (Nginx 정적 서빙) ──────────────────────────────────────

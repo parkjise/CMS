@@ -9,5 +9,7 @@ htmlcov
 .coverage
 .env
 .env.*
+!.env.example
+!.env.production.example
 *.md
-scripts
+# scripts 는 운영 1회성 작업(init_db_roles · init_minio · seed)에 필요해 포함
