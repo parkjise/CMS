@@ -1,8 +1,17 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    text,
+)
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, SoftDeleteMixin, TimestampMixin
@@ -46,6 +55,10 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     )
     reserved_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     reserved_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    # 업종별 문의 폼 추가 항목 (T-051-A) — 칸 정의는 services/inquiry_fields.py
+    detail: Mapped[dict] = mapped_column(
+        JSONB, nullable=False, default=dict, server_default=text("'{}'::jsonb")
+    )
 
     # ── 방문자 회원 연결 (T-107, 기획서 16.1) — 비회원 문의는 NULL ──
     member_id: Mapped[uuid.UUID | None] = mapped_column(
