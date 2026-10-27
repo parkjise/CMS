@@ -248,15 +248,21 @@ FEATURES = [
 
 
 async def seed_features(db: AsyncSession) -> None:
-    existing = await db.execute(select(Feature))
-    if existing.scalars().first():
+    """없는 기능만 key 기준으로 넣는다.
+
+    마이그레이션 0024 가 회원 기능 3개를 먼저 넣으므로 '하나라도 있으면 건너뜀' 이면
+    새 DB 에서 섹션 편집기 · SEO · 템플릿 등 기본 기능이 통째로 빠진다 (T-037-A 에서 발견).
+    """
+    existing = set((await db.execute(select(Feature.key))).scalars().all())
+    missing = [f for f in FEATURES if f["key"] not in existing]
+    if not missing:
         print("ℹ️  기능 데이터 이미 존재 — 건너뜀")
         return
 
-    for f in FEATURES:
+    for f in missing:
         db.add(Feature(**f))
     await db.commit()
-    print(f"✅ 기능 {len(FEATURES)}개 삽입 완료")
+    print(f"✅ 기능 {len(missing)}개 삽입 완료")
 
 
 async def enable_default_features_for_tenant(

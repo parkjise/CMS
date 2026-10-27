@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   ADMIN_URL,
   BACKEND_URL,
+  CLIENT_URL,
   FULL_STACK,
   SYSTEM_URL,
   TEST_TENANT_ADMIN,
@@ -156,26 +157,44 @@ test.describe('T-078 전체 통합 시나리오', () => {
       headers: authHeader(token),
     })
     const { templates, current_template_id } = (await listRes.json()).data as {
-      templates: Array<{ id: string; locked: boolean }>
+      templates: Array<{ id: string; locked: boolean; renderer?: string }>
       current_template_id: string | null
     }
-    const target = templates.find((t) => !t.locked && t.id !== current_template_id)
+    // 테마형끼리만 바꾼다 — 코드형으로 남으면 뒤 시나리오(섹션 추가 등)가 깨진다
+    const themes = templates.filter((t) => !t.locked && (t.renderer ?? 'theme') === 'theme')
+    const apply = (templateId: string) =>
+      request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+        headers: authHeader(token),
+        data: { template_id: templateId, content_mode: 'keep' },
+      })
+
+    // 처음 적용이면 되돌릴 이력이 없다 — 테마형 하나를 먼저 적용해 기준을 만든다
+    let base = current_template_id
+    if (!base || !themes.some((t) => t.id === base)) {
+      base = themes[0]?.id ?? null
+      expect(base, '적용할 수 있는 테마형 템플릿이 없음 — 시드 확인').toBeTruthy()
+      const first = await apply(base!)
+      expect(first.ok(), await first.text()).toBeTruthy()
+    }
+    const target = themes.find((t) => t.id !== base)
     expect(target, '바꿀 수 있는 템플릿이 없음 — 시드 확인').toBeTruthy()
 
-    const apply = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
-      headers: authHeader(token),
-      data: { template_id: target!.id, content_mode: 'keep' },
-    })
-    expect(apply.ok(), await apply.text()).toBeTruthy()
+    const applied = await apply(target!.id)
+    expect(applied.ok(), await applied.text()).toBeTruthy()
     try {
       const after = await findSection(request, token, 'HERO_BANNER')
       expect(settingValue(after, 'main_title')).toBe(titleBefore)
     } finally {
-      // 원래 템플릿으로 되돌린다
-      await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, {
+      // 원래 템플릿으로 되돌린다 — 실패하면 뒤 시나리오가 다른 템플릿에서 돌게 되므로 확인
+      const rollback = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, {
         headers: authHeader(token),
       })
+      expect(rollback.ok(), await rollback.text()).toBeTruthy()
     }
+    const restored = await request.get(`${BACKEND_URL}/api/v1/templates`, {
+      headers: authHeader(token),
+    })
+    expect((await restored.json()).data.current_template_id).toBe(base)
   })
 
   test('시나리오 6: AI 문구 추천 — 키가 없거나 장애면 안내 메시지(502), 있으면 추천', async ({
@@ -193,6 +212,45 @@ test.describe('T-078 전체 통합 시나리오', () => {
       expect(res.status()).toBe(502)
       expect((await res.json()).error.message).toContain('AI 문구 생성에 실패했습니다')
     }
+  })
+
+  test('시나리오 7: 관리자 화면에서 섹션을 추가하면 홈페이지에 나타나고, 삭제하면 사라진다 (T-037-A)', async ({
+    page,
+  }) => {
+    const label = `E2E 섹션 ${Date.now() % 100000}`
+    await page.goto(`${ADMIN_URL}/login`)
+    await page.getByLabel('이메일').fill(email)
+    await page.getByLabel('비밀번호').fill(password)
+    await page.getByLabel('사이트 슬러그').fill(slug)
+    await page.getByRole('button', { name: '로그인' }).click()
+    await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+    await page.goto(`${ADMIN_URL}/admin/content`)
+    await page.getByRole('button', { name: '섹션 추가' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByLabel('소개').check()
+    await dialog.getByLabel('섹션 이름 (선택)').fill(label)
+    const created = page.waitForResponse(
+      (r) => r.url().endsWith('/v1/sections') && r.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: '추가' }).click()
+    const sectionId = (await (await created).json()).data.id as string
+    // 목록의 그 섹션 줄로 확인 — 성공 토스트에도 같은 이름이 들어 있어 getByText 는 두 개를 찾는다
+    const row = page.getByRole('button', { name: `${label} 삭제` })
+    await expect(row).toBeVisible()
+
+    // 방문자 홈페이지 — 시작 문구가 든 새 섹션
+    const visitor = await page.context().browser()!.newPage()
+    await visitor.goto(`${CLIENT_URL}/${slug}`)
+    await expect(visitor.locator(`[data-section-id="${sectionId}"]`).first()).toBeVisible()
+
+    // 삭제 → 홈페이지에서 사라진다
+    await row.click()
+    await page.getByRole('dialog').getByRole('button', { name: '삭제' }).click()
+    await expect(row).toHaveCount(0)
+    await visitor.reload()
+    await expect(visitor.locator(`[data-section-id="${sectionId}"]`)).toHaveCount(0)
+    await visitor.close()
   })
 
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {

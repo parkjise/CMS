@@ -42,6 +42,30 @@ class SectionUpdate(BaseModel):
     settings: list[SectionSettingUpdate] | None = None
 
 
+class SectionCreate(BaseModel):
+    """섹션 추가 (T-037-A) — 종류는 GET /sections/limits 의 addable_types 중 하나"""
+
+    section_type: str = Field(..., min_length=1, max_length=50)
+    label: str | None = Field(None, max_length=100)
+
+
+class AddableSectionType(BaseModel):
+    section_type: str
+    label: str
+
+
+class SectionLimitsResponse(BaseModel):
+    """요금제 섹션 수 한도 — 관리자 화면은 요금제를 직접 판단하지 않는다"""
+
+    plan_type: str
+    count: int
+    limit: int | None
+    can_add: bool
+    can_delete: bool
+    reason: str | None
+    addable_types: list[AddableSectionType]
+
+
 class SectionOrderItem(BaseModel):
     id: uuid.UUID
     display_order: int

@@ -14,6 +14,7 @@ import {
   Layout,
   MapPin,
   Phone,
+  Trash2,
   Users,
 } from 'lucide-react'
 import { Link } from 'react-router'
@@ -51,12 +52,15 @@ interface SectionListItemProps {
   section: Section
   onToggle: (id: string) => void
   isToggling: boolean
+  /** 있으면 삭제 버튼 노출 — 요금제 · 템플릿이 허용할 때만 (T-037-A) */
+  onDelete?: (section: Section) => void
 }
 
 export function SectionListItem({
   section,
   onToggle,
   isToggling,
+  onDelete,
 }: SectionListItemProps) {
   const {
     attributes,
@@ -137,6 +141,17 @@ export function SectionListItem({
           aria-label={`${section.label} 활성화 토글`}
         />
       </div>
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(section)}
+          className="rounded p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+          aria-label={`${section.label} 삭제`}
+        >
+          <Trash2 className="h-4 w-4" />
+        </button>
+      )}
     </li>
   )
 }
