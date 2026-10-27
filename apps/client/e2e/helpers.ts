@@ -39,10 +39,13 @@ export function authHeader(token: string): Record<string, string> {
 
 // ── 편집 모드 E2E (T-066-A) — 테스트 전 값을 읽고, 끝나면 그대로 되돌린다 ──
 
+// 로컬 개발 DB 에서 test-tenant 를 다른 템플릿으로 바꿔 둔 경우 E2E_TENANT=other-tenant 로 돌린다
+const E2E_TENANT = process.env.E2E_TENANT ?? 'test-tenant'
+
 export const TEST_TENANT_ADMIN = {
-  email: 'admin@test-tenant.com',
+  email: `admin@${E2E_TENANT}.com`,
   password: 'password123',
-  slug: 'test-tenant',
+  slug: E2E_TENANT,
 }
 
 export interface SectionSettingRow {

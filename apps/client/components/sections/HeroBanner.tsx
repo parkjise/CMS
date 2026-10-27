@@ -1,5 +1,6 @@
 'use client'
 
+import { EditableButton } from '@/components/edit/EditableButton'
 import { EditableText } from '@/components/edit/EditableText'
 import { HeroBgImageEditor } from '@/components/edit/HeroBgImageEditor'
 import { useEditStore } from '@/lib/editStore'
@@ -66,20 +67,16 @@ export function HeroBanner({ section }: SectionProps) {
             />
           </div>
         )}
-        {ctaText && ctaUrl && (
-          <a
-            href={ctaUrl}
-            className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-6 py-3 text-sm font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface-strong)]"
-          >
-            <EditableText
-              as="span"
-              sectionId={section.id}
-              field="cta_text"
-              initialValue={ctaText}
-              maxLength={20}
-            />
-          </a>
-        )}
+        {/* 편집 모드에서는 버튼을 누르면 문구 · 링크 편집 팝업 (T-065-B) */}
+        <EditableButton
+          sectionId={section.id}
+          textField="cta_text"
+          urlField="cta_url"
+          initialText={ctaText}
+          initialUrl={ctaUrl}
+          maxLength={20}
+          className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-6 py-3 text-sm font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface-strong)]"
+        />
       </div>
     </section>
   )

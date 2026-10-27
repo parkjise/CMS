@@ -52,6 +52,8 @@ test.afterEach(async () => {
 test.afterAll(async ({ request }) => {
   await saveFields(request, token, hero.id, {
     main_title: settingValue(hero, 'main_title'),
+    cta_text: settingValue(hero, 'cta_text') ?? null,
+    cta_url: settingValue(hero, 'cta_url') ?? null,
   })
   await saveFields(request, token, gallery.id, {
     gallery_items: settingValue(gallery, 'gallery_items') ?? '[]',
@@ -177,6 +179,57 @@ test.describe('인라인 편집 모드 E2E', () => {
     await expect(title.locator('img, script')).toHaveCount(0)
     expect(await visitor.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined()
     await visitor.close()
+  })
+
+  test('버튼 편집 팝업 — 문구 · 링크를 고쳐 저장하면 방문자 화면에 반영 (T-065-B)', async ({
+    browser,
+  }) => {
+    const label = `예약 ${Date.now() % 1000}`
+    await enterEditMode(page)
+    const button = page.locator(`[data-section-id="${hero.id}"][data-editable="button"]`)
+    await button.click()
+    const dialog = page.getByRole('dialog', { name: '버튼 편집' })
+    await dialog.getByLabel(/버튼 문구/).fill(label)
+
+    // 위험한 주소는 팝업에서 막힌다
+    await dialog.getByLabel('링크 주소').fill('javascript:alert(1)')
+    await dialog.getByRole('button', { name: '적용' }).click()
+    await expect(dialog.getByRole('alert')).toBeVisible()
+
+    await dialog.getByLabel('링크 주소').fill('tel:02-123-4567')
+    await dialog.getByRole('button', { name: '적용' }).click()
+    await expect(dialog).toHaveCount(0)
+    await expect(button).toHaveText(label)
+
+    const saved = page.waitForResponse((r) => r.url().includes('/edit/batch-save'))
+    await saveButton(page).click()
+    expect((await (await saved).json()).data.saved_count).toBe(2)
+
+    const visitor = await browser.newPage()
+    await visitor.goto(`/${slug}`)
+    const link = visitor.getByRole('link', { name: label })
+    await expect(link).toHaveAttribute('href', 'tel:02-123-4567')
+    await visitor.close()
+  })
+
+  test('미리보기 — 편집 표시 없이 저장 전 내용을 보고, 끝내면 이어서 편집 (T-065-B)', async () => {
+    const draft = `미리보기 ${Date.now() % 100000}`
+    await enterEditMode(page)
+    await editHeroTitle(page, draft)
+
+    await page.getByRole('button', { name: '미리보기' }).click()
+    await expect(page.getByRole('toolbar', { name: '미리보기 툴바' })).toBeVisible()
+    await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toHaveCount(0)
+    await expect(heroTitle(page)).toHaveText(draft)
+    await expect(page.locator('body.edit-mode')).toHaveCount(0)
+    // 눌러도 편집되지 않는다
+    await heroTitle(page).click()
+    await expect(heroTitle(page)).not.toHaveAttribute('contenteditable', 'true')
+
+    await page.getByRole('button', { name: '미리보기 끝내기' }).click()
+    await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toBeVisible()
+    await expect(heroTitle(page)).toHaveText(draft)
+    await expect(saveButton(page)).toHaveAccessibleName('저장 (1개 변경사항)')
   })
 
   test('갤러리에 사진을 올리고 저장하면 방문자 화면에 보인다', async ({ browser }) => {

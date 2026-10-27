@@ -28,12 +28,15 @@ interface EditStore {
   pendingChanges: Record<string, PendingChange>
   isDirty: boolean
   isAiPanelOpen: boolean
+  /** 미리보기 — 편집 표시를 숨기고 저장 전 내용을 방문자 화면처럼 (기획서 12.2, T-065-B) */
+  isPreview: boolean
 
   toggleEditMode: () => void
   enterEditMode: () => void
   exitEditMode: () => void
   toggleAiPanel: () => void
   setAiPanelOpen: (open: boolean) => void
+  setPreview: (preview: boolean) => void
   updateField: (
     sectionId: string,
     field: string,
@@ -55,20 +58,27 @@ export const useEditStore = create<EditStore>()(
       pendingChanges: {},
       isDirty: false,
       isAiPanelOpen: false,
+      isPreview: false,
 
       toggleEditMode: () => {
         const { isLoggedIn } = useClientAuthStore.getState()
         if (!isLoggedIn) return
-        set((s) => ({ isEditMode: !s.isEditMode }))
+        set((s) => ({ isEditMode: !s.isEditMode, isPreview: false }))
       },
       enterEditMode: () => {
         const { isLoggedIn } = useClientAuthStore.getState()
         if (!isLoggedIn) return
         set({ isEditMode: true })
       },
-      exitEditMode: () => set({ isEditMode: false, isAiPanelOpen: false }),
+      exitEditMode: () => set({ isEditMode: false, isAiPanelOpen: false, isPreview: false }),
       toggleAiPanel: () => set((s) => ({ isAiPanelOpen: !s.isAiPanelOpen })),
       setAiPanelOpen: (open: boolean) => set({ isAiPanelOpen: open }),
+      setPreview: (preview: boolean) =>
+        set((s) => ({
+          isPreview: s.isEditMode && preview,
+          // 미리보기 동안 AI 패널도 닫는다
+          isAiPanelOpen: preview ? false : s.isAiPanelOpen,
+        })),
 
       updateField: (sectionId, field, newValue, originalValue, format) => {
         set((state) => ({
@@ -121,3 +131,7 @@ export const useEditStore = create<EditStore>()(
     },
   ),
 )
+
+/** 편집 UI(테두리 · 컨트롤 · 팝업)를 보여 줄 때 — 편집 모드이면서 미리보기가 아닐 때 */
+export const selectEditingUi = (s: Pick<EditStore, 'isEditMode' | 'isPreview'>) =>
+  s.isEditMode && !s.isPreview

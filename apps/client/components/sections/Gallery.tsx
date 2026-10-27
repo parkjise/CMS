@@ -1,4 +1,4 @@
-import Image from 'next/image'
+import { GalleryGrid } from './GalleryGrid'
 import { EditableGallery } from '@/components/edit/EditableGallery'
 import { EditableText } from '@/components/edit/EditableText'
 import { getJson, getString, getValueType } from '@/lib/sectionSettings'
@@ -30,35 +30,7 @@ export function Gallery({ section }: SectionProps) {
 
         {/* 편집 모드면 사진 추가 · 삭제 · 순서 · 캡션 편집 (T-064-A), 아니면 아래 서버 렌더링 그대로 */}
         <EditableGallery sectionId={section.id} initialItems={items}>
-          {items.length === 0 ? (
-            <p className="mt-6 text-sm text-[color:var(--color-text-muted)]">
-              등록된 이미지가 없습니다.
-            </p>
-          ) : (
-            <div className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4">
-              {items.map((item, idx) => (
-                <figure
-                  key={`${item.image_url}-${idx}`}
-                  className="overflow-hidden rounded-[var(--border-radius-card)]"
-                >
-                  <div className="relative aspect-square w-full overflow-hidden">
-                    <Image
-                      src={item.image_url}
-                      alt={item.caption || `gallery-${idx}`}
-                      fill
-                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                      className="object-cover transition hover:scale-105"
-                    />
-                  </div>
-                  {item.caption && (
-                    <figcaption className="mt-2 text-xs text-[color:var(--color-text-muted)]">
-                      {item.caption}
-                    </figcaption>
-                  )}
-                </figure>
-              ))}
-            </div>
-          )}
+          <GalleryGrid items={items} />
         </EditableGallery>
       </div>
     </section>

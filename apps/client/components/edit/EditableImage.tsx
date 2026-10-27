@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { Pencil } from 'lucide-react'
-import { useEditStore } from '@/lib/editStore'
+import { selectEditingUi, useEditStore } from '@/lib/editStore'
 import type { ImageContext } from '@/lib/uploadImage'
 import { ImageUploadModal } from './ImageUploadModal'
 
@@ -28,7 +28,8 @@ export function EditableImage({
   className,
   containerClassName,
 }: Props) {
-  const isEditMode = useEditStore((s) => s.isEditMode)
+  // 미리보기 중에는 편집 UI 를 숨긴다 (T-065-B)
+  const isEditMode = useEditStore(selectEditingUi)
   const pendingChanges = useEditStore((s) => s.pendingChanges)
   const updateField = useEditStore((s) => s.updateField)
 

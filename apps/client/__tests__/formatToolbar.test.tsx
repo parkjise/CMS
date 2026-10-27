@@ -160,6 +160,18 @@ describe('미니 툴바', () => {
     expect(exec).toHaveBeenCalledWith('createLink', false, 'tel:010-1234-5678')
   })
 
+  it('서식 글을 편집할 때 입력이 다시 그려지며 지워지지 않는다 (React 19 innerHTML 재설정)', () => {
+    enableEditMode()
+    renderEditable({ initialValue: '<b>안전</b>', valueType: 'RICH_TEXT' })
+    const el = document.querySelector<HTMLElement>('[data-field="main_title"]')!
+    fireEvent.click(el)
+    el.innerHTML = '<b>새 글자</b>'
+    fireEvent.input(el)
+    expect(el.innerHTML).toBe('<b>새 글자</b>')
+    fireEvent.blur(el)
+    expect(pending()).toMatchObject({ new_value: '<b>새 글자</b>', format: 'rich' })
+  })
+
   it('글자 수 표시는 태그를 뺀 글자 수', () => {
     enableEditMode()
     renderEditable({ initialValue: '<b>가나</b>다', valueType: 'RICH_TEXT' })
