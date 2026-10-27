@@ -5,10 +5,9 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.redis import get_redis
 from app.models.section import Section, SectionSetting
-from app.models.tenant import Tenant
 from app.schemas.edit import BatchChangeItem
+from app.services import site_cache
 from app.services.gallery_settings import (
     GALLERY_FIELD,
     GALLERY_VALUE_TYPE,
@@ -121,16 +120,5 @@ async def batch_save(
 
 
 async def _purge_cache(db: AsyncSession, tenant_id: UUID) -> bool:
-    try:
-        tenant_row = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
-        tenant = tenant_row.scalar_one_or_none()
-
-        redis = await get_redis()
-        keys = [f"sections:{tenant_id}"]
-        if tenant:
-            keys.append(f"site:{tenant.slug}")
-
-        await redis.delete(*keys)
-        return True
-    except Exception:
-        return False
+    # Redis + 홈페이지(Next.js) 캐시 — services/site_cache.py (T-066-A)
+    return await site_cache.purge_site(db, tenant_id)

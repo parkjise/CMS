@@ -19,6 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.redis import get_redis
 from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.tenant import Tenant
+from app.services import site_cache
 
 CACHE_TTL = 300  # 5분
 
@@ -480,8 +481,8 @@ async def purge_site_cache(db: AsyncSession, *tenant_ids: uuid.UUID | str) -> No
         .all()
     )
     if slugs:
-        redis = await get_redis()
-        await redis.delete(*[f"site:{slug}" for slug in slugs])
+        # Redis + 홈페이지(Next.js) 캐시 (T-066-A)
+        await site_cache.purge_slugs(list(slugs))
 
 
 PLAN_RANK = {"FREE": 0, "BASIC": 1, "STANDARD": 2, "PREMIUM": 3}

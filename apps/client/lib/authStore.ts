@@ -2,7 +2,7 @@
 
 import { create } from 'zustand'
 import type { User } from '@cms/types'
-import { authApi, setAccessToken } from './api'
+import { authApi, getAccessToken, refreshAccessToken, setAccessToken } from './api'
 
 interface ClientAuthStore {
   user: User | null
@@ -26,7 +26,12 @@ export const useClientAuthStore = create<ClientAuthStore>((set) => ({
 
   initialize: async () => {
     try {
-      // Access Token 이 없으면 401 → authApi 가 쿠키로 갱신 후 재시도
+      // 새로고침하면 메모리의 Access Token 이 없다 — 쿠키로 먼저 받아 둔다.
+      // (/auth/me 는 쿠키만으로도 200 이라, 안 받아 두면 첫 편집 요청이 매번 401 → 갱신 → 재시도)
+      if (!getAccessToken() && !(await refreshAccessToken())) {
+        set({ user: null, isLoggedIn: false, isInitialized: true })
+        return
+      }
       const { data } = await authApi.get('/auth/me')
       set({ user: data.data, isLoggedIn: true, isInitialized: true })
     } catch {

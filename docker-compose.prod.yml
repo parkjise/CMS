@@ -71,6 +71,9 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
+      # 저장 직후 홈페이지 캐시 비우기 (T-066-A) — 홈페이지와 같은 비밀 키
+      CLIENT_INTERNAL_URL: http://client:3000
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET:?루트 .env 에 REVALIDATE_SECRET 을 설정하세요}
     depends_on:
       postgres:
         condition: service_healthy
@@ -129,6 +132,8 @@ services:
       NODE_ENV: production
       # 서버 렌더링 · 미들웨어는 공개 도메인을 거치지 않고 백엔드를 직접 부른다
       API_INTERNAL_URL: http://backend:8000/api
+      # 백엔드가 저장 직후 POST /api/revalidate 로 캐시를 비울 때 확인하는 키 (T-066-A)
+      REVALIDATE_SECRET: ${REVALIDATE_SECRET}
     restart: always
     networks:
       - external

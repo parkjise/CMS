@@ -78,8 +78,8 @@ def test_code_templates_match_client_registry():
             ), key
 
 
-async def test_seed_test_contact_section_idempotent():
-    """T-051-A: test-tenant 에 CONTACT 섹션을 한 번만 만든다 (E2E inquiry.spec 용)."""
+async def test_seed_test_sections_idempotent():
+    """T-051-A · T-066-A: test-tenant 에 E2E 섹션을 타입별로 한 번만 만든다."""
     import uuid
 
     from sqlalchemy import func, select, text
@@ -99,18 +99,19 @@ async def test_seed_test_contact_section_idempotent():
             db.add(tenant)
             await db.commit()
         try:
-            await _seed.seed_test_contact_section(db)
-            await _seed.seed_test_contact_section(db)
-            count = await db.scalar(
-                select(func.count())
-                .select_from(Section)
-                .where(
-                    Section.tenant_id == tenant.id,
-                    Section.section_type == "CONTACT",
-                    Section.deleted_at.is_(None),
+            await _seed.seed_test_sections(db)
+            await _seed.seed_test_sections(db)
+            for section_type, *_ in _seed.TEST_SECTIONS:
+                count = await db.scalar(
+                    select(func.count())
+                    .select_from(Section)
+                    .where(
+                        Section.tenant_id == tenant.id,
+                        Section.section_type == section_type,
+                        Section.deleted_at.is_(None),
+                    )
                 )
-            )
-            assert count == 1
+                assert count == 1, section_type
         finally:
             if created:
                 for model in (SectionSetting, Section):

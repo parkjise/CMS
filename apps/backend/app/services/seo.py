@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.seo import SeoSetting
 from app.models.tenant import Tenant
 from app.schemas.seo import SeoSettingsUpdate
+from app.services import site_cache
 
 _META_TITLE_MAX = 60
 _META_DESC_MAX = 160
@@ -61,6 +62,8 @@ async def update_seo_settings(
         db.add(setting)
 
     await db.commit()
+    # SNS 링크 · SEO 메타는 공개 사이트 응답에 들어간다 — 캐시 비우기 (T-066-A)
+    await site_cache.purge_site(db, tenant_id)
     db.expire_all()
     result = await db.execute(select(SeoSetting))
     return result.scalar_one()

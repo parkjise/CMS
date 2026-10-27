@@ -36,3 +36,62 @@ export async function apiLogin(
 export function authHeader(token: string): Record<string, string> {
   return { Authorization: `Bearer ${token}` }
 }
+
+// ── 편집 모드 E2E (T-066-A) — 테스트 전 값을 읽고, 끝나면 그대로 되돌린다 ──
+
+export const TEST_TENANT_ADMIN = {
+  email: 'admin@test-tenant.com',
+  password: 'password123',
+  slug: 'test-tenant',
+}
+
+export interface SectionSettingRow {
+  field_key: string
+  field_value: string | null
+}
+
+export interface AdminSection {
+  id: string
+  section_type: string
+  settings: SectionSettingRow[]
+}
+
+/** GET /api/v1/sections — 섹션 타입으로 첫 섹션 (시드: HERO_BANNER · GALLERY · CONTACT) */
+export async function findSection(
+  request: APIRequestContext,
+  token: string,
+  sectionType: string
+): Promise<AdminSection> {
+  const res = await request.get(`${BACKEND_URL}/api/v1/sections`, {
+    headers: authHeader(token),
+  })
+  expect(res.ok()).toBeTruthy()
+  const sections = (await res.json()).data as AdminSection[]
+  const section = sections.find((s) => s.section_type === sectionType)
+  expect(section, `test-tenant 에 ${sectionType} 섹션 없음 — scripts/seed.py 실행`).toBeTruthy()
+  return section!
+}
+
+export const settingValue = (section: AdminSection, key: string): string | null =>
+  section.settings.find((s) => s.field_key === key)?.field_value ?? null
+
+/** POST /api/v1/edit/batch-save — 값 되돌리기 (null 은 빈 값) */
+export async function saveFields(
+  request: APIRequestContext,
+  token: string,
+  sectionId: string,
+  fields: Record<string, string | null>
+): Promise<void> {
+  const res = await request.post(`${BACKEND_URL}/api/v1/edit/batch-save`, {
+    headers: authHeader(token),
+    data: {
+      changes: Object.entries(fields).map(([field, value]) => ({
+        section_id: sectionId,
+        field,
+        value,
+      })),
+    },
+  })
+  expect(res.ok()).toBeTruthy()
+  expect((await res.json()).data.failed_count).toBe(0)
+}
