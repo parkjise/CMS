@@ -1,4 +1,4 @@
-export type InquiryType = 'CONSULT' | 'RESERVATION' | 'PARTNERSHIP' | 'GENERAL'
+export type InquiryType = 'CONSULT' | 'RESERVATION' | 'PARTNERSHIP' | 'GENERAL' | 'SYMPTOM'
 
 export type InquiryStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SPAM'
 
