@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
+import { serverApiBase } from './lib/apiBase'
 
 /**
  * 코드형 템플릿 라우트 분기 (기획서 11.11 오픈 이슈 #26 — 결정: 미들웨어 rewrite)
@@ -11,7 +12,6 @@ import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
  * - 미리보기 · 관리자 로그인 · 사이트맵은 기존 라우트 유지
  * - /tpl-* 직접 접근은 404 (내부 주소 노출·중복 콘텐츠 방지)
  */
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
 const CACHE_TTL_MS = 60_000 // 공개 사이트 재검증 주기와 같게
 const RESERVED_PAGES = new Set(['preview', 'login', 'sitemap.xml'])
 // 방문자 회원 화면 — 모든 테넌트 공통 라우트 app/[tenant_slug]/member (T-113).
@@ -35,7 +35,7 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
   if (hit && hit.expires > Date.now()) return hit
   let route: SiteRoute = { code: null, memberEnabled: false }
   try {
-    const res = await fetch(`${API_BASE}/public/site/${encodeURIComponent(slug)}/template`, {
+    const res = await fetch(`${serverApiBase()}/public/site/${encodeURIComponent(slug)}/template`, {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(2000),
     })

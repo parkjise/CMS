@@ -1,7 +1,6 @@
+import { serverApiBase } from './apiBase'
 import type { PublicSite } from './publicSite.types'
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
 
 const REVALIDATE_SECONDS = 60
 
@@ -14,7 +13,7 @@ interface ApiSuccess<T> {
 export async function fetchPublicSite(
   tenantSlug: string,
 ): Promise<PublicSite | null> {
-  const url = `${BASE_URL}/public/site/${encodeURIComponent(tenantSlug)}`
+  const url = `${serverApiBase()}/public/site/${encodeURIComponent(tenantSlug)}`
 
   let res: Response
   try {
@@ -50,7 +49,7 @@ export async function fetchTemplatePreview(
   templateId: string,
 ): Promise<PublicSite | null> {
   const url =
-    `${BASE_URL}/public/preview/${encodeURIComponent(tenantSlug)}` +
+    `${serverApiBase()}/public/preview/${encodeURIComponent(tenantSlug)}` +
     `?tpl=${encodeURIComponent(templateId)}`
 
   let res: Response
