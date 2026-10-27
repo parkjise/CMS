@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import and_, select, update
 
-from app.db.session import set_super_admin_context
+from app.db.session import affected_rows, set_super_admin_context
 from app.models.announcement import Announcement
 from app.models.sns import NotificationSetting
 from app.services import announcement as announcement_service
@@ -104,7 +104,7 @@ async def _publish_scheduled_announcements() -> int:
             .values(is_published=True)
         )
         await db.commit()
-        return result.rowcount or 0
+        return affected_rows(result)
 
 
 @celery_app.task(
@@ -137,4 +137,4 @@ async def _deactivate_expired_announcements() -> int:
             .values(is_published=False)
         )
         await db.commit()
-        return result.rowcount or 0
+        return affected_rows(result)

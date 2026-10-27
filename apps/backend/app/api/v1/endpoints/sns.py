@@ -1,7 +1,9 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.sns import (
@@ -31,11 +33,10 @@ async def update_sns_settings(
     body: SnsSettingsUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     try:
-        setting = await sns_service.update_sns_settings(
-            db, current_user.tenant_id, body
-        )
+        setting = await sns_service.update_sns_settings(db, tenant_id, body)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return ApiResponse.ok(SnsSettingsResponse.model_validate(setting))

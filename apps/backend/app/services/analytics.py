@@ -1,7 +1,9 @@
 import hashlib
 import re
 import uuid
+from collections.abc import Awaitable
 from datetime import UTC, date, datetime, timedelta
+from typing import Any, cast
 from uuid import UUID
 
 from sqlalchemy import func, select
@@ -124,8 +126,11 @@ async def flush_tenant_to_db(
     pv = int(await redis.get(_pv_key(tid_str, date_str)) or 0)
     uv = int(await redis.pfcount(_uv_key(tid_str, date_str)) or 0)
     mv = int(await redis.get(_mv_key(tid_str, date_str)) or 0)
-    ref_raw = await redis.hgetall(_ref_key(tid_str, date_str)) or {}
-    referrers = {str(k): int(v) for k, v in ref_raw.items()}
+    # redis 타입 표기가 동기/비동기 겸용이라 비동기 결과로 명시
+    ref_raw = await cast(
+        Awaitable[dict[Any, Any]], redis.hgetall(_ref_key(tid_str, date_str))
+    )
+    referrers = {str(k): int(v) for k, v in (ref_raw or {}).items()}
 
     if pv == 0:
         return

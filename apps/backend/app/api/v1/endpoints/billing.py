@@ -1,11 +1,13 @@
 """T-096 테넌트 결제 API. 쓰기 API는 Rate Limit(분당 5회, T-106)."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query, Request
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.billing import (
     CancelSubscriptionRequest,
@@ -32,10 +34,11 @@ async def register_card(
     body: RegisterCardRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     sub = await svc.register_card(
         db,
-        current_user.tenant_id,
+        tenant_id,
         auth_key=body.auth_key,
         customer_key=body.customer_key,
         billing_email=body.billing_email,
@@ -48,8 +51,9 @@ async def register_card(
 async def get_subscription(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    sub = await svc.get_subscription(db, current_user.tenant_id)
+    sub = await svc.get_subscription(db, tenant_id)
     return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
 
 
@@ -57,10 +61,11 @@ async def get_subscription(
 async def get_trial_status(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     from datetime import UTC, datetime
 
-    sub = await svc.get_subscription(db, current_user.tenant_id)
+    sub = await svc.get_subscription(db, tenant_id)
     is_trial = sub.status == "TRIAL"
     days_left = 0
     if is_trial and sub.trial_ends_at:
@@ -81,10 +86,9 @@ async def get_history(
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    items, total = await svc.list_payments(
-        db, current_user.tenant_id, page=page, limit=limit
-    )
+    items, total = await svc.list_payments(db, tenant_id, page=page, limit=limit)
     return ApiResponse.ok(
         PaymentHistoryListResponse(
             items=[PaymentHistoryItem.model_validate(p) for p in items],
@@ -100,8 +104,9 @@ async def cancel_subscription(
     body: CancelSubscriptionRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    sub = await svc.cancel_subscription(db, current_user.tenant_id, body.reason)
+    sub = await svc.cancel_subscription(db, tenant_id, body.reason)
     return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
 
 
@@ -112,10 +117,11 @@ async def change_plan(
     body: ChangePlanRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     sub = await svc.change_plan(
         db,
-        current_user.tenant_id,
+        tenant_id,
         body.to_plan,
         reason=body.reason,
         changed_by=current_user.id,

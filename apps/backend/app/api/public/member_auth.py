@@ -320,7 +320,7 @@ def parse_provider(provider: str) -> Provider:
         raise MemberAuthError(
             400, "VALIDATION_ERROR", errors.VALIDATION_ERROR, field="provider"
         )
-    return value  # type: ignore[return-value]
+    return value
 
 
 @router.get(

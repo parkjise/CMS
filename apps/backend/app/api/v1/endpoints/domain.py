@@ -1,10 +1,12 @@
 """T-100 테넌트 커스텀 도메인 API."""
 
+from uuid import UUID
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.billing import (
     DomainStatusResponse,
@@ -27,10 +29,11 @@ async def register_domain(
     body: RegisterDomainRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     row = await svc.register_domain(
         db,
-        current_user.tenant_id,
+        tenant_id,
         domain=body.domain,
         domain_type=body.domain_type,
     )
@@ -43,8 +46,9 @@ async def register_domain(
 async def get_domain_status(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    row = await svc.get_status(db, current_user.tenant_id)
+    row = await svc.get_status(db, tenant_id)
     return ApiResponse.ok(_with_guide(row))
 
 
@@ -52,8 +56,9 @@ async def get_domain_status(
 async def verify_domain(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    row = await svc.verify_domain(db, current_user.tenant_id)
+    row = await svc.verify_domain(db, tenant_id)
     return ApiResponse.ok(_with_guide(row))
 
 
@@ -61,8 +66,9 @@ async def verify_domain(
 async def remove_domain(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    await svc.remove_domain(db, current_user.tenant_id)
+    await svc.remove_domain(db, tenant_id)
     return ApiResponse.ok({"removed": True})
 
 

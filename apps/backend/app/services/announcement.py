@@ -9,7 +9,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import and_, func, or_, select
+from sqlalchemy import ColumnElement, and_, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.announcement import Announcement, AnnouncementRead
@@ -32,15 +32,12 @@ async def list_announcements(
     total = int(
         (await db.execute(select(func.count()).select_from(Announcement))).scalar_one()
     )
-    read_counts = dict(
-        (
-            await db.execute(
-                select(AnnouncementRead.announcement_id, func.count()).group_by(
-                    AnnouncementRead.announcement_id
-                )
-            )
-        ).all()
+    read_rows = await db.execute(
+        select(AnnouncementRead.announcement_id, func.count()).group_by(
+            AnnouncementRead.announcement_id
+        )
     )
+    read_counts: dict[uuid.UUID, int] = {aid: n for aid, n in read_rows.all()}
     rows = (
         (
             await db.execute(
@@ -149,7 +146,10 @@ async def resolve_target_tenant_ids(
     db: AsyncSession, ann: Announcement
 ) -> list[uuid.UUID]:
     """공지 대상 테넌트 id 목록 (활성 테넌트 기준)."""
-    conditions = [Tenant.is_active.is_(True), Tenant.deleted_at.is_(None)]
+    conditions: list[ColumnElement[bool]] = [
+        Tenant.is_active.is_(True),
+        Tenant.deleted_at.is_(None),
+    ]
     if ann.target_type == "PLAN_BASED":
         conditions.append(Tenant.plan_type == ann.target_plan)
     elif ann.target_type == "SELECTIVE":
@@ -183,7 +183,8 @@ def _visible_conditions(plan_type: str, tenant_id: uuid.UUID):
             ),
             and_(
                 Announcement.target_type == "SELECTIVE",
-                Announcement.target_tenants.any(tenant_id),
+                # 대상 목록에 이 테넌트 포함 (= tenant_id = ANY(target_tenants))
+                Announcement.target_tenants.contains([tenant_id]),
             ),
         ),
     ]

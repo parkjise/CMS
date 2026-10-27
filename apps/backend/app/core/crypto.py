@@ -10,6 +10,7 @@
 import base64
 import hashlib
 import os
+from typing import overload
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
@@ -41,6 +42,10 @@ def encrypt_secret(plaintext: str) -> str:
     return _PREFIX + base64.b64encode(nonce + ct).decode()
 
 
+@overload
+def decrypt_secret(value: str) -> str: ...
+@overload
+def decrypt_secret(value: None) -> None: ...
 def decrypt_secret(value: str | None) -> str | None:
     """`enc:v1:` 암호문은 복호화, 프리픽스 없으면 평문으로 반환(하위호환)."""
     if value is None or not value.startswith(_PREFIX):
@@ -51,4 +56,4 @@ def decrypt_secret(value: str | None) -> str | None:
 
 
 def is_encrypted(value: str | None) -> bool:
-    return bool(value) and value.startswith(_PREFIX)
+    return value is not None and value.startswith(_PREFIX)

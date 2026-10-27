@@ -69,7 +69,7 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
             img = img.convert("RGB")
 
         # 최대 1920px (확대 금지, 비율 유지)
-        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.LANCZOS)
+        img.thumbnail((MAX_DIMENSION, MAX_DIMENSION), Image.Resampling.LANCZOS)
 
         output = io.BytesIO()
         img.save(output, format="WEBP", quality=WEBP_QUALITY, optimize=True)

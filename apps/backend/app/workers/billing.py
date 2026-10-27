@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
 
-from app.db.session import set_super_admin_context
+from app.db.session import affected_rows, set_super_admin_context
 from app.models.billing import PaymentHistory, Subscription
 from app.models.tenant import Tenant
 from app.workers.celery_app import celery_app
@@ -263,7 +263,7 @@ async def _delete_cancelled_tenant_data() -> int:
                 .where(Tenant.id == sub.tenant_id, Tenant.deleted_at.is_(None))
                 .values(deleted_at=datetime.now(UTC), is_active=False)
             )
-            deleted += result.rowcount or 0
+            deleted += affected_rows(result)
         await db.commit()
     return deleted
 

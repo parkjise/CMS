@@ -10,6 +10,7 @@
 """
 
 import logging
+from collections.abc import Sequence
 from uuid import UUID
 
 import httpx
@@ -53,7 +54,7 @@ async def revalidate_client(slugs: list[str]) -> bool:
         return False
 
 
-async def purge_slugs(slugs: list[str], tenant_ids: list[UUID | str] = ()) -> bool:
+async def purge_slugs(slugs: list[str], tenant_ids: Sequence[UUID | str] = ()) -> bool:
     """Redis 캐시 + 홈페이지 캐시를 비운다 (슬러그를 이미 알 때)."""
     redis_ok = True
     keys = [sections_key(t) for t in tenant_ids] + [site_key(s) for s in slugs]

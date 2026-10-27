@@ -1,8 +1,10 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
 from app.db.session import set_super_admin_context
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -29,11 +31,10 @@ async def update_seo_settings(
     body: SeoSettingsUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     try:
-        setting = await seo_service.update_seo_settings(
-            db, current_user.tenant_id, body
-        )
+        setting = await seo_service.update_seo_settings(db, tenant_id, body)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return ApiResponse.ok(SeoSettingsResponse.model_validate(setting))

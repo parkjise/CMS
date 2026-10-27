@@ -13,7 +13,7 @@ from fastapi import APIRouter, Header, HTTPException, Request, status
 from sqlalchemy import update
 
 from app.core.config import settings
-from app.db.session import set_super_admin_context
+from app.db.session import affected_rows, set_super_admin_context
 from app.models.billing import PaymentHistory
 from app.schemas.common import ApiResponse
 
@@ -83,6 +83,6 @@ async def receive_tosspayments_webhook(
             )
         )
         await db.commit()
-        matched = result.rowcount or 0
+        matched = affected_rows(result)
 
     return ApiResponse.ok({"processed": True, "matched": matched})

@@ -5,7 +5,7 @@ import uuid
 from datetime import datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import ColumnElement, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -75,7 +75,7 @@ async def list_tenants(
     page: int = 1,
     limit: int = 20,
 ) -> tuple[list[Tenant], int]:
-    conditions = [Tenant.deleted_at.is_(None)]
+    conditions: list[ColumnElement[bool]] = [Tenant.deleted_at.is_(None)]
     if q:
         like = f"%{q}%"
         conditions.append(Tenant.name.ilike(like) | Tenant.slug.ilike(like))

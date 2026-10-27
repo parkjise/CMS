@@ -9,7 +9,6 @@
 import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -21,9 +20,11 @@ from app.core.config import settings
 from app.core.member_errors import MemberAuthError
 from app.models.site_member import PhoneVerification
 from app.models.tenant import Tenant
+from app.schemas.site_member import VerificationPurpose
 from app.services import notification as notification_service
 
-Purpose = Literal["REGISTER", "FIND_EMAIL", "RESET_PW"]
+# 용도 목록은 요청 스키마와 같아야 한다 — 따로 두면 MYPAGE 가 빠진다 (T-082-B)
+Purpose = VerificationPurpose
 
 CODE_TTL_MINUTES = 3
 MAX_ATTEMPTS = 5

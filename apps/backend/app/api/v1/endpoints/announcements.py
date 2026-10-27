@@ -1,11 +1,12 @@
 """T-088 테넌트용 공지 API."""
 
 import uuid
+from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.announcement import (
     MarkReadResponse,
@@ -22,8 +23,9 @@ router = APIRouter(prefix="/announcements", tags=["announcements"])
 async def list_my_announcements(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    rows = await svc.list_for_tenant(db, current_user.tenant_id)
+    rows = await svc.list_for_tenant(db, tenant_id)
     items = [
         TenantAnnouncementItem(
             id=ann.id,
@@ -46,6 +48,7 @@ async def mark_announcement_read(
     announcement_id: uuid.UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    await svc.mark_read(db, current_user.tenant_id, announcement_id)
+    await svc.mark_read(db, tenant_id, announcement_id)
     return ApiResponse.ok(MarkReadResponse(announcement_id=announcement_id))
