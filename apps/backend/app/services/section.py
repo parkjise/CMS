@@ -8,6 +8,11 @@ from sqlalchemy.orm import selectinload
 
 from app.models.section import Section, SectionSetting
 from app.schemas.section import SectionOrderItem, SectionSettingUpdate, SectionUpdate
+from app.services.gallery_settings import (
+    GALLERY_FIELD,
+    GALLERY_VALUE_TYPE,
+    normalize_gallery_items,
+)
 
 # 템플릿 유형별 기본 섹션 정의
 _DEFAULT_SECTIONS: dict[str, list[tuple[str, str]]] = {
@@ -128,6 +133,11 @@ async def update_section_settings(
 
 def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
     for s in settings:
+        if s.field_key == GALLERY_FIELD:
+            # 갤러리 목록 검사 · 정리 (T-064-A) — GallerySettingError 는 ValueError
+            s.field_value = normalize_gallery_items(s.field_value)
+            s.value_type = GALLERY_VALUE_TYPE
+            continue
         too_long = s.field_value and len(s.field_value) > MAIN_TITLE_MAX_LEN
         if s.field_key == "main_title" and too_long:
             raise ValueError(f"main_title은 {MAIN_TITLE_MAX_LEN}자 이하여야 합니다.")

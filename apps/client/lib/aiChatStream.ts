@@ -3,6 +3,8 @@
  * EventSource는 GET만 지원하므로 fetch + ReadableStream으로 직접 파싱한다.
  */
 
+import { getAccessToken, refreshAccessToken } from './api'
+
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
 
@@ -61,15 +63,26 @@ export async function streamChatEdit(
   handlers: ChatStreamHandlers,
   signal?: AbortSignal,
 ): Promise<void> {
-  let res: Response
-  try {
-    res = await fetch(`${BASE_URL}/v1/ai/chat-edit`, {
+  // 스트리밍은 fetch 라 authApi 인터셉터를 못 탄다 — 토큰을 직접 붙이고 401 이면 한 번 갱신
+  const send = (token: string | null) =>
+    fetch(`${BASE_URL}/v1/ai/chat-edit`, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
       body: JSON.stringify(body),
       signal,
     })
+
+  let res: Response
+  try {
+    res = await send(getAccessToken())
+    if (res.status === 401) {
+      const token = await refreshAccessToken()
+      if (token) res = await send(token)
+    }
   } catch {
     handlers.onError()
     return

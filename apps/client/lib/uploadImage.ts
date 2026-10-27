@@ -50,6 +50,9 @@ export async function uploadImage(
   formData.append('section_id', sectionId)
 
   const { data } = await authApi.post('/upload/image', formData, {
+    // authApi 기본 헤더(application/json)면 axios 가 FormData 를 JSON 으로 바꿔 버린다 —
+    // multipart 로 지정하면 브라우저가 boundary 를 붙여 보낸다
+    headers: { 'Content-Type': 'multipart/form-data' },
     onUploadProgress: (e) => {
       if (e.total) onProgress?.(Math.round((e.loaded / e.total) * 100))
     },

@@ -9,6 +9,11 @@ from app.core.redis import get_redis
 from app.models.section import Section, SectionSetting
 from app.models.tenant import Tenant
 from app.schemas.edit import BatchChangeItem
+from app.services.gallery_settings import (
+    GALLERY_FIELD,
+    GALLERY_VALUE_TYPE,
+    normalize_gallery_items,
+)
 
 # Per-field max lengths; any field not listed falls back to _DEFAULT_MAX_LEN
 _FIELD_MAX_LENGTHS: dict[str, int] = {
@@ -29,17 +34,24 @@ def _max_len(field: str) -> int:
 
 
 def _value_type(field: str) -> str:
+    if field == GALLERY_FIELD:
+        return GALLERY_VALUE_TYPE
     if field.endswith("_url") or "image" in field:
         return "url"
     return "text"
 
 
-def _validate(field: str, value: str | None) -> None:
+def _validate(field: str, value: str | None) -> str | None:
+    """검사 후 저장할 값 — 갤러리 목록은 정리된 JSON 으로 (T-064-A)."""
     if value is None:
-        return
+        return None
+    if field == GALLERY_FIELD:
+        # 장수 · 캡션 · 주소를 따로 검사 — 글자 수 한도(1000자) 대신
+        return normalize_gallery_items(value)
     limit = _max_len(field)
     if len(value) > limit:
         raise ValueError(f"{field}은(는) {limit}자 이하여야 합니다.")
+    return value
 
 
 async def batch_save(
@@ -52,7 +64,7 @@ async def batch_save(
 
     for change in changes:
         try:
-            _validate(change.field, change.value)
+            value = _validate(change.field, change.value)
 
             section_row = await db.execute(
                 select(Section).where(
@@ -73,7 +85,9 @@ async def batch_save(
             )
             existing = existing_row.scalar_one_or_none()
             if existing:
-                existing.field_value = change.value
+                existing.field_value = value
+                if change.field == GALLERY_FIELD:
+                    existing.value_type = GALLERY_VALUE_TYPE
                 existing.is_sample = False
                 existing.updated_at = datetime.now(UTC)
             else:
@@ -83,7 +97,7 @@ async def batch_save(
                         tenant_id=tenant_id,
                         section_id=change.section_id,
                         field_key=change.field,
-                        field_value=change.value,
+                        field_value=value,
                         value_type=_value_type(change.field),
                         created_at=datetime.now(UTC),
                         updated_at=datetime.now(UTC),
