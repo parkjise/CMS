@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopySuggestPopover } from '@/components/ai/CopySuggestPopover'
 import { FormatToolbar } from '@/components/edit/FormatToolbar'
 import { useEditStore } from '@/lib/editStore'
@@ -47,13 +47,18 @@ export function EditableText({
   formatting = false,
 }: Props) {
   const isEditMode = useEditStore((s) => s.isEditMode)
+  const isPreview = useEditStore((s) => s.isPreview)
+  const pending = useEditStore((s) => s.pendingChanges[`${sectionId}:${field}`])
   const updateField = useEditStore((s) => s.updateField)
 
-  const rich = valueType === RICH_TEXT_VALUE_TYPE
+  // 편집 모드(미리보기 포함)에서는 저장 전 고친 값을 보여 준다 (T-065-B)
+  const draft = isEditMode ? pending : undefined
+  const value = draft ? draft.new_value : initialValue
+  const rich = draft ? draft.format === 'rich' : valueType === RICH_TEXT_VALUE_TYPE
   // 서식 글 · 툴바 칸은 DOM 을 HTML 로 읽는다 (글자 수는 태그를 뺀 실제 글자)
   const structured = rich || formatting
-  const initialLength = rich ? richToPlainText(initialValue).length : initialValue.length
-  const plainInitial = rich ? richToPlainText(initialValue) : initialValue
+  const initialLength = rich ? richToPlainText(value).length : value.length
+  const plainInitial = rich ? richToPlainText(value) : value
 
   const [editing, setEditing] = useState(false)
   const [currentLength, setCurrentLength] = useState(initialLength)
@@ -80,11 +85,17 @@ export function EditableText({
 
   const Tag = as
   // 서식 글은 허용 태그만 다시 걸러 HTML 로, 일반 글자는 글자 그대로 (꺾쇠도 글자)
-  const content = rich
-    ? { dangerouslySetInnerHTML: { __html: sanitizeRichHtml(initialValue) } }
-    : { children: initialValue || placeholder }
+  // 객체를 값이 바뀔 때만 새로 만든다 — React 19 는 새 객체면 innerHTML 을 다시 써서
+  // 편집 중 한 글자 칠 때마다 입력이 지워진다
+  const content = useMemo(
+    () =>
+      rich
+        ? { dangerouslySetInnerHTML: { __html: sanitizeRichHtml(value) } }
+        : { children: value || placeholder },
+    [rich, value, placeholder],
+  )
 
-  if (!isEditMode) {
+  if (!isEditMode || isPreview) {
     return (
       <Tag
         data-editable="text"
@@ -121,7 +132,7 @@ export function EditableText({
     setEditing(false)
     setCurrentLength(result.length)
     el.innerHTML = toEditableHtml(result.value, result.rich)
-    if (result.value !== initialValue || result.rich !== rich) {
+    if (result.value !== value || result.rich !== rich) {
       updateField(sectionId, field, result.value, initialValue, result.rich ? 'rich' : 'plain')
     }
   }
@@ -140,15 +151,15 @@ export function EditableText({
     setEditing(false)
     setCurrentLength(truncated.length)
     if (ref.current) ref.current.innerText = truncated
-    if (truncated !== initialValue) {
+    if (truncated !== value) {
       updateField(sectionId, field, truncated, initialValue)
     }
   }
 
   const cancel = () => {
     if (ref.current) {
-      if (rich) ref.current.innerHTML = sanitizeRichHtml(initialValue)
-      else ref.current.innerText = initialValue
+      if (rich) ref.current.innerHTML = sanitizeRichHtml(value)
+      else ref.current.innerText = value
     }
     setCurrentLength(initialLength)
     setEditing(false)
@@ -176,15 +187,15 @@ export function EditableText({
     document.execCommand('insertText', false, text)
   }
 
-  const applySuggestion = (value: string) => {
+  const applySuggestion = (suggestion: string) => {
     const truncated =
-      typeof maxLength === 'number' && value.length > maxLength
-        ? value.slice(0, maxLength)
-        : value
+      typeof maxLength === 'number' && suggestion.length > maxLength
+        ? suggestion.slice(0, maxLength)
+        : suggestion
     if (ref.current) ref.current.innerText = truncated
     setCurrentLength(truncated.length)
     // AI 추천은 글자만 — 서식 글이었다면 일반 글자로 바뀐다
-    if (truncated !== initialValue || rich) {
+    if (truncated !== value || rich) {
       updateField(sectionId, field, truncated, initialValue, 'plain')
     }
   }
