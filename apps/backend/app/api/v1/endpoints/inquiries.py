@@ -20,6 +20,7 @@ from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.inquiry import (
     InquiryCreate,
+    InquiryDetailItem,
     InquiryListResponse,
     InquiryResponse,
     InquiryUpdate,
@@ -33,7 +34,7 @@ from app.schemas.inquiry_board import (
 )
 from app.services import inquiry as inquiry_service
 from app.services import inquiry_board as board_service
-from app.services import member_activity
+from app.services import inquiry_fields, member_activity
 from app.services import member_reservation_admin as reservation_admin
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
@@ -93,12 +94,32 @@ async def submit_inquiry(
     await _verify_recaptcha(body.recaptcha_token)
     tenant = await _resolve_public_tenant(db, tenant_slug)
     member_id = await member_activity.active_member_id(db, tenant, member_payload)
-    inquiry = await inquiry_service.create_inquiry(
-        db, tenant.id, body, member_id=member_id, tenant=tenant
-    )
+    try:
+        inquiry = await inquiry_service.create_inquiry(
+            db, tenant.id, body, member_id=member_id, tenant=tenant
+        )
+    except inquiry_fields.InquiryFieldError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": exc.message,
+                "field": exc.field,
+            },
+        ) from exc
     return ApiResponse.ok(
         {"inquiry_id": str(inquiry.id), "message": "문의가 접수되었습니다."}
     )
+
+
+@public_router.get("/fields", response_model=ApiResponse[dict])
+async def get_inquiry_fields(
+    tenant_slug: str = Query(..., description="테넌트 슬러그"),
+    db: AsyncSession = Depends(get_db),
+):
+    """업종별 문의 폼 — 문의 유형 선택지 + 추가 칸 목록 (T-051-A)."""
+    tenant = await _resolve_public_tenant(db, tenant_slug)
+    return ApiResponse.ok(inquiry_fields.fields_for(tenant.template_type))
 
 
 # ── Public: 온라인 상담 게시판 (T-123) ────────────────────────────────────────
@@ -228,9 +249,17 @@ async def get_inquiry(
 
 
 async def _detail(db: AsyncSession, inquiry) -> InquiryResponse:
-    """관리자 문의 상세 — 회원 정보 · 회원 예약 상태 포함 (T-115)."""
+    """관리자 문의 상세 — 회원 정보 · 예약 상태 (T-115) · 업종 추가 항목 (T-051-A)."""
     response = InquiryResponse.model_validate(inquiry)
     response.member, response.reservation = await reservation_admin.extras(db, inquiry)
+    if inquiry.detail:
+        tenant = await db.get(Tenant, inquiry.tenant_id)
+        response.detail_items = [
+            InquiryDetailItem(**item)
+            for item in inquiry_fields.describe_detail(
+                tenant.template_type if tenant else None, inquiry.detail
+            )
+        ]
     return response
 
 

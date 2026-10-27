@@ -1,11 +1,13 @@
 import re
 import uuid
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
 _PHONE_RE = re.compile(r"^01[016789]-?\d{3,4}-?\d{4}$")
+# 업종 폼 칸은 최대 5개 — 넉넉히 두되 큰 payload 는 막는다
+DETAIL_MAX_KEYS = 20
 
 
 class InquiryAttachmentResponse(BaseModel):
@@ -28,6 +30,15 @@ class InquiryCreate(BaseModel):
     subject: str | None = Field(None, max_length=200)
     reserved_date: date | None = None
     reserved_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
+    # 업종별 추가 항목 (T-051-A) — 칸 검사는 services/inquiry_fields.clean_detail
+    detail: dict[str, Any] | None = None
+
+    @field_validator("detail")
+    @classmethod
+    def limit_detail_size(cls, v: dict[str, Any] | None) -> dict[str, Any] | None:
+        if v is not None and len(v) > DETAIL_MAX_KEYS:
+            raise ValueError("추가 항목이 너무 많습니다.")
+        return v
 
     @field_validator("phone")
     @classmethod
@@ -55,6 +66,9 @@ class InquiryResponse(BaseModel):
     answered_at: datetime | None = None
     reserved_date: date | None = None
     reserved_time: str | None = None
+    detail: dict[str, Any] = {}
+    # 관리자 상세 표시용 — 업종 칸 이름 · 선택지 이름으로 바꾼 값 (상세 조회에서만 채움)
+    detail_items: list["InquiryDetailItem"] = []
     attachments: list[InquiryAttachmentResponse] = []
     created_at: datetime
     updated_at: datetime
@@ -64,6 +78,11 @@ class InquiryResponse(BaseModel):
     reservation: "InquiryReservationInfo | None" = None
 
     model_config = {"from_attributes": True}
+
+
+class InquiryDetailItem(BaseModel):
+    label: str
+    value: str
 
 
 class InquiryMemberInfo(BaseModel):
