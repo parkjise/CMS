@@ -5,6 +5,7 @@ import {
   useUpdateFeature,
   type FeatureItem,
 } from '@/hooks/useFeatures'
+import { apiErrorMessage } from '@/lib/errors'
 
 interface Props {
   open: boolean
@@ -81,8 +82,8 @@ export function CreateFeatureModal({ open, onClose, feature }: Props) {
         toast.success('기능이 등록되었습니다.')
       }
       onClose()
-    } catch {
-      setError('저장에 실패했습니다. key 중복 여부를 확인하세요.')
+    } catch (e) {
+      setError(apiErrorMessage(e, '저장에 실패했습니다. key 중복 여부를 확인하세요.'))
     }
   }
 

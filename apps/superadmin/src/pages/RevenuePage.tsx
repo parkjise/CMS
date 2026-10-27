@@ -14,6 +14,7 @@ import {
 import { toast } from '@cms/ui'
 import { superApi } from '@/lib/superApi'
 import { useRevenue, type ExpiringTenant } from '@/hooks/useRevenue'
+import { apiErrorMessage } from '@/lib/errors'
 
 const PLAN_COLORS: Record<string, string> = {
   FREE: '#94a3b8',
@@ -51,8 +52,8 @@ export function RevenuePage() {
     try {
       await sendRenewalNotice(t)
       toast.success(`${t.name}에 갱신 안내를 발송했습니다.`)
-    } catch {
-      toast.error('갱신 안내 발송에 실패했습니다.')
+    } catch (e) {
+      toast.error(apiErrorMessage(e, '갱신 안내 발송에 실패했습니다.'))
     }
   }
 

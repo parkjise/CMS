@@ -12,6 +12,7 @@ import {
   type DeployInput,
   type FeatureItem,
 } from '@/hooks/useFeatures'
+import { apiErrorMessage } from '@/lib/errors'
 
 interface Props {
   open: boolean
@@ -84,8 +85,8 @@ export function DeployModal({ open, onClose, feature }: Props) {
       }
       toast.success(`${previewCount}개 테넌트에 배포되었습니다.`)
       onClose()
-    } catch {
-      toast.error('배포에 실패했습니다.')
+    } catch (e) {
+      toast.error(apiErrorMessage(e, '배포에 실패했습니다.'))
     }
   }
 
