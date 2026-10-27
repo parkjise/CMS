@@ -39,6 +39,7 @@ from app.services.ai_prompts import (
     build_copy_messages,
     field_max_length,
 )
+from app.services.rich_text import RICH_TEXT_VALUE_TYPE, to_plain_text
 
 logger = logging.getLogger("app.ai")
 
@@ -442,7 +443,15 @@ async def build_site_context(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
                 "section_type": section.section_type,
                 "label": section.label,
                 "is_active": section.is_active,
-                "fields": {s.field_key: s.field_value for s in section.settings},
+                # 서식 글은 글자만 — AI 에 태그를 보여 주지 않는다 (T-065-A)
+                "fields": {
+                    s.field_key: (
+                        to_plain_text(s.field_value)
+                        if s.value_type == RICH_TEXT_VALUE_TYPE and s.field_value
+                        else s.field_value
+                    )
+                    for s in section.settings
+                },
             }
             for section in sections
         ],
