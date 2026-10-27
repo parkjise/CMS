@@ -108,14 +108,27 @@ describe('authStore 토큰 보관', () => {
     expect(useClientAuthStore.getState().isLoggedIn).toBe(false)
   })
 
-  it('새로고침 후 initialize 는 쿠키로 토큰을 받아 로그인 상태를 되살린다', async () => {
-    refreshOk('fresh')
+  it('새로고침 후 initialize 는 쿠키로 토큰부터 받고 /auth/me 를 부른다', async () => {
+    const refresh = refreshOk('fresh')
     useAdapter((config) =>
       config.headers.Authorization === 'Bearer fresh'
         ? { status: 200, data: { data: { id: 'u1', email: 'a@b.c' } } }
         : { status: 401, data: {} },
     )
     await useClientAuthStore.getState().initialize()
+    expect(refresh).toHaveBeenCalledTimes(1)
+    // 토큰을 먼저 받았으므로 /auth/me 는 401 없이 한 번에
+    expect(calls).toEqual([{ url: '/auth/me', auth: 'Bearer fresh' }])
     expect(useClientAuthStore.getState().isLoggedIn).toBe(true)
+    expect(useClientAuthStore.getState().isInitialized).toBe(true)
+  })
+
+  it('쿠키도 없으면 /auth/me 없이 비로그인으로 확정한다', async () => {
+    vi.spyOn(axios, 'post').mockRejectedValue(new Error('401'))
+    useAdapter(() => ({ status: 200, data: {} }))
+    await useClientAuthStore.getState().initialize()
+    expect(calls).toHaveLength(0)
+    expect(useClientAuthStore.getState().isLoggedIn).toBe(false)
+    expect(useClientAuthStore.getState().isInitialized).toBe(true)
   })
 })
