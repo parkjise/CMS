@@ -76,3 +76,50 @@ def test_code_templates_match_client_registry():
             assert f"{key}: {value!r}".replace('"', "'") in manifest.replace(
                 '"', "'"
             ), key
+
+
+async def test_seed_test_contact_section_idempotent():
+    """T-051-A: test-tenant 에 CONTACT 섹션을 한 번만 만든다 (E2E inquiry.spec 용)."""
+    import uuid
+
+    from sqlalchemy import func, select, text
+
+    from app.models.section import Section, SectionSetting
+    from app.models.tenant import Tenant
+    from tests.conftest import _TestSession
+
+    async with _TestSession() as db:
+        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', false)"))
+        tenant = (
+            await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
+        ).scalar_one_or_none()
+        created = tenant is None
+        if created:
+            tenant = Tenant(id=uuid.uuid4(), slug="test-tenant", name="테스트 사업체")
+            db.add(tenant)
+            await db.commit()
+        try:
+            await _seed.seed_test_contact_section(db)
+            await _seed.seed_test_contact_section(db)
+            count = await db.scalar(
+                select(func.count())
+                .select_from(Section)
+                .where(
+                    Section.tenant_id == tenant.id,
+                    Section.section_type == "CONTACT",
+                    Section.deleted_at.is_(None),
+                )
+            )
+            assert count == 1
+        finally:
+            if created:
+                for model in (SectionSetting, Section):
+                    await db.execute(
+                        model.__table__.delete().where(
+                            model.__table__.c.tenant_id == tenant.id
+                        )
+                    )
+                await db.execute(
+                    Tenant.__table__.delete().where(Tenant.__table__.c.id == tenant.id)
+                )
+                await db.commit()

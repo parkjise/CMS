@@ -21,6 +21,7 @@ from app.models.billing import Subscription
 from app.models.feature import Feature, TenantFeature
 from app.models.site_member import MemberReservation, SiteMember
 from app.data.template_samples import load_sample
+from app.models.section import Section, SectionSetting
 from app.models.template import Template
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -371,6 +372,52 @@ async def seed_test_tenant(db: AsyncSession) -> None:
     print(f"✅ 테스트 테넌트 생성: {tenant.slug} (admin@test-tenant.com / password123)")
 
 
+# test-tenant 문의 폼 (T-051-A) — E2E inquiry.spec 이 이 섹션으로 접수 흐름을 검사한다
+TEST_CONTACT_SETTINGS = {
+    "section_title": "문의하기",
+    "description": "궁금한 점을 남겨 주시면 빠르게 답변드립니다.",
+}
+
+
+async def seed_test_contact_section(db: AsyncSession) -> None:
+    """test-tenant 홈에 CONTACT 섹션이 없으면 하나 만든다 (있으면 그대로)."""
+    tenant = (
+        await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
+    ).scalar_one_or_none()
+    if tenant is None:
+        return
+    existing = await db.execute(
+        select(Section.id).where(
+            Section.tenant_id == tenant.id,
+            Section.section_type == "CONTACT",
+            Section.deleted_at.is_(None),
+        )
+    )
+    if existing.first():
+        print("ℹ️  테스트 테넌트 문의 섹션 이미 존재 — 건너뜀")
+        return
+    section = Section(
+        tenant_id=tenant.id,
+        section_type="CONTACT",
+        label="문의하기",
+        display_order=100,
+        is_active=True,
+    )
+    db.add(section)
+    await db.flush()
+    for key, value in TEST_CONTACT_SETTINGS.items():
+        db.add(
+            SectionSetting(
+                tenant_id=tenant.id,
+                section_id=section.id,
+                field_key=key,
+                field_value=value,
+            )
+        )
+    await db.commit()
+    print("✅ 테스트 테넌트 문의 섹션 생성")
+
+
 # 플랜별 월 요금 (원) — super_dashboard.PLAN_MONTHLY_PRICE와 일치
 PLAN_MONTHLY_PRICE = {
     "FREE": 0,
@@ -523,6 +570,7 @@ async def main() -> None:
         await seed_features(db)
         await seed_super_admin(db)
         await seed_test_tenant(db)
+        await seed_test_contact_section(db)
         await seed_site_members(db)
 
     print("\n🎉 시드 데이터 삽입 완료")
