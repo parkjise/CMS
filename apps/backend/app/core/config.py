@@ -106,6 +106,10 @@ class Settings(BaseSettings):
     cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
     admin_base_url: str = "http://localhost:3001"
     client_base_url: str = "http://localhost:3000"
+    # 저장 후 홈페이지(Next.js) 캐시를 바로 비우는 내부 호출 (T-066-A)
+    # 운영 compose: http://client:3000 — 홈페이지에도 같은 REVALIDATE_SECRET
+    client_internal_url: str = "http://localhost:3000"
+    revalidate_secret: str = ""
 
     # 슈퍼 어드민
     super_admin_email: str = "admin@cms.io"
@@ -150,6 +154,10 @@ class Settings(BaseSettings):
             problems["cookie_domain"] = (
                 "홈페이지 ↔ 관리자 로그인 공유용 상위 도메인이 없습니다"
             )
+        if not self.revalidate_secret:
+            problems["revalidate_secret"] = (
+                "비어 있으면 저장한 내용이 홈페이지에 최대 1분 늦게 반영됩니다"
+            )
         if not self.recaptcha_secret_key:
             problems["recaptcha_secret_key"] = (
                 "비어 있으면 문의 폼이 검증 없이 통과합니다"
@@ -159,6 +167,7 @@ class Settings(BaseSettings):
             "cdn_base_url",
             "admin_base_url",
             "client_base_url",
+            "client_internal_url",
         ):
             if "localhost" in getattr(self, name):
                 problems[name] = "localhost 주소가 남아 있습니다"

@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.sns import SnsChannelSetting
 from app.models.tenant import Tenant
 from app.schemas.sns import SnsSettingsUpdate
+from app.services import site_cache
 
 _PLAN_CHANNEL_LIMIT: dict[str, int] = {
     "BASIC": 2,
@@ -73,6 +74,8 @@ async def update_sns_settings(
         db.add(setting)
 
     await db.commit()
+    # SNS 링크 · SEO 메타는 공개 사이트 응답에 들어간다 — 캐시 비우기 (T-066-A)
+    await site_cache.purge_site(db, tenant_id)
     db.expire_all()
     result = await db.execute(select(SnsChannelSetting))
     return result.scalar_one()

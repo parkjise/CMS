@@ -10,6 +10,7 @@ from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.section import SectionOrderUpdate, SectionResponse, SectionUpdate
 from app.services import section as section_service
+from app.services import site_cache
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -17,12 +18,7 @@ _CACHE_TTL = 300  # 5분
 
 
 def _cache_key(tenant_id: UUID) -> str:
-    return f"sections:{tenant_id}"
-
-
-async def _invalidate_cache(tenant_id: UUID) -> None:
-    redis = await get_redis()
-    await redis.delete(_cache_key(tenant_id))
+    return site_cache.sections_key(tenant_id)
 
 
 @router.get("", response_model=ApiResponse[list[SectionResponse]])
@@ -68,7 +64,9 @@ async def reorder_sections(
     await section_service.update_sections_order(
         db, body.sections, current_user.tenant_id
     )
-    await _invalidate_cache(current_user.tenant_id)
+    # 관리자 목록 + 공개 사이트 + 홈페이지 캐시 (T-066-A)
+    # — 전에는 목록만 비워 홈페이지에 최대 10분 늦게 반영
+    await site_cache.purge_site(db, current_user.tenant_id)
     return ApiResponse.ok(None)
 
 
@@ -89,7 +87,7 @@ async def update_section(
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
-    await _invalidate_cache(current_user.tenant_id)
+    await site_cache.purge_site(db, current_user.tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))
 
 
@@ -109,5 +107,5 @@ async def toggle_section(
     section = await section_service.toggle_section(
         db, section_id, not current.is_active, current_user.tenant_id
     )
-    await _invalidate_cache(current_user.tenant_id)
+    await site_cache.purge_site(db, current_user.tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))

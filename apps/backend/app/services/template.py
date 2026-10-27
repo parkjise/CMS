@@ -22,7 +22,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.core.redis import get_redis
 from app.db.session import set_rls_context, set_super_admin_context
 from app.models.section import Section, SectionSetting
 from app.models.template import (
@@ -37,6 +36,7 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
+from app.services import site_cache
 from app.services.template_assets import resolve_sample_value
 
 logger = logging.getLogger("app.template")
@@ -121,16 +121,8 @@ async def _get_template(db: AsyncSession, template_id: uuid.UUID) -> Template:
 
 
 async def _purge_site_cache(db: AsyncSession, tenant_id: uuid.UUID) -> None:
-    """공개 사이트/섹션 캐시 무효화 (best-effort)."""
-    try:
-        tenant = await db.get(Tenant, tenant_id)
-        redis = await get_redis()
-        keys = [f"sections:{tenant_id}"]
-        if tenant:
-            keys.append(f"site:{tenant.slug}")
-        await redis.delete(*keys)
-    except Exception:  # noqa: BLE001 - 캐시 퍼지는 best-effort
-        logger.warning("템플릿 변경 후 캐시 퍼지 실패", exc_info=True)
+    """공개 사이트/섹션 캐시 무효화 (best-effort) — Redis + 홈페이지 (T-066-A)."""
+    await site_cache.purge_site(db, tenant_id)
 
 
 CONTENT_KEEP = "keep"
