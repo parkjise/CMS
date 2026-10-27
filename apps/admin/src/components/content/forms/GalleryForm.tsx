@@ -23,7 +23,7 @@ import { isUploadableImage, useUploadImage } from '@/hooks/useUploadImage'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { FormField } from './FormField'
 import { SaveBar } from './HeroBannerForm'
-import { getJsonSetting, getSetting, jsonSetting, strSetting } from './utils'
+import { getJsonSetting, getSetting, isRichSetting, jsonSetting, strSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 /** 갤러리 — 여러 장 업로드 · 드래그 순서 · 캡션 (T-064-A, 백엔드 gallery_settings.py 와 같은 한도) */
@@ -132,7 +132,7 @@ export function GalleryForm({ section, isSaving, onSubmit }: SectionFormProps) {
         handleSave()
       }}
     >
-      <FormField label="섹션 제목">
+      <FormField label="섹션 제목" rich={isRichSetting(section.settings, 'section_title')}>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}

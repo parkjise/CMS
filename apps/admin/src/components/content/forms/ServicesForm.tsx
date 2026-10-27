@@ -3,7 +3,7 @@ import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input, Textarea } from '@cms/ui'
 import { FormField } from './FormField'
 import { SaveBar } from './HeroBannerForm'
-import { getJsonSetting, jsonSetting, strSetting } from './utils'
+import { getJsonSetting, getSetting, isRichSetting, jsonSetting, strSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 interface ServiceItem {
@@ -15,7 +15,7 @@ const SECTION_TITLE_MAX = 40
 
 export function ServicesForm({ section, isSaving, onSubmit }: SectionFormProps) {
   const [title, setTitle] = useState(
-    section.settings.find((s) => s.field_key === 'section_title')?.field_value ?? ''
+    getSetting(section.settings, 'section_title')
   )
   const [items, setItems] = useState<ServiceItem[]>(
     getJsonSetting<ServiceItem[]>(section.settings, 'services_list', [])
@@ -47,7 +47,7 @@ export function ServicesForm({ section, isSaving, onSubmit }: SectionFormProps) 
         if (!overLimit) handleSave()
       }}
     >
-      <FormField label="섹션 제목">
+      <FormField label="섹션 제목" rich={isRichSetting(section.settings, 'section_title')}>
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Input } from '@cms/ui'
 import { FormField } from './FormField'
 import { SaveBar } from './HeroBannerForm'
-import { strSetting } from './utils'
+import { getSetting, isRichSetting, strSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 /**
@@ -10,7 +10,7 @@ import type { SectionFormProps } from './types'
  */
 export function GenericForm({ section, isSaving, onSubmit }: SectionFormProps) {
   const initial: Record<string, string> = Object.fromEntries(
-    section.settings.map((s) => [s.field_key, s.field_value ?? ''])
+    section.settings.map((s) => [s.field_key, getSetting(section.settings, s.field_key)])
   )
   const [values, setValues] = useState(initial)
 
@@ -39,7 +39,7 @@ export function GenericForm({ section, isSaving, onSubmit }: SectionFormProps) {
       }}
     >
       {Object.entries(values).map(([key, value]) => (
-        <FormField key={key} label={key}>
+        <FormField key={key} label={key} rich={isRichSetting(section.settings, key)}>
           <Input
             value={value}
             onChange={(e) =>

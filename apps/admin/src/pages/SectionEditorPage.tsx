@@ -3,6 +3,7 @@ import { ArrowLeft, Smartphone, Sliders } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from '@cms/ui'
 import { getFormForType } from '@/components/content/forms'
+import { preserveRichText } from '@/components/content/forms/utils'
 import type { SettingUpdate } from '@/hooks/useSection'
 import { useSection, useUpdateSection } from '@/hooks/useSection'
 import { sampleKeys } from '@/lib/sampleContent'
@@ -19,7 +20,9 @@ export function SectionEditorPage() {
 
   const handleSubmit = async (settings: SettingUpdate[]) => {
     try {
-      await updateMutation.mutateAsync({ settings })
+      // 고치지 않은 서식 글은 서식 그대로 (T-065-A)
+      const original = sectionQuery.data?.settings ?? []
+      await updateMutation.mutateAsync({ settings: preserveRichText(original, settings) })
       toast.success('변경사항을 저장했습니다.')
     } catch {
       toast.error('저장에 실패했습니다. 잠시 후 다시 시도해주세요.')

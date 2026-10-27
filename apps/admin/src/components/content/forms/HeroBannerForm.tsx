@@ -3,7 +3,7 @@ import { Button, Input } from '@cms/ui'
 import { CharCounter } from './CharCounter'
 import { FormField } from './FormField'
 import { ImageUrlField } from './ImageUrlField'
-import { getSetting, strSetting, urlSetting } from './utils'
+import { getSetting, isRichSetting, strSetting, urlSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 const MAIN_TITLE_MAX = 40
@@ -42,6 +42,7 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
     >
       <FormField
         label="메인 타이틀"
+        rich={isRichSetting(section.settings, 'main_title')}
         trailing={<CharCounter current={mainTitle.length} max={MAIN_TITLE_MAX} />}
       >
         <Input
@@ -53,6 +54,7 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
 
       <FormField
         label="서브 카피"
+        rich={isRichSetting(section.settings, 'sub_copy')}
         trailing={<CharCounter current={subCopy.length} max={SUB_COPY_MAX} />}
       >
         <Input
