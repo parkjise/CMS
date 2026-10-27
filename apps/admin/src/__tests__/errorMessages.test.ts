@@ -44,6 +44,24 @@ describe('pickErrorMessage', () => {
     expect(pickErrorMessage(err)).toBe(STATUS_MESSAGES[500])
   })
 
+  it('공통 형식 error.message 우선', () => {
+    const err = {
+      response: {
+        status: 409,
+        data: { success: false, error: { code: 'CONFLICT', message: '이미 사용 중인 slug입니다.' } },
+      },
+    }
+    expect(pickErrorMessage(err)).toBe('이미 사용 중인 slug입니다.')
+  })
+
+  it('fallback — 서버 메시지가 없을 때만', () => {
+    expect(pickErrorMessage({ response: { status: 500, data: {} } }, '저장에 실패했습니다.')).toBe(
+      '저장에 실패했습니다.',
+    )
+    const err = { response: { status: 400, data: { error: { code: 'X', message: '서버 문구' } } } }
+    expect(pickErrorMessage(err, '저장에 실패했습니다.')).toBe('서버 문구')
+  })
+
   it('아무 정보 없으면 기본 메시지', () => {
     expect(pickErrorMessage({})).toBe('예상치 못한 오류가 발생했습니다.')
   })

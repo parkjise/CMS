@@ -8,6 +8,7 @@ import {
   useUpdateNotificationSettings,
 } from '@/hooks/useNotificationSettings'
 import { MonthlyQuotaBar } from './MonthlyQuotaBar'
+import { pickErrorMessage } from '@/lib/errorMessages'
 
 interface NotificationSettingsCardProps {
   settings: NotificationSettings
@@ -38,10 +39,7 @@ export function NotificationSettingsCard({
       })
       toast.success('알림 설정을 저장했습니다.')
     } catch (e) {
-      const detail =
-        (e as { response?: { data?: { detail?: unknown } } })?.response?.data
-          ?.detail
-      toast.error(typeof detail === 'string' ? detail : '저장에 실패했습니다.')
+      toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
     }
   }
 
