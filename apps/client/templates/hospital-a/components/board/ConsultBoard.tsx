@@ -1,4 +1,4 @@
-import { getJson, getString } from '@/lib/sectionSettings'
+import { getJson, getPlainString } from '@/lib/sectionSettings'
 import { fetchBoardList, fetchBoardPost, type BoardList, type BoardPost } from '@/lib/publicBoard'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { BoardToolbar, type SearchTarget } from './BoardToolbar'
@@ -111,7 +111,7 @@ export async function ConsultBoard({
     <section className="consult-board" aria-labelledby="consult-board-title">
       <div className="page-container">
         <h2 className="consult-board__title" id="consult-board-title">
-          {getString(section.settings, 'title')}
+          {getPlainString(section.settings, 'title')}
         </h2>
         <BoardToolbar
           total={list.total}

@@ -3,7 +3,7 @@ import { Toggle } from '@cms/ui'
 import { Input, Textarea } from '@cms/ui'
 import { FormField } from './FormField'
 import { SaveBar } from './HeroBannerForm'
-import { getSetting, strSetting } from './utils'
+import { getSetting, isRichSetting, strSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 const TITLE_MAX = 40
@@ -49,7 +49,7 @@ export function ContactForm({ section, isSaving, onSubmit }: SectionFormProps) {
         if (!overLimit) handleSave()
       }}
     >
-      <FormField label="섹션 제목">
+      <FormField label="섹션 제목" rich={isRichSetting(section.settings, 'section_title')}>
         <Input
           value={sectionTitle}
           onChange={(e) => setSectionTitle(e.target.value)}
@@ -57,7 +57,7 @@ export function ContactForm({ section, isSaving, onSubmit }: SectionFormProps) {
         />
       </FormField>
 
-      <FormField label="안내 문구">
+      <FormField label="안내 문구" rich={isRichSetting(section.settings, 'description')}>
         <Textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}

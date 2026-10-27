@@ -1,5 +1,6 @@
 import { EditableText } from '@/components/edit/EditableText'
-import { getString } from '@/lib/sectionSettings'
+import { RICH_TEXT_VALUE_TYPE, sanitizeRichHtml } from '@/lib/richText'
+import { getString, getValueType } from '@/lib/sectionSettings'
 import type { PublicSection } from '@/lib/publicSite.types'
 
 type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span' | 'div'
@@ -19,6 +20,7 @@ interface Props {
 /**
  * 템플릿 글자 출력 — 편집 가능한 섹션이면 EditableText, 샘플 섹션이면 일반 태그.
  * 줄바꿈(\n)은 템플릿 스타일의 white-space: pre-line 으로 표시한다 (.u-pre-line).
+ * 편집 모드에서는 미니 툴바로 서식을 넣을 수 있다 (T-065-A) — 템플릿 글은 링크 밖에만 쓴다.
  */
 export function TemplateText({
   section,
@@ -33,6 +35,7 @@ export function TemplateText({
 }: Props) {
   const value = getString(section.settings, field)
   if (!value) return null
+  const valueType = getValueType(section.settings, field)
 
   const classes = [className, multiline ? 'u-pre-line' : null].filter(Boolean).join(' ')
 
@@ -48,6 +51,22 @@ export function TemplateText({
         className={classes}
         id={id}
         lang={lang}
+        valueType={valueType}
+        formatting
+      />
+    )
+  }
+
+  if (valueType === RICH_TEXT_VALUE_TYPE) {
+    // 서식 글 (T-065-A) — 허용 태그만 다시 걸러 표시
+    const Tag = as
+    return (
+      <Tag
+        className={classes}
+        lang={lang}
+        id={id}
+        data-rich-text=""
+        dangerouslySetInnerHTML={{ __html: sanitizeRichHtml(value) }}
       />
     )
   }

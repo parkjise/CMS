@@ -5,7 +5,7 @@ import type { Section } from '@/hooks/useSections'
 export interface SettingUpdate {
   field_key: string
   field_value: string | null
-  value_type: 'STRING' | 'INTEGER' | 'BOOLEAN' | 'JSON' | 'URL'
+  value_type: 'STRING' | 'INTEGER' | 'BOOLEAN' | 'JSON' | 'URL' | 'RICH_TEXT'
 }
 
 export interface SectionUpdatePayload {

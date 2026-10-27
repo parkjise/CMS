@@ -97,6 +97,28 @@ body.edit-mode [data-editable="text"].over-limit {
   outline: 2px solid var(--color-danger);
 }
 
+/* 서식 있는 글 (T-065-A 미니 툴바) — 색 · 크기는 템플릿 테마를 따른다 (lib/richText.ts) */
+.rt-c-primary {
+  color: var(--color-primary);
+}
+.rt-c-accent {
+  color: var(--color-accent, var(--color-primary));
+}
+.rt-c-muted {
+  color: var(--color-text-muted, currentColor);
+  opacity: 0.85;
+}
+.rt-s-sm {
+  font-size: 0.85em;
+}
+.rt-s-lg {
+  font-size: 1.25em;
+}
+[data-rich-text] a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* 인라인 이미지 편집 (T-064 EditableImage) */
 body.edit-mode [data-editable="image"] {
   cursor: pointer;

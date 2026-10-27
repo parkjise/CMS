@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { EditableGallery } from '@/components/edit/EditableGallery'
 import { EditableText } from '@/components/edit/EditableText'
-import { getJson, getString } from '@/lib/sectionSettings'
+import { getJson, getString, getValueType } from '@/lib/sectionSettings'
 import type { GalleryItem, SectionProps } from './types'
 
 export function Gallery({ section }: SectionProps) {
@@ -20,6 +20,8 @@ export function Gallery({ section }: SectionProps) {
             as="h2"
             sectionId={section.id}
             field="section_title"
+            valueType={getValueType(section.settings, 'section_title')}
+            formatting
             initialValue={title}
             maxLength={40}
             className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"

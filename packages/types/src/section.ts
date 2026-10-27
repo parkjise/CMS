@@ -18,7 +18,7 @@ export type SectionType =
   | 'HISTORY_TIMELINE'
   | 'BOARD'
 
-export type SectionValueType = 'STRING' | 'INTEGER' | 'BOOLEAN' | 'JSON' | 'URL'
+export type SectionValueType = 'STRING' | 'INTEGER' | 'BOOLEAN' | 'JSON' | 'URL' | 'RICH_TEXT' // RICH_TEXT: 미니 툴바 서식 HTML (T-065-A)
 
 export interface SectionSetting {
   id: string

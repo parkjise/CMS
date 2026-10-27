@@ -7,7 +7,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { publicApi } from '@/lib/api'
 import { executeRecaptcha } from '@/lib/recaptcha'
-import { getBoolean, getString } from '@/lib/sectionSettings'
+import { getBoolean, getString, getValueType } from '@/lib/sectionSettings'
 import { EditableText } from '@/components/edit/EditableText'
 import type { SectionProps } from './types'
 import { memberAuthHeader } from '@/lib/memberStore'
@@ -176,6 +176,8 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
           as="h2"
           sectionId={section.id}
           field="section_title"
+          valueType={getValueType(section.settings, 'section_title')}
+          formatting
           initialValue={title}
           maxLength={40}
           className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"
@@ -186,6 +188,8 @@ export function ContactForm({ section, tenantSlug }: SectionProps) {
               as="p"
               sectionId={section.id}
               field="description"
+            valueType={getValueType(section.settings, 'description')}
+            formatting
               initialValue={description}
               maxLength={200}
               multiline

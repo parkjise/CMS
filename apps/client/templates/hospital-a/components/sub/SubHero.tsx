@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef } from 'react'
-import { getBoolean, getString } from '@/lib/sectionSettings'
+import { getBoolean, getPlainString, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
 import { optimizedImg } from '../../../shared/optimizedImage'
@@ -18,7 +18,7 @@ interface Props extends CodeSectionProps {
 export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
   const ref = useRef<HTMLElement>(null)
   const image = getString(section.settings, 'image_url')
-  const title = getString(section.settings, 'title')
+  const title = getPlainString(section.settings, 'title')
   const plain = getBoolean(section.settings, 'plain')
 
   // 아래로: 다음 영역 시작점으로 이동 + 첫 링크·버튼에 포커스

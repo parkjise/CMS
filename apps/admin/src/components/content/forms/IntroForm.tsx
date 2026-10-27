@@ -4,7 +4,7 @@ import { CharCounter } from './CharCounter'
 import { FormField } from './FormField'
 import { ImageUrlField } from './ImageUrlField'
 import { SaveBar } from './HeroBannerForm'
-import { getSetting, strSetting, urlSetting } from './utils'
+import { getSetting, isRichSetting, strSetting, urlSetting } from './utils'
 import type { SectionFormProps } from './types'
 
 const INTRO_TEXT_MAX = 400
@@ -36,6 +36,7 @@ export function IntroForm({ section, isSaving, onSubmit }: SectionFormProps) {
     >
       <FormField
         label="소개 텍스트"
+        rich={isRichSetting(section.settings, 'intro_text')}
         trailing={<CharCounter current={introText.length} max={INTRO_TEXT_MAX} />}
       >
         <Textarea
