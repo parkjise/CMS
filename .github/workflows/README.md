@@ -38,8 +38,8 @@ ESLint 9 flat config(`eslint.config.mjs`)로 프론트 전체를 검사한다.
 
 1. PostgreSQL · Redis (서비스 컨테이너), MinIO (`docker run` — 서비스 컨테이너는 시작 명령을 못 줌)
 2. `alembic upgrade head` → `init_db_roles.py`(앱 계정, RLS) → `seed.py` → `init_minio.py`
-3. 백엔드 `uvicorn` (로그는 실패 시 아티팩트), 홈페이지 `pnpm build` → `pnpm start` (`E2E_WEB_COMMAND`)
-4. `editmode` · `inquiry` · `homepage` · `seo` spec — `full-journey` · `tenant-isolation` 은 프론트 3개 필요로 제외
+3. 백엔드 `uvicorn` (로그는 실패 시 아티팩트), 프론트 3개 빌드 (`E2E_*_COMMAND` 로 빌드본 실행)
+4. 전체 spec — 프론트 3개(홈 `next start` · 관리자 · 슈퍼 어드민 `vite preview`)를 띄워 `full-journey`(슈퍼 어드민 → 관리자 → 홈페이지) · `tenant-isolation`(사업체 간 격리)까지 (T-078-A). 로그인 · 문의 요청 한도는 CI 에서만 올린다 (`LOGIN_RATE_LIMIT` · `INQUIRY_RATE_LIMIT`)
 5. 실패 시 `e2e-report` 아티팩트 (Playwright 결과 · trace · 백엔드 로그, 7일)
 
 모든 비밀번호 · 키는 CI 전용 값이다. 로컬 재현: 같은 환경변수로 위 순서를 실행하면 된다.
