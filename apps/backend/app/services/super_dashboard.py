@@ -2,6 +2,7 @@
 
 import asyncio
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -93,7 +94,7 @@ async def get_dashboard(db: AsyncSession) -> dict:
     )
 
     # 만료 예정 테넌트 (오늘 ~ +7일)
-    expiring = []
+    expiring: list[dict[str, Any]] = []
     for t in active:
         if t.plan_expires_at is None:
             continue

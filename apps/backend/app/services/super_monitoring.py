@@ -6,6 +6,7 @@ audit_logs(플랜 변경)와 tenants(생성/삭제)에서 도출한다.
 
 import asyncio
 from datetime import UTC, date, datetime
+from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -152,7 +153,7 @@ async def get_revenue(db: AsyncSession, months: int = 6) -> dict:
     ]
 
     # 만료 예정
-    expiring = []
+    expiring: list[dict[str, Any]] = []
     for t in active:
         if t.plan_expires_at is None:
             continue

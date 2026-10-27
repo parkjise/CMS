@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ── 백엔드: ruff + alembic + pytest(커버리지 70%) ──────────────────────────
+  # ── 백엔드: ruff + mypy + alembic + pytest(커버리지 70%) ──────────────────────────
   backend:
     runs-on: ubuntu-latest
     defaults:
@@ -66,6 +66,10 @@ jobs:
         run: |
           poetry run ruff check app/
           poetry run ruff format --check app/
+
+      # CLAUDE.md 12.4 타입 검사 — 설정은 pyproject.toml [tool.mypy] (T-082-B)
+      - name: Mypy (type check)
+        run: poetry run mypy app/
 
       - name: Alembic migrate (test DB)
         run: poetry run alembic upgrade head

@@ -208,7 +208,7 @@ async def withdraw(
         update(Inquiry).where(Inquiry.member_id == member.id).values(member_id=None)
     )
 
-    reason = body.reason
+    reason: str | None = body.reason
     if reason and body.reason_detail:
         reason = f"{reason}: {body.reason_detail.strip()}"
     member.withdrawal_reason = reason

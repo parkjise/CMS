@@ -3,7 +3,7 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import PublicSiteResponse
@@ -25,10 +25,9 @@ async def list_templates(
     industry: str | None = Query(default=None),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
 ):
-    items, current_id = await template_service.list_templates(
-        db, current_user.tenant_id, industry
-    )
+    items, current_id = await template_service.list_templates(db, tenant_id, industry)
     templates = [
         TemplateListItem(
             **TemplateResponse.model_validate(t).model_dump(),
@@ -46,10 +45,11 @@ async def apply_template(
     body: TemplateApplyRequest,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
 ):
     override = await template_service.apply_template(
         db,
-        current_user.tenant_id,
+        tenant_id,
         body.template_id,
         current_user.id,
         content_mode=body.content_mode,
@@ -61,8 +61,9 @@ async def apply_template(
 async def rollback_template(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
 ):
-    override = await template_service.rollback_template(db, current_user.tenant_id)
+    override = await template_service.rollback_template(db, tenant_id)
     return ApiResponse.ok(TenantTemplateOverrideResponse.model_validate(override))
 
 
@@ -71,9 +72,10 @@ async def customize_template(
     body: TemplateCssOverrideUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: uuid.UUID = Depends(get_tenant_id),
 ):
     override = await template_service.customize_template(
-        db, current_user.tenant_id, body.css_overrides, current_user.id
+        db, tenant_id, body.css_overrides, current_user.id
     )
     return ApiResponse.ok(TenantTemplateOverrideResponse.model_validate(override))
 

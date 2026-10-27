@@ -114,15 +114,12 @@ async def _get_feature(db: AsyncSession, feature_id: uuid.UUID) -> Feature:
 
 async def list_features(db: AsyncSession) -> tuple[list[tuple[Feature, int]], int]:
     """(feature, enabled_tenant_count) 목록 반환."""
-    counts = dict(
-        (
-            await db.execute(
-                select(TenantFeature.feature_id, func.count())
-                .where(TenantFeature.is_enabled.is_(True))
-                .group_by(TenantFeature.feature_id)
-            )
-        ).all()
+    count_rows = await db.execute(
+        select(TenantFeature.feature_id, func.count())
+        .where(TenantFeature.is_enabled.is_(True))
+        .group_by(TenantFeature.feature_id)
     )
+    counts: dict[uuid.UUID, int] = {fid: n for fid, n in count_rows.all()}
     features = list(
         (
             await db.execute(

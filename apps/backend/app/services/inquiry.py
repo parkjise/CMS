@@ -11,7 +11,12 @@ from sqlalchemy.orm import selectinload
 from app.core.redis import get_redis
 from app.models.inquiry import Inquiry
 from app.models.tenant import Tenant
-from app.schemas.inquiry import InquiryCreate, InquiryListResponse, InquiryUpdate
+from app.schemas.inquiry import (
+    InquiryCreate,
+    InquiryListItem,
+    InquiryListResponse,
+    InquiryUpdate,
+)
 from app.services.inquiry_fields import clean_detail
 
 _VALID_STATUSES = {"PENDING", "IN_PROGRESS", "DONE", "SPAM"}
@@ -122,7 +127,7 @@ async def get_inquiries(
     rows = await db.execute(
         base.order_by(Inquiry.created_at.desc()).offset((page - 1) * limit).limit(limit)
     )
-    items = list(rows.scalars().all())
+    items = [InquiryListItem.model_validate(i) for i in rows.scalars().all()]
 
     return InquiryListResponse(total=total, page=page, limit=limit, items=items)
 

@@ -221,6 +221,21 @@ class TestTenantRead:
         ids = [i["id"] for i in resp.json()["data"]["items"]]
         assert created["id"] in ids
 
+    async def test_selective_other_tenant_hidden(
+        self, client, super_headers, announcement_factory, test_tenant, auth_headers
+    ):
+        """T-082-B: 대상 조건(target_tenants 포함 여부) 표현을 바꿔도 다른 테넌트 공지는 안 보인다."""
+        created = await _create(
+            client,
+            super_headers,
+            announcement_factory,
+            target_type="SELECTIVE",
+            target_tenants=[str(uuid.uuid4())],
+        )
+        resp = await client.get("/api/v1/announcements", headers=auth_headers)
+        ids = [i["id"] for i in resp.json()["data"]["items"]]
+        assert created["id"] not in ids
+
     async def test_expired_hidden(
         self, client, super_headers, announcement_factory, test_tenant, auth_headers
     ):

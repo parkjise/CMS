@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 
 import httpx
 from fastapi import HTTPException, status
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -286,9 +286,7 @@ async def change_plan(
     )
     # 테넌트 플랜도 동기화
     await db.execute(
-        Tenant.__table__.update()
-        .where(Tenant.id == tenant_id)
-        .values(plan_type=to_plan)
+        update(Tenant).where(Tenant.id == tenant_id).values(plan_type=to_plan)
     )
     await db.commit()
     await db.refresh(sub)

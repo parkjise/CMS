@@ -12,6 +12,7 @@ from app.core.deps import (
     get_current_user,
     get_db,
     get_db_with_rls,
+    get_tenant_id,
     optional_member_payload,
 )
 from app.db.session import set_rls_context, set_super_admin_context
@@ -206,10 +207,11 @@ async def list_inquiries(
     search: str | None = Query(None),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     result = await inquiry_service.get_inquiries(
         db,
-        tenant_id=current_user.tenant_id,
+        tenant_id=tenant_id,
         page=page,
         limit=limit,
         status=status_filter,
@@ -224,8 +226,9 @@ async def list_inquiries(
 async def export_inquiries(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    inquiries = await inquiry_service.get_all_for_export(db, current_user.tenant_id)
+    inquiries = await inquiry_service.get_all_for_export(db, tenant_id)
     xlsx_bytes = inquiry_service.export_to_excel(inquiries)
     return Response(
         content=xlsx_bytes,
@@ -239,10 +242,9 @@ async def get_inquiry(
     inquiry_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    inquiry = await inquiry_service.get_inquiry_by_id(
-        db, inquiry_id, current_user.tenant_id
-    )
+    inquiry = await inquiry_service.get_inquiry_by_id(db, inquiry_id, tenant_id)
     if not inquiry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(await _detail(db, inquiry))
@@ -269,11 +271,10 @@ async def update_member_reservation(
     body: ReservationStatusUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     """회원 예약 상태 변경 (대기 → 확정 → 완료, 관리자 취소) + 회원 알림 (T-115)."""
-    inquiry = await inquiry_service.get_inquiry_by_id(
-        db, inquiry_id, current_user.tenant_id
-    )
+    inquiry = await inquiry_service.get_inquiry_by_id(db, inquiry_id, tenant_id)
     if not inquiry:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     await reservation_admin.change_status(db, inquiry, body.status)
@@ -287,11 +288,10 @@ async def update_inquiry(
     body: InquiryUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     try:
-        inquiry = await inquiry_service.update_inquiry(
-            db, inquiry_id, current_user.tenant_id, body
-        )
+        inquiry = await inquiry_service.update_inquiry(db, inquiry_id, tenant_id, body)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
@@ -305,10 +305,9 @@ async def delete_inquiry(
     inquiry_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    deleted = await inquiry_service.delete_inquiry(
-        db, inquiry_id, current_user.tenant_id
-    )
+    deleted = await inquiry_service.delete_inquiry(db, inquiry_id, tenant_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(None)

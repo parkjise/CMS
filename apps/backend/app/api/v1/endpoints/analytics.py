@@ -1,8 +1,10 @@
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -93,8 +95,9 @@ async def record_pageview(
 async def get_summary(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    result = await analytics_service.get_summary(db, current_user.tenant_id)
+    result = await analytics_service.get_summary(db, tenant_id)
     return ApiResponse.ok(result)
 
 
@@ -103,11 +106,10 @@ async def get_timeseries(
     days: int = Query(default=7, ge=1, le=365),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     """방문자 추이 + 모바일 비율 + 상위 유입 경로 (플랜별 최대 일수로 제한)."""
-    tenant = await db.get(Tenant, current_user.tenant_id)
+    tenant = await db.get(Tenant, tenant_id)
     plan_type = tenant.plan_type if tenant else "BASIC"
-    result = await analytics_service.get_timeseries(
-        db, current_user.tenant_id, plan_type, days
-    )
+    result = await analytics_service.get_timeseries(db, tenant_id, plan_type, days)
     return ApiResponse.ok(result)

@@ -1,8 +1,8 @@
 from collections.abc import AsyncGenerator
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import event, text
+from sqlalchemy import CursorResult, Result, event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -12,6 +12,15 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+
+
+def affected_rows(result: Result[Any]) -> int:
+    """UPDATE · DELETE 가 바꾼 행 수.
+
+    db.execute() 결과는 Result 로 타입이 잡혀 rowcount 가 보이지 않는다 (T-082-B).
+    """
+    return cast(CursorResult[Any], result).rowcount or 0
+
 
 # RLS 컨텍스트 기본값 — 어떤 테넌트와도 맞지 않는 값 (빈 문자열은 ::uuid 변환 오류)
 NO_TENANT = "00000000-0000-0000-0000-000000000000"

@@ -59,7 +59,7 @@ async def _generate_thumbnail(file_id: str) -> bool:
         with Image.open(io.BytesIO(original_bytes)) as img:
             if img.mode != "RGB":
                 img = img.convert("RGB")
-            img.thumbnail((THUMB_WIDTH, THUMB_HEIGHT), Image.LANCZOS)
+            img.thumbnail((THUMB_WIDTH, THUMB_HEIGHT), Image.Resampling.LANCZOS)
             buf = io.BytesIO()
             img.save(buf, format="WEBP", quality=THUMB_QUALITY, optimize=True)
             thumb_bytes = buf.getvalue()

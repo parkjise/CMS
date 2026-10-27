@@ -10,7 +10,7 @@ from datetime import date
 
 from sqlalchemy import text
 
-from app.db.session import set_super_admin_context
+from app.db.session import affected_rows, set_super_admin_context
 from app.workers.celery_app import celery_app
 
 # 플랜별 보관 기간 (일). PREMIUM은 영구 보관 → None
@@ -61,7 +61,7 @@ async def _reset_monthly_notification_count() -> int:
             {"first": this_month_first},
         )
         await db.commit()
-        return result.rowcount or 0
+        return affected_rows(result)
 
 
 # ── cleanup_old_inquiries ──────────────────────────────────────────────────
@@ -104,7 +104,7 @@ async def _cleanup_old_inquiries() -> int:
                 ),
                 {"plan": plan_type},
             )
-            total += result.rowcount or 0
+            total += affected_rows(result)
         await db.commit()
     return total
 
@@ -147,7 +147,7 @@ async def _cleanup_old_analytics() -> int:
                 ),
                 {"plan": plan_type},
             )
-            total += result.rowcount or 0
+            total += affected_rows(result)
         await db.commit()
     return total
 
@@ -186,4 +186,4 @@ async def _cleanup_old_template_history(
             )
         )
         await db.commit()
-        return result.rowcount or 0
+        return affected_rows(result)

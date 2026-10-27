@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.file import UploadedFile
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -26,6 +26,7 @@ async def upload_image(
     section_id: UUID = Form(...),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     if context not in _ALLOWED_CONTEXTS:
         raise HTTPException(
@@ -51,12 +52,12 @@ async def upload_image(
 
     # 3. 플랜별 스토리지 한도 체크
     tenant_result = await db.execute(
-        select(Tenant.plan_type).where(Tenant.id == current_user.tenant_id)
+        select(Tenant.plan_type).where(Tenant.id == tenant_id)
     )
     plan_type = tenant_result.scalar_one_or_none() or "BASIC"
     try:
         await image_service.check_storage_quota(
-            db, current_user.tenant_id, plan_type, len(optimized_bytes)
+            db, tenant_id, plan_type, len(optimized_bytes)
         )
     except image_service.StorageQuotaExceeded as e:
         raise HTTPException(
@@ -65,13 +66,13 @@ async def upload_image(
 
     # 4. MinIO 업로드
     file_id = uuid.uuid4()
-    key = f"{current_user.tenant_id}/{context}/{section_id}/{file_id}.webp"
+    key = f"{tenant_id}/{context}/{section_id}/{file_id}.webp"
     url = image_service.upload_to_storage(optimized_bytes, key, "image/webp")
 
     # 5. DB 기록
     uploaded = UploadedFile(
         id=file_id,
-        tenant_id=current_user.tenant_id,
+        tenant_id=tenant_id,
         file_name=file.filename or f"{file_id}.webp",
         file_url=url,
         file_size=len(optimized_bytes),

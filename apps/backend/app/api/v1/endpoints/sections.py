@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.core.redis import get_redis
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -25,18 +25,19 @@ def _cache_key(tenant_id: UUID) -> str:
 async def list_sections(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     redis = await get_redis()
-    cached = await redis.get(_cache_key(current_user.tenant_id))
+    cached = await redis.get(_cache_key(tenant_id))
     if cached:
         return ApiResponse.ok(json.loads(cached))
 
-    sections = await section_service.get_sections(db, current_user.tenant_id)
+    sections = await section_service.get_sections(db, tenant_id)
     response_data = [SectionResponse.model_validate(s) for s in sections]
     serialized = json.dumps(
         [r.model_dump(mode="json") for r in response_data], default=str
     )
-    await redis.setex(_cache_key(current_user.tenant_id), _CACHE_TTL, serialized)
+    await redis.setex(_cache_key(tenant_id), _CACHE_TTL, serialized)
 
     return ApiResponse.ok(response_data)
 
@@ -46,10 +47,9 @@ async def get_section(
     section_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    section = await section_service.get_section_by_id(
-        db, section_id, current_user.tenant_id
-    )
+    section = await section_service.get_section_by_id(db, section_id, tenant_id)
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(SectionResponse.model_validate(section))
@@ -60,13 +60,12 @@ async def reorder_sections(
     body: SectionOrderUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    await section_service.update_sections_order(
-        db, body.sections, current_user.tenant_id
-    )
+    await section_service.update_sections_order(db, body.sections, tenant_id)
     # 관리자 목록 + 공개 사이트 + 홈페이지 캐시 (T-066-A)
     # — 전에는 목록만 비워 홈페이지에 최대 10분 늦게 반영
-    await site_cache.purge_site(db, current_user.tenant_id)
+    await site_cache.purge_site(db, tenant_id)
     return ApiResponse.ok(None)
 
 
@@ -76,10 +75,11 @@ async def update_section(
     body: SectionUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     try:
         section = await section_service.update_section_settings(
-            db, section_id, current_user.tenant_id, body
+            db, section_id, tenant_id, body
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -87,7 +87,7 @@ async def update_section(
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
-    await site_cache.purge_site(db, current_user.tenant_id)
+    await site_cache.purge_site(db, tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))
 
 
@@ -96,16 +96,15 @@ async def toggle_section(
     section_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     # 현재 상태를 읽어 반전
-    current = await section_service.get_section_by_id(
-        db, section_id, current_user.tenant_id
-    )
+    current = await section_service.get_section_by_id(db, section_id, tenant_id)
     if not current:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
     section = await section_service.toggle_section(
-        db, section_id, not current.is_active, current_user.tenant_id
+        db, section_id, not current.is_active, tenant_id
     )
-    await site_cache.purge_site(db, current_user.tenant_id)
+    await site_cache.purge_site(db, tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))

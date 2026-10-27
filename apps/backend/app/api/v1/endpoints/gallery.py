@@ -4,7 +4,8 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls
+from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
+from app.models.gallery import GalleryItem
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -26,6 +27,7 @@ async def upload_gallery(
     section_id: UUID = Form(...),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
     if len(files) == 0:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="NO_FILES")
@@ -36,16 +38,14 @@ async def upload_gallery(
 
     # 플랜 조회 (1회)
     tenant_result = await db.execute(
-        select(Tenant.plan_type).where(Tenant.id == current_user.tenant_id)
+        select(Tenant.plan_type).where(Tenant.id == tenant_id)
     )
     plan_type = tenant_result.scalar_one_or_none() or "BASIC"
 
     # 갤러리 시작 순서
-    next_order = await gallery_service._next_display_order(
-        db, section_id, current_user.tenant_id
-    )
+    next_order = await gallery_service._next_display_order(db, section_id, tenant_id)
 
-    items_added = []
+    items_added: list[GalleryItem] = []
     failed = 0
 
     for idx, file in enumerate(files):
@@ -60,7 +60,7 @@ async def upload_gallery(
 
         try:
             await image_service.check_storage_quota(
-                db, current_user.tenant_id, plan_type, len(optimized_bytes)
+                db, tenant_id, plan_type, len(optimized_bytes)
             )
         except image_service.StorageQuotaExceeded as e:
             # 한도 초과 시 즉시 중단 (이미 추가된 것은 커밋)
@@ -71,16 +71,14 @@ async def upload_gallery(
             )
 
         new_file_id = uuid4()
-        storage_key = (
-            f"{current_user.tenant_id}/gallery/{section_id}/{new_file_id}.webp"
-        )
+        storage_key = f"{tenant_id}/gallery/{section_id}/{new_file_id}.webp"
         image_url = image_service.upload_to_storage(
             optimized_bytes, storage_key, "image/webp"
         )
 
         item = await gallery_service.add_uploaded_item(
             db,
-            tenant_id=current_user.tenant_id,
+            tenant_id=tenant_id,
             section_id=section_id,
             optimized_bytes=optimized_bytes,
             storage_key=storage_key,
@@ -116,8 +114,9 @@ async def list_gallery(
     section_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    items = await gallery_service.list_items(db, section_id, current_user.tenant_id)
+    items = await gallery_service.list_items(db, section_id, tenant_id)
     return ApiResponse.ok([GalleryItemResponse.model_validate(i) for i in items])
 
 
@@ -126,8 +125,9 @@ async def reorder_gallery(
     body: GalleryOrderUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    await gallery_service.update_order(db, current_user.tenant_id, body.items)
+    await gallery_service.update_order(db, tenant_id, body.items)
     return ApiResponse.ok(None)
 
 
@@ -136,8 +136,9 @@ async def delete_gallery_item(
     item_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
 ):
-    deleted = await gallery_service.delete_item(db, item_id, current_user.tenant_id)
+    deleted = await gallery_service.delete_item(db, item_id, tenant_id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(None)
