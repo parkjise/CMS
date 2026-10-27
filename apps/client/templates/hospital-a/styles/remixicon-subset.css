@@ -1,0 +1,54 @@
+/* Remix Icon v4.9.1 축소본 — scripts/remixicon-subset.mjs 가 생성 (직접 수정 금지, T-125)
+ * Released under the Remix Icon License 1.0 — https://remixicon.com
+ * glyphs: ea4e,ea60,ea64,ea6c,ea6e,eb51,eb7b,eb81,eb99,ec80,eca0,eca1,ecb5,ecb7,ed3c,edf3,ee17,ee1f,ee2a,ee6c,ee6d,eece,eeda,eefc,ef0a,ef14,ef3e,efd8,efec,f00a,f00b,f0d1,f100,f20f,f2d4,f2e3,f2e5,f367 */
+@font-face {
+  font-family: "remixicon";
+  src: url("./remixicon-subset.woff2") format("woff2");
+  font-display: swap;
+}
+
+[class^="ri-"], [class*=" ri-"] {
+  font-family: "remixicon" !important;
+  font-style: normal;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.ri-arrow-down-s-line:before { content: "\ea4e"; }
+.ri-arrow-left-double-line:before { content: "\f2e3"; }
+.ri-arrow-left-line:before { content: "\ea60"; }
+.ri-arrow-left-s-line:before { content: "\ea64"; }
+.ri-arrow-right-double-line:before { content: "\f2e5"; }
+.ri-arrow-right-line:before { content: "\ea6c"; }
+.ri-arrow-right-s-line:before { content: "\ea6e"; }
+.ri-chat-3-line:before { content: "\eb51"; }
+.ri-check-line:before { content: "\eb7b"; }
+.ri-checkbox-circle-line:before { content: "\eb81"; }
+.ri-close-line:before { content: "\eb99"; }
+.ri-edit-2-line:before { content: "\ec80"; }
+.ri-error-warning-fill:before { content: "\eca0"; }
+.ri-error-warning-line:before { content: "\eca1"; }
+.ri-eye-line:before { content: "\ecb5"; }
+.ri-eye-off-line:before { content: "\ecb7"; }
+.ri-flashlight-fill:before { content: "\ed3c"; }
+.ri-hand-heart-line:before { content: "\edf3"; }
+.ri-history-line:before { content: "\ee17"; }
+.ri-home-5-line:before { content: "\ee1f"; }
+.ri-home-heart-line:before { content: "\ee2a"; }
+.ri-kakao-talk-fill:before { content: "\ee6c"; }
+.ri-kakao-talk-line:before { content: "\ee6d"; }
+.ri-lock-line:before { content: "\eece"; }
+.ri-logout-box-r-line:before { content: "\eeda"; }
+.ri-mail-send-line:before { content: "\eefc"; }
+.ri-map-pin-2-line:before { content: "\ef0a"; }
+.ri-map-pin-line:before { content: "\ef14"; }
+.ri-menu-line:before { content: "\ef3e"; }
+.ri-pause-line:before { content: "\efd8"; }
+.ri-phone-line:before { content: "\efec"; }
+.ri-play-fill:before { content: "\f00a"; }
+.ri-play-line:before { content: "\f00b"; }
+.ri-search-line:before { content: "\f0d1"; }
+.ri-shield-check-line:before { content: "\f100"; }
+.ri-skip-up-line:before { content: "\f367"; }
+.ri-time-line:before { content: "\f20f"; }
+.ri-youtube-fill:before { content: "\f2d4"; }

@@ -36,8 +36,17 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
       aria-labelledby="sub-hero-title"
       ref={ref}
     >
-      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 배경 비주얼(object-fit) 유지 */}
-      {image && !plain && <img className="sub-hero__image" {...optimizedImg(image, '100vw', 2048)} alt="" />}
+      {/* 서브 페이지 첫 화면 주인공 이미지(LCP) — 먼저 받는다 (T-125) */}
+      {image && !plain && (
+        // eslint-disable-next-line @next/next/no-img-element -- 목업 배경 비주얼(object-fit) 유지
+        <img
+          className="sub-hero__image"
+          {...optimizedImg(image, '100vw', 2048)}
+          alt=""
+          fetchPriority="high"
+          loading="eager"
+        />
+      )}
       <div className="page-container sub-hero__content">
         <TemplateText section={section} editable={editable} field="eyebrow" as="p" className="sub-hero__eyebrow" lang="en" maxLength={40} />
         <TemplateText section={section} editable={editable} field="title" as="h2" id="sub-hero-title" className="sub-hero__title" maxLength={40} />

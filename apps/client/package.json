@@ -10,7 +10,8 @@
     "type-check": "tsc --noEmit",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "lint:style": "stylelint \"templates/**/*.scss\""
+    "lint:style": "stylelint \"templates/**/*.scss\"",
+    "icons:subset": "node scripts/remixicon-subset.mjs"
   },
   "dependencies": {
     "@cms/types": "workspace:*",

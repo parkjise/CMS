@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
+import { optimizedImg } from '../../../shared/optimizedImage'
 
 interface Video {
   video_id: string
@@ -77,10 +78,10 @@ export function VideoPlaylist({ section, editable }: CodeSectionProps) {
                 />
               ) : (
                 <button className="video-playlist__play" type="button" onClick={play} ref={playButtonRef}>
-                  {/* eslint-disable-next-line @next/next/no-img-element -- 유튜브 썸네일(외부) 그대로 사용 */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- 목업 마크업 유지 (유튜브 썸네일은 그대로, 직접 올린 썸네일은 크기 변환) */}
                   <img
                     className="video-playlist__player-image"
-                    src={thumbOf(video)}
+                    {...optimizedImg(thumbOf(video), '(min-width: 1024px) 60vw, 100vw', 1200)}
                     alt=""
                     loading="lazy"
                   />
@@ -109,10 +110,10 @@ export function VideoPlaylist({ section, editable }: CodeSectionProps) {
                     }}
                   >
                     <span className="video-playlist__thumb">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- 유튜브 썸네일(외부) */}
+                      {/* eslint-disable-next-line @next/next/no-img-element -- 목업 마크업 유지 (썸네일 128px) */}
                       <img
                         className="video-playlist__thumb-image"
-                        src={thumbOf(v)}
+                        {...optimizedImg(thumbOf(v), '128px', 640)}
                         alt=""
                         loading="lazy"
                       />

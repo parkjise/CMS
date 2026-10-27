@@ -408,7 +408,8 @@ $naver: #03c75a; // 네이버 로그인 버튼 가이드 색
     transition: color 0.2s;
 
     &::before {
-      content: '\eb7b'; // remixicon check-line
+      content: '\eb7b'; // remixicon check-line (remixicon-subset 에 포함)
+      // stylelint-disable-next-line font-family-no-missing-generic-family-keyword -- 아이콘 글꼴
       font-family: 'remixicon';
       font-size: 1rem;
     }

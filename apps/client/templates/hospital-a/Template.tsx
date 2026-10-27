@@ -1,8 +1,10 @@
-import 'remixicon/fonts/remixicon.css'
+// 아이콘 — 쓰는 아이콘만 담은 축소본 (pnpm icons:subset 으로 생성, T-125)
+import './styles/remixicon-subset.css'
 import './styles/index.scss'
 
 
 import { Fragment, type ReactNode } from 'react'
+import DeferredStylesheets from '../shared/DeferredStylesheets'
 import { getJson, getString } from '@/lib/sectionSettings'
 import {
   pageHref,
@@ -46,12 +48,16 @@ import { MemberScreen } from './components/member/MemberScreen'
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
 // - the-seasons: Typekit 키트 (도메인 등록 필요, 미등록 도메인은 대체 글꼴). 키트 설정에서
-//   font-display 를 swap 으로 바꾸면 첫 화면 문구가 글꼴을 기다리지 않는다 (T-125 성능 점검)
+//   font-display 가 auto 라 적용할 때 swap 으로 바꾼다 (키트 설정에서 swap 으로 바꾸면 불필요)
+// - 두 CSS 모두 첫 화면을 막지 않게 늦게 적용 (DeferredStylesheets, T-125)
 // - 목업의 Cormorant Garamond 는 실제로 쓰는 곳이 없어 불러오지 않는다
+const TYPEKIT_URL = 'https://use.typekit.net/ley8ols.css'
 const FONT_URLS = [
   'https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&display=swap',
-  'https://use.typekit.net/ley8ols.css',
+  TYPEKIT_URL,
 ]
+// 키트가 font-display:auto 라 첫 화면 영문 카피(LCP)가 글꼴을 기다리며 숨는다 → swap 으로 적용
+const SWAP_FONT_DISPLAY = [TYPEKIT_URL]
 
 /** 회원 화면 상단 — 이미지 없는 서브 히어로 (목업 sub-hero-plain: eyebrow · category "Member") */
 const memberHero = (title: string): PublicSection => ({
@@ -238,9 +244,8 @@ export default function HospitalATemplate({
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       <link rel="preconnect" href="https://use.typekit.net" crossOrigin="anonymous" />
       <link rel="preconnect" href="https://p.typekit.net" crossOrigin="anonymous" />
-      {FONT_URLS.map((href) => (
-        <link key={href} rel="stylesheet" href={href} precedence="default" />
-      ))}
+      {/* 웹폰트 CSS 는 첫 화면을 막지 않게 — 미리 받고 화면을 그린 뒤 적용 (T-125) */}
+      <DeferredStylesheets hrefs={FONT_URLS} swapFontDisplay={SWAP_FONT_DISPLAY} />
 
       <Header
         brandName={siteInfo.brand_name}
