@@ -12,8 +12,9 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select, text, update
+from sqlalchemy import func, select, update
 
+from app.db.session import set_super_admin_context
 from app.models.billing import PaymentHistory, Subscription
 from app.models.tenant import Tenant
 from app.workers.celery_app import celery_app
@@ -24,7 +25,7 @@ EXPIRING_ALERT_DAYS = (7, 3)
 
 
 async def _bypass(db) -> None:
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
 
 
 # ── process_monthly_billing ────────────────────────────────────────────────

@@ -3,6 +3,7 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import get_current_user, get_db, get_db_with_rls
+from app.db.session import set_super_admin_context
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.seo import SeoSettingsResponse, SeoSettingsUpdate
@@ -43,9 +44,8 @@ async def get_sitemap(
     tenant_slug: str,
     db: AsyncSession = Depends(get_db),
 ):
-    from sqlalchemy import text
 
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     xml = await seo_service.generate_sitemap_xml(db, tenant_slug)
     if not xml:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")

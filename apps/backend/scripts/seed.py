@@ -11,12 +11,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.security import hash_password
-from app.db.session import AsyncSessionLocal
+from app.db.session import create_owner_sessionmaker, set_super_admin_context
 from app.models.billing import Subscription
 from app.models.feature import Feature, TenantFeature
 from app.models.site_member import MemberReservation, SiteMember
@@ -516,8 +516,9 @@ async def seed_site_members(db: AsyncSession) -> None:
 
 async def main() -> None:
     # templates는 RLS 없이 super admin 컨텍스트로 삽입
-    async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    # 시드는 소유자 계정으로 (앱 계정은 일반 권한 — init_db_roles.py)
+    async with create_owner_sessionmaker()() as db:
+        await set_super_admin_context(db)
         await seed_templates(db)
         await seed_features(db)
         await seed_super_admin(db)

@@ -17,7 +17,11 @@ class Settings(BaseSettings):
     )
 
     # DB
+    # 앱 접속 계정 — 일반 권한(슈퍼유저 · BYPASSRLS 아님)이어야 RLS 가 실제로 적용된다
     database_url: str
+    # 마이그레이션 · 계정 생성용 소유자 계정 (비우면 database_url 사용).
+    # scripts/init_db_roles.py 가 이 계정으로 database_url 의 계정을 만든다
+    migration_database_url: str = ""
     database_pool_size: int = 10
     database_max_overflow: int = 20
 

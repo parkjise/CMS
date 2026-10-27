@@ -8,9 +8,10 @@ import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import select, text
+from sqlalchemy import select
 
 from app.core.config import settings
+from app.db.session import set_super_admin_context
 from app.models.domain import TenantDomain
 from app.workers.celery_app import celery_app
 
@@ -19,7 +20,7 @@ MAX_POLL_ATTEMPTS = 24 * 60  # 24시간 (60초 간격)
 
 
 async def _bypass(db) -> None:
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
 
 
 @celery_app.task(

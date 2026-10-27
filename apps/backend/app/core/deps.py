@@ -3,13 +3,12 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
 from app.core.member_errors import MemberAuthError
 from app.core.security import SITE_MEMBER_ROLE, decode_token, issued_before
-from app.db.session import AsyncSessionLocal, set_rls_context
+from app.db.session import AsyncSessionLocal, set_rls_context, set_super_admin_context
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -70,7 +69,7 @@ async def get_current_user(
 
     async with AsyncSessionLocal() as db:
         # 인증 흐름이므로 RLS 우회
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         user = await get_user_by_id(db, user_id)
 
     if not user:
@@ -118,7 +117,7 @@ async def get_member_tenant(tenant_slug: str) -> Tenant:
 
     async with AsyncSessionLocal() as db:
         # 테넌트 식별 단계 — tenants 조회만 RLS 우회 (get_current_user 와 동일)
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         tenant = await member_auth_service.get_active_tenant(db, tenant_slug)
     if tenant is None:
         raise MemberAuthError(404, "NOT_FOUND", errors.TENANT_NOT_FOUND)

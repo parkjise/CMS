@@ -18,11 +18,12 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.redis import get_redis
+from app.db.session import set_rls_context, set_super_admin_context
 from app.models.section import Section, SectionSetting
 from app.models.template import (
     Template,
@@ -412,7 +413,7 @@ async def build_preview(
 
     공개 엔드포인트용. 인증 불필요, 캐시도 사용하지 않는다(항상 최신).
     """
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     tenant = (
         await db.execute(
             select(Tenant).where(
@@ -427,10 +428,7 @@ async def build_preview(
 
     template = await _get_template(db, template_id)
 
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tenant.id)},
-    )
+    await set_rls_context(db, tenant.id)
     sections = list(
         (
             await db.execute(

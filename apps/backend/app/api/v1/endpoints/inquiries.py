@@ -4,7 +4,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from slowapi import Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -14,6 +14,7 @@ from app.core.deps import (
     get_db_with_rls,
     optional_member_payload,
 )
+from app.db.session import set_rls_context, set_super_admin_context
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -69,18 +70,14 @@ async def _verify_recaptcha(token: str | None) -> None:
 
 async def _resolve_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant:
     """공개 API: 슬러그로 활성 테넌트를 찾고 그 테넌트로 RLS 를 설정한다."""
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     tenant_result = await db.execute(
         select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
     )
     tenant = tenant_result.scalar_one_or_none()
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'false', true)"))
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tenant.id)},
-    )
+    await set_rls_context(db, tenant.id)
     return tenant
 
 
