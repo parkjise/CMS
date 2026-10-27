@@ -774,6 +774,7 @@ docker compose up -d
 cd apps/backend
 poetry run alembic upgrade head
 poetry run python scripts/seed.py   # 초기 데이터 (슈퍼어드민 계정, 템플릿 등)
+poetry run python scripts/init_minio.py   # 이미지 버킷 생성 + 공개 읽기 정책 (운영도 배포 전 1회)
 cd ../..
 
 # 6. 개발 서버 실행 (터미널 4개)

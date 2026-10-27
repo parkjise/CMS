@@ -796,6 +796,8 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 multipart → FastAPI UploadFile → Pillow 최적화 처리 → MinIO 업로드 → DB 기록 → CDN URL 반환
 ```
 
+> **스토리지 공개 범위:** 버킷 안 파일(`{tenant_id}/{context}/…` 업로드 · 갤러리 · 썸네일 · `templates/…` 샘플)은 모두 공개 홈페이지 이미지라 버킷 전체 익명 읽기(`s3:GetObject`)를 허용한다. 목록 조회(`ListBucket`)는 허용하지 않고, 파일 이름은 UUID. 버킷 생성 · 정책은 `scripts/init_minio.py`(설정값 사용, 여러 번 실행해도 안전) — 이전 정책은 쓰지 않는 `public/*` 경로만 열려 있어 업로드 이미지가 403 이었다 (2026-10-27 수정)
+
 **Pillow 이미지 처리 설정:**
 ```python
 # app/services/image.py
@@ -1600,6 +1602,7 @@ docker compose up -d postgres redis minio
 cd apps/backend
 poetry run alembic upgrade head
 poetry run python scripts/seed.py
+poetry run python scripts/init_minio.py   # 이미지 버킷 + 공개 읽기 정책
 cd ../..
 
 # 7. 개발 서버 전체 실행
