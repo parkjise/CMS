@@ -634,6 +634,8 @@ Accept-Language: ko-KR
 | 429 | `RATE_LIMIT_EXCEEDED` | API 호출 한도 초과 |
 | 500 | `INTERNAL_ERROR` | 서버 내부 오류 |
 
+> **구현 (2026-10-27, 전체 API 통일):** 모든 API 오류가 위 형식으로 응답한다 (`app/core/errors.py`). 엔드포인트는 `HTTPException` 을 그대로 쓰고 공통 처리기가 바꾼다 — `detail` 이 코드(`"NOT_FOUND"`)면 코드 + 한국어 기본 문구, 문장이면 그 문장 + 상태별 코드, `{code, message, field}` 객체면 그대로. 입력 검증 실패는 FastAPI 기본 422 대신 **400 `VALIDATION_ERROR`**(첫 오류 `field` · 한국어 문구, 전체는 `details`), 요청 한도 초과(slowapi)는 429, 처리하지 못한 예외는 내부 정보 없이 500. 응답 헤더(`WWW-Authenticate` · `Retry-After`)는 유지. 업무 코드(`TOO_MANY_FILES` · `INVALID_CONTEXT` · `RECAPTCHA_FAILED` 등)는 그대로 `code` 로 나간다. 프론트는 `error.message` 를 보여주고(관리자 `pickErrorMessage` · 슈퍼 어드민 `apiErrorMessage`), 필드 오류는 `error.details` 로 폼에 표시(`applyFieldErrors`).
+
 ---
 
 ### 5.2 인증 API
@@ -4433,7 +4435,7 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 - 가입: `phone_verification_id` 필수 — 같은 테넌트 · `REGISTER` · 인증 완료 30분 이내 · 같은 번호 · 미사용(`used_at`). 성공 시 201 + 자동 로그인, Celery 로 환영 메일 + 관리자 신규 회원 알림톡(실패 시 SMS, 월 한도 차감)
 - 이메일은 소문자로 저장·비교. 탈퇴 회원 이메일은 즉시 재가입 가능 (오픈 이슈 #22 — 옵션 A 로 결정)
 - 로그인 잠금: 계정 기준 5회 연속 실패 → 30분. 429 `ACCOUNT_LOCKED` + `details[0].retry_after_seconds` + `Retry-After` 헤더. IP 기준은 Rate Limit(10회/분)로 대응. `check-email` 은 디바운스 호출을 고려해 30회/분
-- 에러는 방문자 API 만 공통 형식(5.1) — 입력 검증 실패도 400 `VALIDATION_ERROR` + 한국어 메시지 + `field`
+- 에러는 공통 형식(5.1 — 2026-10-27 부터 전체 API) — 입력 검증 실패도 400 `VALIDATION_ERROR` + 한국어 메시지 + `field`
 - 방문자 토큰으로 어드민 API 호출 시 403, 어드민 토큰으로 방문자 API 호출 시 403, 다른 테넌트 토큰 403
 
 #### 구현 메모 (T-109)
