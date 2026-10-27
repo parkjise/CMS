@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 
@@ -15,28 +15,28 @@ import { useEditStore } from '@/lib/editStore'
  */
 export function RestoreDraftDialog() {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
+  const isInitialized = useClientAuthStore((s) => s.isInitialized)
   const pendingChanges = useEditStore((s) => s.pendingChanges)
-  const isDirty = useEditStore((s) => s.isDirty)
   const discardAll = useEditStore((s) => s.discardAll)
   const enterEditMode = useEditStore((s) => s.enterEditMode)
 
   const [open, setOpen] = useState(false)
+  // 페이지 로드 때 한 번만 묻는다 — 편집 중 변경이 생길 때마다 다시 뜨면 안 된다 (T-064-A)
+  const checked = useRef(false)
 
   useEffect(() => {
-    const count = Object.keys(pendingChanges).length
-    if (!isDirty || count === 0) {
-      setOpen(false)
-      return
-    }
+    // 로그인 확인(initialize) 전에는 판단하지 않는다 — 초안을 잘못 지우지 않게
+    if (checked.current || !isInitialized) return
+    checked.current = true
+    const { pendingChanges: draft, isDirty } = useEditStore.getState()
+    if (!isDirty || Object.keys(draft).length === 0) return
     if (!isLoggedIn) {
       // 비로그인 상태에서는 초안 복구 의미 없음 → 폐기
       discardAll()
-      setOpen(false)
       return
     }
     setOpen(true)
-    // intentionally run when login state or pending count changes
-  }, [isLoggedIn, isDirty, pendingChanges, discardAll])
+  }, [isInitialized, isLoggedIn, discardAll])
 
   useEffect(() => {
     if (!open) return
