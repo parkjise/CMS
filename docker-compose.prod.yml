@@ -45,6 +45,8 @@ services:
     restart: always
     networks:
       - internal
+      # nginx 가 /cms-media/ (이미지 읽기)를 넘길 수 있게 — 호스트 포트는 열지 않는다
+      - external
 
   backend:
     build:
@@ -52,6 +54,9 @@ services:
       dockerfile: Dockerfile
     image: cms-backend:latest
     container_name: cms-backend
+    # 운영 설정 전부 (apps/backend/.env.production.example 참고) — 아래 environment 가 우선
+    env_file: &backend_env_file
+      - ./apps/backend/.env.production
     environment: &backend_env
       # 앱은 일반 권한 계정(RLS 적용) — 배포 시 scripts/init_db_roles.py 로 1회 생성
       DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:-cms_app}:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
@@ -62,6 +67,7 @@ services:
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2
       APP_SECRET_KEY: ${APP_SECRET_KEY}
       MINIO_ENDPOINT: minio:9000
+      APP_ENV: production
       MINIO_ACCESS_KEY: ${MINIO_ROOT_USER}
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
@@ -80,6 +86,7 @@ services:
     image: cms-backend:latest
     container_name: cms-worker
     command: celery -A app.workers.celery_app worker --loglevel=info
+    env_file: *backend_env_file
     environment: *backend_env
     depends_on:
       - backend
@@ -93,6 +100,7 @@ services:
     image: cms-backend:latest
     container_name: cms-beat
     command: celery -A app.workers.celery_app beat --loglevel=info
+    env_file: *backend_env_file
     environment: *backend_env
     depends_on:
       - backend
@@ -106,10 +114,21 @@ services:
     build:
       context: .
       dockerfile: apps/client/Dockerfile
+      # NEXT_PUBLIC_* 는 빌드 때 고정된다 — 루트 .env 의 PUBLIC_DOMAIN 등으로 (배포 체크리스트 B1)
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://${PUBLIC_DOMAIN:?루트 .env 에 PUBLIC_DOMAIN 을 설정하세요}/api
+        NEXT_PUBLIC_SITE_URL: https://${PUBLIC_DOMAIN}
+        NEXT_PUBLIC_ADMIN_URL: https://admin.${PUBLIC_DOMAIN}
+        NEXT_PUBLIC_SERVICE_BASE_DOMAIN: ${PUBLIC_DOMAIN}
+        NEXT_PUBLIC_CDN_HOSTNAME: ${CDN_HOSTNAME:-${PUBLIC_DOMAIN}}
+        NEXT_PUBLIC_RECAPTCHA_SITE_KEY: ${RECAPTCHA_SITE_KEY:-}
+        NEXT_PUBLIC_KAKAO_MAP_API_KEY: ${KAKAO_MAP_API_KEY:-}
     image: cms-client:latest
     container_name: cms-client
     environment:
       NODE_ENV: production
+      # 서버 렌더링 · 미들웨어는 공개 도메인을 거치지 않고 백엔드를 직접 부른다
+      API_INTERNAL_URL: http://backend:8000/api
     restart: always
     networks:
       - external
@@ -119,6 +138,10 @@ services:
     build:
       context: .
       dockerfile: apps/admin/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://admin.${PUBLIC_DOMAIN:?루트 .env 에 PUBLIC_DOMAIN 을 설정하세요}/api
+        VITE_CLIENT_BASE_URL: https://${PUBLIC_DOMAIN}
+        VITE_SENTRY_DSN: ${ADMIN_SENTRY_DSN:-}
     image: cms-admin:latest
     container_name: cms-admin
     restart: always
@@ -130,6 +153,8 @@ services:
     build:
       context: .
       dockerfile: apps/superadmin/Dockerfile
+      args:
+        VITE_API_BASE_URL: https://system.${PUBLIC_DOMAIN:?루트 .env 에 PUBLIC_DOMAIN 을 설정하세요}/api/super
     image: cms-superadmin:latest
     container_name: cms-superadmin
     restart: always

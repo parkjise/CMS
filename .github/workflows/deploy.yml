@@ -34,12 +34,27 @@ jobs:
           - name: client
             context: .
             dockerfile: apps/client/Dockerfile
+            # NEXT_PUBLIC_* 는 빌드 때 고정 — 저장소 Variables 의 PUBLIC_DOMAIN 등 (운영 배포 B1)
+            build_args: |
+              NEXT_PUBLIC_API_BASE_URL=https://${{ vars.PUBLIC_DOMAIN }}/api
+              NEXT_PUBLIC_SITE_URL=https://${{ vars.PUBLIC_DOMAIN }}
+              NEXT_PUBLIC_ADMIN_URL=https://admin.${{ vars.PUBLIC_DOMAIN }}
+              NEXT_PUBLIC_SERVICE_BASE_DOMAIN=${{ vars.PUBLIC_DOMAIN }}
+              NEXT_PUBLIC_CDN_HOSTNAME=${{ vars.CDN_HOSTNAME || vars.PUBLIC_DOMAIN }}
+              NEXT_PUBLIC_RECAPTCHA_SITE_KEY=${{ vars.RECAPTCHA_SITE_KEY }}
+              NEXT_PUBLIC_KAKAO_MAP_API_KEY=${{ vars.KAKAO_MAP_API_KEY }}
           - name: admin
             context: .
             dockerfile: apps/admin/Dockerfile
+            build_args: |
+              VITE_API_BASE_URL=https://admin.${{ vars.PUBLIC_DOMAIN }}/api
+              VITE_CLIENT_BASE_URL=https://${{ vars.PUBLIC_DOMAIN }}
+              VITE_SENTRY_DSN=${{ vars.ADMIN_SENTRY_DSN }}
           - name: superadmin
             context: .
             dockerfile: apps/superadmin/Dockerfile
+            build_args: |
+              VITE_API_BASE_URL=https://system.${{ vars.PUBLIC_DOMAIN }}/api/super
     steps:
       - uses: actions/checkout@v4
 
@@ -61,6 +76,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.build_args }}
           push: true
           tags: |
             ${{ env.ECR_REGISTRY }}/cms-${{ matrix.name }}:latest

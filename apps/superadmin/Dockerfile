@@ -18,6 +18,10 @@ RUN pnpm install --frozen-lockfile
 
 COPY packages/ packages/
 COPY apps/superadmin/ apps/superadmin/
+# VITE_* 는 빌드 결과에 고정된다 → 빌드 인자로 받는다 (docker-compose.prod.yml build.args)
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+RUN test -n "$VITE_API_BASE_URL" || (echo "VITE_API_BASE_URL 빌드 인자가 필요합니다" && exit 1)
 RUN pnpm --filter @cms/superadmin build
 
 # ── Stage 2: runtime (Nginx 정적 서빙) ──────────────────────────────────────

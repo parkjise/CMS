@@ -29,6 +29,7 @@ FROM python:3.13-slim AS runtime
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
     PATH="/app/.venv/bin:$PATH"
 
 # 런타임 공유 라이브러리만 (libpq)
@@ -45,6 +46,8 @@ COPY --from=builder /app/.venv /app/.venv
 COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./
+# 운영 1회성 스크립트 (init_db_roles · init_minio · seed) — 배포 체크리스트 3절
+COPY scripts ./scripts
 
 USER app
 EXPOSE 8000

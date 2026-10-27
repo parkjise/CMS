@@ -2,7 +2,7 @@
  * 온라인 상담 게시판 공개 API (T-123) — /api/public/inquiries/board
  * 서버 컴포넌트에서 목록·상세를 읽는다 (항상 최신: no-store).
  */
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+import { serverApiBase } from './apiBase'
 
 export interface BoardListItem {
   id: string
@@ -38,7 +38,7 @@ export interface BoardPost {
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
+    const res = await fetch(`${serverApiBase()}${path}`, {
       cache: 'no-store',
       headers: { Accept: 'application/json' },
     })
