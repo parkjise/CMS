@@ -1,4 +1,5 @@
 import hashlib
+import time
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from slowapi import Limiter
@@ -53,6 +54,38 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+# 갱신(rotation)으로 바뀐 옛 refresh token 을 잠시 더 받아 주는 시간 (초)
+# — 갱신 응답이 도착하기 전에 페이지를 이동하면 브라우저는 새 쿠키를 못 받고
+#   옛 쿠키를 그대로 쓴다. 유예가 없으면 다음 갱신이 401 → 로그아웃
+#   (T-082-A, CI E2E 에서 발견)
+ROTATION_GRACE_SECONDS = 30
+_ROTATED_PREFIX = "rotated:"
+_REVOKED = "1"  # 로그아웃 — 유예 없음
+
+
+def _blacklist_key(token: str) -> str:
+    return f"blacklist:{_token_hash(token)}"
+
+
+async def _mark_rotated(redis, token: str) -> None:
+    await redis.setex(
+        _blacklist_key(token), _COOKIE_MAX_AGE, f"{_ROTATED_PREFIX}{int(time.time())}"
+    )
+
+
+async def _is_revoked(redis, token: str) -> bool:
+    """로그아웃된 토큰, 또는 갱신된 지 유예 시간이 지난 토큰이면 True."""
+    value = await redis.get(_blacklist_key(token))
+    if not value:
+        return False
+    if isinstance(value, bytes):
+        value = value.decode()
+    if value.startswith(_ROTATED_PREFIX):
+        rotated_at = int(value[len(_ROTATED_PREFIX) :])
+        return time.time() - rotated_at > ROTATION_GRACE_SECONDS
+    return True
+
+
 @router.post("/login", response_model=ApiResponse[LoginResponse])
 @limiter.limit("10/minute")
 async def login(
@@ -91,9 +124,9 @@ async def refresh(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
 
-    # 블랙리스트 확인
+    # 블랙리스트 확인 (갱신 직후 유예 시간 안이면 통과)
     redis = await get_redis()
-    if await redis.get(f"blacklist:{_token_hash(refresh_token)}"):
+    if await _is_revoked(redis, refresh_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
@@ -123,8 +156,8 @@ async def refresh(
     new_access, new_refresh = issue_tokens(user)
     # refresh token rotation
     _set_refresh_cookie(response, new_refresh)
-    # 구 refresh token 블랙리스트 등록
-    await redis.setex(f"blacklist:{_token_hash(refresh_token)}", _COOKIE_MAX_AGE, "1")
+    # 구 refresh token 블랙리스트 등록 — 유예 시간 동안은 한 번 더 받아 준다
+    await _mark_rotated(redis, refresh_token)
 
     return ApiResponse.ok(RefreshResponse(access_token=new_access))
 
@@ -136,9 +169,7 @@ async def logout(
 ):
     if refresh_token:
         redis = await get_redis()
-        await redis.setex(
-            f"blacklist:{_token_hash(refresh_token)}", _COOKIE_MAX_AGE, "1"
-        )
+        await redis.setex(_blacklist_key(refresh_token), _COOKIE_MAX_AGE, _REVOKED)
     _delete_refresh_cookie(response)
 
 
@@ -175,7 +206,7 @@ async def me(
         )
 
     redis = await get_redis()
-    if await redis.get(f"blacklist:{_token_hash(refresh_token)}"):
+    if await _is_revoked(redis, refresh_token):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
