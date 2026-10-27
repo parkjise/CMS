@@ -3,7 +3,7 @@
 ## 워크플로
 | 파일 | 트리거 | 역할 |
 |---|---|---|
-| `test.yml` | PR, `main`/`develop` push | 백엔드(ruff+alembic+pytest≥70%) · 프론트(lint+type-check+vitest) · **E2E**(실제 백엔드+홈페이지 Playwright, T-082-A) |
+| `test.yml` | PR, `main`/`develop` push | 백엔드(ruff+mypy+alembic+pytest≥70%) · 프론트(lint+type-check+vitest) · **E2E**(실제 백엔드+홈페이지 Playwright, T-082-A) |
 | `deploy.yml` | `Test` 성공(`workflow_run`, main) | 4개 이미지 ECR 푸시 → ECS 롤링 배포 |
 
 ## 머지 차단 설정
