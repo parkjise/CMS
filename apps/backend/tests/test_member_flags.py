@@ -430,7 +430,7 @@ class TestAdminReservation:
             json={"status": "PENDING"},
             headers=auth_headers,
         )
-        assert bad.status_code == 422
+        assert bad.status_code == 400
         missing = await client.patch(
             f"/api/v1/inquiries/{uuid.uuid4()}/reservation",
             json={"status": "CONFIRMED"},

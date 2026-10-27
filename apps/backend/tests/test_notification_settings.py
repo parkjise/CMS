@@ -107,7 +107,7 @@ class TestUpdateSettings:
             json={"recipient_phone": "02-1234-5678"},
             headers=auth_headers,
         )
-        assert resp.status_code == 422  # pydantic validation
+        assert resp.status_code == 400  # pydantic validation
 
     async def test_invalid_email_rejected(self, client, auth_headers):
         resp = await client.put(
@@ -115,7 +115,7 @@ class TestUpdateSettings:
             json={"recipient_email": "not-an-email"},
             headers=auth_headers,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
 
 # ── POST /api/v1/notification-settings/test ───────────────────────────────

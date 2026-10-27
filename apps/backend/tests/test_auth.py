@@ -30,7 +30,7 @@ class TestLogin:
             },
         )
         assert resp.status_code == 401
-        assert resp.json()["detail"] == "UNAUTHORIZED"
+        assert resp.json()["error"]["code"] == "UNAUTHORIZED"
 
     async def test_login_wrong_email(self, client: AsyncClient, test_user: dict):
         resp = await client.post(
@@ -56,7 +56,7 @@ class TestLogin:
 
     async def test_login_missing_fields(self, client: AsyncClient):
         resp = await client.post("/api/v1/auth/login", json={"email": "a@b.com"})
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
 
 class TestMe:

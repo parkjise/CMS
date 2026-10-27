@@ -32,7 +32,7 @@ class TestSnsSettings:
             json={"kakao_url": "not-a-url"},
             headers=auth_headers,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_plan_limit_exceeded(
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict
@@ -55,7 +55,7 @@ class TestSnsSettings:
             json={"url": "not-a-url"},
             headers=auth_headers,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_test_url_valid_format(self, client: AsyncClient, auth_headers: dict):
         resp = await client.post(
@@ -97,7 +97,7 @@ class TestSeoSettings:
             json={"meta_title": "a" * 61},
             headers=auth_headers,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_meta_description_too_long(self, client: AsyncClient, auth_headers: dict):
         resp = await client.put(
@@ -105,7 +105,7 @@ class TestSeoSettings:
             json={"meta_description": "a" * 161},
             headers=auth_headers,
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_upsert(self, client: AsyncClient, auth_headers: dict):
         await client.put(
