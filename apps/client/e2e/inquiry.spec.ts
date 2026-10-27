@@ -2,34 +2,49 @@ import { expect, test } from '@playwright/test'
 
 const TEST_TENANT = 'test-tenant'
 
-// NOTE:
-// 현재 백엔드 시드(scripts/seed.py)는 test-tenant에 Section 데이터를 만들지 않음.
-// CONTACT 섹션이 없으면 ContactForm이 페이지에 렌더되지 않아 이 테스트는 의미가 없다.
-// 후속 작업으로 시드에 CONTACT 섹션을 추가하거나, 통합 테스트 전용 데이터 셋업을 도입한 후
-// `test.skip(true, ...)`를 제거하고 활성화한다.
+// 전제: 백엔드(:8000) + 시드(scripts/seed.py — test-tenant 홈 CONTACT 섹션 포함, T-051-A)
+// test-tenant 업종은 GENERAL → 일반 업무 폼 (회사명 · 문의 분야)
 test.describe('문의 제출 플로우', () => {
-  test.skip(true, 'CONTACT 섹션 시드 추가 후 활성화')
-
-  test('이름/연락처/내용을 입력하고 제출하면 성공 토스트가 노출된다', async ({
-    page,
-  }) => {
+  test('이름/연락처/내용을 입력하고 제출하면 성공 토스트가 노출된다', async ({ page }) => {
     await page.goto(`/${TEST_TENANT}`)
 
     const contactSection = page.locator('[data-section-type="CONTACT"]')
     await expect(contactSection).toBeVisible()
 
-    await page
-      .getByLabel(/문의 유형/)
-      .selectOption('GENERAL')
-    await page.getByLabel(/이름/).fill('테스트 사용자')
-    await page.getByLabel(/휴대폰 번호/).fill('010-1234-5678')
-    await page
+    await contactSection.getByLabel(/문의 유형/).selectOption('GENERAL')
+    await contactSection.getByLabel(/이름/).fill('테스트 사용자')
+    await contactSection.getByLabel(/휴대폰 번호/).fill('010-1234-5678')
+    await contactSection
       .getByLabel(/문의 내용/)
       .fill('E2E 테스트 문의입니다. 정상 접수되는지 확인합니다.')
-    await page.getByRole('button', { name: /문의 보내기/ }).click()
+    await contactSection.getByRole('button', { name: /문의 보내기/ }).click()
 
-    await expect(page.getByText(/문의가 접수되었습니다/)).toBeVisible({
-      timeout: 10_000,
-    })
+    await expect(page.getByText(/문의가 접수되었습니다/)).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('업종별 추가 칸(회사명 · 문의 분야)을 함께 접수한다', async ({ page }) => {
+    await page.goto(`/${TEST_TENANT}`)
+    const contactSection = page.locator('[data-section-type="CONTACT"]')
+
+    // 업종 칸 목록을 받아 그린다 (GET /api/public/inquiries/fields)
+    const company = contactSection.getByLabel('회사명')
+    await expect(company).toBeVisible()
+    await expect(contactSection.getByRole('option', { name: '증상 문의' })).toHaveCount(0)
+
+    const submitted = page.waitForRequest(
+      (req) => req.method() === 'POST' && /\/public\/inquiries(\?|$)/.test(req.url()),
+    )
+    await company.fill('주식회사 테스트')
+    await contactSection.getByLabel('문의 분야').selectOption('QUOTE')
+    await contactSection.getByLabel(/이름/).fill('테스트 사용자')
+    await contactSection.getByLabel(/휴대폰 번호/).fill('010-1234-5678')
+    await contactSection
+      .getByLabel(/문의 내용/)
+      .fill('견적 문의드립니다. 홈페이지 제작 비용이 궁금합니다.')
+    await contactSection.getByRole('button', { name: /문의 보내기/ }).click()
+
+    const body = (await submitted).postDataJSON()
+    expect(body.detail).toEqual({ company: '주식회사 테스트', topic: 'QUOTE' })
+    await expect(page.getByText(/문의가 접수되었습니다/)).toBeVisible({ timeout: 10_000 })
   })
 })
