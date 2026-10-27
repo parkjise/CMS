@@ -87,7 +87,7 @@ async def _is_revoked(redis, token: str) -> bool:
 
 
 @router.post("/login", response_model=ApiResponse[LoginResponse])
-@limiter.limit("10/minute")
+@limiter.limit(lambda: settings.login_rate_limit)
 async def login(
     request: Request,
     body: LoginRequest,
