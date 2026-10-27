@@ -235,7 +235,9 @@ test.describe('T-078 전체 통합 시나리오', () => {
     )
     await dialog.getByRole('button', { name: '추가' }).click()
     const sectionId = (await (await created).json()).data.id as string
-    await expect(page.getByText(label)).toBeVisible()
+    // 목록의 그 섹션 줄로 확인 — 성공 토스트에도 같은 이름이 들어 있어 getByText 는 두 개를 찾는다
+    const row = page.getByRole('button', { name: `${label} 삭제` })
+    await expect(row).toBeVisible()
 
     // 방문자 홈페이지 — 시작 문구가 든 새 섹션
     const visitor = await page.context().browser()!.newPage()
@@ -243,9 +245,9 @@ test.describe('T-078 전체 통합 시나리오', () => {
     await expect(visitor.locator(`[data-section-id="${sectionId}"]`).first()).toBeVisible()
 
     // 삭제 → 홈페이지에서 사라진다
-    await page.getByRole('button', { name: `${label} 삭제` }).click()
+    await row.click()
     await page.getByRole('dialog').getByRole('button', { name: '삭제' }).click()
-    await expect(page.getByText(label)).toHaveCount(0)
+    await expect(row).toHaveCount(0)
     await visitor.reload()
     await expect(visitor.locator(`[data-section-id="${sectionId}"]`)).toHaveCount(0)
     await visitor.close()
