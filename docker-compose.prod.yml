@@ -53,7 +53,10 @@ services:
     image: cms-backend:latest
     container_name: cms-backend
     environment: &backend_env
-      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # 앱은 일반 권한 계정(RLS 적용) — 배포 시 scripts/init_db_roles.py 로 1회 생성
+      DATABASE_URL: postgresql+asyncpg://${APP_DB_USER:-cms_app}:${APP_DB_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # 소유자 계정 — alembic · init_db_roles · 시드 전용
+      MIGRATION_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
       CELERY_BROKER_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
       CELERY_RESULT_BACKEND: redis://:${REDIS_PASSWORD}@redis:6379/2

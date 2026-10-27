@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta
 
 from sqlalchemy import select, text
 
-from app.db.session import AsyncSessionLocal
+from app.db.session import create_owner_sessionmaker, set_super_admin_context
 from app.models.analytics import SiteAnalytics
 from app.models.inquiry import Inquiry
 from app.models.section import Section, SectionSetting
@@ -49,8 +49,9 @@ INQUIRIES = [
 
 
 async def main() -> None:
-    async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    # 시드는 소유자 계정으로 (앱 계정은 일반 권한 — init_db_roles.py)
+    async with create_owner_sessionmaker()() as db:
+        await set_super_admin_context(db)
         t = (
             await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
         ).scalars().first()

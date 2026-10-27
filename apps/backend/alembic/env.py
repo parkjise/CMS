@@ -16,8 +16,13 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# 환경변수로 DB URL override
-database_url = os.environ.get("DATABASE_URL", config.get_main_option("sqlalchemy.url"))
+# 환경변수로 DB URL override — 테이블 구조 변경은 소유자 계정(MIGRATION_DATABASE_URL)으로.
+# 앱 계정(DATABASE_URL)은 일반 권한이라 DDL 을 할 수 없다 (scripts/init_db_roles.py)
+database_url = (
+    os.environ.get("MIGRATION_DATABASE_URL")
+    or os.environ.get("DATABASE_URL")
+    or config.get_main_option("sqlalchemy.url")
+)
 config.set_main_option("sqlalchemy.url", database_url)
 
 # 모든 모델 import → autogenerate 지원

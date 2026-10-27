@@ -1,5 +1,6 @@
 import asyncio
 
+from app.db.session import set_super_admin_context
 from app.workers.celery_app import celery_app
 
 
@@ -13,11 +14,10 @@ def flush_analytics(self):
 
 
 async def _flush() -> None:
-    from sqlalchemy import text
 
     from app.db.session import AsyncSessionLocal
     from app.services.analytics import flush_all_to_db
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         await flush_all_to_db(db)

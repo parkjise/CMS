@@ -10,6 +10,7 @@ from datetime import date
 
 from sqlalchemy import text
 
+from app.db.session import set_super_admin_context
 from app.workers.celery_app import celery_app
 
 # 플랜별 보관 기간 (일). PREMIUM은 영구 보관 → None
@@ -50,7 +51,7 @@ async def _reset_monthly_notification_count() -> int:
     this_month_first = date.today().replace(day=1)
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             text(
                 "UPDATE notification_settings "
@@ -83,7 +84,7 @@ async def _cleanup_old_inquiries() -> int:
 
     total = 0
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         for plan_type, retention in INQUIRY_RETENTION_DAYS.items():
             if retention is None:
                 continue  # 영구 보관
@@ -128,7 +129,7 @@ async def _cleanup_old_analytics() -> int:
 
     total = 0
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         for plan_type, retention in ANALYTICS_RETENTION_DAYS.items():
             if retention is None:
                 continue
@@ -175,7 +176,7 @@ async def _cleanup_old_template_history(
         raise ValueError("retention_days must be a non-negative integer")
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             text(
                 f"""

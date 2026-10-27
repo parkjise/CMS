@@ -3,7 +3,7 @@ from uuid import UUID
 from httpx import AsyncClient
 from sqlalchemy import select, text
 
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, set_super_admin_context
 from app.models.analytics import SiteAnalytics
 from app.services.analytics import (
     _date_str,
@@ -120,9 +120,7 @@ class TestAnalyticsService:
         today = _date_str()
 
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await flush_tenant_to_db(db, UUID(tenant_id), today)
 
             result = await db.execute(
@@ -137,9 +135,7 @@ class TestAnalyticsService:
         assert row.unique_visitors >= 1
 
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await db.execute(
                 text("DELETE FROM site_analytics WHERE tenant_id = :tid"),
                 {"tid": tenant_id},
@@ -187,9 +183,7 @@ class TestMobileAndReferrerCollection:
         today = _date_str()
 
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await flush_tenant_to_db(db, UUID(tenant_id), today)
             row = (
                 await db.execute(
@@ -205,9 +199,7 @@ class TestMobileAndReferrerCollection:
         assert row.referrers.get("direct", 0) >= 1
 
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await db.execute(
                 text("DELETE FROM site_analytics WHERE tenant_id = :tid"),
                 {"tid": tenant_id},
@@ -225,9 +217,7 @@ class TestTimeseriesEndpoint:
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict
     ):
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await db.execute(
                 text("UPDATE tenants SET plan_type='BASIC' WHERE id=:t"),
                 {"t": test_tenant["id"]},
@@ -248,9 +238,7 @@ class TestTimeseriesEndpoint:
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict
     ):
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await db.execute(
                 text("UPDATE tenants SET plan_type='STANDARD' WHERE id=:t"),
                 {"t": test_tenant["id"]},

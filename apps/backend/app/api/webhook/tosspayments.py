@@ -10,9 +10,10 @@ import hmac
 import json
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
-from sqlalchemy import text, update
+from sqlalchemy import update
 
 from app.core.config import settings
+from app.db.session import set_super_admin_context
 from app.models.billing import PaymentHistory
 from app.schemas.common import ApiResponse
 
@@ -72,7 +73,7 @@ async def receive_tosspayments_webhook(
 
     async with AsyncSessionLocal() as db:
         # 웹훅은 테넌트 컨텍스트가 없으므로 슈퍼 어드민 모드로 RLS 우회
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             update(PaymentHistory)
             .where(PaymentHistory.order_id == order_id)

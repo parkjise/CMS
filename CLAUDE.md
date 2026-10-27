@@ -440,6 +440,8 @@ export default SectionCard
 2. **PK는 UUID** (`gen_random_uuid()` 기본값)
 3. **모든 테이블에 `created_at`, `updated_at` 필수** (TIMESTAMPTZ)
 4. **RLS 정책 필수 적용** (테넌트 간 데이터 격리)
+   - 앱은 일반 권한 계정(`DATABASE_URL`=cms_app)으로 접속 — 소유자 · 슈퍼유저 계정은 마이그레이션 · 시드 전용(`MIGRATION_DATABASE_URL`)
+   - RLS 컨텍스트는 `set_rls_context` / `set_super_admin_context` 로만 설정 (직접 `set_config` 금지 — commit 뒤 사라지거나 다음 요청에 새어 나감)
 5. **소프트 삭제** 원칙: `deleted_at` 컬럼 추가, 실제 DELETE 금지
 
 ### RLS 적용 패턴 (모든 테이블 동일)
@@ -773,6 +775,7 @@ docker compose up -d
 # 5. DB 마이그레이션
 cd apps/backend
 poetry run alembic upgrade head
+poetry run python scripts/init_db_roles.py   # 앱 전용 DB 계정(cms_app) — RLS 적용 (운영도 배포 시 1회)
 poetry run python scripts/seed.py   # 초기 데이터 (슈퍼어드민 계정, 템플릿 등)
 poetry run python scripts/init_minio.py   # 이미지 버킷 생성 + 공개 읽기 정책 (운영도 배포 전 1회)
 cd ../..

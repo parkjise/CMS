@@ -8,8 +8,9 @@
 import asyncio
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, select, text, update
+from sqlalchemy import and_, select, update
 
+from app.db.session import set_super_admin_context
 from app.models.announcement import Announcement
 from app.models.sns import NotificationSetting
 from app.services import announcement as announcement_service
@@ -36,7 +37,7 @@ async def _send_announcement(announcement_id: str) -> dict:
     from app.services import notification as notification_service
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
 
         ann = await db.get(Announcement, announcement_id)
         if ann is None:
@@ -90,7 +91,7 @@ async def _publish_scheduled_announcements() -> int:
 
     now = datetime.now(UTC)
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             update(Announcement)
             .where(
@@ -123,7 +124,7 @@ async def _deactivate_expired_announcements() -> int:
 
     now = datetime.now(UTC)
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             update(Announcement)
             .where(

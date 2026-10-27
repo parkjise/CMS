@@ -2,12 +2,13 @@ import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.core.deps import get_db
 from app.core.redis import get_redis
+from app.db.session import set_rls_context, set_super_admin_context
 from app.models.section import Section
 from app.models.seo import SeoSetting
 from app.models.sns import SnsChannelSetting
@@ -79,10 +80,7 @@ async def _resolve_template(
 async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteResponse:
     tid = tenant.id
 
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tid)},
-    )
+    await set_rls_context(db, tid)
 
     sections_result = await db.execute(
         select(Section)
@@ -137,7 +135,7 @@ async def get_site(
     if cached:
         return ApiResponse.ok(json.loads(cached))
 
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     tenant = await _get_tenant(db, tenant_slug)
     if not tenant:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
@@ -159,15 +157,12 @@ async def get_site_sections(
     tenant_slug: str,
     db: AsyncSession = Depends(get_db),
 ):
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     tenant = await _get_tenant(db, tenant_slug)
     if not tenant or not tenant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
-    await db.execute(
-        text("SELECT set_config('app.current_tenant_id', :tid, true)"),
-        {"tid": str(tenant.id)},
-    )
+    await set_rls_context(db, tenant.id)
     result = await db.execute(
         select(Section)
         .where(Section.deleted_at.is_(None))
@@ -211,7 +206,7 @@ async def get_site_template(
             )
         )
 
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
     tenant = await _get_tenant(db, tenant_slug)
     if not tenant or not tenant.is_active:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")

@@ -5,6 +5,7 @@ from PIL import Image
 from sqlalchemy import select, text
 
 from app.core.config import settings
+from app.db.session import set_super_admin_context
 from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
 from app.models.section import SectionSetting
@@ -34,7 +35,7 @@ async def _generate_thumbnail(file_id: str) -> bool:
     from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         result = await db.execute(
             select(UploadedFile).where(UploadedFile.id == file_id)
         )
@@ -99,7 +100,7 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
 
     deleted = 0
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         # INTERVAL 안에서는 :param 바인딩이 안 되므로 정수 검증 후 SQL에 직접 포함
         if not isinstance(age_days, int) or age_days < 0:
             raise ValueError("age_days must be a non-negative integer")

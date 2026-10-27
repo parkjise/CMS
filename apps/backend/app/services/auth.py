@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select, text, update
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -12,13 +12,14 @@ from app.core.security import (
     verify_password,
     verify_totp,
 )
+from app.db.session import set_super_admin_context
 from app.models.tenant import Tenant
 from app.models.user import User
 
 
 async def _bypass_rls(db: AsyncSession) -> None:
     """로그인 흐름: 테넌트 컨텍스트 없이 조회하기 위해 슈퍼어드민 모드로 RLS 우회"""
-    await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+    await set_super_admin_context(db)
 
 
 async def authenticate_user(

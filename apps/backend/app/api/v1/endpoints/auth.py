@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.deps import get_db
 from app.core.redis import get_redis
 from app.core.security import decode_token
+from app.db.session import set_super_admin_context
 from app.schemas.auth import LoginRequest, LoginResponse, RefreshResponse, UserResponse
 from app.schemas.common import ApiResponse
 from app.services.auth import (
@@ -105,12 +106,10 @@ async def refresh(
 
     from uuid import UUID
 
-    from sqlalchemy import text
-
     from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         user = await get_user_by_id(db, UUID(payload["sub"]))
 
     if not user:
@@ -156,14 +155,10 @@ async def me(
             payload = _decode(bearer)
             from uuid import UUID
 
-            from sqlalchemy import text
-
             from app.db.session import AsyncSessionLocal
 
             async with AsyncSessionLocal() as db:
-                await db.execute(
-                    text("SELECT set_config('app.is_super_admin', 'true', true)")
-                )
+                await set_super_admin_context(db)
                 user = await get_user_by_id(db, UUID(payload["sub"]))
             if user:
                 return ApiResponse.ok(UserResponse.model_validate(user))
@@ -193,12 +188,10 @@ async def me(
 
     from uuid import UUID
 
-    from sqlalchemy import text
-
     from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         user = await get_user_by_id(db, UUID(payload["sub"]))
 
     if not user:

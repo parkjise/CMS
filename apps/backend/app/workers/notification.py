@@ -6,8 +6,9 @@
 
 import asyncio
 
-from sqlalchemy import select, text, update
+from sqlalchemy import select, update
 
+from app.db.session import set_super_admin_context
 from app.models.inquiry import Inquiry
 from app.models.tenant import Tenant
 from app.services import notification as notification_service
@@ -35,7 +36,7 @@ async def _send_inquiry_alert(tenant_id: str, inquiry_id: str) -> dict:
     from app.db.session import AsyncSessionLocal
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
 
         inq_row = await db.execute(select(Inquiry).where(Inquiry.id == inquiry_id))
         inquiry = inq_row.scalar_one_or_none()
@@ -92,7 +93,7 @@ async def _send_member_joined_alert(tenant_id: str, member_id: str) -> dict:
     from app.services import email as email_service
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         member = (
             await db.execute(select(SiteMember).where(SiteMember.id == member_id))
         ).scalar_one_or_none()
@@ -135,7 +136,7 @@ async def _send_member_password_changed(tenant_id: str, member_id: str) -> dict:
     from app.services import email as email_service
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         member = (
             await db.execute(select(SiteMember).where(SiteMember.id == member_id))
         ).scalar_one_or_none()
@@ -240,7 +241,7 @@ async def _send_member_reservation_notice(
     from app.services import email as email_service
 
     async with AsyncSessionLocal() as db:
-        await db.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await set_super_admin_context(db)
         reservation = await db.get(MemberReservation, reservation_id)
         tenant = (
             await db.execute(select(Tenant).where(Tenant.id == tenant_id))
