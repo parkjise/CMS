@@ -46,4 +46,5 @@ export const TYPE_LABELS: Record<string, string> = {
   CONSULT: '상담',
   RESERVATION: '예약',
   PARTNERSHIP: '제휴',
+  SYMPTOM: '증상',
 }

@@ -12,6 +12,7 @@ from app.core.redis import get_redis
 from app.models.inquiry import Inquiry
 from app.models.tenant import Tenant
 from app.schemas.inquiry import InquiryCreate, InquiryListResponse, InquiryUpdate
+from app.services.inquiry_fields import clean_detail
 
 _VALID_STATUSES = {"PENDING", "IN_PROGRESS", "DONE", "SPAM"}
 
@@ -26,7 +27,9 @@ async def create_inquiry(
     """문의 · 예약 접수.
 
     member_id 가 있으면 회원 문의 — 예약이면 내 예약에도 추가 (T-111).
+    detail 은 업종(tenant.template_type) 칸 정의로 검사한다 — 틀리면 InquiryFieldError.
     """
+    detail = clean_detail(tenant.template_type if tenant else None, data.detail)
     inquiry = Inquiry(
         tenant_id=tenant_id,
         inquiry_type=data.inquiry_type,
@@ -37,6 +40,7 @@ async def create_inquiry(
         subject=data.subject,
         reserved_date=data.reserved_date,
         reserved_time=data.reserved_time,
+        detail=detail,
         status="PENDING",
         is_read=False,
         member_id=member_id,
