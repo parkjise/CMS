@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 import {
   ADMIN_URL,
   BACKEND_URL,
+  CLIENT_URL,
   FULL_STACK,
   SYSTEM_URL,
   TEST_TENANT_ADMIN,
@@ -193,6 +194,43 @@ test.describe('T-078 전체 통합 시나리오', () => {
       expect(res.status()).toBe(502)
       expect((await res.json()).error.message).toContain('AI 문구 생성에 실패했습니다')
     }
+  })
+
+  test('시나리오 7: 관리자 화면에서 섹션을 추가하면 홈페이지에 나타나고, 삭제하면 사라진다 (T-037-A)', async ({
+    page,
+  }) => {
+    const label = `E2E 섹션 ${Date.now() % 100000}`
+    await page.goto(`${ADMIN_URL}/login`)
+    await page.getByLabel('이메일').fill(email)
+    await page.getByLabel('비밀번호').fill(password)
+    await page.getByLabel('사이트 슬러그').fill(slug)
+    await page.getByRole('button', { name: '로그인' }).click()
+    await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+    await page.goto(`${ADMIN_URL}/admin/content`)
+    await page.getByRole('button', { name: '섹션 추가' }).click()
+    const dialog = page.getByRole('dialog')
+    await dialog.getByLabel('소개').check()
+    await dialog.getByLabel('섹션 이름 (선택)').fill(label)
+    const created = page.waitForResponse(
+      (r) => r.url().endsWith('/v1/sections') && r.request().method() === 'POST',
+    )
+    await dialog.getByRole('button', { name: '추가' }).click()
+    const sectionId = (await (await created).json()).data.id as string
+    await expect(page.getByText(label)).toBeVisible()
+
+    // 방문자 홈페이지 — 시작 문구가 든 새 섹션
+    const visitor = await page.context().browser()!.newPage()
+    await visitor.goto(`${CLIENT_URL}/${slug}`)
+    await expect(visitor.locator(`[data-section-id="${sectionId}"]`).first()).toBeVisible()
+
+    // 삭제 → 홈페이지에서 사라진다
+    await page.getByRole('button', { name: `${label} 삭제` }).click()
+    await page.getByRole('dialog').getByRole('button', { name: '삭제' }).click()
+    await expect(page.getByText(label)).toHaveCount(0)
+    await visitor.reload()
+    await expect(visitor.locator(`[data-section-id="${sectionId}"]`)).toHaveCount(0)
+    await visitor.close()
   })
 
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
