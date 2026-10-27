@@ -114,3 +114,57 @@ export function useToggleSection() {
     },
   })
 }
+
+// ── 섹션 추가 · 삭제 + 요금제 한도 (기획서 AD-02 · 3.2, T-037-A) ──────────────
+
+export interface SectionLimits {
+  plan_type: string
+  count: number
+  /** null 이면 무제한 */
+  limit: number | null
+  can_add: boolean
+  can_delete: boolean
+  /** 추가 · 삭제를 못 하는 이유 (요금제 고정 · 한도 · 코드형 템플릿) */
+  reason: string | null
+  addable_types: Array<{ section_type: string; label: string }>
+}
+
+const LIMITS_QUERY_KEY = ['sections', 'limits'] as const
+
+/** 요금제 판단은 서버가 한다 — 화면은 can_add · can_delete · reason 만 따른다 */
+export function useSectionLimits() {
+  return useQuery({
+    queryKey: LIMITS_QUERY_KEY,
+    queryFn: async (): Promise<SectionLimits> => {
+      const { data } = await api.get('/v1/sections/limits')
+      return data.data
+    },
+    staleTime: 60 * 1000,
+  })
+}
+
+export function useCreateSection() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (body: { section_type: string; label?: string }) => {
+      const { data } = await api.post('/v1/sections', body)
+      return data.data as Section
+    },
+    onSettled: () => {
+      // ['sections'] 접두로 목록 · 한도를 함께 새로 읽는다
+      queryClient.invalidateQueries({ queryKey: SECTIONS_QUERY_KEY })
+    },
+  })
+}
+
+export function useDeleteSection() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (sectionId: string) => {
+      await api.delete(`/v1/sections/${sectionId}`)
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: SECTIONS_QUERY_KEY })
+    },
+  })
+}

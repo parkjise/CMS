@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { Layers, Settings } from 'lucide-react'
+import { Layers, Lock, Plus, Settings } from 'lucide-react'
+import { Button } from '@cms/ui'
+import { AddSectionModal } from '@/components/content/AddSectionModal'
 import { SectionList } from '@/components/content/SectionList'
-import { useSections } from '@/hooks/useSections'
+import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
 type Tab = 'sections' | 'settings'
 
@@ -109,7 +111,46 @@ function SectionsTab({ sections, isLoading, isError }: SectionsTabProps) {
     )
   }
 
-  return <SectionList sections={sections} />
+  return <SectionsWithLimits sections={sections} />
+}
+
+// ── 섹션 추가 · 삭제 (기획서 AD-02 · 3.2, T-037-A) ─────────────────────────
+
+function SectionsWithLimits({ sections }: { sections: SectionsTabProps['sections'] }) {
+  const { data: limits } = useSectionLimits()
+  const [adding, setAdding] = useState(false)
+
+  return (
+    <div className="space-y-4">
+      <SectionList sections={sections} canDelete={limits?.can_delete ?? false} />
+      {limits && <AddSectionBar limits={limits} onAdd={() => setAdding(true)} />}
+      {limits && (
+        <AddSectionModal open={adding} limits={limits} onClose={() => setAdding(false)} />
+      )}
+    </div>
+  )
+}
+
+function AddSectionBar({ limits, onAdd }: { limits: SectionLimits; onAdd: () => void }) {
+  const usage =
+    limits.limit === null ? `${limits.count}개 사용 중` : `${limits.count} / ${limits.limit}개`
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-dashed border-slate-200 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="text-sm text-slate-600">
+        <span className="font-medium text-slate-900">섹션 {usage}</span>
+        {limits.reason && (
+          <p className="mt-1 flex items-start gap-1.5 text-xs text-slate-500" role="note">
+            <Lock className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" aria-hidden="true" />
+            {limits.reason}
+          </p>
+        )}
+      </div>
+      <Button type="button" onClick={onAdd} disabled={!limits.can_add}>
+        <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
+        섹션 추가
+      </Button>
+    </div>
+  )
 }
 
 // ── 공통 설정 탭 (placeholder, T-037+에서 확장) ──────────────────────────

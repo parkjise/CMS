@@ -11,7 +11,9 @@ import {
   arrayMove,
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
+import { useState } from 'react'
 import { toast } from '@cms/ui'
+import { DeleteSectionDialog } from './DeleteSectionDialog'
 import { SectionListItem } from './SectionListItem'
 import {
   type Section,
@@ -21,11 +23,14 @@ import {
 
 interface SectionListProps {
   sections: Section[]
+  /** 서버 한도 응답의 can_delete — 요금제 · 템플릿이 허용할 때만 삭제 버튼 (T-037-A) */
+  canDelete?: boolean
 }
 
-export function SectionList({ sections }: SectionListProps) {
+export function SectionList({ sections, canDelete = false }: SectionListProps) {
   const reorder = useReorderSections()
   const toggle = useToggleSection()
+  const [deleting, setDeleting] = useState<Section | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -83,10 +88,12 @@ export function SectionList({ sections }: SectionListProps) {
               section={section}
               onToggle={handleToggle}
               isToggling={toggle.isPending}
+              onDelete={canDelete ? setDeleting : undefined}
             />
           ))}
         </ul>
       </SortableContext>
+      <DeleteSectionDialog section={deleting} onClose={() => setDeleting(null)} />
     </DndContext>
   )
 }
