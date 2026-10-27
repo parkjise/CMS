@@ -11,19 +11,20 @@ const fullStack = !!process.env.E2E_FULL_STACK
 const webServer = fullStack
   ? [
       {
-        command: 'pnpm --filter @cms/client dev',
+        // CI 는 빌드본 (E2E_WEB_COMMAND='pnpm start' · E2E_ADMIN_COMMAND · E2E_SYSTEM_COMMAND='... preview')
+        command: process.env.E2E_WEB_COMMAND ?? 'pnpm --filter @cms/client dev',
         url: 'http://localhost:3000',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
       {
-        command: 'pnpm --filter @cms/admin dev',
+        command: process.env.E2E_ADMIN_COMMAND ?? 'pnpm --filter @cms/admin dev',
         url: 'http://localhost:3001',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
       },
       {
-        command: 'pnpm --filter @cms/superadmin dev',
+        command: process.env.E2E_SYSTEM_COMMAND ?? 'pnpm --filter @cms/superadmin dev',
         url: 'http://localhost:3002',
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,
