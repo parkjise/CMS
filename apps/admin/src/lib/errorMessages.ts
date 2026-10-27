@@ -40,8 +40,10 @@ export const STATUS_MESSAGES: Record<number, string> = {
 
 /**
  * axios 에러 객체에서 사용자에게 보여줄 메시지를 추출.
+ * 백엔드 공통 형식 `{success:false, error:{code, message}}` 우선 (CLAUDE.md 5).
+ * @param fallback 메시지를 찾지 못했을 때 (기본: 상태별 문구 → 일반 문구)
  */
-export function pickErrorMessage(error: unknown): string {
+export function pickErrorMessage(error: unknown, fallback?: string): string {
   if (typeof error === 'string') return error
 
   const e = error as {
@@ -62,6 +64,13 @@ export function pickErrorMessage(error: unknown): string {
     return ERROR_MESSAGES.NETWORK_ERROR
   }
 
+  const apiError = e?.response?.data?.error
+  if (apiError) {
+    if (apiError.message) return apiError.message
+    if (apiError.code) return ERROR_MESSAGES[apiError.code] ?? apiError.code
+  }
+
+  // 이전 형식 {detail} (공통 형식 전환 전 응답 · 외부 프록시 등)
   const detail = e?.response?.data?.detail
   if (typeof detail === 'string') {
     return ERROR_MESSAGES[detail] ?? detail
@@ -71,14 +80,10 @@ export function pickErrorMessage(error: unknown): string {
     if (detail.code) return ERROR_MESSAGES[detail.code] ?? detail.code
   }
 
-  const apiError = e?.response?.data?.error
-  if (apiError) {
-    if (apiError.message) return apiError.message
-    if (apiError.code) return ERROR_MESSAGES[apiError.code] ?? apiError.code
-  }
-
   const rawMessage = e?.response?.data?.message
   if (rawMessage) return rawMessage
+
+  if (fallback) return fallback
 
   const status = e?.response?.status
   if (status && STATUS_MESSAGES[status]) return STATUS_MESSAGES[status]

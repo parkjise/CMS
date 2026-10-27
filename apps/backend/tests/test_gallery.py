@@ -99,7 +99,7 @@ class TestUploadGallery:
             headers=auth_headers,
         )
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "TOO_MANY_FILES"
+        assert resp.json()["error"]["code"] == "TOO_MANY_FILES"
 
     async def test_upload_skips_invalid_file_but_continues(
         self, client, auth_headers, test_section, fake_s3

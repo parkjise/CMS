@@ -1,18 +1,17 @@
 """T-108 방문자 회원 API 에러 (기획서 16.0 · 5.1 공통 에러 형식).
 
-방문자 API(`/api/public/{slug}/auth/*`, `/members/*`)만 공통 규격
-`{"success": false, "error": {code, message, field, details}}` 으로 응답한다.
-기존 API 의 `{"detail": ...}` 응답은 건드리지 않는다.
+방문자 API 전용 에러(MemberAuthError) · 문구. 응답 형식은 모든 API 공통
+`{"success": false, "error": {code, message, field, details}}` (app/core/errors.py).
 """
 
 import re
 from typing import Any
 
 from fastapi import Request
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.core.errors import validation_exception_handler
 from app.schemas.common import ApiError
 
 # ── 사용자 노출 메시지 (기획서 16.3 · 16.4) ─────────────────────────────────
@@ -111,9 +110,9 @@ def _korean_message(error: dict[str, Any], loc: list[str]) -> str:
 async def validation_error_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
-    """방문자 API 의 입력 검증 실패만 400 VALIDATION_ERROR 로 바꾼다."""
+    """입력 검증 실패 → 400 VALIDATION_ERROR (방문자 API 는 기존 상세 형식 유지)."""
     if not _MEMBER_PATH.match(request.url.path):
-        return await request_validation_exception_handler(request, exc)
+        return await validation_exception_handler(request, exc)
     errors = exc.errors()
     first = errors[0] if errors else {}
     loc = [str(p) for p in first.get("loc", ()) if p not in ("body", "query")]

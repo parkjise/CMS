@@ -4,9 +4,10 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
 from slowapi.util import get_remote_address
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.public.member_auth import options_router as member_options_router
 from app.api.public.member_auth import router as member_auth_router
@@ -21,6 +22,11 @@ from app.api.v1.endpoints.templates import public_router as template_public_rout
 from app.api.v1.router import api_router
 from app.api.webhook.tosspayments import router as tosspayments_webhook_router
 from app.core.config import settings
+from app.core.errors import (
+    http_exception_handler,
+    rate_limit_handler,
+    unhandled_exception_handler,
+)
 from app.core.member_errors import (
     MemberAuthError,
     member_auth_error_handler,
@@ -28,8 +34,10 @@ from app.core.member_errors import (
 )
 from app.core.observability import setup_observability
 from app.core.redis import close_redis
+from app.schemas.common import ApiError
 
 limiter = Limiter(key_func=get_remote_address)
+_IP_FORBIDDEN = "허용되지 않은 접속 위치입니다"
 
 
 @asynccontextmanager
@@ -47,10 +55,12 @@ app = FastAPI(
 )
 
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-# 방문자 회원 API 는 공통 에러 형식 (T-108, 기획서 16.0)
-app.add_exception_handler(MemberAuthError, member_auth_error_handler)  # type: ignore[arg-type]
+# 모든 API 오류 → 공통 에러 형식 (CLAUDE.md 5, app/core/errors.py)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)  # type: ignore[arg-type]
 app.add_exception_handler(RequestValidationError, validation_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(RateLimitExceeded, rate_limit_handler)  # type: ignore[arg-type]
+app.add_exception_handler(MemberAuthError, member_auth_error_handler)  # type: ignore[arg-type]
+app.add_exception_handler(Exception, unhandled_exception_handler)
 
 # 관측성: Prometheus /metrics + Sentry (T-083)
 setup_observability(app)
@@ -78,7 +88,9 @@ async def super_admin_ip_whitelist(request: Request, call_next):
             )
             if client_ip not in allowed_set:
                 return JSONResponse(
-                    {"success": False, "error": {"code": "FORBIDDEN"}},
+                    ApiError.of(
+                        "FORBIDDEN", "허용되지 않은 접속 위치입니다"
+                    ).model_dump(),
                     status_code=403,
                 )
     return await call_next(request)

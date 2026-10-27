@@ -136,7 +136,7 @@ class TestBatchSave:
         resp = await client.post(
             self._url, headers=auth_headers, json={"changes": []}
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_null_value_allowed(
         self,
@@ -181,4 +181,4 @@ class TestBatchSave:
         resp = await client.post(
             self._url, headers=auth_headers, json={"changes": changes}
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400

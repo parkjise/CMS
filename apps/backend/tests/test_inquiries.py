@@ -30,7 +30,7 @@ class TestSubmitInquiry:
                 "message": "테스트 문의입니다. 답변 부탁드립니다.",
             },
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_submit_message_too_short(self, client: AsyncClient, test_tenant: dict):
         resp = await client.post(
@@ -38,7 +38,7 @@ class TestSubmitInquiry:
             params={"tenant_slug": test_tenant["slug"]},
             json={"name": "홍길동", "phone": "010-1234-5678", "message": "짧음"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_submit_tenant_not_found(self, client: AsyncClient):
         resp = await client.post(
@@ -274,7 +274,7 @@ class TestInquiryValidation:
                 "message": "테스트 문의입니다. 답변 부탁드립니다.",
             },
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_submit_message_too_long(
         self, client: AsyncClient, test_tenant: dict
@@ -288,7 +288,7 @@ class TestInquiryValidation:
                 "message": "a" * 1001,
             },
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
 
     async def test_submit_with_email(
         self, client: AsyncClient, test_tenant: dict

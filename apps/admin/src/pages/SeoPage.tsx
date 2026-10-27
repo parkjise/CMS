@@ -16,6 +16,7 @@ import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModa
 import { SocialPreview } from '@/components/seo/SocialPreview'
 import { useSeoSettings, useUpdateSeo } from '@/hooks/useSeo'
 import { useAuthStore } from '@/stores/authStore'
+import { pickErrorMessage } from '@/lib/errorMessages'
 
 type Tab = 'basic' | 'social' | 'sitemap' | 'analytics'
 
@@ -76,10 +77,7 @@ export function SeoPage() {
       await updateMutation.mutateAsync(payload)
       toast.success(`${label} 설정을 저장했습니다.`)
     } catch (e) {
-      const detail =
-        (e as { response?: { data?: { detail?: unknown } } })?.response?.data
-          ?.detail
-      toast.error(typeof detail === 'string' ? detail : '저장에 실패했습니다.')
+      toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
     }
   }
 

@@ -21,6 +21,8 @@ from app.services.auth import (
 
 limiter = Limiter(key_func=get_remote_address)
 
+LOGIN_FAILED = "이메일 또는 비밀번호가 올바르지 않습니다"
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _REFRESH_COOKIE = "refresh_token"
@@ -63,7 +65,8 @@ async def login(
         user = await authenticate_user(db, body.email, body.password, body.tenant_slug)
     except ValueError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "UNAUTHORIZED", "message": LOGIN_FAILED},
         )
 
     access_token, refresh_token = issue_tokens(user)

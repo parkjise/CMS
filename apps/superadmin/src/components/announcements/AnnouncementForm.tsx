@@ -8,6 +8,7 @@ import {
   type AnnouncementType,
 } from '@/hooks/useAnnouncements'
 import { TypeBadge } from './TypeBadge'
+import { apiErrorMessage } from '@/lib/errors'
 
 const TYPE_OPTIONS: { value: AnnouncementType; label: string }[] = [
   { value: 'INFO', label: '정보 (INFO)' },
@@ -78,8 +79,8 @@ export function AnnouncementForm() {
       await create.mutateAsync(buildInput(publish_now))
       toast.success(publish_now ? '공지를 발송했습니다.' : '임시저장했습니다.')
       reset()
-    } catch {
-      setError('저장에 실패했습니다.')
+    } catch (e) {
+      setError(apiErrorMessage(e, '저장에 실패했습니다.'))
     }
   }
 

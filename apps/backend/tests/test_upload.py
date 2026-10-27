@@ -180,7 +180,7 @@ class TestUploadImage:
             headers=auth_headers,
         )
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "INVALID_CONTEXT"
+        assert resp.json()["error"]["code"] == "INVALID_CONTEXT"
 
     async def test_upload_rejects_non_image_file(
         self, client, auth_headers, test_section, fake_s3
@@ -193,7 +193,7 @@ class TestUploadImage:
             headers=auth_headers,
         )
         assert resp.status_code == 400
-        assert resp.json()["detail"] == "INVALID_IMAGE"
+        assert resp.json()["error"]["code"] == "INVALID_IMAGE"
 
     async def test_upload_unauthenticated(self, client, test_section, fake_s3):
         jpeg = _make_jpeg(400, 300)
@@ -235,7 +235,7 @@ class TestUploadImage:
                 headers=auth_headers,
             )
             assert resp.status_code == 422
-            assert resp.json()["detail"] == "PLAN_LIMIT_EXCEEDED"
+            assert resp.json()["error"]["code"] == "PLAN_LIMIT_EXCEEDED"
         finally:
             async with _TestSession() as session:
                 await session.execute(

@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { Button, Modal, toast } from '@cms/ui'
 import { useImpersonate } from '@/hooks/useTenant'
+import { apiErrorMessage } from '@/lib/errors'
 
 interface Props {
   open: boolean
@@ -16,8 +17,8 @@ export function ImpersonateModal({ open, onClose, tenantId }: Props) {
       const res = await impersonate.mutateAsync()
       if (res.redirect_url) window.open(res.redirect_url, '_blank', 'noopener')
       onClose()
-    } catch {
-      toast.error('대리 접속에 실패했습니다.')
+    } catch (e) {
+      toast.error(apiErrorMessage(e, '대리 접속에 실패했습니다.'))
     }
   }
 

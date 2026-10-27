@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router'
 import type { User } from '@cms/types'
 import { superApi } from '@/lib/superApi'
 import { useSuperAuthStore } from '@/stores/superAuthStore'
+import { apiErrorMessage } from '@/lib/errors'
 
 export function LoginPage() {
   const navigate = useNavigate()
@@ -32,8 +33,8 @@ export function LoginPage() {
       }
       setAuth(access_token, user)
       navigate('/dashboard', { replace: true })
-    } catch {
-      setError('이메일 또는 비밀번호가 올바르지 않습니다.')
+    } catch (e) {
+      setError(apiErrorMessage(e, '이메일 또는 비밀번호가 올바르지 않습니다.'))
     } finally {
       setSubmitting(false)
     }

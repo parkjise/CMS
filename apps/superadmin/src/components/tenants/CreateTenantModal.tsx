@@ -3,6 +3,7 @@ import { Button, Input, Modal, toast } from '@cms/ui'
 import { PLAN_TYPES } from '@/lib/plans'
 import { START_TEMPLATES } from '@/lib/startTemplates'
 import { useCreateTenant } from '@/hooks/useTenants'
+import { apiErrorMessage } from '@/lib/errors'
 
 interface Props {
   open: boolean
@@ -48,8 +49,8 @@ export function CreateTenantModal({ open, onClose }: Props) {
       toast.success('테넌트가 생성되었습니다.')
       setForm(EMPTY)
       onClose()
-    } catch {
-      setError('생성에 실패했습니다. slug 중복 여부를 확인하세요.')
+    } catch (e) {
+      setError(apiErrorMessage(e, '생성에 실패했습니다. slug 중복 여부를 확인하세요.'))
     }
   }
 

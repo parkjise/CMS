@@ -39,6 +39,47 @@ describe('applyFieldErrors', () => {
     })
   })
 
+  it('공통 형식 — error.details 의 필드마다 설정', () => {
+    const setError = vi.fn()
+    const err = {
+      response: {
+        data: {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: '필수 입력 항목입니다',
+            field: 'recipient_phone',
+            details: [
+              { field: 'recipient_phone', message: '필수 입력 항목입니다' },
+              { field: 'recipient_email', message: '올바른 이메일 형식이 아닙니다' },
+            ],
+          },
+        },
+      },
+    }
+    expect(applyFieldErrors(err, setError)).toBe(true)
+    expect(setError).toHaveBeenCalledTimes(2)
+    expect(setError).toHaveBeenNthCalledWith(2, 'recipient_email', {
+      type: 'server',
+      message: '올바른 이메일 형식이 아닙니다',
+    })
+  })
+
+  it('공통 형식 — details 가 없으면 error.field 하나', () => {
+    const setError = vi.fn()
+    const err = {
+      response: { data: { success: false, error: { code: 'CONFLICT', message: '이미 사용 중', field: 'slug' } } },
+    }
+    expect(applyFieldErrors(err, setError)).toBe(true)
+    expect(setError).toHaveBeenCalledWith('slug', { type: 'server', message: '이미 사용 중' })
+  })
+
+  it('공통 형식 — 필드 없는 오류는 false', () => {
+    const setError = vi.fn()
+    const err = { response: { data: { success: false, error: { code: 'NOT_FOUND', message: '없음', field: null } } } }
+    expect(applyFieldErrors(err, setError)).toBe(false)
+  })
+
   it('필드 정보가 없으면 false 반환', () => {
     const setError = vi.fn()
     expect(applyFieldErrors({ response: { data: {} } }, setError)).toBe(false)
