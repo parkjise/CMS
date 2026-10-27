@@ -2095,6 +2095,7 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 - `GET /sections` 응답 각 setting 에 `is_sample` 포함, `PATCH` 저장 시 서버가 `is_sample=false` 로 갱신.
 - (T-125 구현) 공개 경량 API `GET /api/public/site/{slug}/template` → `{code, renderer}` — 사이트 캐시가 있으면 그 값을 쓰고 없으면 계산. 클라이언트 미들웨어 전용.
 - (T-125 구현) 템플릿별 라우트 분기: `apps/client/middleware.ts` 가 위 API 로 테넌트 템플릿을 확인(60초 캐시, 2초 타임아웃)하고 코드형이면 `/{slug}[/{page}[/{id}]]` 를 `/tpl-{key}/{slug}/...` 내부 라우트(`app/(code)/tpl-{key}/`)로 rewrite. `preview`·`login`·`sitemap.xml` 은 rewrite 하지 않고, `/tpl-*` 직접 접근은 404. 테마형 라우트(`app/[tenant_slug]/page.tsx`)는 템플릿 코드를 import 하지 않아 다른 테넌트에 템플릿 CSS·JS 가 내려가지 않는다. 템플릿 전환은 최대 60초 뒤 반영.
+- (T-125 구현 — 모바일 성능) 코드형 템플릿 라우트는 테마형 글꼴(Noto Sans KR, `lib/fonts.ts`)을 불러오지 않는다 — 테넌트 공통 레이아웃은 `app/[tenant_slug]/TenantShell.tsx`, 글꼴은 `[tenant_slug]/layout.tsx` 에만. 템플릿 아이콘 폰트는 쓰는 아이콘만 담은 축소본(`pnpm icons:subset`, 새 아이콘을 쓰면 다시 생성 — 테스트가 누락 검사). 외부 웹폰트 CSS 는 첫 화면을 막지 않게 하이드레이션 후 적용(`templates/shared/DeferredStylesheets.tsx`), `font-display:auto` 인 키트(Typekit)는 swap 으로 바꿔 적용. 첫 화면 주인공 이미지(메인 슬라이드 · 서브 히어로)는 `fetchPriority="high"`, 스토리지(MinIO · CDN) 이미지도 Next 이미지 변환
 
 ### 11.11 오픈 이슈 추가
 
