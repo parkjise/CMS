@@ -1,11 +1,19 @@
 import os
 
 # Override DATABASE_URL BEFORE any app module imports
+# - 앱(요청 처리)은 일반 권한 계정 cms_app 으로 → RLS 가 실제로 적용된 상태에서 테스트
+# - 테스트 데이터 준비 · 정리(_TestSession)는 소유자 계정 cms_user 로
 os.environ["DATABASE_URL"] = (
+    "postgresql+asyncpg://cms_app:cms_app_password@localhost:5432/cms_test_db"
+)
+os.environ["MIGRATION_DATABASE_URL"] = (
     "postgresql+asyncpg://cms_user:cms_password@localhost:5432/cms_test_db"
 )
 
+import asyncio
+import importlib.util
 import uuid
+from pathlib import Path
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -16,9 +24,27 @@ from sqlalchemy.pool import NullPool
 from app.core.security import hash_password
 from app.main import app
 
-TEST_DATABASE_URL = os.environ["DATABASE_URL"]
+TEST_APP_URL = os.environ["DATABASE_URL"]
+TEST_OWNER_URL = os.environ["MIGRATION_DATABASE_URL"]
 
-_test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+
+def _ensure_test_app_role() -> None:
+    """테스트 DB 에 앱 계정을 만든다 (scripts/init_db_roles.py — 재실행 안전)."""
+    path = Path(__file__).resolve().parent.parent / "scripts" / "init_db_roles.py"
+    spec = importlib.util.spec_from_file_location("_init_db_roles", path)
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    asyncio.run(module.ensure_app_role(TEST_OWNER_URL, TEST_APP_URL))
+
+
+_ensure_test_app_role()
+
+
+TEST_DATABASE_URL = TEST_APP_URL
+
+# 픽스처용 소유자 계정 세션 (슈퍼유저 — 데이터 준비 · 정리 · 검증 조회)
+_test_engine = create_async_engine(TEST_OWNER_URL, echo=False)
 _TestSession = async_sessionmaker(
     _test_engine, class_=AsyncSession, expire_on_commit=False
 )
@@ -29,6 +55,7 @@ from app.core import deps as _deps  # noqa: E402
 from app.db import session as _db_session  # noqa: E402
 
 _app_engine = create_async_engine(TEST_DATABASE_URL, poolclass=NullPool)
+_db_session.install_rls_reset(_app_engine)
 _nullpool_session = async_sessionmaker(
     bind=_app_engine,
     class_=AsyncSession,
