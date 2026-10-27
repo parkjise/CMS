@@ -144,11 +144,14 @@ jobs:
       - uses: actions/checkout@v4
 
       # MinIO 는 서비스 컨테이너로 시작 명령(server /data)을 줄 수 없어 직접 띄운다
+      # 공식 이미지(minio/minio)는 Docker Hub · Quay 에서 내려가 Chainguard 빌드를 쓴다
+      # (운영 배포 체크리스트 B6 참고)
       - name: Start MinIO
         run: |
           docker run -d --name minio -p 9000:9000 \
             -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
-            minio/minio:latest server /data
+            --tmpfs /data:uid=65532,gid=65532 \
+            cgr.dev/chainguard/minio:latest server /data
           for _ in $(seq 1 30); do
             curl -sf http://localhost:9000/minio/health/live && break
             sleep 2
