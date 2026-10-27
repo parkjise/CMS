@@ -13,6 +13,7 @@ from app.services.gallery_settings import (
     GALLERY_VALUE_TYPE,
     normalize_gallery_items,
 )
+from app.services.link_settings import is_url_field, validate_link_url
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
 
 # Per-field max lengths; any field not listed falls back to _DEFAULT_MAX_LEN
@@ -48,6 +49,9 @@ def _validate(field: str, value: str | None, rich: bool = False) -> str | None:
     if field == GALLERY_FIELD:
         # 장수 · 캡션 · 주소를 따로 검사 — 글자 수 한도(1000자) 대신
         return normalize_gallery_items(value)
+    if is_url_field(field) and not rich:
+        # 버튼 링크 · 이미지 주소 — javascript: 등 차단 (T-065-B)
+        return validate_link_url(field, value)
     limit = _max_len(field)
     if rich:
         # 서식 글은 허용 태그만 남기고, 한도는 태그를 뺀 글자 수로 (T-065-A)

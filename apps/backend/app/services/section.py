@@ -13,6 +13,7 @@ from app.services.gallery_settings import (
     GALLERY_VALUE_TYPE,
     normalize_gallery_items,
 )
+from app.services.link_settings import is_url_field, validate_link_url
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
 
 # 템플릿 유형별 기본 섹션 정의
@@ -138,6 +139,10 @@ def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
             # 갤러리 목록 검사 · 정리 (T-064-A) — GallerySettingError 는 ValueError
             s.field_value = normalize_gallery_items(s.field_value)
             s.value_type = GALLERY_VALUE_TYPE
+            continue
+        if is_url_field(s.field_key):
+            # 주소 칸 — javascript: 등 차단 (T-065-B)
+            s.field_value = validate_link_url(s.field_key, s.field_value)
             continue
         if s.value_type == RICH_TEXT_VALUE_TYPE and s.field_value is not None:
             # 서식 글 (T-065-A) — 허용 태그만, 한도는 태그를 뺀 글자 수
