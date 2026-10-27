@@ -92,7 +92,8 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
     아래 조건을 모두 만족하는 uploaded_files를 정리:
       - 생성된 지 age_days 일 이상 경과
       - gallery_items.file_id 에서 미참조
-      - section_settings.field_value 가 file_url 과 일치하는 행 없음
+      - section_settings.field_value 에 file_url 이 들어 있는 행 없음
+        (값 그대로 · 갤러리 목록 같은 JSON 안 모두 — T-064-A)
 
     MinIO의 원본·썸네일 객체도 함께 삭제. 정리된 파일 개수 반환.
     """
@@ -115,7 +116,7 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
                   )
                   AND NOT EXISTS (
                       SELECT 1 FROM section_settings s
-                      WHERE s.field_value = uf.file_url
+                      WHERE strpos(s.field_value, uf.file_url) > 0
                   )
                 """
             )

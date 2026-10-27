@@ -5,6 +5,7 @@ async 함수를 직접 호출하여 검증한다.
 """
 
 import io
+import json
 import uuid
 
 import pytest
@@ -277,6 +278,91 @@ class TestCleanupOrphanFiles:
                 await session.execute(
                     text("DELETE FROM gallery_items WHERE id = :id"),
                     {"id": str(gallery_item_id)},
+                )
+                await session.execute(
+                    text("DELETE FROM section_settings WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                )
+                await session.execute(
+                    text("DELETE FROM uploaded_files WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                )
+                await session.commit()
+
+    async def test_keeps_files_inside_gallery_json(
+        self, test_tenant, test_section, fake_s3
+    ):
+        """T-064-A: 갤러리 목록(JSON) 안의 이미지 주소도 사용 중으로 본다."""
+        tenant_id = test_tenant["id"]
+        section_id = test_section["id"]
+        base = settings.cdn_base_url.rstrip("/")
+        in_gallery, orphan = uuid.uuid4(), uuid.uuid4()
+
+        def _key(fid):
+            return f"{tenant_id}/gallery/{section_id}/{fid}.webp"
+
+        def _url(fid):
+            return f"{base}/{_key(fid)}"
+
+        for fid in (in_gallery, orphan):
+            fake_s3[(settings.minio_bucket_name, _key(fid))] = {
+                "body": b"x",
+                "content_type": "image/webp",
+            }
+        gallery_json = json.dumps(
+            [
+                {"image_url": "https://example.com/other.webp", "caption": ""},
+                {"image_url": _url(in_gallery), "caption": "로비"},
+            ],
+            ensure_ascii=False,
+        )
+
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            for fid in (in_gallery, orphan):
+                await session.execute(
+                    text(
+                        "INSERT INTO uploaded_files "
+                        "(id, tenant_id, file_name, file_url, file_size, mime_type, created_at, updated_at) "  # noqa: E501
+                        "VALUES (:id, :tid, 'x.webp', :url, 100, 'image/webp', NOW() - INTERVAL '100 days', NOW())"  # noqa: E501
+                    ),
+                    {"id": str(fid), "tid": tenant_id, "url": _url(fid)},
+                )
+            await session.execute(
+                text(
+                    "INSERT INTO section_settings "
+                    "(id, tenant_id, section_id, field_key, field_value, value_type, created_at, updated_at) "  # noqa: E501
+                    "VALUES (:id, :tid, :sid, 'gallery_items', :val, 'JSON', NOW(), NOW())"  # noqa: E501
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "tid": tenant_id,
+                    "sid": section_id,
+                    "val": gallery_json,
+                },
+            )
+            await session.commit()
+
+        try:
+            await image_worker._cleanup_orphan_files(age_days=30)
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                rows = await session.execute(
+                    text("SELECT id FROM uploaded_files WHERE id = ANY(:ids)"),
+                    {"ids": [str(in_gallery), str(orphan)]},
+                )
+                remaining = {str(r.id) for r in rows.all()}
+            assert str(in_gallery) in remaining
+            assert str(orphan) not in remaining
+            assert (settings.minio_bucket_name, _key(in_gallery)) in fake_s3
+        finally:
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
                 )
                 await session.execute(
                     text("DELETE FROM section_settings WHERE tenant_id = :tid"),
