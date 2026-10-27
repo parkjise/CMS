@@ -1,11 +1,12 @@
 import { ExternalLink } from 'lucide-react'
+import { useSubscription } from '@/hooks/useBilling'
 import { useAuthStore } from '@/stores/authStore'
 
 const PLAN_LABEL: Record<string, string> = {
   FREE: 'Free',
   BASIC: 'Basic',
+  STANDARD: 'Standard',
   PREMIUM: 'Premium',
-  ENTERPRISE: 'Enterprise',
 }
 
 const CLIENT_BASE_URL =
@@ -14,6 +15,10 @@ const CLIENT_BASE_URL =
 export function Header() {
   const user = useAuthStore((s) => s.user)
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
+  // 실제 구독 요금제 (T-082-C) — AdminLayout 과 같은 쿼리라 요청이 늘지 않는다
+  const { data: sub } = useSubscription()
+  const planLabel = sub ? (PLAN_LABEL[sub.plan_type] ?? sub.plan_type) : null
+  const isTrial = sub?.status === 'TRIAL'
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
 
@@ -31,9 +36,16 @@ export function Header() {
             {tenantSlug}
           </span>
         )}
-        <span className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
-          {PLAN_LABEL['FREE']}
-        </span>
+        {/* 구독 정보가 없으면 틀린 값 대신 숨긴다 */}
+        {planLabel && (
+          <span
+            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500"
+            aria-label={`현재 요금제 ${planLabel}${isTrial ? ' 무료 체험 중' : ''}`}
+          >
+            {planLabel}
+            {isTrial && ' · 체험 중'}
+          </span>
+        )}
       </div>
 
       <div className="flex-1" />
