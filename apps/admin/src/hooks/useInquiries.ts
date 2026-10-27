@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
 export type InquiryStatus = 'PENDING' | 'IN_PROGRESS' | 'DONE' | 'SPAM'
-export type InquiryType = 'GENERAL' | 'CONSULT' | 'RESERVATION' | 'PARTNERSHIP'
+export type InquiryType = 'GENERAL' | 'CONSULT' | 'RESERVATION' | 'PARTNERSHIP' | 'SYMPTOM'
 
 export interface InquiryListItem {
   id: string
@@ -65,6 +65,9 @@ export interface InquiryDetail extends InquiryListItem {
     file_size: number
   }>
   updated_at: string
+  /** 업종별 문의 칸 (T-051-A) — 원본 값 · 표시용 이름/값 */
+  detail?: Record<string, unknown>
+  detail_items?: Array<{ label: string; value: string }>
   /** 회원 정보 · 회원 예약 (T-115) */
   member?: InquiryMemberInfo | null
   reservation?: InquiryReservationInfo | null

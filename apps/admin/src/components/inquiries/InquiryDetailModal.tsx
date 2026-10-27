@@ -158,6 +158,21 @@ export function InquiryDetailModal({
             </div>
           </div>
 
+          {/* 업종별 추가 정보 (T-051-A) */}
+          {inquiryQuery.data.detail_items && inquiryQuery.data.detail_items.length > 0 && (
+            <section aria-label="추가 정보">
+              <h3 className="mb-1.5 text-sm font-medium text-slate-700">추가 정보</h3>
+              <dl className="grid grid-cols-1 gap-x-4 gap-y-2 rounded-lg bg-slate-50 p-4 text-sm sm:grid-cols-2">
+                {inquiryQuery.data.detail_items.map((item) => (
+                  <div key={item.label} className="flex gap-2">
+                    <dt className="shrink-0 text-slate-500">{item.label}</dt>
+                    <dd className="text-slate-900">{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
+          )}
+
           {/* 회원 정보 · 회원 예약 처리 (T-115) */}
           <MemberReservationPanel
             inquiry={inquiryQuery.data}
