@@ -1,4 +1,4 @@
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -124,6 +124,10 @@ class Settings(BaseSettings):
     sentry_environment: str = ""
     sentry_traces_sample_rate: float = 0.1
 
+    # 운영 안전 점검(production_problems)에서 일부러 건너뛸 항목 (쉼표 구분).
+    # 예: 결제를 아직 열지 않을 때 PRODUCTION_CHECK_SKIP=payment_mode
+    production_check_skip: str = ""
+
     @field_validator("app_secret_key")
     @classmethod
     def _validate_secret_key_strength(cls, v: str) -> str:
@@ -134,6 +138,55 @@ class Settings(BaseSettings):
                 "(JWT 서명 키 강도 요구사항)"
             )
         return v
+
+    def production_problems(self) -> dict[str, str]:
+        """APP_ENV=production 인데 개발 기본값이 남은 설정 → {항목: 이유}."""
+        problems: dict[str, str] = {}
+        if "change-me" in self.app_secret_key:
+            problems["app_secret_key"] = "예시 값(change-me…) 그대로입니다"
+        if self.super_admin_password in ("", "change-me"):
+            problems["super_admin_password"] = "슈퍼 어드민 비밀번호가 기본값입니다"
+        if not self.cookie_domain:
+            problems["cookie_domain"] = (
+                "홈페이지 ↔ 관리자 로그인 공유용 상위 도메인이 없습니다"
+            )
+        if not self.recaptcha_secret_key:
+            problems["recaptcha_secret_key"] = (
+                "비어 있으면 문의 폼이 검증 없이 통과합니다"
+            )
+        for name in (
+            "allowed_origins",
+            "cdn_base_url",
+            "admin_base_url",
+            "client_base_url",
+        ):
+            if "localhost" in getattr(self, name):
+                problems[name] = "localhost 주소가 남아 있습니다"
+        for name in (
+            "notification_mode",
+            "email_mode",
+            "payment_mode",
+            "social_mode",
+            "domain_mode",
+        ):
+            if getattr(self, name) != "live":
+                problems[name] = "test 모드 — 실제 발송 · 연동이 되지 않습니다 (live)"
+        skip = {k.strip() for k in self.production_check_skip.split(",") if k.strip()}
+        return {k: v for k, v in problems.items() if k not in skip}
+
+    @model_validator(mode="after")
+    def _validate_production(self) -> "Settings":
+        """운영에서 개발 설정이 남아 있으면 기동하지 않는다 (배포 체크리스트 B2)."""
+        if self.app_env == "production":
+            problems = self.production_problems()
+            if problems:
+                lines = "\n".join(f"  - {k.upper()}: {v}" for k, v in problems.items())
+                raise ValueError(
+                    "운영(APP_ENV=production) 설정을 확인하세요:\n"
+                    + lines
+                    + "\n  (의도한 경우 PRODUCTION_CHECK_SKIP 에 항목 이름)"
+                )
+        return self
 
     @property
     def cors_origins(self) -> list[str]:
