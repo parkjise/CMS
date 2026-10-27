@@ -342,12 +342,9 @@ class TestRequireFeature:
     ):
         from app.core.deps import require_feature
 
-        class _User:
-            tenant_id = uuid.UUID(test_tenant["id"])
-
         checker = require_feature("NONEXISTENT_FEATURE_KEY")
         with pytest.raises(HTTPException) as exc:
-            await checker(current_user=_User(), db=bypass_session)
+            await checker(tenant_id=uuid.UUID(test_tenant["id"]), db=bypass_session)
         assert exc.value.status_code == 403
 
     async def test_is_enabled_service(

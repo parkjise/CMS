@@ -79,6 +79,19 @@ async def get_current_user(
     return user
 
 
+async def get_tenant_id(
+    user: User = Depends(get_current_user),
+) -> UUID:
+    """테넌트 API 용 — 로그인 사용자의 테넌트 ID (T-082-B).
+
+    슈퍼 어드민 계정은 테넌트가 없어(tenant_id NULL) 테넌트 API 를 쓸 수 없다
+    — 슈퍼 어드민은 /api/super 를 쓴다. get_current_user 는 요청마다 한 번만 실행된다.
+    """
+    if user.tenant_id is None:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FORBIDDEN")
+    return user.tenant_id
+
+
 async def get_super_admin(
     user: User = Depends(get_current_user),
 ) -> User:
@@ -91,14 +104,12 @@ def require_feature(feature_key: str):
     """기능 플래그가 켜진 테넌트만 접근을 허용하는 의존성 (CLAUDE.md 섹션 8.2)."""
 
     async def checker(
-        current_user: User = Depends(get_current_user),
+        tenant_id: UUID = Depends(get_tenant_id),
         db: AsyncSession = Depends(get_db_with_rls),
     ) -> None:
         from app.services import feature as feature_service
 
-        enabled = await feature_service.is_enabled(
-            db, current_user.tenant_id, feature_key
-        )
+        enabled = await feature_service.is_enabled(db, tenant_id, feature_key)
         if not enabled:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
