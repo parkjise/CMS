@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import {
   apiLogin,
+  BACKEND_URL,
   findSection,
   saveFields,
   settingValue,
@@ -113,6 +114,68 @@ test.describe('인라인 편집 모드 E2E', () => {
     const visitor = await browser.newPage()
     await visitor.goto(`/${slug}`)
     await expect(visitor.locator(`[data-field="main_title"]`).first()).toHaveText(newTitle)
+    await visitor.close()
+  })
+
+  test('미니 툴바 — 굵게 · 색을 넣어 저장하면 방문자 화면에 서식이 보인다 (T-065-A)', async ({
+    browser,
+  }) => {
+    const text = `서식 ${Date.now() % 100000}`
+    await enterEditMode(page)
+    await editHeroTitle(page, text)
+
+    // 다시 열어 전체 선택 → 굵게 · 주 색상
+    await heroTitle(page).click()
+    await page.keyboard.press('ControlOrMeta+A')
+    const toolbar = page.getByRole('toolbar', { name: '글자 서식' })
+    await expect(toolbar).toBeVisible()
+    await toolbar.getByRole('button', { name: '굵게' }).click()
+    await toolbar.getByRole('button', { name: '글자 색: 주 색상' }).click()
+    await page.keyboard.press('Enter')
+
+    const saved = page.waitForResponse((r) => r.url().includes('/edit/batch-save'))
+    await saveButton(page).click()
+    const request = (await saved).request().postDataJSON() as {
+      changes: Array<{ field: string; value: string; format?: string }>
+    }
+    const change = request.changes.find((c) => c.field === 'main_title')
+    expect(change?.format).toBe('rich')
+    expect(change?.value).toContain('<b>')
+
+    const visitor = await browser.newPage()
+    await visitor.goto(`/${slug}`)
+    const title = visitor.locator(`[data-field="main_title"]`).first()
+    await expect(title).toHaveText(text)
+    await expect(title.locator('b')).toHaveCount(1)
+    await expect(title.locator('span.rt-c-primary')).toHaveCount(1)
+    await visitor.close()
+  })
+
+  test('서식 칸에 스크립트를 넣어도 저장 · 표시 단계에서 걸러진다 (T-065-A)', async ({
+    request,
+    browser,
+  }) => {
+    const res = await request.post(`${BACKEND_URL}/api/v1/edit/batch-save`, {
+      headers: { Authorization: `Bearer ${token}` },
+      data: {
+        changes: [
+          {
+            section_id: hero.id,
+            field: 'main_title',
+            value: '<b>안전</b><img src=x onerror="window.__xss=1"><script>window.__xss=1</script>',
+            format: 'rich',
+          },
+        ],
+      },
+    })
+    expect((await res.json()).data.saved_count).toBe(1)
+
+    const visitor = await browser.newPage()
+    await visitor.goto(`/${slug}`)
+    const title = visitor.locator(`[data-field="main_title"]`).first()
+    await expect(title).toHaveText('안전')
+    await expect(title.locator('img, script')).toHaveCount(0)
+    expect(await visitor.evaluate(() => (window as unknown as { __xss?: number }).__xss)).toBeUndefined()
     await visitor.close()
   })
 
