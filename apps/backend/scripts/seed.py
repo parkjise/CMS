@@ -372,50 +372,84 @@ async def seed_test_tenant(db: AsyncSession) -> None:
     print(f"✅ 테스트 테넌트 생성: {tenant.slug} (admin@test-tenant.com / password123)")
 
 
-# test-tenant 문의 폼 (T-051-A) — E2E inquiry.spec 이 이 섹션으로 접수 흐름을 검사한다
-TEST_CONTACT_SETTINGS = {
-    "section_title": "문의하기",
-    "description": "궁금한 점을 남겨 주시면 빠르게 답변드립니다.",
-}
+# test-tenant E2E 용 섹션 — 없으면 만들고 있으면 그대로 (값도 건드리지 않음)
+# - CONTACT: inquiry.spec 문의 접수 (T-051-A)
+# - HERO_BANNER · GALLERY: editmode.spec 인라인 편집 · 갤러리 업로드 (T-066-A)
+# (섹션 타입, 라벨, 순서, 설정값, 값 형식)
+TEST_SECTIONS: list[tuple[str, str, int, dict[str, str], dict[str, str]]] = [
+    (
+        "HERO_BANNER",
+        "메인 배너",
+        0,
+        {
+            "main_title": "테스트 사업체에 오신 것을 환영합니다",
+            "sub_copy": "E2E 테스트용 홈",
+        },
+        {},
+    ),
+    (
+        "GALLERY",
+        "갤러리",
+        50,
+        {"section_title": "갤러리", "gallery_items": "[]"},
+        {"gallery_items": "JSON"},
+    ),
+    (
+        "CONTACT",
+        "문의하기",
+        100,
+        {
+            "section_title": "문의하기",
+            "description": "궁금한 점을 남겨 주시면 빠르게 답변드립니다.",
+        },
+        {},
+    ),
+]
 
 
-async def seed_test_contact_section(db: AsyncSession) -> None:
-    """test-tenant 홈에 CONTACT 섹션이 없으면 하나 만든다 (있으면 그대로)."""
+async def seed_test_sections(db: AsyncSession) -> None:
+    """test-tenant 홈에 E2E 가 쓰는 섹션 타입이 없으면 하나씩 만든다."""
     tenant = (
         await db.execute(select(Tenant).where(Tenant.slug == "test-tenant"))
     ).scalar_one_or_none()
     if tenant is None:
         return
-    existing = await db.execute(
-        select(Section.id).where(
-            Section.tenant_id == tenant.id,
-            Section.section_type == "CONTACT",
-            Section.deleted_at.is_(None),
-        )
-    )
-    if existing.first():
-        print("ℹ️  테스트 테넌트 문의 섹션 이미 존재 — 건너뜀")
-        return
-    section = Section(
-        tenant_id=tenant.id,
-        section_type="CONTACT",
-        label="문의하기",
-        display_order=100,
-        is_active=True,
-    )
-    db.add(section)
-    await db.flush()
-    for key, value in TEST_CONTACT_SETTINGS.items():
-        db.add(
-            SectionSetting(
-                tenant_id=tenant.id,
-                section_id=section.id,
-                field_key=key,
-                field_value=value,
+    created = []
+    for section_type, label, order, settings, value_types in TEST_SECTIONS:
+        existing = await db.execute(
+            select(Section.id).where(
+                Section.tenant_id == tenant.id,
+                Section.section_type == section_type,
+                Section.deleted_at.is_(None),
             )
         )
+        if existing.first():
+            continue
+        section = Section(
+            tenant_id=tenant.id,
+            section_type=section_type,
+            label=label,
+            display_order=order,
+            is_active=True,
+        )
+        db.add(section)
+        await db.flush()
+        for key, value in settings.items():
+            db.add(
+                SectionSetting(
+                    tenant_id=tenant.id,
+                    section_id=section.id,
+                    field_key=key,
+                    field_value=value,
+                    value_type=value_types.get(key, "STRING"),
+                )
+            )
+        created.append(section_type)
     await db.commit()
-    print("✅ 테스트 테넌트 문의 섹션 생성")
+    if created:
+        print(f"✅ 테스트 테넌트 섹션 생성: {', '.join(created)}")
+    else:
+        print("ℹ️  테스트 테넌트 E2E 섹션 이미 존재 — 건너뜀")
 
 
 # 플랜별 월 요금 (원) — super_dashboard.PLAN_MONTHLY_PRICE와 일치
@@ -570,7 +604,7 @@ async def main() -> None:
         await seed_features(db)
         await seed_super_admin(db)
         await seed_test_tenant(db)
-        await seed_test_contact_section(db)
+        await seed_test_sections(db)
         await seed_site_members(db)
 
     print("\n🎉 시드 데이터 삽입 완료")
