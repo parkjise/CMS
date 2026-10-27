@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.file import UploadedFile
+from app.services import template_assets
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
 MAX_DIMENSION = 1920
@@ -101,7 +102,8 @@ def _get_s3_client():
 
 
 def upload_to_storage(file_bytes: bytes, key: str, content_type: str) -> str:
-    """MinIO/S3에 업로드 후 CDN URL 반환."""
+    """MinIO/S3에 업로드 후 CDN URL 반환. 공용 템플릿 원본 경로는 거부 (11.8)."""
+    template_assets.ensure_writable(key)
     client = _get_s3_client()
     client.put_object(
         Bucket=settings.minio_bucket_name,
@@ -113,6 +115,7 @@ def upload_to_storage(file_bytes: bytes, key: str, content_type: str) -> str:
 
 
 def delete_from_storage(key: str) -> None:
+    template_assets.ensure_writable(key)  # 공용 템플릿 원본 삭제 금지 (11.8)
     client = _get_s3_client()
     client.delete_object(Bucket=settings.minio_bucket_name, Key=key)
 

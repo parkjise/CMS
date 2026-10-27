@@ -167,16 +167,18 @@ class TestPhoneSend:
         assert again.json()["error"]["code"] == "RATE_LIMIT_EXCEEDED"
         assert 0 < again.json()["error"]["details"][0]["retry_after_seconds"] <= 60
 
-        for minutes in (10, 20, 30, 40):
+        # 오늘(KST) 안에 들도록 초 단위 간격 — 분 단위면 자정 직후 실행 시
+        # 어제 기록이 되어 한도에 안 걸린다
+        for seconds in (1, 2, 3, 4):
             await _sql(
                 "INSERT INTO phone_verifications (tenant_id, phone, code, purpose,"
                 " expires_at, created_at) VALUES (:t, :p, '000000', 'REGISTER',"
-                " now(), now() - make_interval(mins => :m))",
-                {"t": test_tenant["id"], "p": PHONE, "m": minutes},
+                " now(), now() - make_interval(secs => :s))",
+                {"t": test_tenant["id"], "p": PHONE, "s": seconds},
             )
         await _sql(
             "UPDATE phone_verifications SET created_at = created_at - interval"
-            " '2 minutes' WHERE tenant_id = :t",
+            " '61 seconds' WHERE tenant_id = :t",
             {"t": test_tenant["id"]},
         )
         sixth = await _send(client, slug, "REGISTER")

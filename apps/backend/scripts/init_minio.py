@@ -20,7 +20,11 @@ BUCKET_POLICY = {
             "Effect": "Allow",
             "Principal": {"AWS": ["*"]},
             "Action": ["s3:GetObject"],
-            "Resource": [f"arn:aws:s3:::{BUCKET_NAME}/public/*"],
+            "Resource": [
+                f"arn:aws:s3:::{BUCKET_NAME}/public/*",
+                # 템플릿 샘플 이미지 공용 원본 (기획서 11.8, T-120)
+                f"arn:aws:s3:::{BUCKET_NAME}/templates/*",
+            ],
         }
     ],
 }
