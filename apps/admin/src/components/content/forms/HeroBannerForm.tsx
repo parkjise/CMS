@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Button, Input } from '@cms/ui'
 import { CharCounter } from './CharCounter'
 import { FormField } from './FormField'
-import { ImageUrlField } from './ImageUrlField'
+import { ImageUploadField } from './ImageUploadField'
 import { getSetting, isRichSetting, strSetting, urlSetting } from './utils'
 import type { SectionFormProps } from './types'
 
@@ -64,11 +64,13 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
         />
       </FormField>
 
-      <ImageUrlField
+      <ImageUploadField
         label="배경 이미지"
         value={bgImage}
         onChange={setBgImage}
-        hint="1920x1080 권장. WebP 자동 변환됩니다."
+        sectionId={section.id}
+        context="hero"
+        hint="1920x1080 권장. WebP 로 자동 변환됩니다."
       />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

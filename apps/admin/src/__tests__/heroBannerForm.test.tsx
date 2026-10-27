@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithQuery } from './renderWithQuery'
 import userEvent from '@testing-library/user-event'
 import { HeroBannerForm } from '@/components/content/forms/HeroBannerForm'
 import type { Section } from '@/hooks/useSections'
@@ -21,8 +22,7 @@ describe('HeroBannerForm', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
 
-    render(
-      <HeroBannerForm
+    renderWithQuery(<HeroBannerForm
         section={baseSection}
         isSaving={false}
         onSubmit={onSubmit}
@@ -47,8 +47,7 @@ describe('HeroBannerForm', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn()
 
-    render(
-      <HeroBannerForm
+    renderWithQuery(<HeroBannerForm
         section={baseSection}
         isSaving={false}
         onSubmit={onSubmit}
@@ -65,8 +64,7 @@ describe('HeroBannerForm', () => {
   })
 
   it('isSaving=true이면 저장 중 라벨 + 비활성', () => {
-    render(
-      <HeroBannerForm
+    renderWithQuery(<HeroBannerForm
         section={baseSection}
         isSaving={true}
         onSubmit={vi.fn()}

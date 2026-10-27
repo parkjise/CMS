@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { screen } from '@testing-library/react'
+import { renderWithQuery } from './renderWithQuery'
 import userEvent from '@testing-library/user-event'
 import { HeroBannerForm } from '@/components/content/forms/HeroBannerForm'
 import {
@@ -64,15 +65,14 @@ describe('서식 글 도우미', () => {
 
 describe('HeroBannerForm — 서식 글', () => {
   it('서식 글 칸에는 안내가 보이고 입력칸에는 글자만', () => {
-    render(<HeroBannerForm section={section} isSaving={false} onSubmit={vi.fn()} />)
+    renderWithQuery(<HeroBannerForm section={section} isSaving={false} onSubmit={vi.fn()} />)
     expect(screen.getByRole('note').textContent).toContain('서식이 지워집니다')
     const input = screen.getByPlaceholderText(/강남 통증의학과/) as HTMLInputElement
     expect(input.value).not.toContain('<b>')
   })
 
   it('서식 없는 섹션에는 안내가 없다', () => {
-    render(
-      <HeroBannerForm section={{ ...section, settings: [] }} isSaving={false} onSubmit={vi.fn()} />
+    renderWithQuery(<HeroBannerForm section={{ ...section, settings: [] }} isSaving={false} onSubmit={vi.fn()} />
     )
     expect(screen.queryByRole('note')).toBeNull()
   })
@@ -81,8 +81,7 @@ describe('HeroBannerForm — 서식 글', () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
     const multiLine = { ...richTitle, field_value: '<b>환영</b> 인사' } as SectionSetting
-    render(
-      <HeroBannerForm section={{ ...section, settings: [multiLine] }} isSaving={false} onSubmit={onSubmit} />
+    renderWithQuery(<HeroBannerForm section={{ ...section, settings: [multiLine] }} isSaving={false} onSubmit={onSubmit} />
     )
     await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
     const sent = preserveRichText([multiLine], onSubmit.mock.calls[0][0])
