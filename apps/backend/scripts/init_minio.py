@@ -10,7 +10,11 @@ docker compose up 후 한 번 실행 (운영도 배포 전 한 번): python scri
 
 import json
 import sys
+from pathlib import Path
 from typing import Any
+
+# `python scripts/...` 로 바로 실행해도 app 패키지를 찾도록 (seed.py 와 같은 방식)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from botocore.exceptions import ClientError
 

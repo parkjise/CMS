@@ -101,3 +101,133 @@ jobs:
 
       - name: Unit tests (Vitest)
         run: pnpm -r --if-present test
+
+  # ── E2E: 실제 백엔드 + 홈페이지로 Playwright (T-082-A) ─────────────────────
+  # 로그인 · 저장 · 업로드를 흉내 내지 않고 실제로 한다 — 단위 테스트가 못 잡는
+  # "실제 서버에서만 실패" 버그(401 · 업로드 형식 · 캐시 반영)를 PR 에서 막는다.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: cms_user
+          POSTGRES_PASSWORD: cms_password
+          POSTGRES_DB: cms_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U cms_user -d cms_db"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+      redis:
+        image: redis:8-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 5
+    env:
+      # 모두 CI 전용 값 — 실제 시크릿 아님
+      # 앱은 일반 권한 계정(RLS 적용), 마이그레이션 · 시드는 소유자 계정 (운영과 같은 구성)
+      DATABASE_URL: postgresql+asyncpg://cms_app:ci_app_password@localhost:5432/cms_db
+      MIGRATION_DATABASE_URL: postgresql+asyncpg://cms_user:cms_password@localhost:5432/cms_db
+      APP_SECRET_KEY: ci-only-secret-key-32chars-minimum-000
+      SUPER_ADMIN_PASSWORD: ci-only-super-admin-password
+      # 저장 직후 홈페이지 캐시 비우기 — 백엔드 · 홈페이지 같은 값
+      CLIENT_INTERNAL_URL: http://localhost:3000
+      REVALIDATE_SECRET: ci-only-revalidate-secret-000000000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000/api
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      # MinIO 는 서비스 컨테이너로 시작 명령(server /data)을 줄 수 없어 직접 띄운다
+      # 공식 이미지(minio/minio)는 Docker Hub · Quay 에서 내려가 Chainguard 빌드를 쓴다
+      # (운영 배포 체크리스트 B6 참고)
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER=minioadmin -e MINIO_ROOT_PASSWORD=minioadmin \
+            --tmpfs /data:uid=65532,gid=65532 \
+            cgr.dev/chainguard/minio:latest server /data
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/live && break
+            sleep 2
+          done
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Cache Poetry venv
+        uses: actions/cache@v4
+        with:
+          path: apps/backend/.venv
+          key: poetry-${{ runner.os }}-${{ hashFiles('apps/backend/poetry.lock') }}
+
+      - name: Install backend dependencies
+        working-directory: apps/backend
+        run: poetry install --no-interaction
+
+      # 운영 배포와 같은 순서 — 마이그레이션 → 앱 계정 → 시드 → 이미지 버킷
+      - name: Prepare database and storage
+        working-directory: apps/backend
+        # 앱 계정 이름 · 비밀번호는 DATABASE_URL 에서 읽는다
+        run: |
+          poetry run alembic upgrade head
+          poetry run python scripts/init_db_roles.py
+          poetry run python scripts/seed.py
+          poetry run python scripts/init_minio.py
+
+      - name: Start backend
+        working-directory: apps/backend
+        run: |
+          nohup poetry run uvicorn app.main:app --port 8000 > "$RUNNER_TEMP/backend.log" 2>&1 &
+          for _ in $(seq 1 30); do
+            curl -sf http://localhost:8000/health && break
+            sleep 2
+          done
+          curl -sf http://localhost:8000/health
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build homepage
+        working-directory: apps/client
+        run: pnpm build
+
+      - name: Install Playwright browser
+        working-directory: apps/client
+        run: pnpm exec playwright install --with-deps chromium
+
+      # full-journey · tenant-isolation 은 프론트 3개가 필요해 제외 (E2E_FULL_STACK)
+      - name: Playwright E2E
+        working-directory: apps/client
+        env:
+          E2E_WEB_COMMAND: pnpm start
+        run: pnpm exec playwright test e2e/editmode.spec.ts e2e/inquiry.spec.ts e2e/homepage.spec.ts e2e/seo.spec.ts
+
+      - name: Upload E2E report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-report
+          path: |
+            apps/client/test-results/
+            ${{ runner.temp }}/backend.log
+          retention-days: 7

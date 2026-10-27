@@ -30,7 +30,8 @@ const webServer = fullStack
       },
     ]
   : {
-      command: 'pnpm dev',
+      // CI 는 미리 빌드한 운영 모드(E2E_WEB_COMMAND='pnpm start') — dev 는 첫 화면 컴파일이 느리다
+      command: process.env.E2E_WEB_COMMAND ?? 'pnpm dev',
       url: BASE_URL,
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,

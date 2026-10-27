@@ -15,6 +15,10 @@ import asyncio
 import re
 import sys
 from dataclasses import dataclass
+from pathlib import Path
+
+# `python scripts/...` 로 바로 실행해도 app 패키지를 찾도록 (seed.py 와 같은 방식)
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asyncpg
 from sqlalchemy.engine import make_url
