@@ -3,7 +3,7 @@
 import { EditableText } from '@/components/edit/EditableText'
 import { HeroBgImageEditor } from '@/components/edit/HeroBgImageEditor'
 import { useEditStore } from '@/lib/editStore'
-import { getString } from '@/lib/sectionSettings'
+import { getString, getValueType } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
 export function HeroBanner({ section }: SectionProps) {
@@ -45,6 +45,8 @@ export function HeroBanner({ section }: SectionProps) {
             as="h1"
             sectionId={section.id}
             field="main_title"
+            valueType={getValueType(section.settings, 'main_title')}
+            formatting
             initialValue={mainTitle}
             maxLength={40}
             className="text-3xl font-bold leading-tight text-[color:var(--color-on-primary)] md:text-5xl"
@@ -56,6 +58,8 @@ export function HeroBanner({ section }: SectionProps) {
               as="p"
               sectionId={section.id}
               field="sub_copy"
+            valueType={getValueType(section.settings, 'sub_copy')}
+            formatting
               initialValue={subCopy}
               maxLength={80}
               className="text-base text-[color:var(--color-on-primary)]/90 md:text-lg"

@@ -11,7 +11,11 @@ export interface PendingChange {
   original_value: string
   new_value: string
   changed_at: string
+  /** 'rich' = 미니 툴바 서식 HTML (T-065-A). 없으면 일반 글자 */
+  format?: TextFormat
 }
+
+export type TextFormat = 'plain' | 'rich'
 
 export interface SaveResult {
   saved_count: number
@@ -35,6 +39,7 @@ interface EditStore {
     field: string,
     newValue: string,
     originalValue: string,
+    format?: TextFormat,
   ) => void
   saveAll: () => Promise<SaveResult>
   discardAll: () => void
@@ -65,7 +70,7 @@ export const useEditStore = create<EditStore>()(
       toggleAiPanel: () => set((s) => ({ isAiPanelOpen: !s.isAiPanelOpen })),
       setAiPanelOpen: (open: boolean) => set({ isAiPanelOpen: open }),
 
-      updateField: (sectionId, field, newValue, originalValue) => {
+      updateField: (sectionId, field, newValue, originalValue, format) => {
         set((state) => ({
           pendingChanges: {
             ...state.pendingChanges,
@@ -75,6 +80,7 @@ export const useEditStore = create<EditStore>()(
               original_value: originalValue,
               new_value: newValue,
               changed_at: new Date().toISOString(),
+              ...(format === 'rich' ? { format } : {}),
             },
           },
           isDirty: true,
@@ -87,6 +93,7 @@ export const useEditStore = create<EditStore>()(
           section_id: c.section_id,
           field: c.field,
           value: c.new_value,
+          ...(c.format === 'rich' ? { format: 'rich' as const } : {}),
         }))
 
         if (changes.length === 0) {

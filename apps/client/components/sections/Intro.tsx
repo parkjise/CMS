@@ -1,6 +1,6 @@
 import { EditableImage } from '@/components/edit/EditableImage'
 import { EditableText } from '@/components/edit/EditableText'
-import { getString } from '@/lib/sectionSettings'
+import { getString, getValueType } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
 export function Intro({ section }: SectionProps) {
@@ -31,6 +31,8 @@ export function Intro({ section }: SectionProps) {
             as="p"
             sectionId={section.id}
             field="intro_text"
+            valueType={getValueType(section.settings, 'intro_text')}
+            formatting
             initialValue={introText}
             maxLength={500}
             multiline

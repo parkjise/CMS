@@ -1,5 +1,5 @@
 import { EditableText } from '@/components/edit/EditableText'
-import { getJson, getString } from '@/lib/sectionSettings'
+import { getJson, getString, getValueType } from '@/lib/sectionSettings'
 import type { SectionProps, ServicesItem } from './types'
 
 export function Services({ section }: SectionProps) {
@@ -18,6 +18,8 @@ export function Services({ section }: SectionProps) {
             as="h2"
             sectionId={section.id}
             field="section_title"
+            valueType={getValueType(section.settings, 'section_title')}
+            formatting
             initialValue={title}
             maxLength={40}
             className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-3xl"

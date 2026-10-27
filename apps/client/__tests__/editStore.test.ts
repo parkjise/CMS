@@ -127,6 +127,26 @@ describe('editStore', () => {
       expect(useEditStore.getState().pendingChanges).toEqual({})
     })
 
+    it('서식 글은 format: rich 로, 일반 글자는 format 없이 보낸다 (T-065-A)', async () => {
+      const spy = vi.spyOn(authApi, 'post').mockResolvedValue({
+        data: { success: true, data: { saved_count: 2, failed_count: 0, cache_purged: true } },
+      })
+      const store = useEditStore.getState()
+      store.updateField('sec-1', 'main_title', '<b>v1</b>', 'orig', 'rich')
+      store.updateField('sec-2', 'intro_text', 'v2', '<b>orig</b>', 'plain')
+
+      await useEditStore.getState().saveAll()
+
+      const body = spy.mock.calls[0][1] as { changes: Array<Record<string, string>> }
+      expect(body.changes).toContainEqual({
+        section_id: 'sec-1',
+        field: 'main_title',
+        value: '<b>v1</b>',
+        format: 'rich',
+      })
+      expect(body.changes).toContainEqual({ section_id: 'sec-2', field: 'intro_text', value: 'v2' })
+    })
+
     it('일부 실패 시 pendingChanges는 보존된다', async () => {
       vi.spyOn(authApi, 'post').mockResolvedValue({
         data: {

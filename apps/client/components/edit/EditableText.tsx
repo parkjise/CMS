@@ -2,7 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { CopySuggestPopover } from '@/components/ai/CopySuggestPopover'
+import { FormatToolbar } from '@/components/edit/FormatToolbar'
 import { useEditStore } from '@/lib/editStore'
+import {
+  RICH_TEXT_VALUE_TYPE,
+  richToPlainText,
+  sanitizeRichHtml,
+  serializeEditable,
+  toEditableHtml,
+} from '@/lib/richText'
 
 type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span' | 'div'
 
@@ -18,6 +26,10 @@ interface Props {
   /** 제목 연결(aria-labelledby)용 id · 언어 표시 — 코드형 템플릿 마크업 유지 (T-121) */
   id?: string
   lang?: string
+  /** 저장된 값의 형식 — 'RICH_TEXT' 면 서식 HTML (T-065-A) */
+  valueType?: string
+  /** 미니 툴바(굵게 · 기울임 · 색 · 크기 · 링크) 사용 — 링크 안의 글자 · 연락처 칸은 끈다 */
+  formatting?: boolean
 }
 
 export function EditableText({
@@ -31,17 +43,27 @@ export function EditableText({
   className,
   id,
   lang,
+  valueType,
+  formatting = false,
 }: Props) {
   const isEditMode = useEditStore((s) => s.isEditMode)
   const updateField = useEditStore((s) => s.updateField)
 
+  const rich = valueType === RICH_TEXT_VALUE_TYPE
+  // 서식 글 · 툴바 칸은 DOM 을 HTML 로 읽는다 (글자 수는 태그를 뺀 실제 글자)
+  const structured = rich || formatting
+  const initialLength = rich ? richToPlainText(initialValue).length : initialValue.length
+  const plainInitial = rich ? richToPlainText(initialValue) : initialValue
+
   const [editing, setEditing] = useState(false)
-  const [currentLength, setCurrentLength] = useState(initialValue.length)
+  const [currentLength, setCurrentLength] = useState(initialLength)
   const ref = useRef<HTMLElement | null>(null)
+  // 링크 주소 입력 창이 떠 있는 동안에는 blur 로 저장하지 않는다
+  const toolbarBusy = useRef(false)
 
   useEffect(() => {
-    setCurrentLength(initialValue.length)
-  }, [initialValue])
+    setCurrentLength(initialLength)
+  }, [initialLength])
 
   useEffect(() => {
     if (editing && ref.current) {
@@ -57,6 +79,10 @@ export function EditableText({
   }, [editing])
 
   const Tag = as
+  // 서식 글은 허용 태그만 다시 걸러 HTML 로, 일반 글자는 글자 그대로 (꺾쇠도 글자)
+  const content = rich
+    ? { dangerouslySetInnerHTML: { __html: sanitizeRichHtml(initialValue) } }
+    : { children: initialValue || placeholder }
 
   if (!isEditMode) {
     return (
@@ -64,27 +90,48 @@ export function EditableText({
         data-editable="text"
         data-field={field}
         data-section-id={sectionId}
+        data-rich-text={rich ? '' : undefined}
         className={className}
         id={id}
         lang={lang}
-      >
-        {initialValue || placeholder}
-      </Tag>
+        {...content}
+      />
     )
   }
 
   const overLimit =
     typeof maxLength === 'number' && currentLength > maxLength
 
-  const handleClick = () => {
+  const handleClick = (e: React.MouseEvent<HTMLElement>) => {
+    // 편집 모드에서는 글 안의 링크로 이동하지 않는다
+    if ((e.target as HTMLElement).closest('a')) e.preventDefault()
     if (!editing) setEditing(true)
   }
 
-  const handleInput = (e: React.FormEvent<HTMLElement>) => {
-    setCurrentLength(e.currentTarget.innerText.length)
+  const measure = () => {
+    const el = ref.current
+    if (!el) return
+    setCurrentLength(
+      structured ? serializeEditable(el, { multiline }).length : el.innerText.length,
+    )
+  }
+
+  const commitStructured = (el: HTMLElement) => {
+    const result = serializeEditable(el, { multiline, maxLength })
+    setEditing(false)
+    setCurrentLength(result.length)
+    el.innerHTML = toEditableHtml(result.value, result.rich)
+    if (result.value !== initialValue || result.rich !== rich) {
+      updateField(sectionId, field, result.value, initialValue, result.rich ? 'rich' : 'plain')
+    }
   }
 
   const commit = () => {
+    if (toolbarBusy.current) return
+    if (structured && ref.current) {
+      commitStructured(ref.current)
+      return
+    }
     const text = (ref.current?.innerText ?? ref.current?.textContent ?? '')
     const truncated =
       typeof maxLength === 'number' && text.length > maxLength
@@ -99,8 +146,11 @@ export function EditableText({
   }
 
   const cancel = () => {
-    if (ref.current) ref.current.innerText = initialValue
-    setCurrentLength(initialValue.length)
+    if (ref.current) {
+      if (rich) ref.current.innerHTML = sanitizeRichHtml(initialValue)
+      else ref.current.innerText = initialValue
+    }
+    setCurrentLength(initialLength)
     setEditing(false)
   }
 
@@ -133,8 +183,9 @@ export function EditableText({
         : value
     if (ref.current) ref.current.innerText = truncated
     setCurrentLength(truncated.length)
-    if (truncated !== initialValue) {
-      updateField(sectionId, field, truncated, initialValue)
+    // AI 추천은 글자만 — 서식 글이었다면 일반 글자로 바뀐다
+    if (truncated !== initialValue || rich) {
+      updateField(sectionId, field, truncated, initialValue, 'plain')
     }
   }
 
@@ -150,7 +201,7 @@ export function EditableText({
         contentEditable={editing}
         suppressContentEditableWarning
         onClick={handleClick}
-        onInput={handleInput}
+        onInput={measure}
         onBlur={handleBlur}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
@@ -161,9 +212,18 @@ export function EditableText({
         ]
           .filter(Boolean)
           .join(' ')}
-      >
-        {initialValue || placeholder}
-      </Tag>
+        data-rich-text={rich ? '' : undefined}
+        {...content}
+      />
+      {editing && formatting && (
+        <FormatToolbar
+          target={ref}
+          onBusyChange={(busy) => {
+            toolbarBusy.current = busy
+          }}
+          onChange={measure}
+        />
+      )}
       {editing && typeof maxLength === 'number' && (
         <span
           aria-hidden="true"
@@ -181,7 +241,7 @@ export function EditableText({
         <CopySuggestPopover
           sectionId={sectionId}
           field={field}
-          currentValue={initialValue}
+          currentValue={plainInitial}
           onApply={applySuggestion}
         />
       )}

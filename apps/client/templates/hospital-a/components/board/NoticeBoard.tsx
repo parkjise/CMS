@@ -1,4 +1,4 @@
-import { getJson, getString } from '@/lib/sectionSettings'
+import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { RichLine } from '../sub/RichText'
 import { BoardToolbar, type SearchTarget } from './BoardToolbar'
@@ -44,7 +44,7 @@ export function sortNotices(items: NoticeItem[]): NoticeItem[] {
  * 본문 블록: { type: 'p', text } (\n · **굵게**) · { type: 'ul', items } · { type: 'image', src, alt }
  */
 export function NoticeBoard({ section, detailId, q, page, hrefFor, searchTarget }: Props) {
-  const title = getString(section.settings, 'title')
+  const title = getPlainString(section.settings, 'title')
   const all = sortNotices(getJson<NoticeItem[]>(section.settings, 'items', []))
 
   if (detailId) {
