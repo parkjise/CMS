@@ -132,22 +132,8 @@ async def get_limits(db: AsyncSession, tenant_id: UUID) -> SectionLimits:
     return SectionLimits(plan, count, limit, True, True, None, types)
 
 
-async def add_section(
-    db: AsyncSession,
-    tenant_id: UUID,
-    section_type: str,
-    label: str | None,
-) -> UUID:
-    limits = await get_limits(db, tenant_id)
-    if not limits.can_add:
-        raise SectionLimitError(limits.reason or "PLAN_LIMIT_EXCEEDED")
-    if section_type not in THEME_SECTION_TYPES:
-        raise SectionTypeError("이 템플릿에서 쓸 수 없는 섹션 종류입니다.")
-
-    name = (label or "").strip() or THEME_SECTION_TYPES[section_type]
-    if len(name) > LABEL_MAX_LEN:
-        raise SectionTypeError(f"섹션 이름은 {LABEL_MAX_LEN}자 이하여야 합니다.")
-
+async def next_home_order(db: AsyncSession, tenant_id: UUID) -> int:
+    """홈 맨 아래 순서"""
     last = await db.execute(
         select(func.max(Section.display_order)).where(
             Section.tenant_id == tenant_id,
@@ -156,6 +142,17 @@ async def add_section(
         )
     )
     max_order = last.scalar_one_or_none()
+    return (max_order + 1) if max_order is not None else 0
+
+
+async def add_starter_section(
+    db: AsyncSession,
+    tenant_id: UUID,
+    section_type: str,
+    label: str,
+    display_order: int,
+) -> UUID:
+    """시작 문구(샘플 표시)가 든 홈 섹션 하나 — commit 은 호출한 쪽에서."""
     now = datetime.now(UTC)
     section_id = uuid.uuid4()
     db.add(
@@ -163,8 +160,8 @@ async def add_section(
             id=section_id,
             tenant_id=tenant_id,
             section_type=section_type,
-            label=name,
-            display_order=(max_order + 1) if max_order is not None else 0,
+            label=label,
+            display_order=display_order,
             is_active=True,
             page_key=HOME_PAGE,
             created_at=now,
@@ -185,6 +182,28 @@ async def add_section(
                 updated_at=now,
             )
         )
+    return section_id
+
+
+async def add_section(
+    db: AsyncSession,
+    tenant_id: UUID,
+    section_type: str,
+    label: str | None,
+) -> UUID:
+    limits = await get_limits(db, tenant_id)
+    if not limits.can_add:
+        raise SectionLimitError(limits.reason or "PLAN_LIMIT_EXCEEDED")
+    if section_type not in THEME_SECTION_TYPES:
+        raise SectionTypeError("이 템플릿에서 쓸 수 없는 섹션 종류입니다.")
+
+    name = (label or "").strip() or THEME_SECTION_TYPES[section_type]
+    if len(name) > LABEL_MAX_LEN:
+        raise SectionTypeError(f"섹션 이름은 {LABEL_MAX_LEN}자 이하여야 합니다.")
+
+    section_id = await add_starter_section(
+        db, tenant_id, section_type, name, await next_home_order(db, tenant_id)
+    )
     await db.commit()
     await site_cache.purge_site(db, tenant_id)
     return section_id

@@ -16,6 +16,7 @@ import {
 } from '@/hooks/useTemplates'
 import { openTemplatePreview, previewTemplateRef } from '@/lib/previewUrl'
 import { useAuthStore } from '@/stores/authStore'
+import { applyResultMessage } from '@/lib/templateApply'
 
 export function TemplatesPage() {
   const [industry, setIndustry] = useState<IndustryType | null>(null)
@@ -50,12 +51,8 @@ export function TemplatesPage() {
     if (!pendingApply) return
     const name = pendingApply.name
     applyMutation.mutate({ templateId: pendingApply.id, contentMode }, {
-      onSuccess: () => {
-        toast.success(
-          contentMode === 'replace_with_sample'
-            ? `'${name}' 템플릿 샘플로 교체했습니다.`
-            : `'${name}' 템플릿을 적용했습니다.`,
-        )
+      onSuccess: (result) => {
+        toast.success(applyResultMessage(name, contentMode, result.added_section_count))
         setPendingApply(null)
       },
     })

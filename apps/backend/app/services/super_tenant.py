@@ -15,7 +15,6 @@ from app.models.analytics import SiteAnalytics
 from app.models.audit import AuditLog
 from app.models.file import UploadedFile
 from app.models.inquiry import Inquiry
-from app.models.section import Section
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -170,17 +169,11 @@ async def create_tenant(
         )
         await copy_sample_sections(db, tenant.id, start_template)
     else:
+        # 시작 템플릿이 없어도 홈이 비지 않게 — 시작 문구(샘플 표시) (T-055-A)
+        from app.services.section_manage import add_starter_section
+
         for order, (section_type, label) in enumerate(DEFAULT_SECTIONS):
-            db.add(
-                Section(
-                    id=uuid.uuid4(),
-                    tenant_id=tenant.id,
-                    section_type=section_type,
-                    label=label,
-                    display_order=order,
-                    is_active=True,
-                )
-            )
+            await add_starter_section(db, tenant.id, section_type, label, order)
 
     # 기본 기능 켜기 (T-115) — default_enabled · 요금제 · 업종별 회원 기능
     from app.services import feature as feature_service

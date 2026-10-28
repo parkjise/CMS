@@ -447,6 +447,59 @@ test.describe('T-078 전체 통합 시나리오', () => {
     expect([...(await sectionIds())].sort()).toEqual([...before].sort())
   })
 
+  test('시나리오 12: 코드형 내용에서 테마형 템플릿으로 바꿔도 홈이 비지 않고, 되돌리면 원래대로 (T-055-A)', async ({
+    page,
+    request,
+  }) => {
+    const headers = authHeader(token)
+    const homeIds = async () =>
+      (
+        (await (await request.get(`${BACKEND_URL}/api/v1/sections`, { headers })).json())
+          .data as Array<{ id: string; page_key?: string }>
+      )
+        .filter((s) => (s.page_key ?? 'home') === 'home')
+        .map((s) => s.id)
+        .sort()
+    const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
+      .data as {
+      templates: Array<{ id: string; locked: boolean; renderer?: string; section_layouts: string[] }>
+    }
+    const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
+    const theme = list.templates.find(
+      (t) => t.renderer !== 'code' && !t.locked && t.section_layouts.includes('HERO_BANNER'),
+    )
+    expect(code && theme, '코드형 · 테마형 템플릿이 필요 — 시드 확인').toBeTruthy()
+    const before = await homeIds()
+    const apply = (id: string, mode: string) =>
+      request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+        headers,
+        data: { template_id: id, content_mode: mode },
+      })
+    const rollback = () => request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
+
+    // 사장님 상황 재현: 코드형 샘플로 교체 → 테마형(내용 유지)으로 변경
+    expect((await apply(code!.id, 'replace_with_sample')).ok()).toBeTruthy()
+    let rolledBack = 0
+    try {
+      const res = await apply(theme!.id, 'keep')
+      expect(res.ok(), await res.text()).toBeTruthy()
+      expect((await res.json()).data.added_section_count).toBeGreaterThan(0)
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      // 배너가 시작 문구로 보이고, 메뉴는 그려진 섹션 수와 같다 (빈 화면 · 깨진 메뉴 아님)
+      await expect(page.locator('section[data-section-type="HERO_BANNER"] h1')).toBeVisible()
+      const menu = page.getByRole('navigation', { name: '페이지 내 섹션' }).getByRole('button')
+      await expect(menu).toHaveCount(await page.locator('[data-section-wrapper]').count())
+    } finally {
+      // 테마형 적용 → 코드형 교체 순서로 되돌리면 처음 상태
+      for (let i = 0; i < 2; i += 1) {
+        if ((await rollback()).ok()) rolledBack += 1
+      }
+    }
+    expect(rolledBack).toBe(2)
+    expect(await homeIds()).toEqual(before)
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()

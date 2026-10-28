@@ -36,6 +36,8 @@ export interface TemplateOverride {
   template_id: string
   css_overrides: Record<string, string>
   applied_at: string
+  /** 적용하며 새로 추가 · 채운 섹션 수 (T-055-A) */
+  added_section_count?: number
 }
 
 /** 업종 한국어 라벨 (필터 탭/카드 태그용) */
@@ -86,7 +88,7 @@ export function useApplyTemplate() {
     },
     onSuccess: () => {
       invalidate()
-      // 코드형 템플릿은 없는 섹션을 샘플로 채우거나(유지) 교체하므로 섹션 목록도 갱신
+      // 빠진 섹션을 샘플로 채우거나(유지 — 코드형 · 테마형 모두, T-055-A) 교체하므로 섹션 목록도 갱신
       queryClient.invalidateQueries({ queryKey: ['sections'] })
     },
   })

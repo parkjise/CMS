@@ -45,6 +45,31 @@ describe('themeHomeSections', () => {
   })
 })
 
+describe('다른 템플릿용 내용 숨김 (T-055-A)', () => {
+  const setting = (field_key: string, field_value: string) => ({
+    field_key,
+    field_value,
+    value_type: 'STRING',
+  })
+
+  it('하스피털 A 식 소개(title · cards)만 있으면 숨기고, 테마형 칸이 하나라도 있으면 보인다', () => {
+    const codeIntro = sec('INTRO', { settings: [setting('title', '브랜드'), setting('cards', '[{}]')] })
+    const themeIntro = sec('INTRO', { settings: [setting('intro_text', '소개 글')] })
+    const mixed = sec('SERVICES', {
+      settings: [setting('eyebrow', 'X'), setting('section_title', '서비스')],
+    })
+    const all = [codeIntro, themeIntro, mixed]
+    expect(themeHomeSections(all).map((s) => s.id)).toEqual([themeIntro.id, mixed.id])
+    expect(hiddenInThemeCount(all)).toBe(1)
+  })
+
+  it('값이 하나도 없는 새 섹션 · 빈 목록만 있는 섹션은 편집할 수 있게 남긴다', () => {
+    const empty = sec('HERO_BANNER')
+    const emptyList = sec('GALLERY', { settings: [setting('gallery_items', '[]')] })
+    expect(themeHomeSections([empty, emptyList])).toHaveLength(2)
+  })
+})
+
 describe('Navbar', () => {
   it('메뉴 글자는 줄바꿈하지 않고, 넘치면 가로로 스크롤', () => {
     render(

@@ -38,6 +38,7 @@ from app.schemas.public_site import (
 )
 from app.services import site_cache
 from app.services.template_assets import resolve_sample_value
+from app.services.theme_content import ensure_theme_sections
 
 logger = logging.getLogger("app.template")
 
@@ -239,12 +240,13 @@ async def apply_template(
     template_id: uuid.UUID,
     user_id: uuid.UUID | None,
     content_mode: str = CONTENT_KEEP,
-) -> TenantTemplateOverride:
-    """템플릿을 적용한다.
+) -> tuple[TenantTemplateOverride, int]:
+    """템플릿을 적용한다. (적용 상태, 새로 추가 · 채운 섹션 수) 를 돌려준다.
 
     - 플랜 잠금 템플릿이면 403
     - 기존 적용 상태가 있으면 롤백용 이력 스냅샷을 남긴다
-    - content_mode=keep(기본): 콘텐츠(섹션)는 건드리지 않는다 (기획서 11.1)
+    - content_mode=keep(기본): 기존 콘텐츠는 그대로 (기획서 11.1). 새 템플릿에서 홈이
+      비지 않도록 빠진 섹션만 샘플로 채우고, 되돌리면 그 섹션은 정리 (T-055-A)
     - content_mode=replace_with_sample: 현재 섹션을 숨기고 템플릿 샘플로 교체,
       교체 전 섹션은 이력의 content_snapshot 으로 롤백 가능 (기획서 11.8)
     """
@@ -263,9 +265,25 @@ async def apply_template(
         )
 
     content_snapshot: dict | None = None
-    if not replace and template.renderer == "code":
-        # 콘텐츠 유지: 기존 섹션은 그대로, 새 템플릿에만 있는 섹션만 샘플로 (11.8)
-        await copy_sample_sections(db, tenant_id, template, only_missing=True)
+    created_ids: list[uuid.UUID] = []
+    filled_count = 0
+    if not replace:
+        if template.renderer == "code":
+            # 콘텐츠 유지: 기존 섹션은 그대로, 새 템플릿에만 있는 섹션만 샘플로 (11.8)
+            created_ids = await copy_sample_sections(
+                db, tenant_id, template, only_missing=True
+            )
+        else:
+            # 테마형: 홈에 보일 섹션이 없는 종류만 시작 문구로 (T-055-A)
+            created_ids, filled_count = await ensure_theme_sections(
+                db, tenant_id, template
+            )
+        if created_ids:
+            # 되돌리면 추가한 섹션만 정리
+            content_snapshot = {
+                "restored_section_ids": [],
+                "created_section_ids": [str(i) for i in created_ids],
+            }
     if replace:
         previous_ids = await _active_section_ids(db, tenant_id)
         await _set_deleted(db, tenant_id, previous_ids, deleted=True)
@@ -313,7 +331,7 @@ async def apply_template(
     await db.commit()
     await db.refresh(override)
     await _purge_site_cache(db, tenant_id)
-    return override
+    return override, len(created_ids) + filled_count
 
 
 async def rollback_template(
