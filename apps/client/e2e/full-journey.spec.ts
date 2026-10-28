@@ -352,6 +352,54 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 10: 관리자 SEO 화면에서 공유 이미지를 올려 저장하면 홈페이지 og:image 에 반영된다 (T-037-C)', async ({
+    page,
+    request,
+  }) => {
+    const seoRes = await request.get(`${BACKEND_URL}/api/v1/seo-settings`, {
+      headers: authHeader(token),
+    })
+    const original = ((await seoRes.json()).data?.og_image_url as string | null) ?? null
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+      'base64',
+    )
+    try {
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/seo`)
+      await page.getByRole('button', { name: '소셜 미리보기' }).click()
+      const uploaded = page.waitForResponse((r) => r.url().includes('/v1/upload/image'))
+      await page.getByTestId('seo-file-input').setInputFiles({
+        name: 'og.png',
+        mimeType: 'image/png',
+        buffer: png,
+      })
+      const url = (await (await uploaded).json()).data.url as string
+      expect(url).toContain('/seo/')
+
+      const saved = page.waitForResponse(
+        (r) => r.url().includes('/v1/seo-settings') && r.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: 'OG 이미지 저장' }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      // 방문자 홈페이지 HTML — 소셜 공유 메타
+      const html = await (await request.get(`${CLIENT_URL}/${slug}`)).text()
+      expect(html).toMatch(new RegExp(`property="og:image" content="[^"]*${url.split('/').pop()}`))
+    } finally {
+      await request.put(`${BACKEND_URL}/api/v1/seo-settings`, {
+        headers: authHeader(token),
+        data: { og_image_url: original },
+      })
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
