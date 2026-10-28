@@ -400,6 +400,53 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 11: 코드형 템플릿용 내용으로 테마형 템플릿을 미리봐도 메뉴가 넘치지 않고 안내가 뜬다 (T-057-A)', async ({
+    page,
+    request,
+  }) => {
+    const headers = authHeader(token)
+    const sectionIds = async () =>
+      new Set(
+        ((await (await request.get(`${BACKEND_URL}/api/v1/sections`, { headers })).json())
+          .data as Array<{ id: string }>).map((s) => s.id),
+      )
+    const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
+      .data as {
+      templates: Array<{ id: string; locked: boolean; renderer?: string; code?: string | null }>
+      current_template_id: string | null
+    }
+    const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
+    const theme = list.templates.find((t) => t.renderer !== 'code' && !t.locked)
+    expect(code && theme, '코드형 · 테마형 템플릿이 필요 — 시드 확인').toBeTruthy()
+
+    const before = await sectionIds()
+    // 코드형 적용(내용 유지) — 그 템플릿에만 있는 섹션(메인 슬라이드 · 하위 페이지)이 샘플로 추가된다
+    const applied = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+      headers,
+      data: { template_id: code!.id, content_mode: 'keep' },
+    })
+    expect(applied.ok(), await applied.text()).toBeTruthy()
+    const added = [...(await sectionIds())].filter((id) => !before.has(id))
+    try {
+      expect(added.length).toBeGreaterThan(0)
+      await page.goto(`${CLIENT_URL}/${slug}/preview?tpl=${theme!.id}`)
+      await expect(page.getByTestId('preview-hidden-notice')).toContainText('이 템플릿에서 보이지 않습니다')
+      // 메뉴에는 홈의 그릴 수 있는 섹션만 — 하위 페이지 섹션이 섞이지 않는다
+      const menu = page.getByRole('navigation', { name: '페이지 내 섹션' }).getByRole('button')
+      const rendered = page.locator('[data-section-wrapper]')
+      await expect(menu).toHaveCount(await rendered.count())
+      expect(await menu.count()).toBeLessThan(added.length + before.size)
+    } finally {
+      // 원래 템플릿으로 되돌리고, 적용하며 추가된 섹션을 지운다
+      const rollback = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
+      expect(rollback.ok(), await rollback.text()).toBeTruthy()
+      for (const id of added) {
+        await request.delete(`${BACKEND_URL}/api/v1/sections/${id}`, { headers })
+      }
+    }
+    expect([...(await sectionIds())].sort()).toEqual([...before].sort())
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
