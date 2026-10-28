@@ -134,3 +134,10 @@ class BillingOverviewResponse(BaseModel):
 
 class RefundRequest(BaseModel):
     reason: str | None = None
+
+
+class StorageUsageResponse(BaseModel):
+    """이미지 저장 공간 사용량 (T-037-C) — 요금제 화면"""
+
+    used_bytes: int
+    quota_bytes: int
