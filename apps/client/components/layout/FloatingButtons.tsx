@@ -5,15 +5,24 @@ import { ArrowUp, LogIn, MessageCircle, Pencil } from 'lucide-react'
 import { useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 import { LoginModal } from '@/components/auth/LoginModal'
+import type { FloatingPosition } from '@/lib/publicSite.types'
 
 interface FloatingButtonsProps {
   tenantSlug: string
   kakaoUrl: string | null
+  /** 카카오톡 플로팅 노출 · 위치 (T-038-A) — 관리자 'SNS 노출 위치' */
+  showKakao?: boolean
+  kakaoPosition?: FloatingPosition
 }
 
 const SCROLL_TRIGGER = 200
 
-export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) {
+export function FloatingButtons({
+  tenantSlug,
+  kakaoUrl,
+  showKakao = true,
+  kakaoPosition = 'BOTTOM_RIGHT',
+}: FloatingButtonsProps) {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
   const isEditMode = useEditStore((s) => s.isEditMode)
   const enterEditMode = useEditStore((s) => s.enterEditMode)
@@ -53,6 +62,19 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
 
   const AuthIcon = !hydrated || !isLoggedIn ? LogIn : Pencil
 
+  const kakaoVisible = Boolean(kakaoUrl) && showKakao
+  const kakaoButton = kakaoUrl ? (
+    <a
+      href={kakaoUrl}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="카카오톡 채널"
+      className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-[var(--border-radius-pill)] bg-[var(--color-kakao)] text-[color:var(--color-kakao-text)] shadow-[var(--shadow-floating)] transition hover:brightness-95"
+    >
+      <MessageCircle className="h-5 w-5" />
+    </a>
+  ) : null
+
   return (
     <>
       <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
@@ -67,17 +89,7 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
           </button>
         )}
 
-        {kakaoUrl && (
-          <a
-            href={kakaoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="카카오톡 채널"
-            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-[var(--border-radius-pill)] bg-[var(--color-kakao)] text-[color:var(--color-kakao-text)] shadow-[var(--shadow-floating)] transition hover:brightness-95"
-          >
-            <MessageCircle className="h-5 w-5" />
-          </a>
-        )}
+        {kakaoVisible && kakaoPosition === 'BOTTOM_RIGHT' && kakaoButton}
 
         {showAuthButton && (
           <button
@@ -96,6 +108,13 @@ export function FloatingButtons({ tenantSlug, kakaoUrl }: FloatingButtonsProps) 
           </button>
         )}
       </div>
+
+      {/* 좌측 하단을 고르면 카카오톡만 왼쪽으로 — 편집 · 맨 위로 버튼은 오른쪽 그대로 */}
+      {kakaoVisible && kakaoPosition === 'BOTTOM_LEFT' && (
+        <div className="pointer-events-none fixed bottom-6 left-6 z-50" data-testid="kakao-left">
+          {kakaoButton}
+        </div>
+      )}
 
       <LoginModal
         open={loginOpen}

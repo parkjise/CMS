@@ -1,8 +1,12 @@
 import re
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, field_validator
+
+# 카카오톡 플로팅 버튼 위치 (T-038-A, 기획서 AD-03)
+FloatingPosition = Literal["BOTTOM_RIGHT", "BOTTOM_LEFT"]
 
 _PHONE_RE = re.compile(r"^01[0-9]-?\d{3,4}-?\d{4}$")
 
@@ -22,6 +26,10 @@ class SnsSettingsUpdate(BaseModel):
     youtube_url: str | None = None
     blog_url: str | None = None
     naver_url: str | None = None
+    # 노출 위치 — None 이면 바꾸지 않음
+    show_in_footer: bool | None = None
+    show_floating: bool | None = None
+    floating_position: FloatingPosition | None = None
 
     @field_validator(
         "kakao_url",
@@ -46,6 +54,9 @@ class SnsSettingsResponse(BaseModel):
     youtube_url: str | None
     blog_url: str | None
     naver_url: str | None
+    show_in_footer: bool
+    show_floating: bool
+    floating_position: FloatingPosition
     updated_at: datetime
 
     model_config = {"from_attributes": True}

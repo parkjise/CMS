@@ -25,8 +25,26 @@ _CHANNEL_FIELDS = [
 ]
 
 
-def _count_channels(data: SnsSettingsUpdate) -> int:
-    return sum(1 for field in _CHANNEL_FIELDS if getattr(data, field, None) is not None)
+# 노출 위치 (T-038-A) — 채널 수 한도에는 세지 않는다
+_DISPLAY_FIELDS = ["show_in_footer", "show_floating", "floating_position"]
+
+
+def _merged_channels(
+    setting: SnsChannelSetting | None, data: SnsSettingsUpdate
+) -> dict[str, str | None]:
+    """저장 후 채널 주소 — None 은 그대로, 빈 문자열은 지우기.
+
+    한도는 요청에 실린 칸 수가 아니라 저장 후 '주소가 있는' 채널 수로 센다.
+    (관리자 화면은 빈 칸도 "" 로 보내 예전엔 6칸이 모두 세어져 저장이 막혔다 — T-038-A)
+    """
+    merged: dict[str, str | None] = {}
+    for field in _CHANNEL_FIELDS:
+        val = getattr(data, field, None)
+        if val is None:
+            merged[field] = getattr(setting, field, None) if setting else None
+        else:
+            merged[field] = val.strip() or None
+    return merged
 
 
 async def _get_plan_type(db: AsyncSession, tenant_id: UUID) -> str:
@@ -44,7 +62,11 @@ async def update_sns_settings(
     tenant_id: UUID,
     data: SnsSettingsUpdate,
 ) -> SnsChannelSetting:
-    channel_count = _count_channels(data)
+    result = await db.execute(select(SnsChannelSetting))
+    setting = result.scalar_one_or_none()
+
+    channels = _merged_channels(setting, data)
+    channel_count = sum(1 for v in channels.values() if v)
     if channel_count > 0:
         plan = await _get_plan_type(db, tenant_id)
         limit = _PLAN_CHANNEL_LIMIT.get(plan, 2)
@@ -53,23 +75,25 @@ async def update_sns_settings(
                 f"현재 요금제({plan})에서는 최대 {limit}개 채널만 설정할 수 있습니다."
             )
 
-    result = await db.execute(select(SnsChannelSetting))
-    setting = result.scalar_one_or_none()
-
     if setting:
-        for field in _CHANNEL_FIELDS:
+        for field, val in channels.items():
+            setattr(setting, field, val)
+        for field in _DISPLAY_FIELDS:
             val = getattr(data, field, None)
             if val is not None:
                 setattr(setting, field, val)
-            elif val == "":
-                setattr(setting, field, None)
         setting.updated_at = datetime.now(UTC)
     else:
         setting = SnsChannelSetting(
             tenant_id=tenant_id,
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
-            **{f: getattr(data, f) for f in _CHANNEL_FIELDS},
+            **channels,
+            **{
+                f: getattr(data, f)
+                for f in _DISPLAY_FIELDS
+                if getattr(data, f) is not None
+            },
         )
         db.add(setting)
 
