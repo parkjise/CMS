@@ -448,7 +448,9 @@ describe('WithdrawFlow', () => {
       reason: 'OTHER',
       reason_detail: '이사',
     })
-    expect(useMemberStore.getState().member).toBeNull()
+    // 세션은 완료 화면이 그려진 직후(effect)에 비운다 — 먼저 비우면 로그인 화면으로 튕긴다.
+    // 화면이 보인 순간에는 아직일 수 있어 기다린다 (T-114-A — 바쁠 때 가끔 실패하던 원인)
+    await waitFor(() => expect(useMemberStore.getState().member).toBeNull())
     expect(window.localStorage.getItem('member_session:clinic')).toBeNull()
   })
 

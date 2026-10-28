@@ -1,5 +1,9 @@
 import { vi } from 'vitest'
+import { configure } from '@testing-library/react'
 import '@testing-library/jest-dom/vitest'
+
+// findBy* · waitFor 기본 대기 1초 → 3초 — CI · 바쁜 컴퓨터에서 회원 화면 테스트가 가끔 넘기던 문제 (T-114-A)
+configure({ asyncUtilTimeout: 3000 })
 
 // jsdom 환경에서 localStorage stub (zustand persist 사용)
 const createStorageMock = () => {

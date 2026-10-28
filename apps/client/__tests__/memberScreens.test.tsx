@@ -68,12 +68,14 @@ const typeCode = async (value: string) =>
   fireEvent.change(await screen.findByLabelText('인증번호 6자리'), { target: { value } })
 
 /** 카운트다운은 1초마다 다음 타이머를 거는 구조라 1초씩 진행한다 */
+// 시계를 한 번에 앞당기고 카운트다운을 한 번만 갱신한다 (T-114-A).
+// 예전엔 1초씩 수백 번 렌더해 컴퓨터가 바쁠 때 5초 제한을 넘겨 가끔 실패했다.
+// 카운트다운은 끝나는 시각 기준이라 한 번 갱신으로 정확한 남은 시간이 나온다 (hooks/useCountdown).
 const tick = async (seconds: number) => {
-  for (let i = 0; i < seconds; i += 1) {
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(1000)
-    })
-  }
+  vi.setSystemTime(Date.now() + seconds * 1000)
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300)
+  })
 }
 
 /** 휴대폰 인증까지 끝낸다 */
