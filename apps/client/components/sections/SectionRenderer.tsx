@@ -6,6 +6,7 @@ import { Intro } from './Intro'
 import { MapLoader } from './MapLoader'
 import { Services } from './Services'
 import type { SectionProps } from './types'
+import { isThemeRenderable } from '@/lib/themeSections'
 
 function SectionInner({ section, tenantSlug }: SectionProps) {
   switch (section.section_type) {
@@ -27,18 +28,9 @@ function SectionInner({ section, tenantSlug }: SectionProps) {
   }
 }
 
-const SUPPORTED_TYPES = [
-  'HERO_BANNER',
-  'INTRO',
-  'SERVICES',
-  'GALLERY',
-  'CONTACT',
-  'MAP',
-]
-
 export function SectionRenderer({ section, tenantSlug }: SectionProps) {
   // 미지원 섹션 타입(RESERVATION 등)은 wrapper 없이 통과
-  if (!SUPPORTED_TYPES.includes(section.section_type)) return null
+  if (!isThemeRenderable(section)) return null
 
   return (
     <div

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { fetchPublicSite, fetchTemplatePreview } from '@/lib/publicSite'
 import { buildCssVarBody } from '@/lib/theme'
+import { hiddenInThemeCount, themeHomeSections } from '@/lib/themeSections'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
@@ -66,7 +67,9 @@ export default async function TemplatePreviewPage({
     notFound()
   }
 
-  const activeSections = site.sections.filter((s) => s.is_active)
+  // 홈 페이지의 그릴 수 있는 섹션만 — 메뉴가 넘치거나 하위 페이지 섹션이 섞이지 않게 (T-057-A)
+  const activeSections = themeHomeSections(site.sections)
+  const hiddenCount = hiddenInThemeCount(site.sections)
   // 미리보기 템플릿 CSS를 부모 레이아웃의 현재 템플릿 위에 덮어쓴다(소스 순서상 후순위 우선).
   const cssVarBody = buildCssVarBody(site.template?.css_variables)
 
@@ -78,7 +81,7 @@ export default async function TemplatePreviewPage({
         />
       )}
 
-      <PreviewBanner templateName={site.template?.name} />
+      <PreviewBanner templateName={site.template?.name} hiddenCount={hiddenCount} />
 
       {/* 편집 UI(EditToolbar·FloatingButtons) 없이 순수 미리보기만 렌더링 */}
       <Navbar tenantName={site.tenant.name} sections={activeSections} />

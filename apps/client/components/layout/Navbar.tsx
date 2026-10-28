@@ -50,20 +50,21 @@ export function Navbar({ tenantName, sections, tenantSlug }: NavbarProps) {
           onClick={() =>
             window.scrollTo({ top: 0, behavior: 'smooth' })
           }
-          className="text-lg font-bold text-[color:var(--color-text-primary)]"
+          className="shrink-0 whitespace-nowrap text-lg font-bold text-[color:var(--color-text-primary)]"
           aria-label={`${tenantName} 홈으로 이동`}
         >
           {tenantName}
         </button>
 
-        <nav className="hidden md:block" aria-label="페이지 내 섹션">
-          <ul className="flex items-center gap-6">
+        {/* 메뉴가 많아도 글자가 세로로 쌓이지 않게 — 줄바꿈 대신 가로 스크롤 (T-057-A) */}
+        <nav className="ml-6 hidden min-w-0 md:block" aria-label="페이지 내 섹션">
+          <ul className="flex items-center gap-6 overflow-x-auto">
             {navSections.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"
                   onClick={() => handleNavClick(s.id)}
-                  className="text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]"
+                  className="whitespace-nowrap text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]"
                 >
                   {s.label}
                 </button>
