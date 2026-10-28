@@ -38,6 +38,7 @@ export function DeployModal({ open, onClose, feature }: Props) {
   const [note, setNote] = useState('')
   const [showBanner, setShowBanner] = useState(true)
   const [sendKakao, setSendKakao] = useState(false)
+  const [sendEmail, setSendEmail] = useState(false)
 
   const { data: dashboard } = useDashboard()
   const { data: tenantList } = useTenants({ q: search || undefined, page: 1, limit: 20 })
@@ -73,11 +74,12 @@ export function DeployModal({ open, onClose, feature }: Props) {
 
     try {
       await deploy.mutateAsync(input)
-      if (showBanner || sendKakao) {
+      if (showBanner || sendKakao || sendEmail) {
         await createDeployAnnouncement({
           featureName: feature.name,
           note,
           sendKakao,
+          sendEmail,
           deployment_type: method,
           target_plan: plan,
           target_tenants: selected,
@@ -178,7 +180,11 @@ export function DeployModal({ open, onClose, feature }: Props) {
             checked={sendKakao}
             onChange={(e) => setSendKakao(e.target.checked)}
           />
-          <Toggle label="이메일 발송 (준비 중)" checked={false} disabled />
+          <Toggle
+            label="이메일 발송 (사업체 관리자 계정)"
+            checked={sendEmail}
+            onChange={(e) => setSendEmail(e.target.checked)}
+          />
         </fieldset>
 
         {/* 업데이트 노트 */}
