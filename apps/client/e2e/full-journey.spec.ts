@@ -300,6 +300,58 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 9: 관리자 SNS 노출 위치를 바꾸면 홈페이지 푸터 · 카카오톡 버튼에 반영된다 (T-038-A)', async ({
+    page,
+    request,
+  }) => {
+    const before = (
+      await (
+        await request.get(`${BACKEND_URL}/api/v1/sns-settings`, { headers: authHeader(token) })
+      ).json()
+    ).data as Record<string, unknown> | null
+    const put = (data: Record<string, unknown>) =>
+      request.put(`${BACKEND_URL}/api/v1/sns-settings`, { headers: authHeader(token), data })
+
+    try {
+      const seeded = await put({
+        kakao_url: 'https://pf.kakao.com/_e2e',
+        instagram_url: 'https://instagram.com/e2e',
+        show_in_footer: true,
+        show_floating: true,
+        floating_position: 'BOTTOM_RIGHT',
+      })
+      expect(seeded.ok(), await seeded.text()).toBeTruthy()
+
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/sns`)
+      await page.getByLabel('푸터(Footer)에 SNS 아이콘 노출').uncheck()
+      await page.getByLabel('플로팅 버튼 위치').selectOption('BOTTOM_LEFT')
+      const saved = page.waitForResponse(
+        (r) => r.url().includes('/v1/sns-settings') && r.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: /저장/ }).first().click()
+      expect((await saved).ok()).toBeTruthy()
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      await expect(page.getByRole('contentinfo').getByRole('link', { name: '인스타그램' })).toHaveCount(0)
+      await expect(
+        page.getByTestId('kakao-left').getByRole('link', { name: '카카오톡 채널' }),
+      ).toBeVisible()
+    } finally {
+      const keys = ['kakao_url', 'instagram_url', 'show_in_footer', 'show_floating', 'floating_position']
+      const restore = Object.fromEntries(
+        keys.map((k) => [k, before?.[k] ?? (k.endsWith('_url') ? '' : k === 'floating_position' ? 'BOTTOM_RIGHT' : true)]),
+      )
+      await put(restore)
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
