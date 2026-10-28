@@ -43,6 +43,10 @@ class PublicSnsResponse(BaseModel):
     youtube_url: str | None
     blog_url: str | None
     naver_url: str | None
+    # 노출 위치 (T-038-A) — 홈페이지 푸터 아이콘 · 카카오톡 플로팅 버튼
+    show_in_footer: bool = True
+    show_floating: bool = True
+    floating_position: str = "BOTTOM_RIGHT"
 
     model_config = {"from_attributes": True}
 

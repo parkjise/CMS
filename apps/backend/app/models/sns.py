@@ -1,7 +1,7 @@
 import uuid
 from datetime import date
 
-from sqlalchemy import Boolean, Date, Integer, String, UniqueConstraint
+from sqlalchemy import Boolean, Date, Integer, String, UniqueConstraint, true
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -24,6 +24,19 @@ class SnsChannelSetting(Base, TimestampMixin):
     youtube_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     blog_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     naver_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 노출 위치 (T-038-A, 기획서 AD-03) — 기본값은 이전 동작과 같음
+    show_in_footer: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    show_floating: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=true()
+    )
+    floating_position: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="BOTTOM_RIGHT",
+        server_default="BOTTOM_RIGHT",
+    )
 
 
 class NotificationSetting(Base, TimestampMixin):
