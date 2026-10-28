@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.models.file import UploadedFile
+from app.models.tenant import Tenant
 from app.services import template_assets
 
 MAX_FILE_SIZE = 20 * 1024 * 1024  # 20MB
@@ -135,6 +136,21 @@ async def get_used_storage(db: AsyncSession, tenant_id: UUID) -> int:
     return int(result.scalar_one())
 
 
+def storage_quota(plan_type: str) -> int:
+    return STORAGE_QUOTAS.get(plan_type, STORAGE_QUOTAS["BASIC"])
+
+
+async def get_storage_usage(db: AsyncSession, tenant_id: UUID) -> dict[str, int]:
+    """요금제 화면 사용량 (T-037-C) — 사용 · 한도 bytes."""
+    plan = (
+        await db.execute(select(Tenant.plan_type).where(Tenant.id == tenant_id))
+    ).scalar_one_or_none() or "BASIC"
+    return {
+        "used_bytes": await get_used_storage(db, tenant_id),
+        "quota_bytes": storage_quota(plan),
+    }
+
+
 async def check_storage_quota(
     db: AsyncSession,
     tenant_id: UUID,
@@ -142,7 +158,7 @@ async def check_storage_quota(
     new_file_size: int,
 ) -> None:
     """누적 사용량 + 신규 크기가 플랜 한도를 초과하면 예외."""
-    quota = STORAGE_QUOTAS.get(plan_type, STORAGE_QUOTAS["BASIC"])
+    quota = storage_quota(plan_type)
     used = await get_used_storage(db, tenant_id)
     if used + new_file_size > quota:
         raise StorageQuotaExceeded("PLAN_LIMIT_EXCEEDED")

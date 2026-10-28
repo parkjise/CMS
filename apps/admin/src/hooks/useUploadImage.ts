@@ -3,11 +3,19 @@ import { api } from '@/lib/api'
 
 /** 이미지 업로드 (POST /v1/upload/image — WebP 최적화) — 갤러리 폼 등 (T-064-A) */
 
-export type ImageContext = 'hero' | 'gallery' | 'intro' | 'services' | 'team' | 'portfolio'
+export type ImageContext =
+  | 'hero'
+  | 'gallery'
+  | 'intro'
+  | 'services'
+  | 'team'
+  | 'portfolio'
+  | 'seo'
 
 export interface UploadImageInput {
   file: File
-  sectionId: string
+  /** SEO 공유 이미지처럼 섹션에 속하지 않으면 생략 (T-037-C) */
+  sectionId?: string
   context: ImageContext
 }
 
@@ -27,7 +35,7 @@ export const uploadImage = async ({ file, sectionId, context }: UploadImageInput
   const formData = new FormData()
   formData.append('file', file)
   formData.append('context', context)
-  formData.append('section_id', sectionId)
+  if (sectionId) formData.append('section_id', sectionId)
   // api 기본 헤더(application/json)면 axios 가 FormData 를 JSON 으로 바꿔 버린다 —
   // multipart 로 지정하면 브라우저가 boundary 를 붙여 보낸다
   const { data } = await api.post('/v1/upload/image', formData, {

@@ -381,3 +381,74 @@ class TestCleanupOrphanFiles:
     async def test_rejects_negative_age(self, fake_s3):
         with pytest.raises(ValueError):
             await image_worker._cleanup_orphan_files(age_days=-1)
+
+
+class TestCleanupKeepsSeoImage:
+    async def test_og_image_not_deleted(self, test_tenant, fake_s3):
+        """T-037-C: SEO 공유 이미지(seo_settings.og_image_url)는 사용 중으로 본다."""
+        tenant_id = test_tenant["id"]
+        base = settings.cdn_base_url.rstrip("/")
+        og_file, orphan = uuid.uuid4(), uuid.uuid4()
+
+        def _key(fid):
+            return f"{tenant_id}/seo/{fid}.webp"
+
+        def _url(fid):
+            return f"{base}/{_key(fid)}"
+
+        for fid in (og_file, orphan):
+            fake_s3[(settings.minio_bucket_name, _key(fid))] = {
+                "body": b"x",
+                "content_type": "image/webp",
+            }
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            for fid in (og_file, orphan):
+                await session.execute(
+                    text(
+                        "INSERT INTO uploaded_files (id, tenant_id, file_name,"
+                        " file_url, file_size, mime_type, created_at, updated_at)"
+                        " VALUES (:id, :tid, 'x.webp', :url, 100, 'image/webp',"
+                        " NOW() - INTERVAL '100 days', NOW())"
+                    ),
+                    {"id": str(fid), "tid": tenant_id, "url": _url(fid)},
+                )
+            await session.execute(
+                text(
+                    "INSERT INTO seo_settings (id, tenant_id, og_image_url,"
+                    " created_at, updated_at) VALUES (:id, :tid, :url, NOW(), NOW())"
+                ),
+                {"id": str(uuid.uuid4()), "tid": tenant_id, "url": _url(og_file)},
+            )
+            await session.commit()
+
+        try:
+            await image_worker._cleanup_orphan_files(age_days=30)
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                rows = await session.execute(
+                    text("SELECT id FROM uploaded_files WHERE id = ANY(:ids)"),
+                    {"ids": [str(og_file), str(orphan)]},
+                )
+                remaining = {str(r.id) for r in rows.all()}
+            assert str(og_file) in remaining
+            assert str(orphan) not in remaining
+            assert (settings.minio_bucket_name, _key(og_file)) in fake_s3
+        finally:
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                await session.execute(
+                    text("DELETE FROM seo_settings WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                )
+                await session.execute(
+                    text("DELETE FROM uploaded_files WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                )
+                await session.commit()

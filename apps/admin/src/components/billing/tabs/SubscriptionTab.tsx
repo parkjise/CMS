@@ -15,7 +15,8 @@ import { UsageStat } from '@/components/billing/UsageStat'
 import { useAiUsage } from '@/hooks/useAiUsage'
 import { useInquiries } from '@/hooks/useInquiries'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
-import { useSubscription } from '@/hooks/useBilling'
+import { useStorageUsage, useSubscription } from '@/hooks/useBilling'
+import { formatBytes } from '@/lib/imageFile'
 import { type PlanDefinition, PLANS, getPlan } from '@/lib/plans'
 
 const STATUS_LABELS: Record<string, string> = {
@@ -54,6 +55,13 @@ export function SubscriptionTab() {
     notifLimit === 0 || notifLimit >= 1_000_000
       ? null
       : Math.round((monthlyKakao / notifLimit) * 100)
+
+  // 이미지 저장 공간 — 서버가 계산한 사용량 · 한도 (T-037-C)
+  const storageQuery = useStorageUsage()
+  const storage = storageQuery.data
+  const storageProgress = storage?.quota_bytes
+    ? Math.round((storage.used_bytes / storage.quota_bytes) * 100)
+    : null
 
   const handleUpgrade = (plan: PlanDefinition) => {
     if (plan.key === currentPlan.key) return
@@ -129,9 +137,16 @@ export function SubscriptionTab() {
             icon={HardDrive}
             iconBg="bg-violet-50 text-violet-600"
             label="이미지 스토리지"
-            value="—"
-            hint={`한도 ${currentPlan.storageGb}GB`}
-            pending
+            value={storage ? formatBytes(storage.used_bytes) : '—'}
+            hint={
+              storage
+                ? `한도 ${formatBytes(storage.quota_bytes)} 중 ${storageProgress ?? 0}% 사용${
+                    (storageProgress ?? 0) >= 90 ? ' — 곧 가득 찹니다' : ''
+                  }`
+                : `한도 ${currentPlan.storageGb}GB`
+            }
+            progress={storageProgress}
+            isLoading={storageQuery.isLoading}
           />
         </div>
       </section>

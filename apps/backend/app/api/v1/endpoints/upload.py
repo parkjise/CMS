@@ -16,14 +16,24 @@ from app.workers.image import generate_thumbnail
 
 router = APIRouter(prefix="/upload", tags=["upload"])
 
-_ALLOWED_CONTEXTS = {"hero", "gallery", "intro", "services", "team", "portfolio"}
+_ALLOWED_CONTEXTS = {
+    "hero",
+    "gallery",
+    "intro",
+    "services",
+    "team",
+    "portfolio",
+    "seo",
+}
+# 섹션에 속하지 않는 이미지 — SEO 공유 이미지 (T-037-C)
+_SECTIONLESS_CONTEXTS = {"seo"}
 
 
 @router.post("/image", response_model=ApiResponse[ImageUploadResponse])
 async def upload_image(
     file: UploadFile = File(...),
     context: str = Form(...),
-    section_id: UUID = Form(...),
+    section_id: UUID | None = Form(None),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
@@ -31,6 +41,11 @@ async def upload_image(
     if context not in _ALLOWED_CONTEXTS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="INVALID_CONTEXT"
+        )
+
+    if section_id is None and context not in _SECTIONLESS_CONTEXTS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="섹션을 지정해 주세요."
         )
 
     file_bytes = await file.read()
@@ -66,7 +81,8 @@ async def upload_image(
 
     # 4. MinIO 업로드
     file_id = uuid.uuid4()
-    key = f"{tenant_id}/{context}/{section_id}/{file_id}.webp"
+    folder = f"{context}/{section_id}" if section_id else context
+    key = f"{tenant_id}/{folder}/{file_id}.webp"
     url = image_service.upload_to_storage(optimized_bytes, key, "image/webp")
 
     # 5. DB 기록

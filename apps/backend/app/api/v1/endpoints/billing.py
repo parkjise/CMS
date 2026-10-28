@@ -15,10 +15,12 @@ from app.schemas.billing import (
     PaymentHistoryItem,
     PaymentHistoryListResponse,
     RegisterCardRequest,
+    StorageUsageResponse,
     SubscriptionResponse,
     TrialStatusResponse,
 )
 from app.schemas.common import ApiResponse
+from app.services import image as image_service
 from app.services import payment as svc
 
 router = APIRouter(prefix="/billing", tags=["billing"])
@@ -55,6 +57,17 @@ async def get_subscription(
 ):
     sub = await svc.get_subscription(db, tenant_id)
     return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
+
+
+@router.get("/storage", response_model=ApiResponse[StorageUsageResponse])
+async def get_storage_usage(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """이미지 저장 공간 사용량 · 요금제 한도 (T-037-C)"""
+    usage = await image_service.get_storage_usage(db, tenant_id)
+    return ApiResponse.ok(StorageUsageResponse(**usage))
 
 
 @router.get("/trial-status", response_model=ApiResponse[TrialStatusResponse])

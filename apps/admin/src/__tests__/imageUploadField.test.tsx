@@ -160,3 +160,33 @@ describe('ImageUploadField', () => {
     expect(screen.getByTestId('value')).toHaveTextContent('https://cdn.example.com/b.jpg')
   })
 })
+
+describe('ImageUploadField — SEO 공유 이미지 (섹션 없음, T-037-C)', () => {
+  it('섹션 없이 seo 용도로 올리고 section_id 를 보내지 않는다', async () => {
+    let sent: FormData | null = null
+    vi.spyOn(api, 'post').mockImplementation(async (_url, body) => {
+      sent = body as FormData
+      return {
+        data: {
+          success: true,
+          data: { id: 'f1', url: NEW_URL, original_size_kb: 100, optimized_size_kb: 40 },
+        },
+      }
+    })
+    const user = userEvent.setup()
+    function SeoHarness() {
+      const [value, setValue] = useState('')
+      return (
+        <>
+          <ImageUploadField label="OG 이미지" value={value} onChange={setValue} context="seo" />
+          <output data-testid="value">{value}</output>
+        </>
+      )
+    }
+    renderWithQuery(<SeoHarness />)
+    await user.upload(screen.getByTestId('seo-file-input'), file('og.png', 'image/png'))
+    await waitFor(() => expect(screen.getByTestId('value')).toHaveTextContent(NEW_URL))
+    expect(sent!.get('context')).toBe('seo')
+    expect(sent!.has('section_id')).toBe(false)
+  })
+})

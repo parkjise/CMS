@@ -41,6 +41,22 @@ export function useSubscription() {
   })
 }
 
+/** 이미지 저장 공간 사용량 · 요금제 한도 (T-037-C) */
+export interface StorageUsage {
+  used_bytes: number
+  quota_bytes: number
+}
+
+export function useStorageUsage() {
+  return useQuery<StorageUsage>({
+    queryKey: ['billing', 'storage'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/billing/storage')
+      return data.data as StorageUsage
+    },
+  })
+}
+
 export function usePaymentHistory() {
   return useQuery<PaymentHistoryItem[]>({
     queryKey: ['billing', 'history'],

@@ -246,3 +246,32 @@ class TestUploadImage:
                     {"id": str(used_id)},
                 )
                 await session.commit()
+
+
+# ── SEO 공유 이미지 — 섹션 없는 업로드 (T-037-C) ──────────────────────────
+
+
+class TestSectionlessUpload:
+    async def test_seo_upload_without_section(self, client, auth_headers, fake_s3):
+        resp = await client.post(
+            "/api/v1/upload/image",
+            files={"file": ("og.png", _make_png(1200, 630), "image/png")},
+            data={"context": "seo"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        url = resp.json()["data"]["url"]
+        assert "/seo/" in url and url.endswith(".webp")
+        assert any("/seo/" in key for (_bucket, key) in fake_s3.keys())
+
+    async def test_section_context_requires_section(
+        self, client, auth_headers, fake_s3
+    ):
+        resp = await client.post(
+            "/api/v1/upload/image",
+            files={"file": ("a.png", _make_png(), "image/png")},
+            data={"context": "hero"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert fake_s3 == {}
