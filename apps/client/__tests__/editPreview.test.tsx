@@ -261,3 +261,55 @@ describe('EditableButton', () => {
     expect(screen.getByRole('link', { name: '문의하기' }).getAttribute('aria-haspopup')).toBeNull()
   })
 })
+
+describe('EditableButton — 버튼 스타일 · 새 창 열기 (T-088-A)', () => {
+  const variants = { filled: 'is-filled', outline: 'is-outline' }
+  const renderStyled = (initialStyle: 'filled' | 'outline' = 'filled', initialNewTab = false) =>
+    render(
+      <EditableButton
+        sectionId="sec-1"
+        textField="cta_text"
+        urlField="cta_url"
+        styleField="cta_style"
+        newTabField="cta_new_tab"
+        initialText="문의하기"
+        initialUrl="/contact"
+        initialStyle={initialStyle}
+        initialNewTab={initialNewTab}
+        className="base"
+        variantClassName={variants}
+      />,
+    )
+
+  it('방문자 화면 — 스타일 클래스, 새 창이면 target=_blank + noopener', () => {
+    renderStyled('outline', true)
+    const link = screen.getByRole('link', { name: '문의하기' })
+    expect(link.className).toContain('base')
+    expect(link.className).toContain('is-outline')
+    expect(link.getAttribute('target')).toBe('_blank')
+    expect(link.getAttribute('rel')).toContain('noopener')
+  })
+
+  it('같은 창이 기본 — target 없음', () => {
+    renderStyled()
+    const link = screen.getByRole('link', { name: '문의하기' })
+    expect(link.className).toContain('is-filled')
+    expect(link.getAttribute('target')).toBeNull()
+  })
+
+  it('편집 모드 팝업에서 스타일 · 새 창을 바꾸면 저장 대기, 바로 다시 그린다', async () => {
+    const user = userEvent.setup()
+    enterEditMode()
+    renderStyled()
+    await user.click(screen.getByRole('link', { name: '문의하기' }))
+    await user.click(screen.getByLabelText('테두리 버튼'))
+    await user.click(screen.getByLabelText('새 창으로 열기'))
+    await user.click(screen.getByRole('button', { name: '적용' }))
+    expect(pending('cta_style')?.new_value).toBe('outline')
+    expect(pending('cta_new_tab')?.new_value).toBe('true')
+    // 문구 · 주소는 안 바꿨으므로 저장 대기에 없음
+    expect(pending('cta_text')).toBeUndefined()
+    expect(screen.getByRole('link', { name: '문의하기' }).className).toContain('is-outline')
+  })
+})
+
