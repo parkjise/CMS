@@ -12,7 +12,10 @@ import { serverApiBase } from './lib/apiBase'
  * - 미리보기 · 관리자 로그인 · 사이트맵은 기존 라우트 유지
  * - /tpl-* 직접 접근은 404 (내부 주소 노출·중복 콘텐츠 방지)
  */
-const CACHE_TTL_MS = 60_000 // 공개 사이트 재검증 주기와 같게
+// 템플릿을 바꾸면 곧바로 새 템플릿 화면이 나와야 한다 (T-125-A).
+// 예전 60초 동안은 바뀐 템플릿과 라우트가 어긋나 404 · 이전 템플릿 화면이 나왔다.
+// 이 캐시는 미들웨어 메모리라 저장 시 비울 수 없어(공개 사이트 캐시와 달리) 짧게 둔다 — 조회는 가볍다.
+export const CACHE_TTL_MS = 3_000
 const RESERVED_PAGES = new Set(['preview', 'login', 'sitemap.xml'])
 // 방문자 회원 화면 — 모든 테넌트 공통 라우트 app/[tenant_slug]/member (T-113).
 // 회원 기능(SITE_MEMBER)이 꺼진 테넌트는 여기서 404 (페이지는 스트리밍이라 상태 코드를 못 바꿈, T-115)

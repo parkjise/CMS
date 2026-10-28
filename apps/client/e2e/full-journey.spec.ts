@@ -500,6 +500,79 @@ test.describe('T-078 전체 통합 시나리오', () => {
     expect(await homeIds()).toEqual(before)
   })
 
+  test('시나리오 13: 하스피털 A 로 바꾸면 곧바로 그 화면이 나오고, 편집 모드로 글을 고칠 수 있다 (T-125-A)', async ({
+    page,
+    request,
+  }) => {
+    const headers = authHeader(token)
+    const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
+      .data as { templates: Array<{ id: string; locked: boolean; renderer?: string }> }
+    const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
+    expect(code, '코드형 템플릿이 필요 — 시드 확인').toBeTruthy()
+
+    const applied = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+      headers,
+      data: { template_id: code!.id, content_mode: 'replace_with_sample' },
+    })
+    expect(applied.ok(), await applied.text()).toBeTruthy()
+    try {
+      // 템플릿 확인 캐시가 짧아 몇 초 안에 새 템플릿 화면 (예전엔 최대 60초 · 그동안 404)
+      await expect
+        .poll(
+          async () => {
+            await page.goto(`${CLIENT_URL}/${slug}`)
+            return page.locator('aside.quick-menu').count()
+          },
+          { timeout: 15_000, intervals: [1_000] },
+        )
+        .toBeGreaterThan(0)
+
+      // 홈페이지 로그인 → 왼쪽 아래 '편집 모드' → 글 고치기 → 저장
+      await page.goto(`${CLIENT_URL}/${slug}/login`)
+      await page.locator('#login-email').fill(email)
+      await page.locator('#login-password').fill(password)
+      await page.locator('form button[type="submit"]').click()
+      await page.waitForURL((url) => !url.pathname.endsWith('/login'))
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      await page.getByRole('button', { name: '편집 모드' }).click()
+      await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toBeVisible()
+
+      const target = page.locator('[data-editable="text"]').first()
+      const sectionId = await target.getAttribute('data-section-id')
+      const field = await target.getAttribute('data-field')
+      const text = `코드형 편집 ${Date.now() % 100000}`
+      await target.click()
+      await page.keyboard.press('ControlOrMeta+A')
+      await page.keyboard.type(text)
+      // 여러 줄 칸도 있어 Enter 대신 포커스를 빼서 반영
+      await target.evaluate((el) => (el as HTMLElement).blur())
+      const saved = page.waitForResponse((r) => r.url().includes('/edit/batch-save'))
+      await page.getByRole('button', { name: /^저장 \(/ }).click()
+      expect((await (await saved).json()).data.saved_count).toBeGreaterThan(0)
+
+      const visitor = await page.context().browser()!.newPage()
+      await visitor.goto(`${CLIENT_URL}/${slug}`)
+      await expect(
+        visitor.locator(`[data-section-id="${sectionId}"][data-field="${field}"]`),
+      ).toHaveText(text)
+      await visitor.close()
+    } finally {
+      const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+      await page.evaluate(() => localStorage.removeItem('cms-edit-draft')).catch(() => {})
+    }
+    // 되돌리면 몇 초 안에 원래(테마형) 화면 — 404 가 아니다
+    await expect
+      .poll(
+        async () => {
+          const res = await page.goto(`${CLIENT_URL}/${slug}`)
+          return (await page.locator('section[data-section-type="HERO_BANNER"]').count()) > 0 && res?.ok()
+        },
+        { timeout: 15_000, intervals: [1_000] },
+      )
+      .toBeTruthy()
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()

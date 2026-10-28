@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NextRequest } from 'next/server'
-import { clearTemplateCache, middleware } from '@/middleware'
+import { CACHE_TTL_MS, clearTemplateCache, middleware } from '@/middleware'
 
 /** 미들웨어 — 코드형 템플릿 라우트 분기 (T-125, 오픈 이슈 #26) */
 const fetchMock = vi.fn()
@@ -82,6 +82,22 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     await run('/clinic/about')
     expect(fetchMock).toHaveBeenCalledTimes(1)
     expect(String(fetchMock.mock.calls[0][0])).toContain('/public/site/clinic/template')
+  })
+
+  it('템플릿을 바꾸면 몇 초 안에 새 템플릿으로 — 오래 캐시하지 않는다 (T-125-A)', async () => {
+    vi.useFakeTimers()
+    try {
+      fetchMock.mockResolvedValueOnce(templateResponse('TPL_HOSPITAL_A'))
+      expect(rewriteOf(await run('/clinic'))).toBe('http://localhost:3000/tpl-hospital-a/clinic')
+      // 관리자에서 테마형으로 변경
+      fetchMock.mockResolvedValueOnce(templateResponse(null))
+      vi.advanceTimersByTime(CACHE_TTL_MS + 1)
+      expect(rewriteOf(await run('/clinic'))).toBeNull()
+      expect(fetchMock).toHaveBeenCalledTimes(2)
+      expect(CACHE_TTL_MS).toBeLessThanOrEqual(5_000)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 
   it('테마형 · 모르는 템플릿 코드 · 조회 실패는 그대로 통과', async () => {
