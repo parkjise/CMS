@@ -166,3 +166,17 @@ async def send_data_deleted(to: str) -> dict:
         template="data_deleted",
         variables={},
     )
+
+
+async def send_announcement_email(to: str, *, title: str, content: str) -> dict:
+    """운영 공지 · 기능 배포 알림 (기획서 14.4 SA-04 · 05, T-088-A)"""
+    return await send_email(
+        to,
+        subject=f"[CMS 공지] {title}",
+        template="announcement",
+        variables={
+            "title": title,
+            "content": content,
+            "admin_url": settings.admin_base_url,
+        },
+    )

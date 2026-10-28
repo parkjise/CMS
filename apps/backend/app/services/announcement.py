@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.tenant import Tenant
+from app.models.user import User
 
 
 async def _get(db: AsyncSession, announcement_id: uuid.UUID) -> Announcement:
@@ -161,6 +162,27 @@ async def resolve_target_tenant_ids(
 
 
 # ── 테넌트용 ──────────────────────────────────────────────────────────────
+async def resolve_admin_emails(
+    db: AsyncSession, tenant_ids: list[uuid.UUID]
+) -> list[str]:
+    """대상 사업체의 활성 관리자 이메일 — 같은 주소는 한 번만 (T-088-A)"""
+    if not tenant_ids:
+        return []
+    rows = await db.execute(
+        select(User.email)
+        .where(
+            User.tenant_id.in_(tenant_ids),
+            User.role == "TENANT_ADMIN",
+            User.is_active.is_(True),
+        )
+        .order_by(User.email)
+    )
+    seen: dict[str, str] = {}
+    for (email,) in rows.all():
+        seen.setdefault(email.strip().lower(), email.strip())
+    return list(seen.values())
+
+
 def _visible_conditions(plan_type: str, tenant_id: uuid.UUID):
     """테넌트에게 노출되는 발행 공지 조건."""
     now = datetime.now(UTC)

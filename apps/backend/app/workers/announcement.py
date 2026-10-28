@@ -1,6 +1,6 @@
 """T-088 공지 발송/스케줄 Celery 태스크.
 
-- send_announcement: 대상 테넌트에게 카카오 알림톡 일괄 발송 (이메일은 T-098 유예)
+- send_announcement: 대상 테넌트에게 카카오 알림톡 · 이메일 일괄 발송 (이메일 T-088-A)
 - publish_scheduled_announcements: 예약(published_at 도래) 공지 발행 — 5분마다
 - deactivate_expired_announcements: 만료 공지 자동 비노출 — 매일
 """
@@ -32,8 +32,9 @@ def send_announcement(self, announcement_id: str) -> dict:
 
 
 async def _send_announcement(announcement_id: str) -> dict:
-    """대상 테넌트에게 카카오 알림톡 발송. 이메일은 T-098 이메일 서비스로 유예."""
+    """대상 테넌트에게 카카오 알림톡 · 이메일 발송 (이메일: 활성 관리자 계정 주소)."""
     from app.db.session import AsyncSessionLocal
+    from app.services import email as email_service
     from app.services import notification as notification_service
 
     async with AsyncSessionLocal() as db:
@@ -65,12 +66,26 @@ async def _send_announcement(announcement_id: str) -> dict:
                 if ok:
                     kakao_sent += 1
 
+        email_sent = 0
+        email_failed = 0
+        if ann.send_email and targets:
+            emails = await announcement_service.resolve_admin_emails(db, targets)
+            for address in emails:
+                try:
+                    await email_service.send_announcement_email(
+                        address, title=ann.title, content=ann.content
+                    )
+                    email_sent += 1
+                except Exception:
+                    # 한 주소 실패가 나머지 발송을 막지 않는다
+                    email_failed += 1
+
         return {
             "announcement_id": str(ann.id),
             "target_count": len(targets),
             "kakao_sent": kakao_sent,
-            # 이메일 발송은 T-098 이메일 서비스 구현 후 연동
-            "email_pending": len(targets) if ann.send_email else 0,
+            "email_sent": email_sent,
+            "email_failed": email_failed,
         }
 
 
