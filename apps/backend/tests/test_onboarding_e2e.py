@@ -76,7 +76,8 @@ async def _cleanup_by_slug(slug: str) -> None:
             ),
             {"s": slug},
         )
-        for tbl in ("sections", "users"):
+        # 새 사업체 섹션에 시작 문구가 들어간다 (T-055-A) — 설정 먼저
+        for tbl in ("section_settings", "sections", "users"):
             await s.execute(
                 text(
                     f"DELETE FROM {tbl} WHERE tenant_id IN "
