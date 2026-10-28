@@ -47,14 +47,16 @@ async def apply_template(
     current_user: User = Depends(get_current_user),
     tenant_id: uuid.UUID = Depends(get_tenant_id),
 ):
-    override = await template_service.apply_template(
+    override, added = await template_service.apply_template(
         db,
         tenant_id,
         body.template_id,
         current_user.id,
         content_mode=body.content_mode,
     )
-    return ApiResponse.ok(TenantTemplateOverrideResponse.model_validate(override))
+    response = TenantTemplateOverrideResponse.model_validate(override)
+    response.added_section_count = added
+    return ApiResponse.ok(response)
 
 
 @router.post("/rollback", response_model=ApiResponse[TenantTemplateOverrideResponse])

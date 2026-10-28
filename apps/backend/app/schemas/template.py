@@ -54,5 +54,7 @@ class TenantTemplateOverrideResponse(BaseModel):
     css_overrides: dict
     applied_at: datetime
     template: TemplateResponse | None = None
+    # 적용하며 새로 추가한 섹션 수 — 관리자 안내용 (T-055-A)
+    added_section_count: int = 0
 
     model_config = {"from_attributes": True}

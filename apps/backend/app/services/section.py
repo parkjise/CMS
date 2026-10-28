@@ -16,41 +16,6 @@ from app.services.gallery_settings import (
 from app.services.link_settings import is_url_field, validate_link_url
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
 
-# 템플릿 유형별 기본 섹션 정의
-_DEFAULT_SECTIONS: dict[str, list[tuple[str, str]]] = {
-    "HOSPITAL": [
-        ("HERO_BANNER", "메인 배너"),
-        ("INTRO", "병원 소개"),
-        ("SERVICES", "진료 과목"),
-        ("GALLERY", "시설 갤러리"),
-        ("CONTACT", "오시는 길"),
-        ("MAP", "지도"),
-    ],
-    "PENSION": [
-        ("HERO_BANNER", "메인 배너"),
-        ("INTRO", "펜션 소개"),
-        ("GALLERY", "객실 갤러리"),
-        ("RESERVATION", "예약 안내"),
-        ("CONTACT", "오시는 길"),
-        ("MAP", "지도"),
-    ],
-    "STARTUP": [
-        ("HERO_BANNER", "메인 배너"),
-        ("INTRO", "서비스 소개"),
-        ("SERVICES", "핵심 기능"),
-        ("PORTFOLIO", "포트폴리오"),
-        ("TEAM", "팀 소개"),
-        ("CONTACT", "문의하기"),
-    ],
-    "GENERAL": [
-        ("HERO_BANNER", "메인 배너"),
-        ("INTRO", "소개"),
-        ("SERVICES", "서비스"),
-        ("GALLERY", "갤러리"),
-        ("CONTACT", "연락처"),
-    ],
-}
-
 # main_title 필드 최대 길이
 MAIN_TITLE_MAX_LEN = 40
 
@@ -192,30 +157,3 @@ async def toggle_section(
         return None
     await db.commit()
     return await get_section_by_id(db, section_id, tenant_id)
-
-
-async def create_default_sections(
-    db: AsyncSession,
-    tenant_id: UUID,
-    template_type: str,
-) -> list[Section]:
-    defaults = _DEFAULT_SECTIONS.get(template_type, _DEFAULT_SECTIONS["GENERAL"])
-    now = datetime.now(UTC)
-    sections = []
-
-    for order, (section_type, label) in enumerate(defaults):
-        section = Section(
-            id=uuid.uuid4(),
-            tenant_id=tenant_id,
-            section_type=section_type,
-            label=label,
-            display_order=order,
-            is_active=True,
-            created_at=now,
-            updated_at=now,
-        )
-        db.add(section)
-        sections.append(section)
-
-    await db.commit()
-    return sections

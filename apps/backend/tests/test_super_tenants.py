@@ -54,6 +54,14 @@ async def _cleanup_tenant(slug: str) -> None:
             ),
             {"s": slug},
         )
+        # 새 사업체 섹션에 시작 문구가 들어간다 (T-055-A) — 설정 먼저
+        await session.execute(
+            text(
+                "DELETE FROM section_settings WHERE tenant_id IN "
+                "(SELECT id FROM tenants WHERE slug = :s)"
+            ),
+            {"s": slug},
+        )
         await session.execute(
             text(
                 "DELETE FROM sections WHERE tenant_id IN "
@@ -142,7 +150,20 @@ class TestCreateTenant:
                         {"t": tid},
                     )
                 ).scalar_one()
+                # 빈 홈페이지가 되지 않게 시작 문구(샘플 표시)가 들어 있다 (T-055-A)
+                titles = (
+                    await session.execute(
+                        text(
+                            "SELECT ss.field_value, ss.is_sample FROM section_settings"
+                            " ss JOIN sections s ON s.id = ss.section_id WHERE"
+                            " s.tenant_id = :t AND s.section_type = 'HERO_BANNER'"
+                            " AND ss.field_key = 'main_title'"
+                        ),
+                        {"t": tid},
+                    )
+                ).all()
             assert count == 4
+            assert len(titles) == 1 and titles[0][0] and titles[0][1] is True
         finally:
             await _cleanup_tenant(slug)
 

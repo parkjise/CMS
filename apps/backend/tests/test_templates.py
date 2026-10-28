@@ -169,7 +169,8 @@ class TestApplyTemplate:
     async def test_apply_preserves_content(
         self, client: AsyncClient, auth_headers, templates_fixture, test_tenant
     ):
-        # 섹션 1개 생성
+        # 섹션 1개 생성 (값이 있는 배너)
+        hero_id = str(uuid.uuid4())
         async with _TestSession() as session:
             await session.execute(
                 text("SELECT set_config('app.is_super_admin', 'true', true)")
@@ -181,7 +182,16 @@ class TestApplyTemplate:
                     " is_active, created_at, updated_at) "
                     "VALUES (:id, :tid, 'HERO_BANNER', '메인', 0, true, now(), now())"
                 ),
-                {"id": str(uuid.uuid4()), "tid": test_tenant["id"]},
+                {"id": hero_id, "tid": test_tenant["id"]},
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO section_settings (id, tenant_id, section_id,"
+                    " field_key, field_value, value_type, created_at, updated_at)"
+                    " VALUES (:id, :tid, :sid, 'main_title', '우리 가게', 'STRING',"
+                    " now(), now())"
+                ),
+                {"id": str(uuid.uuid4()), "tid": test_tenant["id"], "sid": hero_id},
             )
             await session.commit()
 
@@ -195,9 +205,21 @@ class TestApplyTemplate:
             json={"template_id": templates_fixture["standard"]},
         )
 
-        after = await client.get("/api/v1/sections", headers=auth_headers)
-        # 템플릿 적용 후에도 섹션(콘텐츠)은 그대로
-        assert len(after.json()["data"]) == before_count >= 1
+        after = {
+            s["id"]: s
+            for s in (
+                await client.get("/api/v1/sections", headers=auth_headers)
+            ).json()["data"]
+        }
+        # 기존 섹션 · 값은 그대로 — 빠진 소개(INTRO)만 샘플로 추가 (T-055-A)
+        hero = after[hero_id]
+        assert {x["field_key"]: x["field_value"] for x in hero["settings"]} == {
+            "main_title": "우리 가게"
+        }
+        added = [s for i, s in after.items() if i != hero_id]
+        assert len(after) == before_count + 1
+        assert [s["section_type"] for s in added] == ["INTRO"]
+        assert all(x["is_sample"] for x in added[0]["settings"])
 
 
 # ───────────────────────── 롤백 ─────────────────────────
@@ -207,9 +229,7 @@ class TestRollbackTemplate:
     async def test_rollback_without_history_400(
         self, client: AsyncClient, auth_headers
     ):
-        resp = await client.post(
-            "/api/v1/templates/rollback", headers=auth_headers
-        )
+        resp = await client.post("/api/v1/templates/rollback", headers=auth_headers)
         assert resp.status_code == 400
 
     async def test_rollback_restores_previous(
@@ -227,9 +247,7 @@ class TestRollbackTemplate:
             headers=auth_headers,
             json={"template_id": templates_fixture["premium"]},
         )
-        resp = await client.post(
-            "/api/v1/templates/rollback", headers=auth_headers
-        )
+        resp = await client.post("/api/v1/templates/rollback", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json()["data"]["template_id"] == templates_fixture["basic"]
 
