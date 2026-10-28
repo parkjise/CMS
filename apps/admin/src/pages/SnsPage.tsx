@@ -11,7 +11,7 @@ import { Button, toast } from '@cms/ui'
 import { NotificationSettingsCard } from '@/components/sns/NotificationSettingsCard'
 import { SnsChannelRow } from '@/components/sns/SnsChannelRow'
 import { useNotificationSettings } from '@/hooks/useNotificationSettings'
-import { useSnsSettings, useUpdateSns } from '@/hooks/useSns'
+import { type FloatingPosition, useSnsSettings, useUpdateSns } from '@/hooks/useSns'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 interface ChannelDraft {
@@ -32,10 +32,24 @@ const EMPTY: ChannelDraft = {
   naver_url: '',
 }
 
+interface DisplayDraft {
+  show_in_footer: boolean
+  show_floating: boolean
+  floating_position: FloatingPosition
+}
+
+// 기본값은 이전 동작과 같다 — 푸터 · 플로팅 모두 노출, 우측 하단
+const DEFAULT_DISPLAY: DisplayDraft = {
+  show_in_footer: true,
+  show_floating: true,
+  floating_position: 'BOTTOM_RIGHT',
+}
+
 export function SnsPage() {
   const snsQuery = useSnsSettings()
   const updateMutation = useUpdateSns()
   const [draft, setDraft] = useState<ChannelDraft>(EMPTY)
+  const [display, setDisplay] = useState<DisplayDraft>(DEFAULT_DISPLAY)
 
   // 서버 응답 도착/변경 시 draft 동기화 (사용자 편집 중이 아닌 경우)
   useEffect(() => {
@@ -48,6 +62,11 @@ export function SnsPage() {
         blog_url: snsQuery.data.blog_url ?? '',
         naver_url: snsQuery.data.naver_url ?? '',
       })
+      setDisplay({
+        show_in_footer: snsQuery.data.show_in_footer ?? true,
+        show_floating: snsQuery.data.show_floating ?? true,
+        floating_position: snsQuery.data.floating_position ?? 'BOTTOM_RIGHT',
+      })
     }
   }, [snsQuery.data])
 
@@ -55,7 +74,7 @@ export function SnsPage() {
 
   const handleSave = async () => {
     try {
-      await updateMutation.mutateAsync(draft)
+      await updateMutation.mutateAsync({ ...draft, ...display })
       toast.success('SNS 설정을 저장했습니다.')
     } catch (e) {
       toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
@@ -139,19 +158,52 @@ export function SnsPage() {
           </div>
         )}
 
-        {/* 노출 위치 (백엔드 미지원 placeholder) */}
-        <div className="mt-5 rounded-md border border-dashed border-slate-200 bg-slate-50 p-3">
-          <p className="text-xs font-medium text-slate-600">노출 위치</p>
-          <div className="mt-2 flex flex-wrap gap-3 text-xs text-slate-400">
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" disabled checked /> 푸터
-            </label>
-            <label className="inline-flex items-center gap-1">
-              <input type="checkbox" disabled /> 우측 하단 플로팅
-            </label>
-            <span className="ml-2 italic">개별 위치 선택은 곧 제공됩니다.</span>
-          </div>
-        </div>
+        {/* 노출 위치 (T-038-A, 기획서 AD-03) */}
+        <fieldset className="mt-5 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+          <legend className="px-1 text-sm font-medium text-slate-700">노출 위치</legend>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={display.show_in_footer}
+              onChange={(e) =>
+                setDisplay((prev) => ({ ...prev, show_in_footer: e.target.checked }))
+              }
+            />
+            푸터(Footer)에 SNS 아이콘 노출
+          </label>
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={display.show_floating}
+              onChange={(e) =>
+                setDisplay((prev) => ({ ...prev, show_floating: e.target.checked }))
+              }
+            />
+            카카오톡 플로팅 버튼으로 노출
+          </label>
+          <label className="flex items-center gap-2 pl-6 text-sm text-slate-700">
+            플로팅 버튼 위치
+            <select
+              value={display.floating_position}
+              disabled={!display.show_floating}
+              onChange={(e) =>
+                setDisplay((prev) => ({
+                  ...prev,
+                  floating_position: e.target.value as FloatingPosition,
+                }))
+              }
+              className="rounded-md border border-slate-300 bg-white px-2 py-1 text-sm disabled:opacity-50"
+            >
+              <option value="BOTTOM_RIGHT">우측 하단</option>
+              <option value="BOTTOM_LEFT">좌측 하단</option>
+            </select>
+          </label>
+          {display.show_floating && !draft.kakao_url && (
+            <p className="pl-6 text-xs text-amber-700" role="note">
+              카카오톡 채널 주소를 넣어야 플로팅 버튼이 보입니다.
+            </p>
+          )}
+        </fieldset>
 
         <div className="mt-5 flex items-center justify-end border-t border-slate-200 pt-4">
           <Button

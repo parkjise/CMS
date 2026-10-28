@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 
+/** 카카오톡 플로팅 버튼 위치 */
+export type FloatingPosition = 'BOTTOM_RIGHT' | 'BOTTOM_LEFT'
+
 export interface SnsSettings {
   id: string
   tenant_id: string
@@ -10,6 +13,10 @@ export interface SnsSettings {
   youtube_url: string | null
   blog_url: string | null
   naver_url: string | null
+  /** 노출 위치 (T-038-A, 기획서 AD-03) */
+  show_in_footer: boolean
+  show_floating: boolean
+  floating_position: FloatingPosition
   updated_at: string
 }
 
@@ -20,6 +27,9 @@ export interface SnsSettingsUpdate {
   youtube_url?: string | null
   blog_url?: string | null
   naver_url?: string | null
+  show_in_footer?: boolean
+  show_floating?: boolean
+  floating_position?: FloatingPosition
 }
 
 const SNS_KEY = ['sns-settings'] as const
