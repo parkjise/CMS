@@ -74,3 +74,22 @@ describe('카카오톡 플로팅 버튼', () => {
     expect(screen.queryByRole('link', { name: '카카오톡 채널' })).toBeNull()
   })
 })
+
+describe('코드형 템플릿용 편집 입구 (T-125-A)', () => {
+  it('맨 위로 · 카카오 없이 관리자 로그인 버튼만, 왼쪽에', () => {
+    render(<FloatingButtons tenantSlug="clinic" kakaoUrl={null} withScrollTop={false} side="left" />)
+    window.scrollY = 999
+    window.dispatchEvent(new Event('scroll'))
+    const box = screen.getByTestId('floating-buttons')
+    expect(box.className).toContain('left-6')
+    expect(screen.queryByRole('button', { name: '맨 위로' })).toBeNull()
+    expect(screen.queryByRole('link', { name: '카카오톡 채널' })).toBeNull()
+    expect(screen.getByRole('button', { name: /관리자 로그인|로딩 중/ })).toBeInTheDocument()
+  })
+
+  it('로그인 상태면 편집 모드 버튼', () => {
+    useClientAuthStore.setState({ isLoggedIn: true })
+    render(<FloatingButtons tenantSlug="clinic" kakaoUrl={null} withScrollTop={false} side="left" />)
+    expect(screen.getByRole('button', { name: /편집 모드|로딩 중/ })).toBeInTheDocument()
+  })
+})

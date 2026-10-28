@@ -9,6 +9,7 @@
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
+import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
@@ -114,6 +115,16 @@ export async function CodeRoutePage({
         query={{ q: searchParams.q, p: searchParams.p }}
         member={memberPage ? { page: memberPage, query: searchParams } : undefined}
       />
+      {/* 관리자 로그인 · 편집 모드 진입 (T-125-A — 예전엔 코드형 템플릿에 입구가 없었음).
+          카카오 · 상단으로는 템플릿 퀵메뉴가 맡으므로 끄고, 오른쪽 퀵메뉴와 겹치지 않게 왼쪽 */}
+      {!memberPage && (
+        <FloatingButtons
+          tenantSlug={params.tenant_slug}
+          kakaoUrl={null}
+          withScrollTop={false}
+          side="left"
+        />
+      )}
     </>
   )
 }

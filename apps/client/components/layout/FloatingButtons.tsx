@@ -13,6 +13,12 @@ interface FloatingButtonsProps {
   /** 카카오톡 플로팅 노출 · 위치 (T-038-A) — 관리자 'SNS 노출 위치' */
   showKakao?: boolean
   kakaoPosition?: FloatingPosition
+  /**
+   * 맨 위로 버튼 — 코드형 템플릿은 자체 퀵메뉴(상단으로 · 카카오)가 있어 끈다 (T-125-A)
+   */
+  withScrollTop?: boolean
+  /** 버튼 묶음 위치 — 코드형 템플릿은 오른쪽 퀵메뉴와 겹치지 않게 왼쪽 */
+  side?: 'right' | 'left'
 }
 
 const SCROLL_TRIGGER = 200
@@ -22,6 +28,8 @@ export function FloatingButtons({
   kakaoUrl,
   showKakao = true,
   kakaoPosition = 'BOTTOM_RIGHT',
+  withScrollTop = true,
+  side = 'right',
 }: FloatingButtonsProps) {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
   const isEditMode = useEditStore((s) => s.isEditMode)
@@ -77,8 +85,13 @@ export function FloatingButtons({
 
   return (
     <>
-      <div className="pointer-events-none fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
-        {showScrollTop && (
+      <div
+        data-testid="floating-buttons"
+        className={`pointer-events-none fixed bottom-6 z-50 flex flex-col gap-3 ${
+          side === 'left' ? 'left-6 items-start' : 'right-6 items-end'
+        }`}
+      >
+        {withScrollTop && showScrollTop && (
           <button
             type="button"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
