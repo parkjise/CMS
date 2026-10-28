@@ -4,9 +4,11 @@ import userEvent from '@testing-library/user-event'
 import type { Subscription } from '@/hooks/useBilling'
 
 const useSubscription = vi.fn()
+const useStorageUsage = vi.fn()
 const cancelMutate = vi.fn()
 vi.mock('@/hooks/useBilling', () => ({
   useSubscription: () => useSubscription(),
+  useStorageUsage: () => useStorageUsage(),
   useCancelSubscription: () => ({ mutateAsync: cancelMutate, isPending: false }),
 }))
 
@@ -51,6 +53,7 @@ const sub = (over: Partial<Subscription>): Subscription => ({
 describe('SubscriptionTab', () => {
   beforeEach(() => {
     useSubscription.mockReset()
+    useStorageUsage.mockReset().mockReturnValue({ data: undefined, isLoading: true })
     cancelMutate.mockReset().mockResolvedValue({})
   })
 
@@ -74,5 +77,28 @@ describe('SubscriptionTab', () => {
     useSubscription.mockReturnValue({ data: sub({ status: 'CANCELLED' }), isLoading: false })
     render(<SubscriptionTab />)
     expect(screen.queryByRole('button', { name: '구독 해지' })).not.toBeInTheDocument()
+  })
+
+  // 이미지 저장 공간 사용량 (T-037-C) — 예전엔 '—' · '곧 제공'
+  it('이미지 저장 공간 사용량과 한도 · 비율을 보여 준다', () => {
+    useSubscription.mockReturnValue({ data: sub({}), isLoading: false })
+    useStorageUsage.mockReturnValue({
+      data: { used_bytes: 120 * 1024 ** 2, quota_bytes: 5 * 1024 ** 3 },
+      isLoading: false,
+    })
+    render(<SubscriptionTab />)
+    expect(screen.getByText('120.0MB')).toBeInTheDocument()
+    expect(screen.getByText('한도 5.0GB 중 2% 사용')).toBeInTheDocument()
+    expect(screen.queryByText('곧 제공')).not.toBeInTheDocument()
+  })
+
+  it('90% 이상이면 곧 가득 찬다고 알린다', () => {
+    useSubscription.mockReturnValue({ data: sub({}), isLoading: false })
+    useStorageUsage.mockReturnValue({
+      data: { used_bytes: 0.95 * 1024 ** 3, quota_bytes: 1024 ** 3 },
+      isLoading: false,
+    })
+    render(<SubscriptionTab />)
+    expect(screen.getByText('한도 1.0GB 중 95% 사용 — 곧 가득 찹니다')).toBeInTheDocument()
   })
 })

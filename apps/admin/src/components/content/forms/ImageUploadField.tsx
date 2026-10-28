@@ -13,7 +13,8 @@ interface ImageUploadFieldProps {
   label: string
   value: string
   onChange: (url: string) => void
-  sectionId: string
+  /** 섹션 이미지면 섹션 id — SEO 공유 이미지는 생략 */
+  sectionId?: string
   context: ImageContext
   hint?: string
 }

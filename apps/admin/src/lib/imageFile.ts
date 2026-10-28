@@ -9,6 +9,13 @@ export const LARGE_IMAGE_BYTES = 5 * 1024 * 1024
 export const formatKb = (kb: number) =>
   kb >= 1024 ? `${(kb / 1024).toFixed(1)}MB` : `${Math.round(kb)}KB`
 
+/** 저장 공간 표시 — 1024 단위 (KB · MB · GB) */
+export const formatBytes = (bytes: number) => {
+  if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)}GB`
+  if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(1)}MB`
+  return `${Math.round(bytes / 1024)}KB`
+}
+
 /** 올리기 전 검사 — 문제 없으면 null */
 export function checkImageFile(file: File): string | null {
   if (!ACCEPTED_TYPES.includes(file.type)) return 'JPG, PNG, WebP, GIF만 가능합니다'

@@ -9,7 +9,7 @@ import {
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { CharCounter } from '@/components/content/forms/CharCounter'
 import { FormField } from '@/components/content/forms/FormField'
-import { ImageUrlField } from '@/components/content/forms/ImageUrlField'
+import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
 import { GoogleSnippetPreview } from '@/components/seo/GoogleSnippetPreview'
 import { KeywordTagInput } from '@/components/seo/KeywordTagInput'
 import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModal'
@@ -198,11 +198,12 @@ export function SeoPage() {
 
             {activeTab === 'social' && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-                <ImageUrlField
+                <ImageUploadField
                   label="OG 이미지 (소셜 공유 이미지)"
                   value={ogImage}
                   onChange={setOgImage}
-                  hint="1200×630 권장. WebP/JPG/PNG 가능."
+                  context="seo"
+                  hint="카카오톡 · 페이스북에 링크를 공유할 때 보이는 그림입니다. 1200×630 권장."
                 />
                 <p className="mt-3 text-xs text-slate-500">
                   메타 제목·설명은 [기본 SEO] 탭에서 입력한 값을 그대로 사용합니다.
