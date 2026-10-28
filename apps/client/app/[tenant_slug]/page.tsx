@@ -51,7 +51,12 @@ export default async function TenantHomePage({ params }: Props) {
 
       <Footer tenantName={site.tenant.name} sns={site.sns_settings} />
 
-      <FloatingButtons tenantSlug={tenant_slug} kakaoUrl={site.sns_settings?.kakao_url ?? null} />
+      <FloatingButtons
+        tenantSlug={tenant_slug}
+        kakaoUrl={site.sns_settings?.kakao_url ?? null}
+        showKakao={site.sns_settings?.show_floating ?? true}
+        kakaoPosition={site.sns_settings?.floating_position ?? 'BOTTOM_RIGHT'}
+      />
     </div>
   )
 }

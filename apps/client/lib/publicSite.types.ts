@@ -33,7 +33,14 @@ export interface PublicSnsSettings {
   youtube_url: string | null
   blog_url: string | null
   naver_url: string | null
+  /** 노출 위치 (T-038-A, 기획서 AD-03) — 예전 응답에는 없을 수 있어 선택 */
+  show_in_footer?: boolean
+  show_floating?: boolean
+  floating_position?: FloatingPosition
 }
+
+/** 카카오톡 플로팅 버튼 위치 */
+export type FloatingPosition = 'BOTTOM_RIGHT' | 'BOTTOM_LEFT'
 
 export interface PublicSeoSettings {
   meta_title: string | null

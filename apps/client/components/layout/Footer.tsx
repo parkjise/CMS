@@ -56,7 +56,8 @@ function buildSnsLinks(sns: PublicSnsSettings | null): SnsLink[] {
 
 export function Footer({ tenantName, sns }: FooterProps) {
   const year = new Date().getFullYear()
-  const links = buildSnsLinks(sns)
+  // 관리자 'SNS 노출 위치' 에서 푸터 아이콘을 끄면 숨긴다 (T-038-A)
+  const links = sns?.show_in_footer === false ? [] : buildSnsLinks(sns)
 
   return (
     <footer className="border-t border-[color:var(--color-border)] bg-[var(--color-surface)] px-6 py-10">
