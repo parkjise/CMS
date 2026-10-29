@@ -49,6 +49,8 @@ export interface PublicSeoSettings {
   google_analytics_id: string | null
   naver_site_verification: string | null
   google_site_verification: string | null
+  /** 대표 키워드 (T-040-A) — 이전 백엔드 응답에는 없을 수 있다 */
+  keywords?: string[]
 }
 
 export interface PublicTemplate {

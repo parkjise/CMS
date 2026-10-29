@@ -141,7 +141,26 @@ describe('buildLocalBusinessJsonLd (T-074)', () => {
     expect(ld.sameAs).toEqual(['https://pf.kakao.com/x'])
   })
 
-  it('SEO에 keywords가 있으면 쉼표 구분 문자열로 주입한다(향후 확장)', () => {
+  it('SEO 대표 키워드 배열을 쉼표 구분 문자열로 주입하고, 비면 넣지 않는다 (T-040-A)', () => {
+    const withKeywords = buildSite({
+      seo_settings: {
+        meta_title: null,
+        meta_description: null,
+        og_image_url: null,
+        google_analytics_id: null,
+        naver_site_verification: null,
+        google_site_verification: null,
+        keywords: ['강남 통증의학과', ' 허리 비수술 ', ''],
+      },
+    })
+    expect(buildLocalBusinessJsonLd(withKeywords).keywords).toBe('강남 통증의학과, 허리 비수술')
+    const empty = buildSite({
+      seo_settings: { ...withKeywords.seo_settings!, keywords: [] },
+    })
+    expect(buildLocalBusinessJsonLd(empty)).not.toHaveProperty('keywords')
+  })
+
+  it('SEO에 keywords가 문자열이어도 쉼표 구분 문자열로 주입한다', () => {
     const site = buildSite({
       seo_settings: {
         meta_title: null,

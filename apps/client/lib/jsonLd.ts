@@ -60,15 +60,15 @@ function buildGeo(site: PublicSite): Record<string, unknown> | undefined {
 }
 
 /**
- * SEO 설정의 키워드를 schema.org `keywords`(쉼표 구분 문자열)로 변환.
- * 현재 SEO 모델에는 keywords 필드가 없어 값이 있을 때만 주입된다(향후 확장 대비).
+ * SEO 대표 키워드(T-040-A, 배열)를 schema.org `keywords`(쉼표 구분 문자열)로 변환.
+ * 비어 있으면 주입하지 않는다.
  */
 function buildKeywords(site: PublicSite): string | undefined {
-  const raw = (site.seo_settings as { keywords?: string | null } | null)?.keywords
+  const raw: unknown = site.seo_settings?.keywords
   if (!raw) return undefined
-  const cleaned = raw
-    .split(',')
-    .map((k) => k.trim())
+  const list = Array.isArray(raw) ? raw : String(raw).split(',')
+  const cleaned = list
+    .map((k) => String(k).trim())
     .filter(Boolean)
   return cleaned.length > 0 ? cleaned.join(', ') : undefined
 }
