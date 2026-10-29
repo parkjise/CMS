@@ -70,6 +70,53 @@ class TestResolveTenantIdDependency:
         assert exc_info.value.status_code == 401
 
 
+class TestStreamLoop:
+    """스트림 본문 — keepalive 를 쉬지 않고 보내지 않는다 (T-043-A)."""
+
+    async def test_waits_for_messages_instead_of_spinning(self, monkeypatch):
+        import uuid
+
+        from app.api.v1.endpoints import notifications
+
+        calls: list[float | None] = []
+        replies = iter([None, {"type": "message", "data": '{"type":"new_inquiry"}'}])
+
+        class FakePubSub:
+            async def subscribe(self, channel):
+                self.channel = channel
+
+            async def get_message(self, ignore_subscribe_messages=False, timeout=0.0):
+                calls.append(timeout)
+                return next(replies)
+
+            async def unsubscribe(self, channel):
+                pass
+
+            async def aclose(self):
+                pass
+
+        class FakeRedis:
+            def pubsub(self):
+                return FakePubSub()
+
+        async def fake_get_redis():
+            return FakeRedis()
+
+        monkeypatch.setattr(notifications, "get_redis", fake_get_redis)
+        resp = await notifications.stream_notifications(tenant_id=uuid.uuid4())
+        body = resp.body_iterator
+        chunks = [await anext(body) for _ in range(3)]
+        await body.aclose()
+
+        assert chunks == [
+            'data: {"type": "connected"}\n\n',
+            ": keepalive\n\n",
+            'data: {"type":"new_inquiry"}\n\n',
+        ]
+        # 매번 keepalive 간격만큼 기다린다 (timeout 없이 부르면 곧바로 돌아와 계속 돈다)
+        assert calls == [notifications._KEEPALIVE_INTERVAL] * 2
+
+
 # ── 동기 픽스처: test_user는 async라 동기 함수에서 못 씀 ──────────────────
 
 

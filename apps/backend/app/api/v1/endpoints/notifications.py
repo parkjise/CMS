@@ -61,17 +61,16 @@ async def stream_notifications(
         try:
             yield 'data: {"type": "connected"}\n\n'
             while True:
-                # Wait up to keepalive interval for a message
-                msg = await asyncio.wait_for(
-                    pubsub.get_message(ignore_subscribe_messages=True),
-                    timeout=_KEEPALIVE_INTERVAL,
+                # 메시지가 올 때까지 최대 keepalive 간격만큼 기다린다.
+                # get_message 는 timeout 없이 부르면 곧바로 None 을 돌려줘
+                # keepalive 를 쉬지 않고 쏟아냈다 (2초에 약 230KB) — T-043-A
+                msg = await pubsub.get_message(
+                    ignore_subscribe_messages=True, timeout=_KEEPALIVE_INTERVAL
                 )
                 if msg and msg["type"] == "message":
                     yield f"data: {msg['data']}\n\n"
                 else:
                     yield ": keepalive\n\n"
-        except TimeoutError:
-            yield ": keepalive\n\n"
         except asyncio.CancelledError:
             pass
         finally:
