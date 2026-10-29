@@ -149,3 +149,61 @@ class TestDashboardRecentInquiries:
         resp = await client.get(url, headers=auth_headers)
         assert resp.status_code == 200
         assert len(resp.json()["data"]) <= 5
+
+
+class TestDashboardSampleCount:
+    """대시보드 할 일 안내용 샘플 값 개수 (T-043-A)"""
+
+    async def test_counts_only_active_not_deleted_sample_settings(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        import uuid
+        from datetime import UTC, datetime
+
+        from sqlalchemy import text
+
+        from app.models.section import Section, SectionSetting
+        from tests.conftest import _TestSession  # type: ignore
+
+        def section(active: bool = True, deleted: bool = False) -> Section:
+            s = Section(
+                id=uuid.uuid4(),
+                tenant_id=uuid.UUID(test_tenant["id"]),
+                section_type="HERO_BANNER",
+                label="메인",
+                display_order=1,
+                is_active=active,
+                page_key="home",
+                deleted_at=datetime.now(UTC) if deleted else None,
+            )
+            s.settings = [
+                SectionSetting(
+                    tenant_id=s.tenant_id,
+                    field_key=k,
+                    field_value="v",
+                    value_type="STRING",
+                    is_sample=sample,
+                )
+                for k, sample in (
+                    ("main_title", True),
+                    ("sub_title", True),
+                    ("x", False),
+                )
+            ]
+            return s
+
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            session.add_all([section(), section(active=False), section(deleted=True)])
+            await session.commit()
+
+        resp = await client.get("/api/v1/dashboard/stats", headers=auth_headers)
+        assert resp.status_code == 200
+        # 보이는 섹션의 샘플 2개만 — 숨긴 · 지운 섹션 제외
+        assert resp.json()["data"]["sample_count"] == 2
+
+    async def test_zero_without_sections(self, client: AsyncClient, auth_headers: dict):
+        resp = await client.get("/api/v1/dashboard/stats", headers=auth_headers)
+        assert resp.json()["data"]["sample_count"] == 0

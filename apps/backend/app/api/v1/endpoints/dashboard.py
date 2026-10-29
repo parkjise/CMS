@@ -9,6 +9,7 @@ from app.models.analytics import SiteAnalytics
 from app.models.inquiry import Inquiry
 from app.models.user import User
 from app.schemas.common import ApiResponse
+from app.services import section as section_service
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -80,6 +81,10 @@ async def get_stats(
             "pending_inquiries": pending_inquiries.scalar_one(),
             # 방문자 회원 (T-115) — SITE_MEMBER 가 꺼져 있으면 None (카드 숨김)
             "members": await _member_stats(db, tid, week_start),
+            # 아직 바꾸지 않은 템플릿 샘플 값 (할 일 안내, T-043-A)
+            "sample_count": (
+                await section_service.count_sample_settings(db, tid) if tid else 0
+            ),
         }
     )
 
