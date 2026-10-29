@@ -11,6 +11,8 @@ export type ImageContext =
   | 'team'
   | 'portfolio'
   | 'seo'
+  /** 로고 · 파비콘 — 섹션 없이 (T-036-A) */
+  | 'site'
 
 export interface UploadImageInput {
   file: File

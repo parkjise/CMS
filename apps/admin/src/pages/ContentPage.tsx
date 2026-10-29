@@ -3,6 +3,7 @@ import { Layers, Lock, Plus, Settings } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { AddSectionModal } from '@/components/content/AddSectionModal'
 import { SectionList } from '@/components/content/SectionList'
+import { SiteSettingsForm } from '@/components/content/SiteSettingsForm'
 import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
 type Tab = 'sections' | 'settings'
@@ -153,13 +154,8 @@ function AddSectionBar({ limits, onAdd }: { limits: SectionLimits; onAdd: () => 
   )
 }
 
-// ── 공통 설정 탭 (placeholder, T-037+에서 확장) ──────────────────────────
+// ── 공통 설정 탭 — 사업체 정보 · 영업시간 · 로고 · 파비콘 (T-036-A) ─────────
 
 function SettingsTab() {
-  return (
-    <div className="flex h-40 flex-col items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
-      <Settings className="mb-2 h-6 w-6 text-slate-300" />
-      공통 설정은 곧 제공될 예정입니다.
-    </div>
-  )
+  return <SiteSettingsForm />
 }
