@@ -642,6 +642,38 @@ test.describe('T-078 전체 통합 시나리오', () => {
     expect(rb.ok(), await rb.text()).toBeTruthy()
   })
 
+  test('시나리오 16: 관리자 월간 리포트에서 지금 분석하기 → 손볼 점의 링크로 고치러 간다 (T-073-A)', async ({
+    page,
+  }) => {
+    await page.goto(`${ADMIN_URL}/login`)
+    await page.getByLabel('이메일').fill(email)
+    await page.getByLabel('비밀번호').fill(password)
+    await page.getByLabel('사이트 슬러그').fill(slug)
+    await page.getByRole('button', { name: '로그인' }).click()
+    await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+    await page.getByRole('link', { name: '월간 리포트' }).click()
+    await expect(page.getByRole('heading', { name: '월간 리포트' })).toBeVisible()
+
+    const analyze = page.getByRole('button', { name: '지금 분석하기' })
+    await expect(page.getByText(/이번 달 \d+ \/ \d+회 사용/)).toBeVisible()
+    if (await analyze.isEnabled()) {
+      const created = page.waitForResponse(
+        (r) => r.url().endsWith('/v1/ai/reports') && r.request().method() === 'POST',
+      )
+      await analyze.click()
+      expect((await created).ok()).toBeTruthy()
+      // 이번 달 횟수를 다 쓰면 더 못 만든다 (STANDARD 월 1회)
+    }
+    const report = page.getByRole('article')
+    await expect(report.getByRole('heading', { name: '손보면 좋은 점' })).toBeVisible()
+    // CI 에는 AI 키가 없어 기본 점검 — 방문자 0명이라 검색 등록 안내가 반드시 나온다
+    await expect(report.getByText('기본 점검')).toBeVisible()
+    const fix = report.getByRole('link', { name: /고치러 가기|으로|보기/ }).first()
+    await fix.click()
+    await expect(page).toHaveURL(/\/admin\/(content|seo)/)
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
