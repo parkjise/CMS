@@ -1,3 +1,5 @@
+import uuid
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -76,3 +78,46 @@ class TemplateRecommendResponse(BaseModel):
     recommendations: list[TemplateRecommendation]
     # ai: 모델 추천 / rule: 업종 기준 기본 추천 (키 없음 · 장애 · 응답 이상)
     source: Literal["ai", "rule"]
+
+
+# ── AI 월간 리포트 (T-073-A, 기획서 13.2 기능 3) ─────────────────────────
+class AiReportItem(BaseModel):
+    code: str
+    title: str
+    detail: str
+    section_id: str | None = None
+    section_label: str | None = None
+
+
+class AiReportResponse(BaseModel):
+    id: uuid.UUID
+    period: date
+    kind: Literal["AUTO", "MANUAL"]
+    source: Literal["ai", "rule"]
+    summary: str
+    metrics: dict
+    strengths: list[AiReportItem]
+    improvements: list[AiReportItem]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AiReportListItem(BaseModel):
+    id: uuid.UUID
+    period: date
+    kind: Literal["AUTO", "MANUAL"]
+    source: Literal["ai", "rule"]
+    improvement_count: int
+    created_at: datetime
+
+
+class AiReportQuota(BaseModel):
+    used: int
+    limit: int
+    remaining: int
+
+
+class AiReportListResponse(BaseModel):
+    reports: list[AiReportListItem]
+    quota: AiReportQuota

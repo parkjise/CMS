@@ -242,7 +242,7 @@ FEATURES = [
     {"key": "AI_MONTHLY_REPORT", "name": "AI 월간 리포트", "category": "AI",
      "menu_path": "/admin/reports", "menu_icon": "chart-bar",
      "menu_label": "월간 리포트", "menu_position": 42,
-     "default_enabled": False, "required_plan": "PREMIUM"},
+     "default_enabled": True, "required_plan": "STANDARD"},
     {"key": "NAVER_ANALYTICS", "name": "네이버 애널리틱스", "category": "ANALYTICS",
      "menu_position": 50, "default_enabled": False, "is_active": False},
 ]

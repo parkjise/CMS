@@ -12,6 +12,10 @@ from app.core.deps import (
 )
 from app.models.user import User
 from app.schemas.ai import (
+    AiReportListItem,
+    AiReportListResponse,
+    AiReportQuota,
+    AiReportResponse,
     AiUsageResponse,
     ChatEditRequest,
     CopySuggestRequest,
@@ -21,7 +25,7 @@ from app.schemas.ai import (
 )
 from app.schemas.common import ApiResponse
 from app.services import ai as ai_service
-from app.services import ai_template
+from app.services import ai_report, ai_template
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -87,3 +91,68 @@ async def recommend_templates(
         db, tenant_id, current_user.id, refresh=body.refresh
     )
     return ApiResponse.ok(result)
+
+
+# ── AI 월간 리포트 (기획서 13.2 기능 3 · 13.4, T-073-A) ──────────────────
+_report_feature = [Depends(require_feature("AI_MONTHLY_REPORT"))]
+
+
+@router.get(
+    "/reports",
+    response_model=ApiResponse[AiReportListResponse],
+    dependencies=_report_feature,
+)
+async def list_reports(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """지난 리포트 목록 + 이번 달 남은 횟수"""
+    reports = await ai_report.list_reports(db, tenant_id)
+    quota = await ai_report.quota(db, tenant_id)
+    return ApiResponse.ok(
+        AiReportListResponse(
+            reports=[
+                AiReportListItem(
+                    id=r.id,
+                    period=r.period,
+                    kind=r.kind,  # type: ignore[arg-type]
+                    source=r.source,  # type: ignore[arg-type]
+                    improvement_count=len(r.improvements or []),
+                    created_at=r.created_at,
+                )
+                for r in reports
+            ],
+            quota=AiReportQuota(**quota),
+        )
+    )
+
+
+@router.post(
+    "/reports",
+    response_model=ApiResponse[AiReportResponse],
+    dependencies=_report_feature,
+)
+async def create_report(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """직접 만들기 — 이번 달 지금까지 (STANDARD 월 1 · PREMIUM 월 4, 자동 포함)"""
+    report = await ai_report.create_manual_report(db, tenant_id, current_user.id)
+    return ApiResponse.ok(AiReportResponse.model_validate(report))
+
+
+@router.get(
+    "/reports/{report_id}",
+    response_model=ApiResponse[AiReportResponse],
+    dependencies=_report_feature,
+)
+async def get_report(
+    report_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    report = await ai_report.get_report(db, tenant_id, report_id)
+    return ApiResponse.ok(AiReportResponse.model_validate(report))
