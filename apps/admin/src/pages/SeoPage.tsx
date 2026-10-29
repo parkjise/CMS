@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import {
   BarChart3,
   Globe,
   Image as ImageIcon,
+  Lock,
   Map,
   Search,
 } from 'lucide-react'
@@ -14,7 +16,7 @@ import { GoogleSnippetPreview } from '@/components/seo/GoogleSnippetPreview'
 import { KeywordTagInput } from '@/components/seo/KeywordTagInput'
 import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModal'
 import { SocialPreview } from '@/components/seo/SocialPreview'
-import { useSeoSettings, useUpdateSeo } from '@/hooks/useSeo'
+import { useSeoLimits, useSeoSettings, useUpdateSeo } from '@/hooks/useSeo'
 import { useAuthStore } from '@/stores/authStore'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -26,6 +28,8 @@ const DESC_MAX = 160
 export function SeoPage() {
   const seoQuery = useSeoSettings()
   const updateMutation = useUpdateSeo()
+  const limits = useSeoLimits().data
+  const keywordsAllowed = limits?.keywords_allowed ?? false
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
 
   const [activeTab, setActiveTab] = useState<Tab>('basic')
@@ -50,6 +54,7 @@ export function SeoPage() {
     setGaId(d.google_analytics_id ?? '')
     setNaverCode(d.naver_site_verification ?? '')
     setGoogleVerify(d.google_site_verification ?? '')
+    setKeywords(d.keywords ?? [])
   }, [seoQuery.data])
 
   const siteUrl = useMemo(() => {
@@ -161,17 +166,35 @@ export function SeoPage() {
                 </div>
 
                 <div className="mt-5 space-y-1.5">
-                  <label className="text-sm font-medium text-slate-700">
-                    핵심 키워드
+                  <label className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+                    대표 키워드
+                    {limits && !keywordsAllowed && (
+                      <Lock className="h-3.5 w-3.5 text-slate-400" aria-label="잠김" />
+                    )}
                   </label>
                   <KeywordTagInput
                     keywords={keywords}
                     onChange={setKeywords}
+                    max={limits?.keywords_max ?? 5}
+                    maxLength={limits?.keyword_max_length ?? 30}
+                    disabled={!keywordsAllowed}
                   />
-                  <p className="text-xs text-amber-600">
-                    💡 키워드는 자동 메타 태그로 저장되지 않습니다. Google은 이제
-                    제목·설명·본문 키워드를 더 중요하게 봅니다.
-                  </p>
+                  {limits && !keywordsAllowed ? (
+                    <p className="text-xs text-slate-500">
+                      🔒 대표 키워드는 STANDARD 이상 요금제에서 저장할 수 있어요.{' '}
+                      <Link to="/admin/billing" className="font-medium text-blue-600 hover:underline">
+                        요금제 보기
+                      </Link>
+                      <br />
+                      지금은 페이지 제목과 설명에 지역 · 업종 단어를 자연스럽게 넣는 것이 검색에
+                      가장 효과적이에요.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500">
+                      💡 검색엔진용 구조화 데이터와 AI 문구 추천에 쓰여요. 검색 순위에는 제목 ·
+                      설명 · 본문에 들어간 단어가 더 중요합니다.
+                    </p>
+                  )}
                 </div>
 
                 <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
@@ -186,6 +209,8 @@ export function SeoPage() {
                       save('기본 SEO', {
                         meta_title: metaTitle || null,
                         meta_description: metaDescription || null,
+                        // 잠긴 요금제는 키워드를 보내지 않는다 (저장된 값은 그대로)
+                        ...(keywordsAllowed ? { keywords } : {}),
                       })
                     }
                     disabled={updateMutation.isPending || overLimit}

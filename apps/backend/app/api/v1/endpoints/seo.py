@@ -8,7 +8,7 @@ from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_
 from app.db.session import set_super_admin_context
 from app.models.user import User
 from app.schemas.common import ApiResponse
-from app.schemas.seo import SeoSettingsResponse, SeoSettingsUpdate
+from app.schemas.seo import SeoLimitsResponse, SeoSettingsResponse, SeoSettingsUpdate
 from app.services import seo as seo_service
 
 router = APIRouter(prefix="/seo-settings", tags=["seo"])
@@ -24,6 +24,15 @@ async def get_seo_settings(
     return ApiResponse.ok(
         SeoSettingsResponse.model_validate(setting) if setting else None
     )
+
+
+@router.get("/limits", response_model=ApiResponse[SeoLimitsResponse])
+async def get_seo_limits(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    return ApiResponse.ok(await seo_service.get_limits(db, tenant_id))
 
 
 @router.put("", response_model=ApiResponse[SeoSettingsResponse])

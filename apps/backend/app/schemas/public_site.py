@@ -58,6 +58,7 @@ class PublicSeoResponse(BaseModel):
     google_analytics_id: str | None
     naver_site_verification: str | None
     google_site_verification: str | None
+    keywords: list[str] = []
 
     model_config = {"from_attributes": True}
 

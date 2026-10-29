@@ -24,6 +24,7 @@ from app.core.config import settings
 from app.core.redis import get_redis
 from app.models.ai import AiUsageLog
 from app.models.section import Section
+from app.models.seo import SeoSetting
 from app.models.tenant import Tenant
 from app.schemas.ai import (
     AiUsageResponse,
@@ -166,6 +167,12 @@ async def generate_suggestions(
     ) from last_error
 
 
+async def _seo_keywords(db: AsyncSession) -> list[str]:
+    """현재 테넌트(RLS)의 SEO 대표 키워드"""
+    result = await db.execute(select(SeoSetting.keywords))
+    return list(result.scalar_one_or_none() or [])
+
+
 async def _get_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tenant:
     tenant = await db.get(Tenant, tenant_id)
     if not tenant:
@@ -297,6 +304,16 @@ async def suggest_copy(
 
     limit = monthly_limit(tenant.plan_type)
     used = await monthly_usage(db, tenant_id, ACTION_COPY_SUGGEST)
+
+    # 요청에 키워드가 없으면 SEO 대표 키워드로 (T-040-A) — 캐시 키에도 반영된다
+    if not request.tenant_context.keywords:
+        request = request.model_copy(
+            update={
+                "tenant_context": request.tenant_context.model_copy(
+                    update={"keywords": await _seo_keywords(db)}
+                )
+            }
+        )
 
     # 캐시 히트: LLM 미호출(비용 0)·사용량 미증가로 응답
     cache_key = _copy_cache_key(tenant_id, request)
