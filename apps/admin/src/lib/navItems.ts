@@ -9,6 +9,7 @@ export const NAV_FEATURE_MAP: Record<string, string> = {
   '/admin/seo': 'SEO_WIZARD',
   '/admin/templates': 'TEMPLATE_SELECT',
   '/admin/analytics': 'NAVER_ANALYTICS',
+  '/admin/reports': 'AI_MONTHLY_REPORT',
 }
 
 export type NavBadge = 'BETA' | 'NEW' | null
