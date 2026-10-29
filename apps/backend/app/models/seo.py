@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -25,4 +25,8 @@ class SeoSetting(Base, TimestampMixin):
     )
     google_site_verification: Mapped[str | None] = mapped_column(
         String(100), nullable=True
+    )
+    # 대표 키워드 (T-040-A) — JSON-LD keywords · AI 문구 추천 컨텍스트
+    keywords: Mapped[list[str]] = mapped_column(
+        ARRAY(String(30)), nullable=False, default=list, server_default="{}"
     )
