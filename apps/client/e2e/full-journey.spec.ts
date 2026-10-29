@@ -782,6 +782,69 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 19: 관리자 모바일 설정 — 휴대폰에서 숨긴 섹션은 휴대폰에서만 안 보이고, 메인 배너는 휴대폰용 배경을 쓴다 (T-037-D)', async ({
+    page,
+    request,
+  }) => {
+    const intro = await findSection(request, token, 'INTRO')
+    const hero = await findSection(request, token, 'HERO_BANNER')
+    const patch = (id: string, settings: { field_key: string; field_value: string; value_type: string }[]) =>
+      request.patch(`${BACKEND_URL}/api/v1/sections/${id}`, {
+        headers: authHeader(token),
+        data: { settings },
+      })
+    const originalMobileImage = settingValue(hero, 'mobile_image_url') ?? ''
+    const originalBg = settingValue(hero, 'bg_image_url') ?? ''
+    try {
+      // 관리자 섹션 편집 → 모바일 설정 탭에서 소개 섹션 숨기기
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+      await page.goto(`${ADMIN_URL}/admin/content/${intro.id}`)
+      await page.getByRole('button', { name: '모바일 설정' }).click()
+      await page.getByRole('checkbox', { name: /휴대폰에서 숨기기/ }).check({ force: true })
+      const saved = page.waitForResponse(
+        (r) => r.url().includes(`/v1/sections/${intro.id}`) && r.request().method() === 'PATCH',
+      )
+      await page.getByRole('button', { name: /저장/ }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      // 메인 배너 휴대폰용 배경 (업로드는 단위 테스트 — 여기선 주소로)
+      const img = await patch(hero.id, [
+        { field_key: 'bg_image_url', field_value: '/e2e-desktop-bg.webp', value_type: 'URL' },
+        { field_key: 'mobile_image_url', field_value: '/e2e-mobile-bg.webp', value_type: 'URL' },
+      ])
+      expect(img.ok(), await img.text()).toBeTruthy()
+
+      // 휴대폰 화면 — 소개가 안 보이고, 배너는 휴대폰용 배경
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      await expect(page.locator(`[data-section-wrapper="${intro.id}"]`)).toBeHidden()
+      const heroEl = page.locator(`section[data-section-id="${hero.id}"]`)
+      await expect
+        .poll(() => heroEl.evaluate((el) => getComputedStyle(el).backgroundImage))
+        .toContain('e2e-mobile-bg.webp')
+
+      // PC 화면 — 소개가 보이고, 배너는 원래 배경
+      await page.setViewportSize({ width: 1280, height: 900 })
+      await expect(page.locator(`[data-section-wrapper="${intro.id}"]`)).toBeVisible()
+      await expect
+        .poll(() => heroEl.evaluate((el) => getComputedStyle(el).backgroundImage))
+        .toContain('e2e-desktop-bg.webp')
+    } finally {
+      await page.setViewportSize({ width: 1280, height: 720 })
+      const r1 = await patch(intro.id, [{ field_key: 'mobile_hidden', field_value: 'false', value_type: 'BOOLEAN' }])
+      const r2 = await patch(hero.id, [
+        { field_key: 'bg_image_url', field_value: originalBg, value_type: 'URL' },
+        { field_key: 'mobile_image_url', field_value: originalMobileImage, value_type: 'URL' },
+      ])
+      expect(r1.ok() && r2.ok()).toBeTruthy()
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
