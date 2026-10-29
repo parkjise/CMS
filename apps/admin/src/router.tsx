@@ -37,6 +37,9 @@ const BillingPage = lazy(() =>
 const AnalyticsPage = lazy(() =>
   import('@/pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
 )
+const ReportsPage = lazy(() =>
+  import('@/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })),
+)
 const ForbiddenPage = lazy(() =>
   import('@/pages/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
 )
@@ -93,6 +96,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/templates',
             element: withFeature('TEMPLATE_SELECT', <TemplatesPage />),
+          },
+          {
+            path: '/admin/reports',
+            element: withFeature('AI_MONTHLY_REPORT', <ReportsPage />),
           },
           {
             path: '/admin/analytics',

@@ -237,10 +237,12 @@ FEATURES = [
     {"key": "AI_CHAT_EDIT", "name": "AI 채팅 편집", "category": "AI",
      "menu_position": 41, "default_enabled": False, "required_plan": "STANDARD",
      "is_beta": True},
+    {"key": "AI_TEMPLATE_RECOMMEND", "name": "AI 템플릿 추천", "category": "AI",
+     "menu_position": 43, "default_enabled": True, "required_plan": "STANDARD"},
     {"key": "AI_MONTHLY_REPORT", "name": "AI 월간 리포트", "category": "AI",
      "menu_path": "/admin/reports", "menu_icon": "chart-bar",
      "menu_label": "월간 리포트", "menu_position": 42,
-     "default_enabled": False, "required_plan": "PREMIUM"},
+     "default_enabled": True, "required_plan": "STANDARD"},
     {"key": "NAVER_ANALYTICS", "name": "네이버 애널리틱스", "category": "ANALYTICS",
      "menu_position": 50, "default_enabled": False, "is_active": False},
 ]

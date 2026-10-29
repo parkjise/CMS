@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router'
-import { X, ExternalLink, LayoutDashboard, FileText, Share2, MessageSquare, Search, Layers, BarChart3, CreditCard, LogOut } from 'lucide-react'
+import { X, ExternalLink, LayoutDashboard, FileText, Share2, MessageSquare, Search, Layers, BarChart3, CreditCard, LogOut, Sparkles } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavBadge, useNavVisibility } from '@/lib/navItems'
 
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },
   { to: '/admin/analytics', icon: BarChart3, label: '방문자 분석' },
+  { to: '/admin/reports', icon: Sparkles, label: '월간 리포트' },
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
 

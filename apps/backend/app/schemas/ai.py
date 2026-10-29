@@ -1,3 +1,7 @@
+import uuid
+from datetime import date, datetime
+from typing import Literal
+
 from pydantic import BaseModel, Field
 
 
@@ -56,3 +60,64 @@ class AiUsageResponse(BaseModel):
     copy_suggest: FeatureUsage
     chat_edit: FeatureUsage
     estimated_cost_usd: float  # 이번 달 누적 토큰 기준 추정 OpenAI 비용 (USD)
+
+
+# ── AI 템플릿 추천 (T-070-A, 기획서 13.4) ────────────────────────────────
+class TemplateRecommendRequest(BaseModel):
+    # True 면 저장된 추천을 쓰지 않고 새로 (관리자 [다시 추천])
+    refresh: bool = False
+
+
+class TemplateRecommendation(BaseModel):
+    template_id: str
+    name: str
+    reason: str
+
+
+class TemplateRecommendResponse(BaseModel):
+    recommendations: list[TemplateRecommendation]
+    # ai: 모델 추천 / rule: 업종 기준 기본 추천 (키 없음 · 장애 · 응답 이상)
+    source: Literal["ai", "rule"]
+
+
+# ── AI 월간 리포트 (T-073-A, 기획서 13.2 기능 3) ─────────────────────────
+class AiReportItem(BaseModel):
+    code: str
+    title: str
+    detail: str
+    section_id: str | None = None
+    section_label: str | None = None
+
+
+class AiReportResponse(BaseModel):
+    id: uuid.UUID
+    period: date
+    kind: Literal["AUTO", "MANUAL"]
+    source: Literal["ai", "rule"]
+    summary: str
+    metrics: dict
+    strengths: list[AiReportItem]
+    improvements: list[AiReportItem]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AiReportListItem(BaseModel):
+    id: uuid.UUID
+    period: date
+    kind: Literal["AUTO", "MANUAL"]
+    source: Literal["ai", "rule"]
+    improvement_count: int
+    created_at: datetime
+
+
+class AiReportQuota(BaseModel):
+    used: int
+    limit: int
+    remaining: int
+
+
+class AiReportListResponse(BaseModel):
+    reports: list[AiReportListItem]
+    quota: AiReportQuota

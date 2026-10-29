@@ -180,3 +180,20 @@ async def send_announcement_email(to: str, *, title: str, content: str) -> dict:
             "admin_url": settings.admin_base_url,
         },
     )
+
+
+async def send_monthly_report_email(
+    to: str, *, period: str, summary: str, improvement_count: int
+) -> dict:
+    """AI 월간 리포트 도착 알림 (T-073-A)"""
+    return await send_email(
+        to,
+        subject=f"[CMS] {period} 홈페이지 월간 리포트",
+        template="monthly_report",
+        variables={
+            "period": period,
+            "summary": summary,
+            "improvement_count": improvement_count,
+            "admin_url": settings.admin_base_url,
+        },
+    )

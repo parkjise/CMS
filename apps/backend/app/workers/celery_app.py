@@ -8,6 +8,7 @@ celery_app = Celery(
     broker=settings.celery_broker_url,
     backend=settings.celery_result_backend,
     include=[
+        "app.workers.ai_report",
         "app.workers.analytics",
         "app.workers.announcement",
         "app.workers.billing",
@@ -87,6 +88,11 @@ celery_app.conf.update(
         "notify-trial-ending-daily-0900": {
             "task": "app.workers.billing.notify_trial_ending",
             "schedule": crontab(hour=9, minute=0),  # 매일 09:00 체험 D-3 알림
+        },
+        # ── AI 월간 리포트 (T-073-A) ──────────────────────────────────────
+        "generate-monthly-reports-0600": {
+            "task": "app.workers.ai_report.generate_monthly_reports",
+            "schedule": crontab(day_of_month=1, hour=6, minute=0),  # 매월 1일 06:00
         },
         # ── 커스텀 도메인 (T-100) ─────────────────────────────────────────
         "renew-expiring-ssl-daily-0345": {

@@ -1,4 +1,4 @@
-from app.models.ai import AiUsageLog
+from app.models.ai import AiReport, AiUsageLog
 from app.models.analytics import SiteAnalytics
 from app.models.announcement import Announcement, AnnouncementRead
 from app.models.audit import AuditLog
@@ -38,6 +38,7 @@ __all__ = [
     "Template",
     "TenantTemplateOverride",
     "TemplateChangeHistory",
+    "AiReport",
     "AiUsageLog",
     "Feature",
     "TenantFeature",
