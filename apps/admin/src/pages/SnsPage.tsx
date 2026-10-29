@@ -158,8 +158,12 @@ export function SnsPage() {
           </div>
         )}
 
-        {/* 노출 위치 (T-038-A, 기획서 AD-03) */}
-        <fieldset className="mt-5 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+        {/* 노출 위치 (T-038-A, 기획서 AD-03) — 저장된 값이 오기 전에는 막는다.
+            먼저 고치면 늦게 온 값이 덮어써 클릭이 사라졌다 (T-036-A) */}
+        <fieldset
+          disabled={snsQuery.isLoading}
+          className="mt-5 space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4 disabled:opacity-60"
+        >
           <legend className="px-1 text-sm font-medium text-slate-700">노출 위치</legend>
           <label className="flex items-center gap-2 text-sm text-slate-700">
             <input
