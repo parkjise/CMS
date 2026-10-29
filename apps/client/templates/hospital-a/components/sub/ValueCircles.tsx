@@ -3,7 +3,8 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { ResponsiveImg } from '../../../shared/ResponsiveImg'
+import { mobileImage } from '@/lib/mobileSettings'
 
 interface Props extends CodeSectionProps {
   /** more_page 페이지 키 → 주소 */
@@ -27,8 +28,15 @@ export function ValueCircles({ hrefFor, ...props }: Props) {
     (morePage ? `${hrefFor(morePage)}${moreHash ? `#${moreHash}` : ''}` : '')
   return (
     <section className="value-circles" aria-labelledby={id}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- 장식용 배경 사진 */}
-      <img className="value-circles__bg" {...optimizedImg(getString(section.settings, 'bg_image_url'), '100vw', 2048)} alt="" loading="lazy" />
+      {/* 장식용 배경 사진 — 휴대폰용 사진이 있으면 휴대폰에서 그 사진 (T-037-D) */}
+      <ResponsiveImg
+        className="value-circles__bg"
+        src={getString(section.settings, 'bg_image_url')}
+        mobileSrc={mobileImage(section)}
+        sizes="100vw"
+        alt=""
+        loading="lazy"
+      />
       <div className="page-container">
         <StoryText {...props} id={id} className="story-text--center story-text--light" />
         <ul className="value-circles__list">

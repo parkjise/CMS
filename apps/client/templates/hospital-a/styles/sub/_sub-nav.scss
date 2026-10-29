@@ -46,9 +46,19 @@
 
 // 서브 탭 바로 다음 본문 섹션 — 모든 서브 페이지 공통 상단 여백
 // (padding 이라 섹션에 배경색이 있어도 탭 아래까지 이어짐)
-.sub-nav + section {
+// 휴대폰에서 숨긴 섹션의 표식(data-mobile-hide)이 사이에 있어도 같게 (T-037-D)
+.sub-nav + section,
+.sub-nav + [data-mobile-hide] + section {
   padding-top: 64px;
   @include md {
     padding-top: 120px;
+  }
+}
+
+// 휴대폰에서 탭 바로 다음 섹션을 숨기면 그다음 섹션이 탭 아래 첫 섹션이 된다 (T-037-D)
+// 표식은 편집 모드에서 빠지므로 편집 중에는 이 규칙이 걸리지 않는다
+@media (max-width: 767px) {
+  .sub-nav + [data-mobile-hide] + section + section {
+    padding-top: 64px;
   }
 }

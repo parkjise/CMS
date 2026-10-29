@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import type { PublicSection } from '@/lib/publicSite.types'
 import MemberAccountLinks from '@/components/member/MemberAccountLinks'
+import { isMobileHidden } from '@/lib/mobileSettings'
 
 interface NavbarProps {
   tenantName: string
@@ -36,6 +37,8 @@ export function Navbar({ tenantName, logoUrl, sections, tenantSlug }: NavbarProp
   }
 
   const navSections = sections.filter((s) => s.is_active)
+  // 휴대폰 메뉴에는 휴대폰에서 숨긴 섹션을 넣지 않는다 — 눌러도 갈 곳이 없다 (T-037-D)
+  const mobileNavSections = navSections.filter((s) => !isMobileHidden(s))
 
   return (
     <header
@@ -107,7 +110,7 @@ export function Navbar({ tenantName, logoUrl, sections, tenantSlug }: NavbarProp
           aria-label="모바일 섹션 메뉴"
         >
           <ul className="flex flex-col py-2">
-            {navSections.map((s) => (
+            {mobileNavSections.map((s) => (
               <li key={s.id}>
                 <button
                   type="button"

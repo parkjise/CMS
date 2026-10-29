@@ -4,7 +4,8 @@ import { useRef } from 'react'
 import { getBoolean, getPlainString, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { ResponsiveImg } from '../../../shared/ResponsiveImg'
+import { mobileImage } from '@/lib/mobileSettings'
 
 interface Props extends CodeSectionProps {
   homeHref: string
@@ -38,10 +39,11 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
     >
       {/* 서브 페이지 첫 화면 주인공 이미지(LCP) — 먼저 받는다 (T-125) */}
       {image && !plain && (
-        // eslint-disable-next-line @next/next/no-img-element -- 목업 배경 비주얼(object-fit) 유지
-        <img
+        <ResponsiveImg
           className="sub-hero__image"
-          {...optimizedImg(image, '100vw', 2048)}
+          src={image}
+          mobileSrc={mobileImage(section)}
+          sizes="100vw"
           alt=""
           fetchPriority="high"
           loading="eager"
