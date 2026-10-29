@@ -117,8 +117,27 @@ async def update_section_settings(
     return await get_section_by_id(db, section_id, tenant_id)
 
 
+# 모바일 설정 (T-037-D) — 휴대폰에서 숨기기
+MOBILE_HIDDEN_FIELD = "mobile_hidden"
+_TRUE = {"true", "1", "on", "yes"}
+_FALSE = {"false", "0", "off", "no", ""}
+
+
+def _normalize_bool(field: str, value: str | None) -> str:
+    v = (value or "").strip().lower()
+    if v in _TRUE:
+        return "true"
+    if v in _FALSE:
+        return "false"
+    raise ValueError(f"{field} 값은 true 또는 false 여야 합니다.")
+
+
 def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
     for s in settings:
+        if s.field_key == MOBILE_HIDDEN_FIELD:
+            s.field_value = _normalize_bool(s.field_key, s.field_value)
+            s.value_type = "BOOLEAN"
+            continue
         if s.field_key == GALLERY_FIELD:
             # 갤러리 목록 검사 · 정리 (T-064-A) — GallerySettingError 는 ValueError
             s.field_value = normalize_gallery_items(s.field_value)
