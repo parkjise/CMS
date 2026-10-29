@@ -1,4 +1,6 @@
-import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
+import { Suspense } from 'react'
+import { ChartFallback } from '@/components/charts/ChartFallback'
+import { RatioPiePlot } from '@/components/charts/lazyCharts'
 import type { MobileRatio } from '@/hooks/useAnalytics'
 
 interface MobileRatioDonutProps {
@@ -13,8 +15,8 @@ export function MobileRatioDonut({ data, isLoading }: MobileRatioDonutProps) {
   const mobilePct = total > 0 ? Math.round(((data?.mobile ?? 0) / total) * 100) : 0
 
   const chartData = [
-    { name: '모바일', key: 'mobile', value: data?.mobile ?? 0 },
-    { name: '데스크톱', key: 'desktop', value: data?.desktop ?? 0 },
+    { name: '모바일', value: data?.mobile ?? 0, color: COLORS.mobile },
+    { name: '데스크톱', value: data?.desktop ?? 0, color: COLORS.desktop },
   ]
 
   return (
@@ -30,26 +32,9 @@ export function MobileRatioDonut({ data, isLoading }: MobileRatioDonutProps) {
         </div>
       ) : (
         <div className="relative h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={60}
-                outerRadius={85}
-                paddingAngle={2}
-              >
-                {chartData.map((entry) => (
-                  <Cell
-                    key={entry.key}
-                    fill={COLORS[entry.key as keyof typeof COLORS]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <RatioPiePlot data={chartData} />
+          </Suspense>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-2xl font-bold text-slate-900">
               {mobilePct}%

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import {
   BarChart3,
@@ -28,7 +28,8 @@ const DESC_MAX = 160
 export function SeoPage() {
   const seoQuery = useSeoSettings()
   const updateMutation = useUpdateSeo()
-  const limits = useSeoLimits().data
+  const limitsQuery = useSeoLimits()
+  const limits = limitsQuery.data
   const keywordsAllowed = limits?.keywords_allowed ?? false
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
 
@@ -43,8 +44,9 @@ export function SeoPage() {
   const [keywords, setKeywords] = useState<string[]>([])
   const [guideOpen, setGuideOpen] = useState(false)
 
-  // 서버 응답 도착 시 폼 동기화
-  useEffect(() => {
+  // 서버 응답 도착 시 폼 동기화 — 화면에 그리기 전에 채워 빈 폼이 한 번 보였다가
+  // 높이가 바뀌며 밀리지 않게 (T-043-A)
+  useLayoutEffect(() => {
     if (!seoQuery.data) return
     const d = seoQuery.data
     setMetaTitle(d.meta_title ?? '')
@@ -124,10 +126,12 @@ export function SeoPage() {
         </nav>
       </div>
 
-      {seoQuery.isLoading ? (
-        <div className="h-96 animate-pulse rounded-lg bg-slate-100" />
+      {/* key 를 달리해 불러오는 자리 노드가 본문으로 재사용되지 않게 — 재사용되면
+          브라우저가 '요소가 움직였다'(CLS)로 센다 (T-043-A) */}
+      {seoQuery.isLoading || limitsQuery.isLoading ? (
+        <div key="seo-loading" className="h-96 animate-pulse rounded-lg bg-slate-100" />
       ) : (
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        <div key="seo-ready" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="space-y-6 lg:col-span-2">
             {activeTab === 'basic' && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
@@ -361,7 +365,7 @@ export function SeoPage() {
 
           {/* 우측 사이드: 미리보기 */}
           <aside className="space-y-4">
-            <h3 className="text-sm font-semibold text-slate-700">실시간 미리보기</h3>
+            <h2 className="text-sm font-semibold text-slate-700">실시간 미리보기</h2>
             {activeTab === 'social' ? (
               <SocialPreview
                 title={metaTitle}

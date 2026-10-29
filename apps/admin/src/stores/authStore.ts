@@ -5,6 +5,18 @@ import type { User } from '@cms/types'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api'
 
+/** access token 의 사용자 id(sub) — 서명 검증 없이 읽기만 한다 (같은 사람인지 비교용) */
+export function tokenSubject(token: string): string | null {
+  try {
+    const payload = token.split('.')[1]
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    const sub = (JSON.parse(json) as { sub?: unknown }).sub
+    return typeof sub === 'string' ? sub : null
+  } catch {
+    return null
+  }
+}
+
 interface AuthState {
   accessToken: string | null
   user: User | null
@@ -77,10 +89,24 @@ export const useAuthStore = create<AuthState>()(
           const newToken: string = refreshRes.data.data.access_token
 
           // 2) 새 access token으로 유저 정보 조회
-          const meRes = await axios.get(`${BASE_URL}/v1/auth/me`, {
-            withCredentials: true,
-            headers: { Authorization: `Bearer ${newToken}` },
-          })
+          const fetchMe = () =>
+            axios.get(`${BASE_URL}/v1/auth/me`, {
+              withCredentials: true,
+              headers: { Authorization: `Bearer ${newToken}` },
+            })
+
+          // 저장해 둔 사용자가 같은 사람이면 바로 화면을 열고 /me 는 뒤에서 갱신한다 —
+          // 화면 데이터 요청이 /me 를 기다리지 않게 (T-043-A)
+          const cached = get().user
+          if (cached && cached.id === tokenSubject(newToken)) {
+            set({ accessToken: newToken, isAuthenticated: true })
+            void fetchMe()
+              .then((res) => set({ user: res.data.data as User }))
+              .catch(() => undefined) // 실패해도 저장된 정보로 계속 (권한은 서버가 매 요청 확인)
+            return
+          }
+
+          const meRes = await fetchMe()
           const user: User = meRes.data.data
 
           set({ accessToken: newToken, user, isAuthenticated: true })

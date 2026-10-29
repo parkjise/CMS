@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { PrivateRoute } from '@/components/PrivateRoute'
 import { AdminLayout } from '@/components/layout/AdminLayout'
@@ -7,42 +7,42 @@ import { PageFallback } from '@/components/layout/PageFallback'
 import { LoginPage } from '@/pages/LoginPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { type LazyPage, lazyPage } from '@/lib/lazyPage'
 
-const DashboardPage = lazy(() =>
-  import('@/pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
-)
-const ContentPage = lazy(() =>
-  import('@/pages/ContentPage').then((m) => ({ default: m.ContentPage })),
-)
-const SectionEditorPage = lazy(() =>
-  import('@/pages/SectionEditorPage').then((m) => ({
-    default: m.SectionEditorPage,
-  })),
-)
-const SnsPage = lazy(() =>
-  import('@/pages/SnsPage').then((m) => ({ default: m.SnsPage })),
-)
-const InquiriesPage = lazy(() =>
-  import('@/pages/InquiriesPage').then((m) => ({ default: m.InquiriesPage })),
-)
-const SeoPage = lazy(() =>
-  import('@/pages/SeoPage').then((m) => ({ default: m.SeoPage })),
-)
-const TemplatesPage = lazy(() =>
-  import('@/pages/TemplatesPage').then((m) => ({ default: m.TemplatesPage })),
-)
-const BillingPage = lazy(() =>
-  import('@/pages/BillingPage').then((m) => ({ default: m.BillingPage })),
-)
-const AnalyticsPage = lazy(() =>
-  import('@/pages/AnalyticsPage').then((m) => ({ default: m.AnalyticsPage })),
-)
-const ReportsPage = lazy(() =>
-  import('@/pages/ReportsPage').then((m) => ({ default: m.ReportsPage })),
-)
-const ForbiddenPage = lazy(() =>
-  import('@/pages/ForbiddenPage').then((m) => ({ default: m.ForbiddenPage })),
-)
+const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'), 'DashboardPage')
+const ContentPage = lazyPage(() => import('@/pages/ContentPage'), 'ContentPage')
+const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
+const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
+const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
+const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
+const TemplatesPage = lazyPage(() => import('@/pages/TemplatesPage'), 'TemplatesPage')
+const BillingPage = lazyPage(() => import('@/pages/BillingPage'), 'BillingPage')
+const AnalyticsPage = lazyPage(() => import('@/pages/AnalyticsPage'), 'AnalyticsPage')
+const ReportsPage = lazyPage(() => import('@/pages/ReportsPage'), 'ReportsPage')
+const ForbiddenPage = lazyPage(() => import('@/pages/ForbiddenPage'), 'ForbiddenPage')
+
+// 주소 → 페이지 (앞에서부터 먼저 맞는 것). 앱 시작 때 지금 주소의 페이지 코드를
+// 로그인 확인과 동시에 받아 둔다 (T-043-A)
+const ROUTE_PAGES: [RegExp, LazyPage][] = [
+  [/^\/admin\/dashboard\/?$/, DashboardPage],
+  [/^\/admin\/content\/?$/, ContentPage],
+  [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
+  [/^\/admin\/sns\/?$/, SnsPage],
+  [/^\/admin\/inquiries\/?$/, InquiriesPage],
+  [/^\/admin\/seo\/?$/, SeoPage],
+  [/^\/admin\/templates\/?$/, TemplatesPage],
+  [/^\/admin\/reports\/?$/, ReportsPage],
+  [/^\/admin\/analytics\/?$/, AnalyticsPage],
+  [/^\/admin\/billing\/?$/, BillingPage],
+  [/^\/admin\/403\/?$/, ForbiddenPage],
+  [/^\/?$/, DashboardPage],
+]
+
+export const preloadRoute = (pathname: string): void => {
+  const hit = ROUTE_PAGES.find(([re]) => re.test(pathname))
+  // 실패해도 렌더 때 다시 받으니 여기선 무시
+  hit?.[1].preload().catch(() => undefined)
+}
 
 const withSuspense = (element: ReactNode) => (
   <Suspense fallback={<PageFallback />}>{element}</Suspense>

@@ -17,6 +17,9 @@ interface AiRecommendCardProps {
   onPreview: (template: TemplateItem) => void
 }
 
+/** 추천 카드 · 불러오는 중 자리 높이 — 같아야 화면이 밀리지 않는다 */
+const CARD_MIN_H = 'min-h-[8.5rem]'
+
 /** AI 템플릿 추천 3개 + 이유 (기획서 13.4, T-070-A) */
 export function AiRecommendCard({
   enabled,
@@ -71,9 +74,22 @@ export function AiRecommendCard({
       </div>
 
       {busy && !query.data ? (
-        <p className="text-sm text-slate-500" role="status">
-          업종과 홈페이지 내용을 보고 어울리는 템플릿을 고르는 중…
-        </p>
+        // 결과 카드 3개와 같은 자리를 미리 잡아 아래 목록이 밀리지 않게 (T-043-A)
+        <div role="status" aria-label="추천 고르는 중">
+          <p className="sr-only">업종과 홈페이지 내용을 보고 어울리는 템플릿을 고르는 중…</p>
+          <div className="grid gap-3 md:grid-cols-3" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className={`${CARD_MIN_H} animate-pulse rounded-lg border border-slate-200 bg-white p-3`}
+              >
+                <div className="h-4 w-2/3 rounded bg-slate-100" />
+                <div className="mt-2 h-3 w-full rounded bg-slate-100" />
+                <div className="mt-1 h-3 w-4/5 rounded bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        </div>
       ) : query.isError || refresh.isError ? (
         <p className="text-sm text-rose-600" role="alert">
           {pickErrorMessage(query.error ?? refresh.error, '추천을 불러오지 못했습니다.')}
@@ -87,7 +103,7 @@ export function AiRecommendCard({
             return (
               <li
                 key={rec.template_id}
-                className="flex flex-col justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3"
+                className={`${CARD_MIN_H} flex flex-col justify-between gap-2 rounded-lg border border-slate-200 bg-white p-3`}
               >
                 <div>
                   <p className="text-sm font-semibold text-slate-900">

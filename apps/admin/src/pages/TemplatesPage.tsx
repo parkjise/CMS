@@ -29,6 +29,10 @@ export function TemplatesPage() {
   // 추천은 업종 필터와 상관없이 전체 목록에서 찾는다
   const { data: allTemplates } = useTemplates()
   const recommendEnabled = useFeatureStore((s) => s.isEnabled('AI_TEMPLATE_RECOMMEND'))
+  // AI 추천 카드 높이는 기능 여부 · 목록에 따라 달라진다 — 둘 다 알고 난 뒤 한 번에 그려
+  // 화면이 밀리지 않게 (T-043-A)
+  const featuresSettled = useFeatureStore((s) => s.settled)
+  const bodyReady = featuresSettled && allTemplates !== undefined
   const applyMutation = useApplyTemplate()
   const rollbackMutation = useRollbackTemplate()
   const customizeMutation = useCustomizeTemplate()
@@ -96,50 +100,61 @@ export function TemplatesPage() {
             <RotateCcw className="mr-1 h-4 w-4" />
             {rollbackMutation.isPending ? '롤백 중…' : '이전 템플릿으로 롤백'}
           </Button>
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500">
             변경 후 7일 이내 롤백 가능
           </span>
         </div>
       </div>
 
-      {/* AI 템플릿 추천 (기획서 13.4, T-070-A) */}
-      <AiRecommendCard
-        enabled={recommendEnabled}
-        templates={allTemplates?.templates ?? []}
-        currentId={currentId}
-        onApply={setPendingApply}
-        onPreview={handlePreview}
-      />
-
-      {/* 업종 필터 */}
-      <IndustryFilterTabs value={industry} onChange={setIndustry} />
-
-      {/* 템플릿 그리드 */}
-      {isLoading ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="aspect-[16/10] animate-pulse rounded-xl bg-slate-100"
-            />
-          ))}
-        </div>
-      ) : data && data.templates.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {data.templates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              isCurrent={template.id === currentId}
-              onApply={setPendingApply}
-              onPreview={handlePreview}
-            />
-          ))}
-        </div>
+      {!bodyReady ? (
+        <div
+          key="templates-loading"
+          role="status"
+          aria-label="템플릿 불러오는 중"
+          className="h-[40rem] animate-pulse rounded-xl bg-slate-100/70"
+        />
       ) : (
-        <p className="py-16 text-center text-sm text-slate-500">
-          해당 업종의 템플릿이 없습니다.
-        </p>
+        <div key="templates-ready" className="space-y-6">
+          {/* AI 템플릿 추천 (기획서 13.4, T-070-A) */}
+          <AiRecommendCard
+            enabled={recommendEnabled}
+            templates={allTemplates?.templates ?? []}
+            currentId={currentId}
+            onApply={setPendingApply}
+            onPreview={handlePreview}
+          />
+
+          {/* 업종 필터 */}
+          <IndustryFilterTabs value={industry} onChange={setIndustry} />
+
+          {/* 템플릿 그리드 */}
+          {isLoading ? (
+            <div key="grid-loading" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="aspect-[16/10] animate-pulse rounded-xl bg-slate-100"
+                />
+              ))}
+            </div>
+          ) : data && data.templates.length > 0 ? (
+            <div key="grid-ready" className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {data.templates.map((template) => (
+                <TemplateCard
+                  key={template.id}
+                  template={template}
+                  isCurrent={template.id === currentId}
+                  onApply={setPendingApply}
+                  onPreview={handlePreview}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="py-16 text-center text-sm text-slate-500">
+              해당 업종의 템플릿이 없습니다.
+            </p>
+          )}
+        </div>
       )}
 
       {/* 커스터마이징 패널 (현재 템플릿 변경 시 기본값으로 리셋되도록 key 부여) */}

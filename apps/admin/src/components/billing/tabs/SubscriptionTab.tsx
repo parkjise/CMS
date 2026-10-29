@@ -63,9 +63,25 @@ export function SubscriptionTab() {
     ? Math.round((storage.used_bytes / storage.quota_bytes) * 100)
     : null
 
+  // 요금제 · 사용량이 오면 카드 문구 · 진행 막대 · 높이가 바뀐다 — 다 온 뒤 한 번에 그려
+  // 화면이 밀리지 않게 한다 (T-043-A)
+  const ready = [subQuery, inquiriesQuery, notifQuery, aiUsageQuery, storageQuery].every(
+    (q) => !q.isLoading,
+  )
+
   const handleUpgrade = (plan: PlanDefinition) => {
     if (plan.key === currentPlan.key) return
     toast.success(`${plan.name} 플랜 업그레이드 문의가 접수되었습니다.`)
+  }
+
+  if (!ready) {
+    return (
+      <div
+        role="status"
+        aria-label="요금제 정보 불러오는 중"
+        className="h-[48rem] animate-pulse rounded-xl bg-slate-100/70"
+      />
+    )
   }
 
   return (
@@ -91,7 +107,7 @@ export function SubscriptionTab() {
                 월 {sub.monthly_amount.toLocaleString()}원
               </p>
             ) : (
-              <p className="mt-1 text-sm text-slate-400">구독 정보가 없습니다.</p>
+              <p className="mt-1 text-sm text-slate-500">구독 정보가 없습니다.</p>
             )}
           </div>
           {sub && sub.status !== 'CANCELLED' && (

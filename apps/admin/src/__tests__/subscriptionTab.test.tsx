@@ -53,8 +53,16 @@ const sub = (over: Partial<Subscription>): Subscription => ({
 describe('SubscriptionTab', () => {
   beforeEach(() => {
     useSubscription.mockReset()
-    useStorageUsage.mockReset().mockReturnValue({ data: undefined, isLoading: true })
+    useStorageUsage.mockReset().mockReturnValue({ data: undefined, isLoading: false })
     cancelMutate.mockReset().mockResolvedValue({})
+  })
+
+  it('사용량이 오기 전에는 자리만 잡아 두고 내용은 그리지 않는다 (T-043-A)', () => {
+    useSubscription.mockReturnValue({ data: sub({}), isLoading: false })
+    useStorageUsage.mockReturnValue({ data: undefined, isLoading: true })
+    render(<SubscriptionTab />)
+    expect(screen.getByRole('status', { name: '요금제 정보 불러오는 중' })).toBeInTheDocument()
+    expect(screen.queryByText(/다음 결제일/)).not.toBeInTheDocument()
   })
 
   it('구독 요약과 다음 결제일 표시', () => {
