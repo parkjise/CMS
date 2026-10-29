@@ -573,6 +573,42 @@ test.describe('T-078 전체 통합 시나리오', () => {
       .toBeTruthy()
   })
 
+  test('시나리오 14: 관리자에서 버튼을 테두리 스타일 · 새 창으로 저장하면 홈페이지 버튼에 반영 (T-088-A)', async ({
+    page,
+    request,
+  }) => {
+    const hero = await findSection(request, token, 'HERO_BANNER')
+    const keys = ['cta_text', 'cta_url', 'cta_style', 'cta_new_tab'] as const
+    const original = Object.fromEntries(keys.map((k) => [k, settingValue(hero, k) ?? null]))
+    try {
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/content/${hero.id}`)
+      await page.getByPlaceholder('문의하기').fill('예약하기')
+      await page.getByPlaceholder('https://...').last().fill('https://booking.example.com')
+      await page.getByLabel('버튼 스타일').selectOption('outline')
+      await page.getByLabel('버튼을 누르면 새 탭에서 열기').check()
+      const saved = page.waitForResponse(
+        (r) => r.url().includes(`/v1/sections/${hero.id}`) && r.request().method() === 'PATCH',
+      )
+      await page.getByRole('button', { name: '변경사항 저장' }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      const button = page.getByRole('link', { name: '예약하기' })
+      await expect(button).toHaveAttribute('data-button-style', 'outline')
+      await expect(button).toHaveAttribute('target', '_blank')
+      await expect(button).toHaveAttribute('rel', /noopener/)
+    } finally {
+      await saveFields(request, token, hero.id, original)
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()

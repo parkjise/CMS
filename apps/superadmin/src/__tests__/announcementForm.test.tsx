@@ -42,6 +42,23 @@ describe('AnnouncementForm (SA-05)', () => {
     )
   })
 
+  it('이메일 발송을 켜면 send_email=true, 기본은 false (T-088-A)', async () => {
+    const user = userEvent.setup()
+    render(<AnnouncementForm />)
+    await user.type(screen.getByLabelText('제목'), '정기 점검')
+    await user.type(screen.getByLabelText('내용'), '점검 안내입니다.')
+    const emailToggle = screen.getByLabelText(/이메일 발송/)
+    expect(emailToggle).not.toBeDisabled()
+    expect(emailToggle).not.toBeChecked()
+    await user.click(emailToggle)
+    await user.click(screen.getByRole('button', { name: '즉시 발송' }))
+    await waitFor(() =>
+      expect(createMutate).toHaveBeenCalledWith(
+        expect.objectContaining({ send_email: true, publish_now: true }),
+      ),
+    )
+  })
+
   it('임시저장 시 publish_now=false로 생성', async () => {
     const user = userEvent.setup()
     render(<AnnouncementForm />)

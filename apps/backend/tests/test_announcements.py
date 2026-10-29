@@ -348,3 +348,129 @@ class TestWorker:
         refreshed = await bypass_session.get(Announcement, aid)
         await bypass_session.refresh(refreshed)
         assert refreshed.is_published is False
+
+
+# ── 이메일 발송 (T-088-A — 예전엔 '준비 중') ─────────────────────────────
+class TestAnnouncementEmail:
+    @pytest.fixture
+    def sent(self, monkeypatch):
+        from app.services import email as email_service
+
+        calls: list[dict] = []
+
+        async def fake(to, *, title, content):
+            calls.append({"to": to, "title": title, "content": content})
+            return {"sent": True, "stub": True}
+
+        monkeypatch.setattr(email_service, "send_announcement_email", fake)
+        return calls
+
+    async def _add_user(self, tenant_id: str, email: str, role: str, active=True):
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text(
+                    "INSERT INTO users (id, tenant_id, email, password_hash, role,"
+                    " is_active, created_at, updated_at) VALUES (:id, :t, :e, 'x',"
+                    " :r, :a, now(), now())"
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "t": tenant_id,
+                    "e": email,
+                    "r": role,
+                    "a": active,
+                },
+            )
+            await session.commit()
+
+    async def test_sends_to_active_admins_of_targets_only(
+        self, client, super_headers, announcement_factory, test_tenant, sent
+    ):
+        from app.workers import announcement as worker
+
+        t = test_tenant["id"]
+        await self._add_user(t, "owner@shop.com", "TENANT_ADMIN")
+        await self._add_user(t, "OWNER@shop.com ", "TENANT_ADMIN")  # 같은 주소
+        await self._add_user(t, "viewer@shop.com", "TENANT_VIEWER")
+        await self._add_user(t, "gone@shop.com", "TENANT_ADMIN", active=False)
+
+        created = await _create(
+            client,
+            super_headers,
+            announcement_factory,
+            target_type="SELECTIVE",
+            target_tenants=[t],
+            send_email=True,
+            title="정기 점검 안내",
+            content="5월 26일 새벽 2시~4시\n점검이 진행됩니다.",
+        )
+        result = await worker._send_announcement(created["id"])
+
+        assert [c["to"].lower() for c in sent] == ["owner@shop.com"]
+        assert sent[0]["title"] == "정기 점검 안내"
+        assert "점검이 진행됩니다" in sent[0]["content"]
+        assert result["email_sent"] == 1
+        assert result["email_failed"] == 0
+
+    async def test_no_email_when_switch_off(
+        self, client, super_headers, announcement_factory, test_tenant, sent
+    ):
+        from app.workers import announcement as worker
+
+        await self._add_user(test_tenant["id"], "owner2@shop.com", "TENANT_ADMIN")
+        created = await _create(
+            client,
+            super_headers,
+            announcement_factory,
+            target_type="SELECTIVE",
+            target_tenants=[test_tenant["id"]],
+            send_email=False,
+        )
+        result = await worker._send_announcement(created["id"])
+        assert sent == []
+        assert result["email_sent"] == 0
+
+    async def test_one_failure_does_not_stop_others(
+        self, client, super_headers, announcement_factory, test_tenant, monkeypatch
+    ):
+        from app.services import email as email_service
+        from app.workers import announcement as worker
+
+        async def flaky(to, *, title, content):
+            if to.startswith("bad"):
+                raise RuntimeError("SES down")
+            return {"sent": True}
+
+        monkeypatch.setattr(email_service, "send_announcement_email", flaky)
+        t = test_tenant["id"]
+        await self._add_user(t, "bad@shop.com", "TENANT_ADMIN")
+        await self._add_user(t, "good@shop.com", "TENANT_ADMIN")
+        created = await _create(
+            client,
+            super_headers,
+            announcement_factory,
+            target_type="SELECTIVE",
+            target_tenants=[t],
+            send_email=True,
+        )
+        result = await worker._send_announcement(created["id"])
+        assert result["email_sent"] == 1
+        assert result["email_failed"] == 1
+
+    def test_email_template_renders_title_and_content_safely(self):
+        from app.services.email import render_email
+
+        html = render_email(
+            "announcement",
+            {
+                "title": "점검 <안내>",
+                "content": "줄1\n<script>x</script>",
+                "admin_url": "http://admin",
+            },
+        )
+        assert "점검 &lt;안내&gt;" in html
+        assert "<script>" not in html
+        assert 'href="http://admin"' in html

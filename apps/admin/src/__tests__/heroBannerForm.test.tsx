@@ -18,7 +18,7 @@ const baseSection: Section = {
 }
 
 describe('HeroBannerForm', () => {
-  it('정상 입력 시 onSubmit이 5개 setting과 함께 호출된다', async () => {
+  it('정상 입력 시 onSubmit이 7개 setting과 함께 호출된다', async () => {
     const user = userEvent.setup()
     const onSubmit = vi.fn().mockResolvedValue(undefined)
 
@@ -34,13 +34,47 @@ describe('HeroBannerForm', () => {
 
     expect(onSubmit).toHaveBeenCalledTimes(1)
     const payload = onSubmit.mock.calls[0][0]
-    expect(payload).toHaveLength(5)
+    expect(payload).toHaveLength(7)
     const fields = payload.map((p: { field_key: string }) => p.field_key)
     expect(fields).toContain('main_title')
     expect(fields).toContain('sub_copy')
     expect(fields).toContain('bg_image_url')
     expect(fields).toContain('cta_text')
     expect(fields).toContain('cta_url')
+    // 버튼 스타일 · 새 창 (T-088-A) — 기본은 채워진 버튼 · 같은 창
+    const byKey = Object.fromEntries(
+      payload.map((p: { field_key: string; field_value: string }) => [p.field_key, p.field_value])
+    )
+    expect(byKey.cta_style).toBe('filled')
+    expect(byKey.cta_new_tab).toBe('false')
+  })
+
+  it('버튼 스타일 · 새 창 열기를 바꿔 저장 (T-088-A)', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    renderWithQuery(
+      <HeroBannerForm
+        section={{
+          ...baseSection,
+          settings: [
+            { id: 'x', field_key: 'cta_style', field_value: 'filled', value_type: 'STRING' },
+          ],
+        }}
+        isSaving={false}
+        onSubmit={onSubmit}
+      />
+    )
+    await user.selectOptions(screen.getByLabelText('버튼 스타일'), 'outline')
+    await user.click(screen.getByLabelText('버튼을 누르면 새 탭에서 열기'))
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    const byKey = Object.fromEntries(
+      onSubmit.mock.calls[0][0].map((p: { field_key: string; field_value: string }) => [
+        p.field_key,
+        p.field_value,
+      ])
+    )
+    expect(byKey.cta_style).toBe('outline')
+    expect(byKey.cta_new_tab).toBe('true')
   })
 
   it('메인 타이틀 40자 초과 시 저장 버튼이 비활성화되고 안내 메시지 표시', async () => {

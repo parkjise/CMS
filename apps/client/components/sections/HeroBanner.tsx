@@ -4,6 +4,7 @@ import { EditableButton } from '@/components/edit/EditableButton'
 import { EditableText } from '@/components/edit/EditableText'
 import { HeroBgImageEditor } from '@/components/edit/HeroBgImageEditor'
 import { useEditStore } from '@/lib/editStore'
+import { parseButtonStyle, parseNewTab } from '@/lib/buttonStyle'
 import { getString, getValueType } from '@/lib/sectionSettings'
 import type { SectionProps } from './types'
 
@@ -13,6 +14,8 @@ export function HeroBanner({ section }: SectionProps) {
   const bgImage = getString(section.settings, 'bg_image_url')
   const ctaText = getString(section.settings, 'cta_text')
   const ctaUrl = getString(section.settings, 'cta_url')
+  const ctaStyle = parseButtonStyle(getString(section.settings, 'cta_style'))
+  const ctaNewTab = parseNewTab(getString(section.settings, 'cta_new_tab'))
 
   const pending = useEditStore(
     (s) => s.pendingChanges[`${section.id}:bg_image_url`],
@@ -75,7 +78,17 @@ export function HeroBanner({ section }: SectionProps) {
           initialText={ctaText}
           initialUrl={ctaUrl}
           maxLength={20}
-          className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-6 py-3 text-sm font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface-strong)]"
+          styleField="cta_style"
+          newTabField="cta_new_tab"
+          initialStyle={ctaStyle}
+          initialNewTab={ctaNewTab}
+          className="mt-8 inline-flex items-center rounded-[var(--border-radius-base)] px-6 py-3 text-sm font-medium transition"
+          variantClassName={{
+            filled:
+              'bg-[var(--color-background)] text-[color:var(--color-text-primary)] hover:bg-[var(--color-surface-strong)]',
+            outline:
+              'border-2 border-[color:var(--color-on-primary)] bg-transparent text-[color:var(--color-on-primary)] hover:bg-white/10',
+          }}
         />
       </div>
     </section>

@@ -81,4 +81,16 @@ describe('DeployModal (SA-04)', () => {
     expect(createAnnouncement).toHaveBeenCalled()
     expect(onClose).toHaveBeenCalled()
   })
+
+  it('이메일 발송을 켜면 배포 공지에 이메일 발송을 포함 (T-088-A)', async () => {
+    const user = userEvent.setup()
+    render(<DeployModal open feature={FEATURE} onClose={() => {}} />)
+    await user.click(screen.getByLabelText(/이메일 발송/))
+    await user.click(screen.getByRole('button', { name: '배포 실행' }))
+    await waitFor(() =>
+      expect(createAnnouncement).toHaveBeenCalledWith(
+        expect.objectContaining({ sendEmail: true }),
+      ),
+    )
+  })
 })

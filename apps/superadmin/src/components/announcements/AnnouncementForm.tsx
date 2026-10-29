@@ -30,6 +30,8 @@ export function AnnouncementForm() {
   const [content, setContent] = useState('')
   const [showBanner, setShowBanner] = useState(true)
   const [sendKakao, setSendKakao] = useState(false)
+  // 대상 사업체 관리자 계정 이메일로 발송 (T-088-A — 예전엔 '준비 중')
+  const [sendEmail, setSendEmail] = useState(false)
   const [expiresAt, setExpiresAt] = useState('')
   const [preview, setPreview] = useState(false)
   const [error, setError] = useState('')
@@ -53,7 +55,7 @@ export function AnnouncementForm() {
     target_tenants: target === 'SELECTIVE' ? selected : undefined,
     show_in_admin: showBanner,
     send_kakao: sendKakao,
-    send_email: false,
+    send_email: sendEmail,
     publish_now,
     expires_at: expiresAt ? new Date(expiresAt).toISOString() : null,
   })
@@ -209,7 +211,11 @@ export function AnnouncementForm() {
               checked={sendKakao}
               onChange={(e) => setSendKakao(e.target.checked)}
             />
-            <Toggle label="이메일 발송 (준비 중)" checked={false} disabled />
+            <Toggle
+              label="이메일 발송 (사업체 관리자 계정)"
+              checked={sendEmail}
+              onChange={(e) => setSendEmail(e.target.checked)}
+            />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">

@@ -16,6 +16,13 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
   const [bgImage, setBgImage] = useState(getSetting(section.settings, 'bg_image_url'))
   const [ctaText, setCtaText] = useState(getSetting(section.settings, 'cta_text'))
   const [ctaUrl, setCtaUrl] = useState(getSetting(section.settings, 'cta_url'))
+  // 버튼 스타일 · 새 창 열기 (기획서 AD-02-B, T-088-A) — 홈페이지 편집 모드 팝업과 같은 값
+  const [ctaStyle, setCtaStyle] = useState(
+    getSetting(section.settings, 'cta_style') === 'outline' ? 'outline' : 'filled'
+  )
+  const [ctaNewTab, setCtaNewTab] = useState(
+    getSetting(section.settings, 'cta_new_tab') === 'true'
+  )
 
   const overLimit =
     mainTitle.length > MAIN_TITLE_MAX ||
@@ -29,6 +36,8 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
       urlSetting('bg_image_url', bgImage),
       strSetting('cta_text', ctaText),
       urlSetting('cta_url', ctaUrl),
+      strSetting('cta_style', ctaStyle),
+      strSetting('cta_new_tab', ctaNewTab ? 'true' : 'false'),
     ])
   }
 
@@ -91,6 +100,27 @@ export function HeroBannerForm({ section, isSaving, onSubmit }: SectionFormProps
             onChange={(e) => setCtaUrl(e.target.value)}
             placeholder="https://..."
           />
+        </FormField>
+        <FormField label="버튼 스타일" htmlFor="cta-style">
+          <select
+            id="cta-style"
+            value={ctaStyle}
+            onChange={(e) => setCtaStyle(e.target.value === 'outline' ? 'outline' : 'filled')}
+            className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+          >
+            <option value="filled">채워진 버튼</option>
+            <option value="outline">테두리 버튼</option>
+          </select>
+        </FormField>
+        <FormField label="새 창 열기">
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={ctaNewTab}
+              onChange={(e) => setCtaNewTab(e.target.checked)}
+            />
+            버튼을 누르면 새 탭에서 열기
+          </label>
         </FormField>
       </div>
 

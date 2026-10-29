@@ -136,6 +136,8 @@ export async function createDeployAnnouncement(params: {
   featureName: string
   note: string
   sendKakao: boolean
+  /** 대상 사업체 관리자 이메일로도 알림 (T-088-A) */
+  sendEmail?: boolean
   deployment_type: DeployInput['deployment_type']
   target_plan?: string
   target_tenants?: string[]
@@ -156,6 +158,7 @@ export async function createDeployAnnouncement(params: {
       target_type === 'SELECTIVE' ? params.target_tenants : undefined,
     show_in_admin: true,
     send_kakao: params.sendKakao,
+    send_email: params.sendEmail ?? false,
     publish_now: true,
   })
 }
