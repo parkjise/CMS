@@ -38,7 +38,7 @@ export function InquiriesPage() {
   const headerBadge = useMemo(() => {
     if (pendingCount === 0) return null
     return (
-      <span className="ml-2 inline-flex items-center rounded-full bg-rose-500 px-2 py-0.5 text-xs font-medium text-white">
+      <span className="ml-2 inline-flex items-center rounded-full bg-rose-600 px-2 py-0.5 text-xs font-medium text-white">
         미처리 {pendingCount.toLocaleString()}
       </span>
     )
