@@ -674,6 +674,56 @@ test.describe('T-078 전체 통합 시나리오', () => {
     await expect(page).toHaveURL(/\/admin\/(content|seo)/)
   })
 
+  test('시나리오 17: 관리자 SEO 화면에서 대표 키워드를 저장하면 홈페이지 JSON-LD 에 들어간다 (T-040-A)', async ({
+    page,
+    request,
+  }) => {
+    const seoUrl = `${BACKEND_URL}/api/v1/seo-settings`
+    const before = await request.get(seoUrl, { headers: authHeader(token) })
+    const original: string[] = (await before.json()).data?.keywords ?? []
+    const word = `E2E키워드${Date.now() % 10000}`
+    try {
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/seo`)
+      const input = page.getByLabel('키워드 입력')
+      // 테스트 사업체는 STANDARD 이상 — 잠금이 아니어야 한다
+      await expect(input).toBeEnabled()
+      // 자리를 비워 둔다 (최대 5개)
+      for (const kw of original) {
+        await page.getByRole('button', { name: `${kw} 삭제` }).click()
+      }
+      await input.fill(word)
+      await input.press('Enter')
+      const saved = page.waitForResponse(
+        (r) => r.url().endsWith('/v1/seo-settings') && r.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: '기본 SEO 저장' }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      // 다시 열어도 남아 있다
+      await page.reload()
+      await expect(page.getByText(word, { exact: true })).toBeVisible()
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      const ld = JSON.parse(
+        (await page.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}',
+      )
+      expect(ld.keywords).toBe(word)
+    } finally {
+      const rb = await request.put(seoUrl, {
+        headers: authHeader(token),
+        data: { keywords: original },
+      })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
