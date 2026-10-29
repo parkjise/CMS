@@ -124,3 +124,44 @@ export function useCustomizeTemplate() {
     onSuccess: invalidate,
   })
 }
+
+// ── AI 템플릿 추천 (기획서 13.4, T-070-A) ─────────────────────────────────
+
+export interface TemplateRecommendation {
+  template_id: string
+  name: string
+  reason: string
+}
+
+export interface TemplateRecommendResult {
+  recommendations: TemplateRecommendation[]
+  /** ai: 모델 추천 / rule: 업종 기준 기본 추천 */
+  source: 'ai' | 'rule'
+}
+
+const RECOMMEND_KEY = ['templates', 'recommend'] as const
+
+const fetchRecommendations = async (refresh: boolean): Promise<TemplateRecommendResult> => {
+  const { data } = await api.post('/v1/ai/recommend-templates', { refresh })
+  return data.data
+}
+
+/** 화면을 열 때 한 번 (서버가 1시간 저장) — enabled 는 기능 플래그 */
+export function useTemplateRecommendations(enabled: boolean) {
+  return useQuery({
+    queryKey: RECOMMEND_KEY,
+    queryFn: () => fetchRecommendations(false),
+    enabled,
+    staleTime: 10 * 60 * 1000,
+    retry: false,
+  })
+}
+
+/** [다시 추천] — 저장된 추천을 쓰지 않고 새로 */
+export function useRefreshRecommendations() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: () => fetchRecommendations(true),
+    onSuccess: (result) => queryClient.setQueryData(RECOMMEND_KEY, result),
+  })
+}

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
+import { AiRecommendCard } from '@/components/templates/AiRecommendCard'
 import { ApplyConfirmDialog } from '@/components/templates/ApplyConfirmDialog'
 import { CustomizePanel } from '@/components/templates/CustomizePanel'
 import { IndustryFilterTabs } from '@/components/templates/IndustryFilterTabs'
@@ -16,6 +17,7 @@ import {
 } from '@/hooks/useTemplates'
 import { openTemplatePreview, previewTemplateRef } from '@/lib/previewUrl'
 import { useAuthStore } from '@/stores/authStore'
+import { useFeatureStore } from '@/stores/featureStore'
 import { applyResultMessage } from '@/lib/templateApply'
 
 export function TemplatesPage() {
@@ -24,6 +26,9 @@ export function TemplatesPage() {
 
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const { data, isLoading } = useTemplates(industry ?? undefined)
+  // 추천은 업종 필터와 상관없이 전체 목록에서 찾는다
+  const { data: allTemplates } = useTemplates()
+  const recommendEnabled = useFeatureStore((s) => s.isEnabled('AI_TEMPLATE_RECOMMEND'))
   const applyMutation = useApplyTemplate()
   const rollbackMutation = useRollbackTemplate()
   const customizeMutation = useCustomizeTemplate()
@@ -96,6 +101,15 @@ export function TemplatesPage() {
           </span>
         </div>
       </div>
+
+      {/* AI 템플릿 추천 (기획서 13.4, T-070-A) */}
+      <AiRecommendCard
+        enabled={recommendEnabled}
+        templates={allTemplates?.templates ?? []}
+        currentId={currentId}
+        onApply={setPendingApply}
+        onPreview={handlePreview}
+      />
 
       {/* 업종 필터 */}
       <IndustryFilterTabs value={industry} onChange={setIndustry} />
