@@ -4,16 +4,24 @@ from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.models.user import User
 from app.schemas.ai import (
     AiUsageResponse,
     ChatEditRequest,
     CopySuggestRequest,
     CopySuggestResponse,
+    TemplateRecommendRequest,
+    TemplateRecommendResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services import ai as ai_service
+from app.services import ai_template
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -61,3 +69,21 @@ async def chat_edit(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
+
+
+@router.post(
+    "/recommend-templates",
+    response_model=ApiResponse[TemplateRecommendResponse],
+    dependencies=[Depends(require_feature("AI_TEMPLATE_RECOMMEND"))],
+)
+async def recommend_templates(
+    body: TemplateRecommendRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """AI 템플릿 추천 3개 + 이유 (STANDARD 이상, 기획서 13.4 · T-070-A)"""
+    result = await ai_template.recommend_templates(
+        db, tenant_id, current_user.id, refresh=body.refresh
+    )
+    return ApiResponse.ok(result)
