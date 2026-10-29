@@ -11,6 +11,7 @@ from app.core.redis import get_redis
 from app.db.session import set_rls_context, set_super_admin_context
 from app.models.section import Section
 from app.models.seo import SeoSetting
+from app.models.site import SiteSetting
 from app.models.sns import SnsChannelSetting
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
@@ -24,6 +25,7 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
+from app.schemas.site import PublicSiteSettingsResponse
 from app.services import member_features
 
 router = APIRouter(tags=["public"])
@@ -96,6 +98,8 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
     sns_result = await db.execute(select(SnsChannelSetting))
     sns = sns_result.scalar_one_or_none()
 
+    site_settings = (await db.execute(select(SiteSetting))).scalar_one_or_none()
+
     template, css_overrides = await _resolve_template(db, tenant)
 
     template_payload: PublicTemplateResponse | None = None
@@ -114,6 +118,11 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
         seo_settings=PublicSeoResponse.model_validate(seo) if seo else None,
         sns_settings=PublicSnsResponse.model_validate(sns) if sns else None,
+        site_settings=(
+            PublicSiteSettingsResponse.model_validate(site_settings)
+            if site_settings
+            else None
+        ),
         template=template_payload,
         member=PublicMemberFlags(
             enabled=flags.enabled,

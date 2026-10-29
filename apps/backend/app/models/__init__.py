@@ -10,6 +10,7 @@ from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
 from app.models.section import Section, SectionSetting
 from app.models.seo import SeoSetting
+from app.models.site import SiteSetting
 from app.models.site_member import (
     MemberPasswordResetToken,
     MemberReservation,
@@ -32,6 +33,7 @@ __all__ = [
     "SnsChannelSetting",
     "NotificationSetting",
     "SeoSetting",
+    "SiteSetting",
     "SiteAnalytics",
     "UploadedFile",
     "GalleryItem",

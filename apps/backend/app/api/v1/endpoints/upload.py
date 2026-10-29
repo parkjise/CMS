@@ -24,9 +24,10 @@ _ALLOWED_CONTEXTS = {
     "team",
     "portfolio",
     "seo",
+    "site",
 }
-# 섹션에 속하지 않는 이미지 — SEO 공유 이미지 (T-037-C)
-_SECTIONLESS_CONTEXTS = {"seo"}
+# 섹션에 속하지 않는 이미지 — SEO 공유 이미지 (T-037-C) · 로고 · 파비콘 (T-036-A)
+_SECTIONLESS_CONTEXTS = {"seo", "site"}
 
 
 @router.post("/image", response_model=ApiResponse[ImageUploadResponse])

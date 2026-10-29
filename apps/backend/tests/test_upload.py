@@ -264,6 +264,19 @@ class TestSectionlessUpload:
         assert "/seo/" in url and url.endswith(".webp")
         assert any("/seo/" in key for (_bucket, key) in fake_s3.keys())
 
+    async def test_site_logo_upload_without_section(
+        self, client, auth_headers, fake_s3
+    ):
+        """로고 · 파비콘 — 섹션 없이 site 용도로 (T-036-A)"""
+        resp = await client.post(
+            "/api/v1/upload/image",
+            files={"file": ("logo.png", _make_png(400, 120), "image/png")},
+            data={"context": "site"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert "/site/" in resp.json()["data"]["url"]
+
     async def test_section_context_requires_section(
         self, client, auth_headers, fake_s3
     ):
