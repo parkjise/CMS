@@ -72,11 +72,29 @@ export interface PublicMemberFlags {
   social_login: boolean
 }
 
+/** 사업체 공통 정보 (T-036-A) — 관리자 콘텐츠 편집 → 공통 설정 */
+export interface PublicSiteSettings {
+  phone: string | null
+  email: string | null
+  address: string | null
+  address_detail: string | null
+  hours_weekday: string | null
+  hours_saturday: string | null
+  hours_note: string | null
+  parking: string | null
+  ceo: string | null
+  business_number: string | null
+  logo_url: string | null
+  favicon_url: string | null
+}
+
 export interface PublicSite {
   tenant: PublicTenant
   sections: PublicSection[]
   seo_settings: PublicSeoSettings | null
   sns_settings: PublicSnsSettings | null
+  /** 이전 백엔드 응답 · 캐시에는 없을 수 있다 */
+  site_settings?: PublicSiteSettings | null
   template: PublicTemplate | null
   member?: PublicMemberFlags
 }

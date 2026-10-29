@@ -1,9 +1,11 @@
 import { Facebook, Globe, Instagram, MessageCircle, Youtube } from 'lucide-react'
-import type { PublicSnsSettings } from '@/lib/publicSite.types'
+import type { PublicSiteSettings, PublicSnsSettings } from '@/lib/publicSite.types'
 
 interface FooterProps {
   tenantName: string
   sns: PublicSnsSettings | null
+  /** 사업체 공통 정보 (T-036-A) — 입력한 칸만 보여 준다 */
+  info?: PublicSiteSettings | null
 }
 
 interface SnsLink {
@@ -54,13 +56,58 @@ function buildSnsLinks(sns: PublicSnsSettings | null): SnsLink[] {
   return items
 }
 
-export function Footer({ tenantName, sns }: FooterProps) {
+/** 공통 설정의 연락처 · 영업시간 · 사업자 정보 (비어 있으면 그리지 않음) */
+function BusinessInfo({ tenantName, info }: { tenantName: string; info: PublicSiteSettings }) {
+  const address = [info.address, info.address_detail].filter(Boolean).join(' ')
+  const hours = [
+    info.hours_weekday && `평일 ${info.hours_weekday}`,
+    info.hours_saturday && `토요일 ${info.hours_saturday}`,
+    info.hours_note,
+  ].filter(Boolean)
+  const company = [
+    tenantName,
+    info.ceo && `대표자 ${info.ceo}`,
+    info.business_number && `사업자등록번호 ${info.business_number}`,
+  ].filter(Boolean)
+  if (!info.phone && !info.email && !address && hours.length === 0 && company.length === 1) {
+    return null
+  }
+  return (
+    <div
+      className="mx-auto mb-6 max-w-6xl space-y-1 text-center text-sm text-[color:var(--color-text-secondary)] md:text-left"
+      data-testid="footer-business-info"
+    >
+      {(info.phone || info.email) && (
+        <p className="flex flex-wrap justify-center gap-x-4 md:justify-start">
+          {info.phone && (
+            <a href={`tel:${info.phone.replace(/[^0-9]/g, '')}`} className="hover:text-[color:var(--color-primary)]">
+              TEL {info.phone}
+            </a>
+          )}
+          {info.email && (
+            <a href={`mailto:${info.email}`} className="hover:text-[color:var(--color-primary)]">
+              {info.email}
+            </a>
+          )}
+        </p>
+      )}
+      {address && <address className="not-italic">{address}</address>}
+      {hours.length > 0 && <p>{hours.join(' · ')}</p>}
+      {company.length > 1 && (
+        <p className="text-xs text-[color:var(--color-text-subtle)]">{company.join(' | ')}</p>
+      )}
+    </div>
+  )
+}
+
+export function Footer({ tenantName, sns, info }: FooterProps) {
   const year = new Date().getFullYear()
   // 관리자 'SNS 노출 위치' 에서 푸터 아이콘을 끄면 숨긴다 (T-038-A)
   const links = sns?.show_in_footer === false ? [] : buildSnsLinks(sns)
 
   return (
     <footer className="border-t border-[color:var(--color-border)] bg-[var(--color-surface)] px-6 py-10">
+      {info && <BusinessInfo tenantName={tenantName} info={info} />}
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 md:flex-row md:justify-between">
         <p className="text-sm font-medium text-[color:var(--color-text-secondary)]">
           {tenantName}

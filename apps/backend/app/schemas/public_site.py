@@ -2,6 +2,8 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.site import PublicSiteSettingsResponse
+
 
 class PublicTenantResponse(BaseModel):
     id: uuid.UUID
@@ -90,5 +92,7 @@ class PublicSiteResponse(BaseModel):
     sections: list[PublicSectionResponse]
     seo_settings: PublicSeoResponse | None
     sns_settings: PublicSnsResponse | None
+    # 사업체 공통 정보 (T-036-A) — 푸터 · 로고 · 파비콘 · 구조화 데이터
+    site_settings: PublicSiteSettingsResponse | None = None
     template: PublicTemplateResponse | None
     member: PublicMemberFlags = PublicMemberFlags()

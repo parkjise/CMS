@@ -7,8 +7,9 @@ import type { SnsSettings } from '@/hooks/useSns'
 
 const mutateAsync = vi.fn()
 const snsData = vi.fn()
+const snsLoading = vi.fn(() => false)
 vi.mock('@/hooks/useSns', () => ({
-  useSnsSettings: () => ({ data: snsData(), isLoading: false }),
+  useSnsSettings: () => ({ data: snsData(), isLoading: snsLoading() }),
   useUpdateSns: () => ({ mutateAsync, isPending: false }),
   useTestSnsUrl: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }))
@@ -45,6 +46,15 @@ describe('SNS 노출 위치', () => {
   beforeEach(() => {
     mutateAsync.mockReset().mockResolvedValue({})
     snsData.mockReset()
+    snsLoading.mockReset().mockReturnValue(false)
+  })
+
+  it('저장된 값이 오기 전에는 노출 위치를 바꿀 수 없다 — 늦게 온 값이 덮어쓰지 않게 (T-036-A)', () => {
+    snsLoading.mockReturnValue(true)
+    snsData.mockReturnValue(undefined)
+    render(<SnsPage />)
+    expect(screen.getByLabelText('푸터(Footer)에 SNS 아이콘 노출')).toBeDisabled()
+    expect(screen.getByLabelText('카카오톡 플로팅 버튼으로 노출')).toBeDisabled()
   })
 
   it('저장된 값을 보여 주고, 바꿔서 저장하면 함께 보낸다', async () => {

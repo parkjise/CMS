@@ -237,8 +237,40 @@ describe('페이지 섹션 합치기 — 샘플 콘텐츠 (T-118)', () => {
     })
     const info = resolveSiteInfo(sample, site)
     expect(info.brand_name).toBe('데모 상호')
-    expect(info.phone).toBe('02-0000-0000')
+    // 사업체 정보는 샘플을 쓰지 않는다 — 공통 설정이 없으면 비워 숨긴다 (T-036-A)
+    expect(info.phone).toBe('')
+    expect(info.naver_map_url).toBe('')
     expect(info.kakao_url).toBe('https://pf.kakao.com/demo')
+  })
+
+  it('공통 설정 값으로 전화 · 주소 · 지도 링크 · 로고를 채운다 (T-036-A)', () => {
+    const site = makeSite({
+      site_settings: {
+        phone: '051-123-4567',
+        email: null,
+        address: '부산시 해운대구 1',
+        address_detail: '2층',
+        hours_weekday: '09:00 - 18:00',
+        hours_saturday: null,
+        hours_note: null,
+        parking: null,
+        ceo: '홍길동',
+        business_number: '123-45-67890',
+        logo_url: 'https://cdn/logo.webp',
+        favicon_url: null,
+      },
+    })
+    const info = resolveSiteInfo(sample, site)
+    expect(info.phone).toBe('051-123-4567')
+    expect(info.address).toBe('부산시 해운대구 1 2층')
+    expect(info.naver_map_url).toBe(
+      `https://map.naver.com/p/search/${encodeURIComponent('부산시 해운대구 1 2층')}`,
+    )
+    expect(info.tmap_url).toBe('')
+    expect(info.hours_saturday).toBe('')
+    expect(info.logo_url).toBe('https://cdn/logo.webp')
+    // 카카오 채널을 설정하지 않았으면 샘플 '#' 링크도 쓰지 않는다
+    expect(info.kakao_url).toBe('')
   })
 })
 

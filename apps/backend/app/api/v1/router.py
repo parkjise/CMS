@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     notifications,
     sections,
     seo,
+    site_settings,
     sns,
     templates,
     tenant_features,
@@ -36,6 +37,7 @@ api_router.include_router(sections.router, dependencies=_tenant_only)
 api_router.include_router(inquiries.router, dependencies=_tenant_only)
 api_router.include_router(sns.router, dependencies=_tenant_only)
 api_router.include_router(seo.router, dependencies=_tenant_only)
+api_router.include_router(site_settings.router, dependencies=_tenant_only)
 api_router.include_router(dashboard.router, dependencies=_tenant_only)
 api_router.include_router(notification_settings.router, dependencies=_tenant_only)
 api_router.include_router(edit.router, dependencies=_tenant_only)

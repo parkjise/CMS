@@ -141,6 +141,39 @@ describe('buildLocalBusinessJsonLd (T-074)', () => {
     expect(ld.sameAs).toEqual(['https://pf.kakao.com/x'])
   })
 
+  it('공통 설정의 전화 · 이메일 · 주소를 넣고, 주소는 오시는 길 섹션보다 먼저 쓴다 (T-036-A)', () => {
+    const site = buildSite({
+      sections: [mapSection({ address: '섹션 주소', latitude: '37.5', longitude: '127.0' })],
+      site_settings: {
+        phone: '02-1234-5678',
+        email: 'hello@clinic.kr',
+        address: '공통 주소 1',
+        address_detail: '3층',
+        hours_weekday: '09:00 - 18:00',
+        hours_saturday: null,
+        hours_note: null,
+        parking: null,
+        ceo: null,
+        business_number: null,
+        logo_url: null,
+        favicon_url: null,
+      },
+    })
+    const ld = buildLocalBusinessJsonLd(site)
+    expect(ld.telephone).toBe('02-1234-5678')
+    expect(ld.email).toBe('hello@clinic.kr')
+    expect((ld.address as Record<string, string>).streetAddress).toBe('공통 주소 1 3층')
+    // 좌표는 여전히 섹션에서, 자유 입력 영업시간은 넣지 않는다
+    expect(ld.geo).toBeDefined()
+    expect(ld).not.toHaveProperty('openingHours')
+  })
+
+  it('공통 설정이 없으면 전화 · 이메일을 넣지 않는다', () => {
+    const ld = buildLocalBusinessJsonLd(buildSite())
+    expect(ld).not.toHaveProperty('telephone')
+    expect(ld).not.toHaveProperty('email')
+  })
+
   it('SEO 대표 키워드 배열을 쉼표 구분 문자열로 주입하고, 비면 넣지 않는다 (T-040-A)', () => {
     const withKeywords = buildSite({
       seo_settings: {

@@ -39,7 +39,7 @@ export default async function TenantHomePage({ params }: Props) {
       />
 
       <EditToolbar sampleCount={sampleCount} />
-      <Navbar tenantName={site.tenant.name} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} />
+      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (
@@ -51,7 +51,7 @@ export default async function TenantHomePage({ params }: Props) {
         )}
       </main>
 
-      <Footer tenantName={site.tenant.name} sns={site.sns_settings} />
+      <Footer tenantName={site.tenant.name} sns={site.sns_settings} info={site.site_settings} />
 
       <FloatingButtons
         tenantSlug={tenant_slug}
