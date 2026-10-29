@@ -724,6 +724,64 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 18: 관리자 공통 설정의 사업체 정보 · 파비콘이 홈페이지 푸터 · 구조화 데이터 · 탭 아이콘에 반영된다 (T-036-A)', async ({
+    page,
+    request,
+  }) => {
+    const url = `${BACKEND_URL}/api/v1/site-settings`
+    const before = (await (await request.get(url, { headers: authHeader(token) })).json()).data
+    const fields = ['phone', 'address', 'ceo', 'business_number', 'favicon_url'] as const
+    const original = Object.fromEntries(fields.map((f) => [f, before?.[f] ?? '']))
+    try {
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/content`)
+      await page.getByRole('button', { name: '공통 설정' }).click()
+      await page.getByLabel('대표 전화').fill('02-7777-8888')
+      await page.getByLabel('주소', { exact: true }).fill('서울특별시 중구 세종대로 110')
+      await page.getByLabel('대표자').fill('E2E대표')
+      await page.getByLabel('사업자등록번호').fill('1112233333')
+      const saved = page.waitForResponse(
+        (r) => r.url().endsWith('/v1/site-settings') && r.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: '공통 설정 저장' }).click()
+      expect((await saved).ok()).toBeTruthy()
+      // 사업자등록번호는 하이픈을 넣어 저장
+      await expect(page.getByLabel('사업자등록번호')).toHaveValue('111-22-33333')
+
+      // 파비콘은 업로드 대신 주소로 저장 (업로드는 단위 테스트)
+      const fav = await request.put(url, {
+        headers: authHeader(token),
+        data: { favicon_url: 'https://cdn.example.com/e2e-favicon.webp' },
+      })
+      expect(fav.ok(), await fav.text()).toBeTruthy()
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      const footer = page.getByRole('contentinfo')
+      await expect(footer).toContainText('02-7777-8888')
+      await expect(footer).toContainText('서울특별시 중구 세종대로 110')
+      await expect(footer).toContainText('대표자 E2E대표')
+      await expect(footer).toContainText('사업자등록번호 111-22-33333')
+      const ld = JSON.parse(
+        (await page.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}',
+      )
+      expect(ld.telephone).toBe('02-7777-8888')
+      expect(ld.address.streetAddress).toBe('서울특별시 중구 세종대로 110')
+      await expect(page.locator('link[rel="icon"]').first()).toHaveAttribute(
+        'href',
+        /e2e-favicon\.webp/,
+      )
+    } finally {
+      const rb = await request.put(url, { headers: authHeader(token), data: original })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
