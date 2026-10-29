@@ -44,6 +44,8 @@ interface FeatureState {
   announcements: Announcement[]
   loaded: boolean
   isLoading: boolean
+  /** 첫 불러오기가 끝났는지 (성공 · 실패 모두) — 화면이 기능 여부를 알고 그릴 수 있는 시점 */
+  settled: boolean
 
   /** 앱 초기화 시 1회 호출 — 기능 플래그/공지 로드 */
   load: () => Promise<void>
@@ -63,6 +65,7 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
   announcements: [],
   loaded: false,
   isLoading: false,
+  settled: false,
 
   load: async () => {
     if (get().isLoading) return
@@ -80,7 +83,7 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
       // 실패 시 loaded=false 유지 → 메뉴는 graceful하게 전부 노출된다.
       set({ loaded: false })
     } finally {
-      set({ isLoading: false })
+      set({ isLoading: false, settled: true })
     }
   },
 
@@ -115,5 +118,6 @@ export const useFeatureStore = create<FeatureState>((set, get) => ({
       announcements: [],
       loaded: false,
       isLoading: false,
+      settled: false,
     }),
 }))

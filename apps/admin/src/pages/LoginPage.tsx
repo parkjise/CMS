@@ -96,7 +96,7 @@ export function LoginPage() {
               사이트 슬러그
             </label>
             <div className="flex items-center rounded-lg border border-slate-300 bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500 overflow-hidden">
-              <span className="px-3 py-2 text-sm text-slate-400 bg-slate-50 border-r border-slate-300 select-none whitespace-nowrap">
+              <span className="px-3 py-2 text-sm text-slate-500 bg-slate-50 border-r border-slate-300 select-none whitespace-nowrap">
                 site.com/
               </span>
               <input

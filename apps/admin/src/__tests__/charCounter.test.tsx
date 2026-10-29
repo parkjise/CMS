@@ -11,7 +11,8 @@ describe('CharCounter', () => {
   it('한도 이하에서는 평범한 회색 텍스트', () => {
     render(<CharCounter current={10} max={40} />)
     const el = screen.getByText('10/40')
-    expect(el.className).toMatch(/text-slate-400/)
+    // 대비 4.5:1 이상 회색 (T-043-A)
+    expect(el.className).toMatch(/text-slate-500/)
   })
 
   it('한도 초과 시 빨간색 강조', () => {

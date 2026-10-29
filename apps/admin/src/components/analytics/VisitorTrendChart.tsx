@@ -1,14 +1,7 @@
 import dayjs from 'dayjs'
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Suspense } from 'react'
+import { ChartFallback } from '@/components/charts/ChartFallback'
+import { TrendLinePlot } from '@/components/charts/lazyCharts'
 import {
   RANGE_OPTIONS,
   type AnalyticsPoint,
@@ -73,31 +66,9 @@ export function VisitorTrendChart({
         </div>
       ) : (
         <div className="h-72">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={formatted}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="label" tick={{ fontSize: 12 }} />
-              <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-              <Tooltip />
-              <Legend />
-              <Line
-                type="monotone"
-                dataKey="page_views"
-                name="페이지뷰"
-                stroke="#2563eb"
-                strokeWidth={2}
-                dot={false}
-              />
-              <Line
-                type="monotone"
-                dataKey="unique_visitors"
-                name="순방문자"
-                stroke="#16a34a"
-                strokeWidth={2}
-                dot={false}
-              />
-            </LineChart>
-          </ResponsiveContainer>
+          <Suspense fallback={<ChartFallback />}>
+            <TrendLinePlot data={formatted} />
+          </Suspense>
         </div>
       )}
     </section>

@@ -16,7 +16,7 @@ export function InquiryMobileCard({
   onStatusChange,
 }: InquiryMobileCardProps) {
   return (
-    <article
+    <div
       role="button"
       tabIndex={0}
       aria-label={`${item.name}님 문의 상세 보기`}
@@ -81,6 +81,6 @@ export function InquiryMobileCard({
           ))}
         </select>
       </div>
-    </article>
+    </div>
   )
 }

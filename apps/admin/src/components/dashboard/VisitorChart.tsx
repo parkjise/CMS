@@ -1,14 +1,7 @@
 import dayjs from 'dayjs'
-import {
-  CartesianGrid,
-  Legend,
-  Line,
-  LineChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from 'recharts'
+import { Suspense } from 'react'
+import { ChartFallback } from '@/components/charts/ChartFallback'
+import { VisitorLinePlot } from '@/components/charts/lazyCharts'
 import type { ChartPoint } from '@/hooks/useDashboard'
 
 interface VisitorChartProps {
@@ -38,37 +31,9 @@ export function VisitorChart({ data, isLoading }: VisitorChartProps) {
 
   return (
     <div className="h-72">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={formatted} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-          <XAxis dataKey="label" stroke="#64748b" fontSize={12} />
-          <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
-          <Tooltip
-            contentStyle={{
-              borderRadius: '6px',
-              border: '1px solid #e2e8f0',
-              fontSize: '12px',
-            }}
-          />
-          <Legend wrapperStyle={{ fontSize: '12px' }} />
-          <Line
-            type="monotone"
-            dataKey="page_views"
-            name="페이지뷰"
-            stroke="#2563eb"
-            strokeWidth={2}
-            dot={{ r: 3 }}
-          />
-          <Line
-            type="monotone"
-            dataKey="unique_visitors"
-            name="순방문자"
-            stroke="#10b981"
-            strokeWidth={2}
-            dot={{ r: 3 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <Suspense fallback={<ChartFallback />}>
+        <VisitorLinePlot data={formatted} />
+      </Suspense>
     </div>
   )
 }

@@ -10,6 +10,8 @@ export interface DashboardStats {
   pending_inquiries: number
   /** 방문자 회원 (T-115) — 회원 기능(SITE_MEMBER)이 꺼져 있으면 null */
   members?: { new_members_week: number; total_members: number } | null
+  /** 아직 바꾸지 않은 템플릿 샘플 값 수 (T-043-A) */
+  sample_count?: number
 }
 
 export interface ChartPoint {

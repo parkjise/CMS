@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "type-check": "tsc -p tsconfig.app.json --noEmit",
     "test": "vitest run",
-    "analyze": "vite-bundle-visualizer"
+    "analyze": "vite-bundle-visualizer",
+    "lighthouse": "node scripts/lighthouse.mjs"
   },
   "dependencies": {
     "@cms/types": "workspace:*",

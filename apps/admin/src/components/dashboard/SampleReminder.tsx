@@ -1,15 +1,16 @@
 import { Sparkles } from 'lucide-react'
 import { Link } from 'react-router'
-import { useSections } from '@/hooks/useSections'
-import { countSampleSettings } from '@/lib/sampleContent'
+
+interface SampleReminderProps {
+  /** 아직 바꾸지 않은 샘플 값 수 — 대시보드 통계(`sample_count`)에서 받는다 (T-043-A) */
+  count: number
+}
 
 /**
  * 대시보드 할 일 카드 — 아직 바꾸지 않은 템플릿 샘플 값 (AD-01, 기획서 11.8)
  * 샘플이 없으면 아무것도 그리지 않는다.
  */
-export function SampleReminder() {
-  const sections = useSections()
-  const count = countSampleSettings(sections.data ?? [])
+export function SampleReminder({ count }: SampleReminderProps) {
   if (count === 0) return null
 
   return (
@@ -30,7 +31,7 @@ export function SampleReminder() {
       </div>
       <Link
         to="/admin/content"
-        className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700"
+        className="inline-flex flex-shrink-0 items-center justify-center rounded-md bg-amber-700 px-3 py-2 text-sm font-medium text-white hover:bg-amber-800"
       >
         콘텐츠 바꾸러 가기
       </Link>

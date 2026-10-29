@@ -1,12 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router'
 import { DndContext } from '@dnd-kit/core'
 import { SortableContext } from '@dnd-kit/sortable'
-import { http, HttpResponse } from 'msw'
-import { server } from './server'
 import { ApplyConfirmDialog } from '@/components/templates/ApplyConfirmDialog'
 import { SectionListItem } from '@/components/content/SectionListItem'
 import { SampleReminder } from '@/components/dashboard/SampleReminder'
@@ -136,40 +133,25 @@ describe('섹션 목록 샘플 배지 (T-120)', () => {
 })
 
 describe('대시보드 샘플 안내 (T-120)', () => {
-  const renderReminder = () =>
+  // 개수는 대시보드 통계 sample_count 로 받는다 (T-043-A)
+  const renderReminder = (count: number) =>
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-        <MemoryRouter>
-          <SampleReminder />
-        </MemoryRouter>
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <SampleReminder count={count} />
+      </MemoryRouter>,
     )
 
-  it('샘플이 남아 있으면 개수와 콘텐츠 링크를 보여준다', async () => {
-    server.use(
-      http.get('http://localhost:8000/api/v1/sections', () =>
-        HttpResponse.json({
-          success: true,
-          data: [makeSection('a', [true, true]), makeSection('b', [true])],
-        }),
-      ),
-    )
-    renderReminder()
-    expect(await screen.findByText('샘플 3개 남음')).toBeInTheDocument()
+  it('샘플이 남아 있으면 개수와 콘텐츠 링크를 보여준다', () => {
+    renderReminder(3)
+    expect(screen.getByText('샘플 3개 남음')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '콘텐츠 바꾸러 가기' })).toHaveAttribute(
       'href',
       '/admin/content',
     )
   })
 
-  it('샘플이 없으면 아무것도 그리지 않는다', async () => {
-    server.use(
-      http.get('http://localhost:8000/api/v1/sections', () =>
-        HttpResponse.json({ success: true, data: [makeSection('a', [false])] }),
-      ),
-    )
-    const { container } = renderReminder()
-    await new Promise((r) => setTimeout(r, 50))
+  it('샘플이 없으면 아무것도 그리지 않는다', () => {
+    const { container } = renderReminder(0)
     expect(container).toBeEmptyDOMElement()
   })
 })

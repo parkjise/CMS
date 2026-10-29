@@ -80,7 +80,7 @@ export function KeywordTagInput({
           className="min-w-[160px] flex-1 bg-transparent text-sm text-slate-900 outline-none"
         />
       </div>
-      <p className="mt-1 px-1 text-xs text-slate-400">
+      <p className="mt-1 px-1 text-xs text-slate-500">
         엔터/쉼표로 추가 · 백스페이스로 삭제 · 최대 {max}개 · 1개 {maxLength}자
       </p>
     </div>

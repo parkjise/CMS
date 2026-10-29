@@ -6,11 +6,13 @@ import { Toast } from '@cms/ui'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import { OfflineBanner } from '@/components/OfflineBanner'
 import { queryClient } from '@/lib/queryClient'
-import { router } from '@/router'
+import { preloadRoute, router } from '@/router'
 import { initSentry } from '@/lib/sentry'
 import './index.css'
 
 initSentry()
+// 지금 주소의 페이지 코드를 로그인 확인과 동시에 받기 시작 (T-043-A)
+preloadRoute(window.location.pathname)
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

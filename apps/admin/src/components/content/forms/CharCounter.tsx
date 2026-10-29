@@ -7,7 +7,7 @@ export function CharCounter({ current, max }: CharCounterProps) {
   const over = current > max
   return (
     <span
-      className={`text-xs ${over ? 'font-medium text-rose-600' : 'text-slate-400'}`}
+      className={`text-xs ${over ? 'font-medium text-rose-600' : 'text-slate-500'}`}
       aria-live="polite"
     >
       {current}/{max}

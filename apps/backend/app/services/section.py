@@ -2,7 +2,7 @@ import uuid
 from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,25 @@ async def get_sections(db: AsyncSession, tenant_id: UUID) -> list[Section]:
         .options(selectinload(Section.settings))
     )
     return list(result.scalars().all())
+
+
+async def count_sample_settings(db: AsyncSession, tenant_id: UUID) -> int:
+    """아직 템플릿 샘플 값 그대로인 설정 수 — 숨긴 · 지운 섹션은 세지 않는다.
+
+    대시보드 할 일 안내용 (기획서 11.8). 관리자 `countSampleSettings` 와 같은 기준이며,
+    대시보드가 섹션 전체 목록을 받지 않아도 되게 한다 (T-043-A).
+    """
+    result = await db.execute(
+        select(func.count(SectionSetting.id))
+        .join(Section, Section.id == SectionSetting.section_id)
+        .where(
+            Section.tenant_id == tenant_id,
+            Section.deleted_at.is_(None),
+            Section.is_active.is_(True),
+            SectionSetting.is_sample.is_(True),
+        )
+    )
+    return int(result.scalar_one())
 
 
 async def get_section_by_id(
