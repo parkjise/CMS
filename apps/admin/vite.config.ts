@@ -13,6 +13,13 @@ export default defineConfig({
   server: {
     port: 3001,
   },
+  // 운영처럼 같은 주소에서 /api 를 쓰는 미리보기 — Lighthouse 측정용 (T-043-A)
+  //   VITE_API_BASE_URL=/api pnpm build && pnpm exec vite preview
+  // (운영은 admin.도메인/api 로 같은 출처라 CORS 사전 요청이 없다)
+  preview: {
+    port: 3001,
+    proxy: { '/api': 'http://localhost:8000' },
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
