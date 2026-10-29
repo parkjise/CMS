@@ -68,6 +68,21 @@ const site: PublicSite = {
 const sections = resolvePageSections(hospitalAManifest, hospitalASample, [], 'home')
 const byType = (type: string) => sections.find((s) => s.section.section_type === type) as ResolvedSection
 
+const EMPTY_SITE_SETTINGS = {
+  phone: null,
+  email: null,
+  address: null,
+  address_detail: null,
+  hours_weekday: null,
+  hours_saturday: null,
+  hours_note: null,
+  parking: null,
+  ceo: null,
+  business_number: null,
+  logo_url: null,
+  favicon_url: null,
+}
+
 describe('hospital-a 매니페스트 · 샘플 (T-121)', () => {
   it('코드형 SCSS 템플릿이고 메인 섹션 5종을 순서대로 그린다', () => {
     expect(hospitalAManifest.renderer).toBe('code')
@@ -123,7 +138,10 @@ describe('hospital-a 화면 (T-121)', () => {
   })
 
   it('템플릿 루트: 헤더 메뉴 · 메인 · 푸터 · 퀵메뉴를 그린다', () => {
-    const info = resolveSiteInfo(hospitalASample, site)
+    const info = resolveSiteInfo(hospitalASample, {
+      ...site,
+      site_settings: { ...EMPTY_SITE_SETTINGS, phone: '02-9876-5432' },
+    })
     render(
       <HospitalATemplate
         site={site}
@@ -145,8 +163,31 @@ describe('hospital-a 화면 (T-121)', () => {
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main')
     // 상호는 테넌트 이름
     expect(screen.getAllByText('데모 의원').length).toBeGreaterThan(0)
-    expect(screen.getByRole('contentinfo')).toHaveTextContent('02-1234-5678')
+    expect(screen.getByRole('contentinfo')).toHaveTextContent('02-9876-5432')
     expect(screen.getByRole('complementary', { name: '빠른 메뉴' })).toBeInTheDocument()
+  })
+
+  it('공통 설정이 비어 있으면 푸터에 샘플 사업체 정보를 보이지 않는다 (T-036-A)', () => {
+    const info = resolveSiteInfo(hospitalASample, { ...site, site_settings: null })
+    render(
+      <HospitalATemplate
+        site={site}
+        tenantSlug="demo"
+        pageKey="home"
+        sections={sections}
+        siteInfo={info}
+        preview={false}
+      />,
+    )
+    const footer = screen.getByRole('contentinfo')
+    const sampleSite = hospitalASample.site as Record<string, string>
+    for (const key of ['phone', 'ceo', 'business_number', 'address', 'hours_weekday']) {
+      expect(footer).not.toHaveTextContent(sampleSite[key])
+    }
+    // 비어 있는 블록은 제목째 숨긴다
+    expect(within(footer).queryByRole('heading', { name: '운영 시간' })).not.toBeInTheDocument()
+    expect(within(footer).queryByRole('heading', { name: '오시는 길' })).not.toBeInTheDocument()
+    expect(within(footer).queryByRole('heading', { name: '고객 상담' })).not.toBeInTheDocument()
   })
 
   it('히어로: 슬라이드 수만큼 그리고 현재 슬라이드 카피만 보인다', () => {

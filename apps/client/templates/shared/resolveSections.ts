@@ -91,14 +91,52 @@ export function resolvePageSections(
   return result
 }
 
-/** 사이트 공통 정보 — 샘플 값 위에 테넌트 정보(상호·SNS)를 덮어쓴다 */
+/**
+ * 사업체 정보 칸 — 실제 홈페이지에는 샘플 값을 쓰지 않는다 (가짜 전화 · 사업자번호 노출 방지).
+ * 관리자 공통 설정(T-036-A)에 입력한 값만, 비어 있으면 "" 로 두어 화면이 숨긴다.
+ */
+const BUSINESS_KEYS = [
+  'phone',
+  'email',
+  'address',
+  'hours_weekday',
+  'hours_saturday',
+  'hours_note',
+  'parking',
+  'ceo',
+  'business_number',
+] as const
+
+/** 주소로 지도 길찾기 링크를 만든다 (주소가 없으면 링크 없음) */
+export function mapLinks(address: string): Record<'naver_map_url' | 'kakao_map_url' | 'tmap_url', string> {
+  if (!address) return { naver_map_url: '', kakao_map_url: '', tmap_url: '' }
+  const q = encodeURIComponent(address)
+  return {
+    naver_map_url: `https://map.naver.com/p/search/${q}`,
+    kakao_map_url: `https://map.kakao.com/?q=${q}`,
+    // 티맵은 웹 검색 주소가 없다 — 링크 숨김
+    tmap_url: '',
+  }
+}
+
+/**
+ * 사이트 공통 정보 — 템플릿 기본값(디자인 · 약관 링크 등) 위에 테넌트 정보를 덮어쓴다.
+ * 사업체 정보 · 카카오 링크는 샘플 대신 실제 값만 (T-036-A).
+ */
 export function resolveSiteInfo(
   sample: SampleContent,
   site: PublicSite,
 ): Record<string, string> {
   const info: Record<string, string> = { ...sample.site, brand_name: site.tenant.name }
-  const kakao = site.sns_settings?.kakao_url
-  if (kakao) info.kakao_url = kakao
+  const settings = site.site_settings
+  for (const key of BUSINESS_KEYS) info[key] = settings?.[key] ?? ''
+  if (info.address && settings?.address_detail) {
+    info.address = `${info.address} ${settings.address_detail}`
+  }
+  Object.assign(info, mapLinks(info.address))
+  // 로고를 올리지 않았으면 템플릿 기본 로고(글자 없는 표식)
+  if (settings?.logo_url) info.logo_url = settings.logo_url
+  info.kakao_url = site.sns_settings?.kakao_url ?? ''
   const youtube = site.sns_settings?.youtube_url
   if (youtube) info.youtube_url = youtube
   return info

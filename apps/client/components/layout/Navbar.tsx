@@ -7,6 +7,8 @@ import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 
 interface NavbarProps {
   tenantName: string
+  /** 관리자 공통 설정의 로고 — 있으면 상호 글자 대신 (T-036-A) */
+  logoUrl?: string | null
   sections: PublicSection[]
   /** 있으면 우측에 방문자 계정 메뉴 (로그인 · 회원가입 / 마이페이지 · 로그아웃, T-113) */
   tenantSlug?: string
@@ -15,7 +17,7 @@ interface NavbarProps {
 const accountLinkClass =
   'text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]'
 
-export function Navbar({ tenantName, sections, tenantSlug }: NavbarProps) {
+export function Navbar({ tenantName, logoUrl, sections, tenantSlug }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -53,7 +55,12 @@ export function Navbar({ tenantName, sections, tenantSlug }: NavbarProps) {
           className="shrink-0 whitespace-nowrap text-lg font-bold text-[color:var(--color-text-primary)]"
           aria-label={`${tenantName} 홈으로 이동`}
         >
-          {tenantName}
+          {logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- 테넌트가 올린 임의 크기 로고
+            <img src={logoUrl} alt="" className="h-8 w-auto max-w-[180px] object-contain" />
+          ) : (
+            tenantName
+          )}
         </button>
 
         {/* 메뉴가 많아도 글자가 세로로 쌓이지 않게 — 줄바꿈 대신 가로 스크롤 (T-057-A) */}

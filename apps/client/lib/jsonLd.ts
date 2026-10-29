@@ -32,6 +32,15 @@ function getMapSection(site: PublicSite) {
 }
 
 function buildAddress(site: PublicSite): Record<string, string> | undefined {
+  // 관리자 공통 설정의 주소가 먼저 (T-036-A), 없으면 '오시는 길' 섹션
+  const common = site.site_settings
+  if (common?.address) {
+    return {
+      '@type': 'PostalAddress',
+      streetAddress: common.address_detail ? `${common.address} ${common.address_detail}` : common.address,
+      addressCountry: 'KR',
+    }
+  }
   const mapSection = getMapSection(site)
   if (!mapSection) return undefined
   const street = getString(mapSection.settings, 'address')
@@ -111,6 +120,14 @@ export function buildLocalBusinessJsonLd(site: PublicSite): Record<string, unkno
   }
   if (address) {
     jsonLd.address = address
+  }
+  // 대표 전화 · 이메일 (T-036-A). 영업시간은 자유 입력이라 schema.org openingHours
+  // 형식(Mo-Fr 09:00-18:00)과 맞지 않아 넣지 않는다 — 잘못된 구조화 데이터는 검색 경고가 된다
+  if (site.site_settings?.phone) {
+    jsonLd.telephone = site.site_settings.phone
+  }
+  if (site.site_settings?.email) {
+    jsonLd.email = site.site_settings.email
   }
   if (geo) {
     jsonLd.geo = geo

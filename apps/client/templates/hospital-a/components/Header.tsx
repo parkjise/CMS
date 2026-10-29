@@ -71,8 +71,10 @@ export function Header({
         <div className="header__inner">
           <h1 className="header__logo">
             <a className="header__logo-link" href={homeHref} lang="en">
-              {/* eslint-disable-next-line @next/next/no-img-element -- 목업 마크업 유지 (SVG 로고) */}
-              <img className="header__logo-image" src={logoUrl} alt="" width={2496} height={1696} />
+              {logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- 목업 마크업 유지 (SVG 로고)
+                <img className="header__logo-image" src={logoUrl} alt="" width={2496} height={1696} />
+              )}
               {brandName}
             </a>
           </h1>

@@ -66,6 +66,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     other: seo?.google_analytics_id
       ? { 'google-analytics-id': seo.google_analytics_id }
       : undefined,
+    // 브라우저 탭 아이콘 — 관리자 공통 설정 (T-036-A)
+    icons: site.site_settings?.favicon_url
+      ? { icon: site.site_settings.favicon_url }
+      : undefined,
   }
 }
 

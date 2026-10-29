@@ -20,65 +20,73 @@ export function Footer({ info }: Props) {
   return (
     <footer className="footer" id="contact">
       <div className="page-container footer__inner">
-        <section className="footer__block footer__block--contact" aria-labelledby="footer-contact-title">
-          <h2 className="footer__title" id="footer-contact-title">
-            고객 상담
-          </h2>
-          {info.phone && (
-            <p className="footer__phone">
-              <a className="footer__phone-link" href={`tel:${tel}`}>
-                {info.phone}
-              </a>
-            </p>
-          )}
-          {info.kakao_url && (
-            <ul className="footer__buttons">
-              <li>
-                <a className="footer__button" href={info.kakao_url} {...external}>
-                  카카오톡 상담<span className="sr-only">(새 창)</span>
+        {(info.phone || info.kakao_url) && (
+          <section className="footer__block footer__block--contact" aria-labelledby="footer-contact-title">
+            <h2 className="footer__title" id="footer-contact-title">
+              고객 상담
+            </h2>
+            {info.phone && (
+              <p className="footer__phone">
+                <a className="footer__phone-link" href={`tel:${tel}`}>
+                  {info.phone}
                 </a>
-              </li>
-            </ul>
-          )}
-        </section>
-
-        <section className="footer__block footer__block--hours" aria-labelledby="footer-hours-title">
-          <h2 className="footer__title" id="footer-hours-title">
-            운영 시간
-          </h2>
-          <dl className="footer__hours">
-            <div className="footer__hours-row">
-              <dt className="footer__hours-day footer__hours-day--spaced">평일</dt>
-              <dd className="footer__hours-time">{info.hours_weekday}</dd>
-            </div>
-            {info.hours_saturday && (
-              <div className="footer__hours-row">
-                <dt className="footer__hours-day">토요일</dt>
-                <dd className="footer__hours-time">{info.hours_saturday}</dd>
-              </div>
+              </p>
             )}
-          </dl>
-          {info.hours_note && <p className="footer__note">{info.hours_note}</p>}
-        </section>
-
-        <section className="footer__block footer__block--location" aria-labelledby="footer-location-title">
-          <h2 className="footer__title" id="footer-location-title">
-            오시는 길
-          </h2>
-          <address className="footer__text">{info.address}</address>
-          {mapLinks.length > 0 && (
-            <ul className="footer__buttons">
-              {mapLinks.map((l) => (
-                <li key={l.label}>
-                  <a className="footer__button" href={l.href} {...external}>
-                    {l.label}
-                    <span className="sr-only">(새 창)</span>
+            {info.kakao_url && (
+              <ul className="footer__buttons">
+                <li>
+                  <a className="footer__button" href={info.kakao_url} {...external}>
+                    카카오톡 상담<span className="sr-only">(새 창)</span>
                   </a>
                 </li>
-              ))}
-            </ul>
-          )}
-        </section>
+              </ul>
+            )}
+          </section>
+        )}
+
+        {(info.hours_weekday || info.hours_saturday || info.hours_note) && (
+          <section className="footer__block footer__block--hours" aria-labelledby="footer-hours-title">
+            <h2 className="footer__title" id="footer-hours-title">
+              운영 시간
+            </h2>
+            <dl className="footer__hours">
+              {info.hours_weekday && (
+                <div className="footer__hours-row">
+                  <dt className="footer__hours-day footer__hours-day--spaced">평일</dt>
+                  <dd className="footer__hours-time">{info.hours_weekday}</dd>
+                </div>
+              )}
+              {info.hours_saturday && (
+                <div className="footer__hours-row">
+                  <dt className="footer__hours-day">토요일</dt>
+                  <dd className="footer__hours-time">{info.hours_saturday}</dd>
+                </div>
+              )}
+            </dl>
+            {info.hours_note && <p className="footer__note">{info.hours_note}</p>}
+          </section>
+        )}
+
+        {info.address && (
+          <section className="footer__block footer__block--location" aria-labelledby="footer-location-title">
+            <h2 className="footer__title" id="footer-location-title">
+              오시는 길
+            </h2>
+            <address className="footer__text">{info.address}</address>
+            {mapLinks.length > 0 && (
+              <ul className="footer__buttons">
+                {mapLinks.map((l) => (
+                  <li key={l.label}>
+                    <a className="footer__button" href={l.href} {...external}>
+                      {l.label}
+                      <span className="sr-only">(새 창)</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
 
         {info.parking && (
           <section className="footer__block footer__block--parking" aria-labelledby="footer-parking-title">
@@ -111,7 +119,7 @@ export function Footer({ info }: Props) {
               <span className="footer__company-item">사업자등록번호 {info.business_number}</span>
             )}
             <br />
-            <span className="footer__company-item">{info.address}</span>
+            {info.address && <span className="footer__company-item">{info.address}</span>}
             {info.phone && <span className="footer__company-item">TEL {info.phone}</span>}
           </p>
           <p className="footer__copyright">
