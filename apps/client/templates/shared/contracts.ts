@@ -8,6 +8,7 @@ import type { ComponentType } from 'react'
 import type { SectionType, TemplateManifest } from '@cms/types'
 import type { PublicSection, PublicSite } from '@/lib/publicSite.types'
 import type { MemberPageKey } from '../memberPages'
+import type { MenuOverride } from '@/lib/menuSettings'
 
 /** 템플릿 섹션 컴포넌트가 받는 props */
 export interface CodeSectionProps {
@@ -29,6 +30,8 @@ export interface CodeTemplateProps {
   siteInfo: Record<string, string>
   /** 미리보기 모드 (편집 UI 없음) */
   preview: boolean
+  /** 관리자 상단 메뉴 설정 (T-036-B) — 샘플 미리보기면 없음(템플릿 기본 메뉴) */
+  menuItems?: MenuOverride[] | null
   /**
    * 미리보기 링크용 쿼리 ('tpl=TPL_X&content=mine') — 있으면 페이지 링크를
    * /{slug}/preview?{query}&page={key} 로 만들어 미리보기 안에서 이동한다

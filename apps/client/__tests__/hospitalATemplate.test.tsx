@@ -167,6 +167,31 @@ describe('hospital-a 화면 (T-121)', () => {
     expect(screen.getByRole('complementary', { name: '빠른 메뉴' })).toBeInTheDocument()
   })
 
+  it('관리자 상단 메뉴 설정 — 순서 · 이름 · 숨기기가 헤더 메뉴에 반영된다 (T-036-B)', () => {
+    render(
+      <HospitalATemplate
+        site={site}
+        tenantSlug="demo"
+        pageKey="home"
+        sections={sections}
+        siteInfo={resolveSiteInfo(hospitalASample, site)}
+        preview={false}
+        menuItems={[
+          { key: 'business', label: '진료과목', visible: true },
+          { key: 'about', label: null, visible: true },
+          { key: 'notice', label: null, visible: false },
+        ]}
+      />,
+    )
+    const nav = screen.getByRole('navigation', { name: '주 메뉴' })
+    const links = within(nav).getAllByRole('link')
+    expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual([
+      ['진료과목', '/demo/business'],
+      ['회사소개', '/demo/about'],
+      ['상담·예약', '/demo/consult'],
+    ])
+  })
+
   it('휴대폰에서 숨긴 섹션 바로 앞에 표식을 둔다 — 감싸지 않음 (T-037-D)', () => {
     const [first, ...rest] = sections
     const hidden = {

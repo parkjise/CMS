@@ -84,7 +84,7 @@ export default async function TemplatePreviewPage({
       <PreviewBanner templateName={site.template?.name} hiddenCount={hiddenCount} />
 
       {/* 편집 UI(EditToolbar·FloatingButtons) 없이 순수 미리보기만 렌더링 */}
-      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} sections={activeSections} />
+      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} sections={activeSections} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (

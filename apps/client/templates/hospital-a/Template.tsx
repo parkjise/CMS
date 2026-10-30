@@ -46,6 +46,7 @@ import { MEMBER_PAGES } from '../memberPages'
 import { MemberScreen } from './components/member/MemberScreen'
 import { MobileHideMarker } from '@/components/MobileHideMarker'
 import { isMobileHidden } from '@/lib/mobileSettings'
+import { applyMenu } from '@/lib/menuSettings'
 
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
@@ -93,6 +94,7 @@ export default function HospitalATemplate({
   detailId,
   query,
   member,
+  menuItems,
 }: CodeTemplateProps) {
   const hrefFor = (key: string) => pageHref(tenantSlug, key, previewQuery)
   // 게시판 페이지 주소 (상세 id · 검색 q · 페이지 p) — 미리보기면 미리보기 주소 유지
@@ -106,9 +108,12 @@ export default function HospitalATemplate({
     : { action: `/${tenantSlug}/${pageKey}`, hidden: [] }
   const listPage = Math.max(1, Number(query?.p) || 1)
   const pages = hospitalAManifest.pages
-  const menu: HeaderLink[] = pages
-    .filter((p) => p.menu === 'gnb')
-    .map((p) => ({ href: hrefFor(p.key), title: p.title }))
+  // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B)
+  const menu: HeaderLink[] = applyMenu(
+    pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title })),
+    menuItems,
+    true,
+  ).map((p) => ({ href: hrefFor(p.key), title: p.label }))
   // 방문자 회원 화면 — 기획서 16.0 (/{slug}/member/*, T-113)
   const account: HeaderLink[] = [
     { href: `/${tenantSlug}/member/login`, title: '로그인' },
