@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import String, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -31,3 +31,5 @@ class SiteSetting(Base, TimestampMixin):
     business_number: Mapped[str | None] = mapped_column(String(12), nullable=True)
     logo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     favicon_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # 상단 메뉴 (T-036-B) — 순서대로 [{key, label, visible}], 없으면 템플릿 기본
+    menu_items: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)

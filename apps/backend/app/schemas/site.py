@@ -125,5 +125,49 @@ class PublicSiteSettingsResponse(BaseModel):
     business_number: str | None
     logo_url: str | None
     favicon_url: str | None
+    # 상단 메뉴 (T-036-B) — 홈페이지가 기본 메뉴 위에 덮어쓴다
+    menu_items: list[dict] | None = None
 
     model_config = {"from_attributes": True}
+
+
+# ── 상단 메뉴 (T-036-B) ────────────────────────────────────────────────
+
+MENU_LABEL_MAX = 20
+
+
+class MenuItemUpdate(BaseModel):
+    key: str
+    # 빈 이름 = 기본 이름
+    label: str | None = None
+    visible: bool = True
+
+    @field_validator("label", mode="before")
+    @classmethod
+    def strip_label(cls, v: object) -> object:
+        if isinstance(v, str):
+            v = v.strip()
+            if len(v) > MENU_LABEL_MAX:
+                raise ValueError(
+                    f"메뉴 이름은 {MENU_LABEL_MAX}자 이하로 입력해 주세요."
+                )
+            return v or None
+        return v
+
+
+class MenuUpdate(BaseModel):
+    items: list[MenuItemUpdate]
+
+
+class MenuItemResponse(BaseModel):
+    key: str
+    default_label: str
+    label: str | None
+    visible: bool
+
+
+class MenuResponse(BaseModel):
+    # theme: 섹션 순서를 따른다 / code: 순서를 바꿀 수 있다
+    mode: str
+    reorderable: bool
+    items: list[MenuItemResponse]

@@ -20,3 +20,16 @@ def load_sample(code: str) -> dict:
     if not path.exists():
         return {}
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+@lru_cache
+def load_menu(code: str) -> list[dict]:
+    """코드형 템플릿 상단 메뉴 기본값 [{key, title}] (T-036-B).
+
+    app/data/templates/{code}.menu.json — 클라이언트 templates/{key}/manifest.ts 의
+    menu: 'gnb' 페이지와 같은 순서 · 이름이어야 한다 (클라이언트 테스트가 비교).
+    """
+    path = _DIR / f"{code}.menu.json"
+    if not path.exists():
+        return []
+    return json.loads(path.read_text(encoding="utf-8"))
