@@ -5,11 +5,14 @@ import { Menu, X } from 'lucide-react'
 import type { PublicSection } from '@/lib/publicSite.types'
 import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 import { isMobileHidden } from '@/lib/mobileSettings'
+import { applyMenu, type MenuOverride } from '@/lib/menuSettings'
 
 interface NavbarProps {
   tenantName: string
   /** 관리자 공통 설정의 로고 — 있으면 상호 글자 대신 (T-036-A) */
   logoUrl?: string | null
+  /** 관리자 상단 메뉴 설정 (T-036-B) */
+  menuItems?: MenuOverride[] | null
   sections: PublicSection[]
   /** 있으면 우측에 방문자 계정 메뉴 (로그인 · 회원가입 / 마이페이지 · 로그아웃, T-113) */
   tenantSlug?: string
@@ -18,7 +21,7 @@ interface NavbarProps {
 const accountLinkClass =
   'text-sm text-[color:var(--color-text-secondary)] transition hover:text-[color:var(--color-primary)]'
 
-export function Navbar({ tenantName, logoUrl, sections, tenantSlug }: NavbarProps) {
+export function Navbar({ tenantName, logoUrl, menuItems, sections, tenantSlug }: NavbarProps) {
   const [scrolled, setScrolled] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -36,7 +39,12 @@ export function Navbar({ tenantName, logoUrl, sections, tenantSlug }: NavbarProp
     el?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
-  const navSections = sections.filter((s) => s.is_active)
+  // 관리자 상단 메뉴 설정 — 이름 · 보이기 (순서는 섹션 순서를 따른다, T-036-B)
+  const navSections = applyMenu(
+    sections.filter((s) => s.is_active).map((s) => ({ ...s, key: s.id })),
+    menuItems,
+    false,
+  )
   // 휴대폰 메뉴에는 휴대폰에서 숨긴 섹션을 넣지 않는다 — 눌러도 갈 곳이 없다 (T-037-D)
   const mobileNavSections = navSections.filter((s) => !isMobileHidden(s))
 

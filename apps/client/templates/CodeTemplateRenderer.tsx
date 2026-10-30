@@ -65,6 +65,7 @@ export async function CodeTemplateRenderer({
         sections={sections}
         siteInfo={siteInfo}
         preview={preview}
+        menuItems={useSample ? null : site.site_settings?.menu_items}
         previewQuery={previewQuery}
         detailId={detailId}
         query={query}

@@ -1,0 +1,6 @@
+[
+  { "key": "about", "title": "회사소개" },
+  { "key": "business", "title": "사업영역" },
+  { "key": "notice", "title": "공지사항" },
+  { "key": "consult", "title": "상담·예약" }
+]

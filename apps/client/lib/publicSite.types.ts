@@ -1,3 +1,5 @@
+import type { MenuOverride } from './menuSettings'
+
 export interface PublicTenant {
   id: string
   slug: string
@@ -86,6 +88,8 @@ export interface PublicSiteSettings {
   business_number: string | null
   logo_url: string | null
   favicon_url: string | null
+  /** 상단 메뉴 (T-036-B) — 없으면 템플릿 기본 메뉴 */
+  menu_items?: MenuOverride[] | null
 }
 
 export interface PublicSite {

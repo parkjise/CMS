@@ -48,3 +48,48 @@ export function useUpdateSiteSettings() {
     onSuccess: (saved) => queryClient.setQueryData(SITE_KEY, saved),
   })
 }
+
+// ── 상단 메뉴 (T-036-B) ────────────────────────────────────────────────
+
+export interface MenuItem {
+  key: string
+  default_label: string
+  label: string | null
+  visible: boolean
+}
+
+export interface SiteMenu {
+  /** theme: 섹션 순서를 따른다 / code: 순서를 바꿀 수 있다 */
+  mode: 'theme' | 'code'
+  reorderable: boolean
+  items: MenuItem[]
+}
+
+export interface MenuItemUpdate {
+  key: string
+  label: string | null
+  visible: boolean
+}
+
+const MENU_KEY = ['site-settings', 'menu'] as const
+
+export function useSiteMenu() {
+  return useQuery({
+    queryKey: MENU_KEY,
+    queryFn: async (): Promise<SiteMenu> => {
+      const { data } = await api.get('/v1/site-settings/menu')
+      return data.data
+    },
+  })
+}
+
+export function useUpdateSiteMenu() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (items: MenuItemUpdate[]): Promise<SiteMenu> => {
+      const { data } = await api.put('/v1/site-settings/menu', { items })
+      return data.data
+    },
+    onSuccess: (saved) => queryClient.setQueryData(MENU_KEY, saved),
+  })
+}

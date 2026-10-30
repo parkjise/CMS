@@ -3,6 +3,7 @@ import { Layers, Lock, Plus, Settings } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { AddSectionModal } from '@/components/content/AddSectionModal'
 import { SectionList } from '@/components/content/SectionList'
+import { MenuSettingsCard } from '@/components/content/MenuSettingsCard'
 import { SiteSettingsForm } from '@/components/content/SiteSettingsForm'
 import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
@@ -157,5 +158,11 @@ function AddSectionBar({ limits, onAdd }: { limits: SectionLimits; onAdd: () => 
 // ── 공통 설정 탭 — 사업체 정보 · 영업시간 · 로고 · 파비콘 (T-036-A) ─────────
 
 function SettingsTab() {
-  return <SiteSettingsForm />
+  return (
+    <div className="space-y-6">
+      <SiteSettingsForm />
+      {/* 상단 메뉴 이름 · 보이기 · 순서 (T-036-B) */}
+      <MenuSettingsCard />
+    </div>
+  )
 }
