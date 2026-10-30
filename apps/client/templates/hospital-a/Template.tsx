@@ -44,6 +44,8 @@ import { memberEnabled } from '@/lib/publicSite.types'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { MEMBER_PAGES } from '../memberPages'
 import { MemberScreen } from './components/member/MemberScreen'
+import { MobileHideMarker } from '@/components/MobileHideMarker'
+import { isMobileHidden } from '@/lib/mobileSettings'
 
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
@@ -273,7 +275,11 @@ export default function HospitalATemplate({
           </>
         ) : (
           sections.map(({ section, editable }) => (
-            <Fragment key={section.id}>{renderSection({ section, editable, tenantSlug })}</Fragment>
+            <Fragment key={section.id}>
+              {/* 휴대폰에서 숨기기 (T-037-D) — 감싸지 않고 앞에 표식만 (globals.css) */}
+              {isMobileHidden(section) && <MobileHideMarker />}
+              {renderSection({ section, editable, tenantSlug })}
+            </Fragment>
           ))
         )}
       </main>

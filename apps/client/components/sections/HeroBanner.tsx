@@ -6,6 +6,7 @@ import { HeroBgImageEditor } from '@/components/edit/HeroBgImageEditor'
 import { useEditStore } from '@/lib/editStore'
 import { parseButtonStyle, parseNewTab } from '@/lib/buttonStyle'
 import { getString, getValueType } from '@/lib/sectionSettings'
+import { mobileImage } from '@/lib/mobileSettings'
 import type { SectionProps } from './types'
 
 export function HeroBanner({ section }: SectionProps) {
@@ -21,19 +22,24 @@ export function HeroBanner({ section }: SectionProps) {
     (s) => s.pendingChanges[`${section.id}:bg_image_url`],
   )
   const currentBgImage = pending?.new_value ?? bgImage
+  // 휴대폰용 배경 (T-037-D) — 없으면 PC 이미지
+  const mobileBg = mobileImage(section) || currentBgImage
+  const layer = (url: string) =>
+    `linear-gradient(var(--color-overlay), var(--color-overlay)), url(${url})`
 
   return (
     <section
       data-section-id={section.id}
       data-section-type="HERO_BANNER"
-      className="relative flex min-h-[60vh] items-center justify-center bg-[var(--color-primary)] px-6 py-24 text-center md:min-h-[80vh]"
+      className={`relative flex min-h-[60vh] items-center justify-center bg-[var(--color-primary)] px-6 py-24 text-center md:min-h-[80vh]${
+        currentBgImage ? ' bg-cover bg-center bg-[image:var(--hero-bg-mobile)] md:bg-[image:var(--hero-bg)]' : ''
+      }`}
       style={
         currentBgImage
-          ? {
-              backgroundImage: `linear-gradient(var(--color-overlay), var(--color-overlay)), url(${currentBgImage})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }
+          ? ({
+              '--hero-bg': layer(currentBgImage),
+              '--hero-bg-mobile': layer(mobileBg),
+            } as React.CSSProperties)
           : undefined
       }
     >

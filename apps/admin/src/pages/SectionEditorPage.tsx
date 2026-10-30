@@ -3,6 +3,7 @@ import { ArrowLeft, Smartphone, Sliders } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from '@cms/ui'
 import { getFormForType } from '@/components/content/forms'
+import { MobileSettingsForm } from '@/components/content/forms/MobileSettingsForm'
 import { preserveRichText } from '@/components/content/forms/utils'
 import type { SettingUpdate } from '@/hooks/useSection'
 import { useSection, useUpdateSection } from '@/hooks/useSection'
@@ -125,10 +126,12 @@ export function SectionEditorPage() {
             onSubmit={handleSubmit}
           />
         ) : (
-          <div className="flex h-40 flex-col items-center justify-center text-sm text-slate-400">
-            <Smartphone className="mb-2 h-6 w-6 text-slate-300" />
-            모바일 전용 설정은 곧 제공됩니다.
-          </div>
+          // 휴대폰에서 숨기기 · 휴대폰용 배경 이미지 (T-037-D)
+          <MobileSettingsForm
+            section={section}
+            isSaving={updateMutation.isPending}
+            onSubmit={handleSubmit}
+          />
         )}
       </div>
     </div>

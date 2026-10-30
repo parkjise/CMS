@@ -72,6 +72,10 @@ export function SectionListItem({
   } = useSortable({ id: section.id })
 
   const sampleCount = sampleKeys(section).length
+  // 모바일 설정 → 휴대폰에서 숨기기 (T-037-D)
+  const mobileHidden = section.settings.some(
+    (s) => s.field_key === 'mobile_hidden' && s.field_value === 'true',
+  )
   const Icon = SECTION_ICONS[section.section_type] ?? Layout
   const typeLabel =
     SECTION_TYPE_LABELS[section.section_type] ?? section.section_type
@@ -121,6 +125,14 @@ export function SectionListItem({
                 title="템플릿 샘플 문구·이미지가 그대로 남아 있어요"
               >
                 샘플 {sampleCount}
+              </span>
+            )}
+            {mobileHidden && (
+              <span
+                className="flex-shrink-0 rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600"
+                title="휴대폰에서는 이 섹션이 보이지 않아요 (모바일 설정)"
+              >
+                📱 휴대폰 숨김
               </span>
             )}
           </div>

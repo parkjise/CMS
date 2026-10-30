@@ -160,3 +160,15 @@ body.edit-mode .section-controls:focus-within {
   opacity: 1;
 }
 
+
+/* ── 섹션 모바일 설정 (T-037-D) ─────────────────────────────────────────
+   휴대폰(767px 이하)에서 숨기는 섹션. 서버가 그린 화면에서 바로 적용돼 깜빡임이 없다.
+   - 테마형: 섹션 감싸개에 data-mobile-hidden
+   - 코드형: 섹션을 감싸지 않는 템플릿이라 바로 앞에 표식(data-mobile-hide)을 두고 다음 요소를 숨긴다
+   편집 모드(body.edit-mode)에서는 숨기지 않는다 — 사라진 줄 알고 헷갈리지 않게 */
+@media (max-width: 767px) {
+  body:not(.edit-mode) [data-mobile-hidden='true'],
+  body:not(.edit-mode) [data-mobile-hide] + * {
+    display: none !important;
+  }
+}

@@ -126,6 +126,19 @@ describe('섹션 목록 샘플 배지 (T-120)', () => {
     expect(screen.getByText('샘플 2')).toBeInTheDocument()
   })
 
+  it('휴대폰에서 숨긴 섹션에 표시를 붙인다 (T-037-D)', () => {
+    const section = makeSection('m', [false])
+    section.settings.push({
+      ...section.settings[0],
+      id: 'm-mobile',
+      field_key: 'mobile_hidden',
+      field_value: 'true',
+      value_type: 'BOOLEAN',
+    })
+    renderItem(section)
+    expect(screen.getByText('📱 휴대폰 숨김')).toBeInTheDocument()
+  })
+
   it('샘플이 없으면 배지를 표시하지 않는다', () => {
     renderItem(makeSection('a', [false]))
     expect(screen.queryByText(/샘플 \d/)).not.toBeInTheDocument()

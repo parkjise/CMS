@@ -167,6 +167,34 @@ describe('hospital-a 화면 (T-121)', () => {
     expect(screen.getByRole('complementary', { name: '빠른 메뉴' })).toBeInTheDocument()
   })
 
+  it('휴대폰에서 숨긴 섹션 바로 앞에 표식을 둔다 — 감싸지 않음 (T-037-D)', () => {
+    const [first, ...rest] = sections
+    const hidden = {
+      ...first,
+      section: {
+        ...first.section,
+        settings: [
+          ...first.section.settings,
+          { field_key: 'mobile_hidden', field_value: 'true', value_type: 'BOOLEAN' },
+        ],
+      },
+    }
+    const { container } = render(
+      <HospitalATemplate
+        site={site}
+        tenantSlug="demo"
+        pageKey="home"
+        sections={[hidden, ...rest]}
+        siteInfo={resolveSiteInfo(hospitalASample, site)}
+        preview={false}
+      />,
+    )
+    const markers = container.querySelectorAll('main [data-mobile-hide]')
+    expect(markers).toHaveLength(1)
+    // 표식 다음 형제가 숨길 섹션 (메인 슬라이더)
+    expect(markers[0].nextElementSibling).toHaveClass('hero-slider')
+  })
+
   it('공통 설정이 비어 있으면 푸터에 샘플 사업체 정보를 보이지 않는다 (T-036-A)', () => {
     const info = resolveSiteInfo(hospitalASample, { ...site, site_settings: null })
     render(

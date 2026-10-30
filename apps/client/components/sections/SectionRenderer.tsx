@@ -7,6 +7,7 @@ import { MapLoader } from './MapLoader'
 import { Services } from './Services'
 import type { SectionProps } from './types'
 import { isThemeRenderable } from '@/lib/themeSections'
+import { isMobileHidden } from '@/lib/mobileSettings'
 
 function SectionInner({ section, tenantSlug }: SectionProps) {
   switch (section.section_type) {
@@ -36,9 +37,15 @@ export function SectionRenderer({ section, tenantSlug }: SectionProps) {
     <div
       data-section-wrapper={section.id}
       data-display-order={section.display_order}
+      // 휴대폰에서 숨기기 (T-037-D) — globals.css
+      data-mobile-hidden={isMobileHidden(section) ? 'true' : undefined}
       className="section-wrapper"
     >
-      <SectionControls sectionId={section.id} label={section.label} />
+      <SectionControls
+        sectionId={section.id}
+        label={section.label}
+        mobileHidden={isMobileHidden(section)}
+      />
       <SectionInner section={section} tenantSlug={tenantSlug} />
     </div>
   )

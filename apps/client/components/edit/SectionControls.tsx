@@ -20,6 +20,8 @@ const REORDER_EVENT = 'cms-section-reordered'
 interface Props {
   sectionId: string
   label: string
+  /** 휴대폰에서 숨기는 섹션 — 편집 모드에서 배지로 알린다 (T-037-D) */
+  mobileHidden?: boolean
 }
 
 interface OrderPayloadItem {
@@ -46,7 +48,7 @@ const buildOrderPayload = (wrappers: HTMLElement[]): OrderPayloadItem[] => {
   }))
 }
 
-export function SectionControls({ sectionId, label }: Props) {
+export function SectionControls({ sectionId, label, mobileHidden = false }: Props) {
   // 미리보기 중에는 편집 UI 를 숨긴다 (T-065-B)
   const isEditMode = useEditStore(selectEditingUi)
 
@@ -147,6 +149,11 @@ export function SectionControls({ sectionId, label }: Props) {
         <span className="flex items-center gap-1 px-1 font-medium">
           <GripVertical className="h-3.5 w-3.5 text-[color:var(--color-text-muted)]" />
           <span className="max-w-[10rem] truncate">{label}</span>
+          {mobileHidden && (
+            <span className="ml-1 whitespace-nowrap rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-800">
+              📱 휴대폰에서 숨김
+            </span>
+          )}
         </span>
 
         <button
