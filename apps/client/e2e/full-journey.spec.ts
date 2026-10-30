@@ -845,6 +845,43 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 20: 관리자 공통 설정의 상단 메뉴 이름 · 숨기기가 홈페이지 메뉴에 반영된다 (T-036-B)', async ({
+    page,
+    request,
+  }) => {
+    const url = `${BACKEND_URL}/api/v1/site-settings/menu`
+    const menu = (await (await request.get(url, { headers: authHeader(token) })).json()).data
+    expect(menu.items.length, '메뉴로 보일 섹션이 2개 이상이어야 한다').toBeGreaterThanOrEqual(2)
+    const [first, second] = menu.items as { key: string; default_label: string }[]
+    try {
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/content`)
+      await page.getByRole('button', { name: '공통 설정' }).click()
+      await page.getByLabel(`${first.default_label} 메뉴 이름`).fill('E2E 메뉴')
+      await page.getByLabel(`${second.default_label} 메뉴 보이기`).uncheck()
+      const saved = page.waitForResponse(
+        (r) => r.url().endsWith('/v1/site-settings/menu') && r.request().method() === 'PUT',
+      )
+      await page.getByRole('button', { name: '메뉴 저장' }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      await page.goto(`${CLIENT_URL}/${slug}`)
+      const nav = page.locator('header nav').first()
+      await expect(nav.getByText('E2E 메뉴', { exact: true })).toBeVisible()
+      await expect(nav.getByText(first.default_label, { exact: true })).toHaveCount(0)
+      await expect(nav.getByText(second.default_label, { exact: true })).toHaveCount(0)
+    } finally {
+      const rb = await request.put(url, { headers: authHeader(token), data: { items: [] } })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
