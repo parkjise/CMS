@@ -882,6 +882,70 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 21: 관리자 목록 편집기로 메인 슬라이드 제목을 바꾸고 순서를 바꾸면 홈페이지 슬라이더에 반영된다 (T-037-E)', async ({
+    page,
+    request,
+  }) => {
+    const headers = authHeader(token)
+    const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
+      .data as { templates: Array<{ id: string; locked: boolean; renderer?: string }> }
+    const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
+    expect(code, '코드형 템플릿이 필요 — 시드 확인').toBeTruthy()
+    const applied = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+      headers,
+      data: { template_id: code!.id, content_mode: 'replace_with_sample' },
+    })
+    expect(applied.ok(), await applied.text()).toBeTruthy()
+    try {
+      const slider = await findSection(request, token, 'HERO_SLIDER')
+      await page.goto(`${ADMIN_URL}/login`)
+      await page.getByLabel('이메일').fill(email)
+      await page.getByLabel('비밀번호').fill(password)
+      await page.getByLabel('사이트 슬러그').fill(slug)
+      await page.getByRole('button', { name: '로그인' }).click()
+      await expect(page).toHaveURL(/\/admin\/dashboard/)
+
+      await page.goto(`${ADMIN_URL}/admin/content/${slider.id}`)
+      // JSON 글자 대신 슬라이드 카드 — 휴대폰용 사진 칸도 있다
+      await expect(page.getByText('슬라이드 1 휴대폰용 사진')).toBeVisible()
+      const title = page.getByLabel('슬라이드 2 제목')
+      await title.fill('E2E 두 번째 슬라이드')
+      await page.getByRole('button', { name: '슬라이드 2 위로' }).click()
+      await expect(page.getByLabel('슬라이드 1 제목')).toHaveValue('E2E 두 번째 슬라이드')
+      const saved = page.waitForResponse(
+        (r) => r.url().includes(`/v1/sections/${slider.id}`) && r.request().method() === 'PATCH',
+      )
+      await page.getByRole('button', { name: /저장/ }).click()
+      expect((await saved).ok()).toBeTruthy()
+
+      // 템플릿 확인 캐시(몇 초)가 지나 코드형 화면이 나올 때까지 (시나리오 13 과 같은 방식)
+      await expect
+        .poll(
+          async () => {
+            await page.goto(`${CLIENT_URL}/${slug}`)
+            return page.locator('.hero-slider').count()
+          },
+          { timeout: 15_000, intervals: [1_000] },
+        )
+        .toBeGreaterThan(0)
+      await expect(page.locator('.hero-slider')).toContainText('E2E 두 번째 슬라이드')
+    } finally {
+      const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+      // 홈페이지의 템플릿 확인 캐시(몇 초)가 지나 원래(테마형) 화면으로 돌아올 때까지 — 바뀌는 사이
+      // 잠깐 404 가 나므로 '코드형이 아님'이 아니라 '테마형 배너가 보임'을 기다린다 (시나리오 13 과 같음)
+      await expect
+        .poll(
+          async () => {
+            const res = await page.goto(`${CLIENT_URL}/${slug}`)
+            return (await page.locator('section[data-section-type="HERO_BANNER"]').count()) > 0 && res?.ok()
+          },
+          { timeout: 15_000, intervals: [1_000] },
+        )
+        .toBeTruthy()
+    }
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()

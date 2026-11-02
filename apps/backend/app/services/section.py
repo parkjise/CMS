@@ -13,7 +13,11 @@ from app.services.gallery_settings import (
     GALLERY_VALUE_TYPE,
     normalize_gallery_items,
 )
-from app.services.link_settings import is_url_field, validate_link_url
+from app.services.link_settings import (
+    is_url_field,
+    validate_link_url,
+    validate_nested_urls,
+)
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
 
 # main_title 필드 최대 길이
@@ -143,6 +147,8 @@ def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
             s.field_value = normalize_gallery_items(s.field_value)
             s.value_type = GALLERY_VALUE_TYPE
             continue
+        # 목록 칸 안의 주소 — 슬라이드 · 카드 링크 등 (T-037-E)
+        validate_nested_urls(s.field_key, s.field_value)
         if is_url_field(s.field_key):
             # 주소 칸 — javascript: 등 차단 (T-065-B)
             s.field_value = validate_link_url(s.field_key, s.field_value)
