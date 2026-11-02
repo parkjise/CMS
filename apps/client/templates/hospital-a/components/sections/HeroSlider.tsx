@@ -5,11 +5,13 @@ import Swiper from 'swiper'
 import { A11y, Autoplay, Navigation, Pagination } from 'swiper/modules'
 import { gsap } from 'gsap'
 import { getJson } from '@/lib/sectionSettings'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { ResponsiveImg } from '../../../shared/ResponsiveImg'
 import type { CodeSectionProps } from '../../../shared/contracts'
 
 interface HeroSlide {
   image_url: string
+  /** 휴대폰용 사진 (관리자 목록 편집기, T-037-E) — 없으면 PC 사진 */
+  mobile_image_url?: string
   title: string
   copy_primary?: string
   copy_secondary?: string
@@ -21,10 +23,11 @@ const HeroTrack = memo(function HeroTrack({ slides }: { slides: HeroSlide[] }) {
     <div className="hero-slider__track swiper-wrapper">
       {slides.map((slide, i) => (
         <div className="hero-slider__slide swiper-slide" key={`${slide.image_url}-${i}`}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- 목업 마크업(object-fit 배경) 유지 */}
-          <img
+          <ResponsiveImg
             className="hero-slider__image"
-            {...optimizedImg(slide.image_url, '100vw')}
+            src={slide.image_url}
+            mobileSrc={slide.mobile_image_url}
+            sizes="100vw"
             alt=""
             // 첫 슬라이드는 첫 화면 주인공 이미지 — 먼저 받고, 나머지는 나중에
             fetchPriority={i === 0 ? 'high' : 'low'}

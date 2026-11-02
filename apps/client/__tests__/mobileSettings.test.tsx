@@ -102,9 +102,34 @@ describe('코드형', () => {
     expect(source).toHaveAttribute('media', '(max-width: 767px)')
     expect(source?.getAttribute('srcset')).toContain(encodeURIComponent('/m.jpg'))
     expect(container.querySelector('picture > img.sub-hero__image')).toBeInTheDocument()
+    // grid · 절대 위치가 img 기준 그대로이도록 상자를 만들지 않는다 (T-037-E)
+    expect(container.querySelector('picture')).toHaveClass('contents')
 
     rerender(<ResponsiveImg className="sub-hero__image" src="/pc.jpg" sizes="100vw" />)
     expect(container.querySelector('picture')).toBeNull()
     expect(container.querySelector('img.sub-hero__image')).toBeInTheDocument()
   })
 })
+
+describe('메인 슬라이더 슬라이드별 휴대폰 사진 (T-037-E)', () => {
+  it('휴대폰 사진이 있는 슬라이드만 picture, 없는 슬라이드는 img', async () => {
+    const { HeroSlider } = await import('@/templates/hospital-a/components/sections/HeroSlider')
+    const slider = {
+      ...section('hs', '메인', {
+        slides: JSON.stringify([
+          { image_url: '/s1.jpg', mobile_image_url: '/s1-m.jpg', title: '첫째' },
+          { image_url: '/s2.jpg', title: '둘째' },
+        ]),
+      }),
+      section_type: 'HERO_SLIDER',
+    }
+    const { container } = render(<HeroSlider section={slider} editable={false} tenantSlug="demo" />)
+    const slides = container.querySelectorAll('.hero-slider__slide')
+    expect(slides[0].querySelector('picture > source')?.getAttribute('srcset')).toContain(
+      encodeURIComponent('/s1-m.jpg'),
+    )
+    expect(slides[1].querySelector('picture')).toBeNull()
+    expect(slides[1].querySelector('img.hero-slider__image')).toBeInTheDocument()
+  })
+})
+
