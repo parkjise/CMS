@@ -2,7 +2,8 @@
  * 템플릿 전용 라우트 공통 처리 (app/(code)/tpl-{key}/[tenant_slug]/[[...path]]).
  * 미들웨어가 /{slug}[/{page}[/{id}]] 를 /tpl-{key}/{slug}/... 로 rewrite 한다.
  *
- * - 테넌트가 실제로 이 템플릿을 쓰는지 다시 확인 (캐시 차이로 잘못 들어오면 404)
+ * - 테넌트가 실제로 이 템플릿을 쓰는지 다시 확인 — 템플릿을 바꾼 직후 미들웨어 기억 때문에
+ *   잘못 들어오면 404 대신 전환 안내 화면 (곧 다시 불러옴, T-037-F)
  * - 페이지 키는 매니페스트에 있는 것만, 상세·글쓰기({id})는 BOARD 페이지만
  * - member/{page} 는 회원 화면을 직접 그리는 템플릿만 (T-124, 회원 기능 꺼져 있으면 404)
  */
@@ -17,6 +18,7 @@ import { countSampleSettings } from '@/lib/sampleCount'
 import { CodeTemplateRenderer } from './CodeTemplateRenderer'
 import { MEMBER_PAGES, MEMBER_SCREEN_TEMPLATES, isMemberPage, type MemberPageKey } from './memberPages'
 import type { CodeTemplateEntry } from './shared/contracts'
+import { TemplateSwitching } from './shared/TemplateSwitching'
 
 export interface CodeRouteParams {
   tenant_slug: string
@@ -32,20 +34,27 @@ interface Resolved {
   memberPage?: MemberPageKey
 }
 
+/** 테넌트는 있는데 지금 다른 템플릿을 쓴다 — 방금 바꿨고 미들웨어가 아직 이전 템플릿을 기억하는 중 */
+export const SWITCHING = 'switching'
+type Resolution = Resolved | typeof SWITCHING | null
+
+const usesTemplate = (entry: CodeTemplateEntry, site: PublicSite): boolean =>
+  site.template?.code?.toLowerCase() === entry.manifest.id.toLowerCase()
+
 async function resolveMember(
   entry: CodeTemplateEntry,
   params: CodeRouteParams,
-): Promise<Resolved | null> {
+): Promise<Resolution> {
   const [, page, ...extra] = params.path ?? []
   if (extra.length > 0 || !isMemberPage(page)) return null
   if (!MEMBER_SCREEN_TEMPLATES.has(entry.manifest.key)) return null
   const site = await fetchPublicSite(params.tenant_slug)
   if (!site || !memberEnabled(site)) return null
-  if (site.template?.code?.toLowerCase() !== entry.manifest.id.toLowerCase()) return null
+  if (!usesTemplate(entry, site)) return SWITCHING
   return { site, pageKey: 'member', pageTitle: MEMBER_PAGES[page], memberPage: page }
 }
 
-async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promise<Resolved | null> {
+async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promise<Resolution> {
   if (params.path?.[0] === 'member') return resolveMember(entry, params)
   const [pageKey = 'home', detailId, ...extra] = params.path ?? []
   if (extra.length > 0 || pageKey === 'home' && params.path?.length) return null
@@ -55,8 +64,7 @@ async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promi
 
   const site = await fetchPublicSite(params.tenant_slug)
   if (!site) return null
-  const code = site.template?.code?.toLowerCase()
-  if (code !== entry.manifest.id.toLowerCase()) return null
+  if (!usesTemplate(entry, site)) return SWITCHING
 
   return {
     site,
@@ -72,6 +80,7 @@ export async function codeRouteMetadata(
 ): Promise<Metadata> {
   const resolved = await resolve(entry, params)
   if (!resolved) return { title: '페이지를 찾을 수 없습니다', robots: { index: false, follow: false } }
+  if (resolved === SWITCHING) return { robots: { index: false, follow: false } }
   if (resolved.pageKey === 'home') return {} // 메인은 [tenant_slug] 레이아웃 메타 그대로
   return {
     title: `${resolved.pageTitle} | ${resolved.site.tenant.name}`,
@@ -94,6 +103,7 @@ export async function CodeRoutePage({
 }) {
   const resolved = await resolve(entry, params)
   if (!resolved) notFound()
+  if (resolved === SWITCHING) return <TemplateSwitching />
   const { site, pageKey, detailId, memberPage } = resolved
   const pageSections = site.sections.filter((s) => (s.page_key ?? 'home') === pageKey)
 
