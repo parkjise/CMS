@@ -12,6 +12,7 @@ import {
   saveFields,
   settingValue,
   superLogin,
+  visitWhileSwitching,
 } from './helpers'
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -516,16 +517,8 @@ test.describe('T-078 전체 통합 시나리오', () => {
     })
     expect(applied.ok(), await applied.text()).toBeTruthy()
     try {
-      // 템플릿 확인 캐시가 짧아 몇 초 안에 새 템플릿 화면 (예전엔 최대 60초 · 그동안 404)
-      await expect
-        .poll(
-          async () => {
-            await page.goto(`${CLIENT_URL}/${slug}`)
-            return page.locator('aside.quick-menu').count()
-          },
-          { timeout: 15_000, intervals: [1_000] },
-        )
-        .toBeGreaterThan(0)
+      // 바꾼 직후 바로 들어가도 404 가 아니고, 다시 이동하지 않아도 몇 초 안에 새 템플릿 화면
+      await visitWhileSwitching(page, `${CLIENT_URL}/${slug}`, page.locator('aside.quick-menu'))
 
       // 홈페이지 로그인 → 왼쪽 아래 '편집 모드' → 글 고치기 → 저장
       await page.goto(`${CLIENT_URL}/${slug}/login`)
@@ -561,16 +554,12 @@ test.describe('T-078 전체 통합 시나리오', () => {
       expect(rb.ok(), await rb.text()).toBeTruthy()
       await page.evaluate(() => localStorage.removeItem('cms-edit-draft')).catch(() => {})
     }
-    // 되돌리면 몇 초 안에 원래(테마형) 화면 — 404 가 아니다
-    await expect
-      .poll(
-        async () => {
-          const res = await page.goto(`${CLIENT_URL}/${slug}`)
-          return (await page.locator('section[data-section-type="HERO_BANNER"]').count()) > 0 && res?.ok()
-        },
-        { timeout: 15_000, intervals: [1_000] },
-      )
-      .toBeTruthy()
+    // 되돌린 직후에도 404 가 아니고, 몇 초 안에 원래(테마형) 화면
+    await visitWhileSwitching(
+      page,
+      `${CLIENT_URL}/${slug}`,
+      page.locator('section[data-section-type="HERO_BANNER"]'),
+    )
   })
 
   test('시나리오 14: 관리자에서 버튼을 테두리 스타일 · 새 창으로 저장하면 홈페이지 버튼에 반영 (T-088-A)', async ({
@@ -918,31 +907,16 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.getByRole('button', { name: /저장/ }).click()
       expect((await saved).ok()).toBeTruthy()
 
-      // 템플릿 확인 캐시(몇 초)가 지나 코드형 화면이 나올 때까지 (시나리오 13 과 같은 방식)
-      await expect
-        .poll(
-          async () => {
-            await page.goto(`${CLIENT_URL}/${slug}`)
-            return page.locator('.hero-slider').count()
-          },
-          { timeout: 15_000, intervals: [1_000] },
-        )
-        .toBeGreaterThan(0)
+      await visitWhileSwitching(page, `${CLIENT_URL}/${slug}`, page.locator('.hero-slider'))
       await expect(page.locator('.hero-slider')).toContainText('E2E 두 번째 슬라이드')
     } finally {
       const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
       expect(rb.ok(), await rb.text()).toBeTruthy()
-      // 홈페이지의 템플릿 확인 캐시(몇 초)가 지나 원래(테마형) 화면으로 돌아올 때까지 — 바뀌는 사이
-      // 잠깐 404 가 나므로 '코드형이 아님'이 아니라 '테마형 배너가 보임'을 기다린다 (시나리오 13 과 같음)
-      await expect
-        .poll(
-          async () => {
-            const res = await page.goto(`${CLIENT_URL}/${slug}`)
-            return (await page.locator('section[data-section-type="HERO_BANNER"]').count()) > 0 && res?.ok()
-          },
-          { timeout: 15_000, intervals: [1_000] },
-        )
-        .toBeTruthy()
+      await visitWhileSwitching(
+        page,
+        `${CLIENT_URL}/${slug}`,
+        page.locator('section[data-section-type="HERO_BANNER"]'),
+      )
     }
   })
 
