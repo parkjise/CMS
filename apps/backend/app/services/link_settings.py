@@ -6,7 +6,9 @@
 빈 값. 주소 안의 공백 · 꺾쇠 · 따옴표는 거절한다.
 """
 
+import json
 import re
+from typing import Any
 
 _C = r"[^\s<>\"'`]"  # 공백 · 꺾쇠 · 따옴표 제외
 _SAFE_URL = re.compile(
@@ -37,3 +39,34 @@ def validate_link_url(field: str, value: str | None) -> str | None:
             f"{field} 주소는 https:// · tel: · mailto: · / 로 시작해야 합니다."
         )
     return url
+
+
+def _walk_urls(field: str, data: Any, where: str) -> None:
+    if isinstance(data, list):
+        for i, item in enumerate(data, start=1):
+            _walk_urls(field, item, f"{where} {i}번째 항목")
+    elif isinstance(data, dict):
+        for key, val in data.items():
+            if isinstance(val, str) and is_url_field(str(key)):
+                try:
+                    validate_link_url(str(key), val)
+                except LinkUrlError as exc:
+                    raise LinkUrlError(f"{where.strip()}: {exc}") from exc
+            elif isinstance(val, (list, dict)):
+                _walk_urls(field, val, where)
+
+
+def validate_nested_urls(field: str, value: str | None) -> None:
+    """목록 칸(JSON) 안의 `*_url` 값 검사 — 슬라이드 · 카드 링크 등 (T-037-E).
+
+    맨 바깥 칸만 검사하던 때는 목록 안에 javascript: 주소를 넣을 수 있었다.
+    JSON 목록이 아니면 아무것도 하지 않는다 (다른 검사에 맡김).
+    """
+    text = (value or "").strip()
+    if not text.startswith("["):
+        return
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return
+    _walk_urls(field, data, field)
