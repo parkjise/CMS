@@ -1,3 +1,4 @@
+import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
@@ -7,11 +8,23 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { countSampleSettings } from '@/lib/sampleCount'
-import { memberEnabled } from '@/lib/publicSite.types'
+import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
 import { themeHomeSections } from '@/lib/themeSections'
+import { codeTemplateKey } from '@/templates/manifests'
+import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
+}
+
+/** 테넌트가 코드형 템플릿을 쓰는데 테마형 라우트로 들어왔는지 — 방금 템플릿을 바꾼 경우 */
+const isSwitching = (site: PublicSite): boolean =>
+  site.template?.renderer === 'code' && codeTemplateKey(site.template.code) !== null
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const site = await fetchPublicSite((await params).tenant_slug)
+  // 전환 안내 화면은 검색엔진 색인 제외 (T-037-F)
+  return site && isSwitching(site) ? { robots: { index: false, follow: false } } : {}
 }
 
 export default async function TenantHomePage({ params }: Props) {
@@ -20,6 +33,11 @@ export default async function TenantHomePage({ params }: Props) {
 
   if (!site) {
     notFound()
+  }
+
+  // 방금 코드형 템플릿으로 바꿨는데 미들웨어가 아직 테마형으로 기억하는 중 — 곧 다시 불러온다 (T-037-F)
+  if (isSwitching(site)) {
+    return <TemplateSwitching />
   }
 
   const jsonLd = buildLocalBusinessJsonLd(site)

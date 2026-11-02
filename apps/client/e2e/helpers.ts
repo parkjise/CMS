@@ -1,4 +1,4 @@
-import { type APIRequestContext, expect } from '@playwright/test'
+import { type APIRequestContext, type Locator, type Page, expect } from '@playwright/test'
 
 // 크로스 앱 E2E는 전체 스택(백엔드+DB 시드, 3개 프론트)이 필요하다.
 // 기본은 스킵되며, 스택을 띄운 뒤 E2E_FULL_STACK=1 로 활성화한다.
@@ -124,4 +124,15 @@ export async function superLogin(request: APIRequestContext): Promise<string> {
   const body = await res.json()
   expect(body.data.requires_2fa).toBe(false)
   return body.data.access_token
+}
+
+/**
+ * 템플릿을 바꾼 직후 홈페이지 방문 (T-037-F) — 몇 초 동안 미들웨어가 이전 템플릿을 기억해도
+ * 404 가 아니라 전환 안내 화면이 나오고, 스스로 다시 불러와 새 템플릿(`ready`)이 뜬다.
+ * 문서만 기다린다 — 개발 서버의 이미지 최적화(/_next/image)가 처음엔 늦어 load 가 한참 안 올 수 있다.
+ */
+export async function visitWhileSwitching(page: Page, url: string, ready: Locator) {
+  const res = await page.goto(url, { waitUntil: 'domcontentloaded' })
+  expect(res?.status(), '템플릿 전환 직후에도 404 가 아니어야 한다').toBe(200)
+  await expect(ready.first()).toBeVisible({ timeout: 15_000 })
 }
