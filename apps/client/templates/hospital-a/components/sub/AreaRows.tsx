@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface AreaRow {
   image_url: string
@@ -31,10 +32,21 @@ export function AreaRows(props: CodeSectionProps) {
             <div className="area-rows__body">
               <h3 className="area-rows__title">
                 <a className="area-rows__link" href={row.link_url || '#'}>
-                  {row.title}
+                  <TemplateListText section={section} editable={editable} field="rows" index={i} itemKey="title" maxLength={40} label={`${i + 1}번 영역 제목`} />
                 </a>
               </h3>
-              {row.description && <p className="area-rows__desc">{row.description}</p>}
+              <TemplateListText
+                section={section}
+                editable={editable}
+                field="rows"
+                index={i}
+                itemKey="description"
+                as="p"
+                className="area-rows__desc"
+                multiline
+                maxLength={300}
+                label={`${i + 1}번 영역 설명`}
+              />
             </div>
           </div>
         ))}

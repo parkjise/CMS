@@ -1,9 +1,9 @@
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
-import { RichLine } from './RichText'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface Milestone {
   year: string
@@ -33,13 +33,26 @@ export function MilestoneSplit(props: CodeSectionProps) {
             <TemplateImage section={section} editable={editable} field="right_image_url" className="milestone-split__image" sizes="(min-width: 1024px) 40vw, 100vw" maxWidth={1200} alt={s('right_image_alt')} loading="lazy" />
           </figure>
           <ol className="milestone-split__list">
-            {milestones.map((m) => (
-              <li className="milestone-split__item" key={`${m.year}-${m.text}`}>
+            {milestones.map((m, i) => (
+              <li className="milestone-split__item" key={`${m.year}-${i}`}>
                 <p className="milestone-split__year">
-                  <time dateTime={m.year}>{m.year}</time>,
+                  <time dateTime={m.year}>
+                    <TemplateListText section={section} editable={editable} field="milestones" index={i} itemKey="year" maxLength={10} label={`${i + 1}번 연혁 연도`} />
+                  </time>
+                  ,
                 </p>
                 <p className="milestone-split__text">
-                  <RichLine text={m.text} />
+                  <TemplateListText
+                    section={section}
+                    editable={editable}
+                    field="milestones"
+                    index={i}
+                    itemKey="text"
+                    multiline
+                    maxLength={200}
+                    label={`${i + 1}번 연혁 내용`}
+                    boldMarks
+                  />
                 </p>
               </li>
             ))}

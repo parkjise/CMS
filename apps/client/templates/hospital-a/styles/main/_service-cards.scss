@@ -30,9 +30,10 @@
     transition: all 0.4s;
     @include focus-ring;
 
-    // 호버·키보드 포커스 모두 같은 효과
+    // 호버·키보드 포커스 모두 같은 효과 — 편집 모드에서 카드 글자를 고치는 동안(focus-within)도 (T-125-E)
     &:hover,
-    &:focus-visible {
+    &:focus-visible,
+    &:focus-within {
       .service-cards__media {
         filter: blur(10px);
       }

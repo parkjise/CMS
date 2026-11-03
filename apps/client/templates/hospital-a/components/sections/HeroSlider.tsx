@@ -6,6 +6,8 @@ import { A11y, Autoplay, Navigation, Pagination } from 'swiper/modules'
 import { gsap } from 'gsap'
 import { getJson } from '@/lib/sectionSettings'
 import { ImageEditButtons, TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
+import { selectEditingUi, useEditStore } from '@/lib/editStore'
 import type { PublicSection } from '@/lib/publicSite.types'
 import type { CodeSectionProps } from '../../../shared/contracts'
 
@@ -47,7 +49,7 @@ const HeroTrack = memo(function HeroTrack({ section, slides }: { section: Public
 /**
  * 메인 비주얼 슬라이드 — 목업 sections/hero-slider.html + assets/js/hero-slider.js
  * 설정 키: slides [{ image_url, title, copy_primary, copy_secondary }]
- * 슬라이드 추가 · 글자는 관리자(AD-02)에서, 사진은 편집 모드에서도 바꾼다 (T-125-B)
+ * 슬라이드 추가 · 순서는 관리자(AD-02)에서, 사진 · 글자는 편집 모드에서도 바꾼다 (T-125-B · E)
  */
 export function HeroSlider({ section, editable }: CodeSectionProps) {
   const slides = getJson<HeroSlide[]>(section.settings, 'slides', [])
@@ -86,6 +88,16 @@ export function HeroSlider({ section, editable }: CodeSectionProps) {
       swiperRef.current = null
     }
   }, [slides.length])
+
+  // 편집 모드에서는 저절로 넘어가거나 끌려 넘어가지 않게 — 글자를 고치는 도중 슬라이드가 바뀌지 않도록 (T-125-E)
+  const isEditing = useEditStore(selectEditingUi) && editable
+  useEffect(() => {
+    const swiper = swiperRef.current
+    if (!swiper) return
+    swiper.allowTouchMove = !isEditing
+    if (isEditing) swiper.autoplay.stop()
+    else swiper.autoplay.start()
+  }, [isEditing, slides.length])
 
   // 슬라이드가 바뀌면 카피를 아래에서 위로 차례로 등장
   // 첫 화면 카피는 바로 보이게 둔다 — 숨겼다 나타내면 첫 화면 표시(LCP)가 애니메이션만큼 늦어진다 (T-125)
@@ -144,19 +156,39 @@ export function HeroSlider({ section, editable }: CodeSectionProps) {
                 contentRefs.current[i] = el
               }}
             >
-              <h2 className="hero-slider__title">{slide.title}</h2>
+              <TemplateListText
+                section={section}
+                editable={editable}
+                field="slides"
+                index={i}
+                itemKey="title"
+                as="h2"
+                className="hero-slider__title"
+                maxLength={40}
+                label={`${i + 1}번 슬라이드 제목`}
+              />
               {(slide.copy_primary || slide.copy_secondary) && (
                 <p className="hero-slider__copy" lang="en">
-                  {slide.copy_primary && (
-                    <span className="hero-slider__copy-line hero-slider__copy-line--primary">
-                      {slide.copy_primary}
-                    </span>
-                  )}
-                  {slide.copy_secondary && (
-                    <span className="hero-slider__copy-line hero-slider__copy-line--secondary">
-                      {slide.copy_secondary}
-                    </span>
-                  )}
+                  <TemplateListText
+                    section={section}
+                    editable={editable}
+                    field="slides"
+                    index={i}
+                    itemKey="copy_primary"
+                    className="hero-slider__copy-line hero-slider__copy-line--primary"
+                    maxLength={40}
+                    label={`${i + 1}번 슬라이드 영문 카피 1`}
+                  />
+                  <TemplateListText
+                    section={section}
+                    editable={editable}
+                    field="slides"
+                    index={i}
+                    itemKey="copy_secondary"
+                    className="hero-slider__copy-line hero-slider__copy-line--secondary"
+                    maxLength={40}
+                    label={`${i + 1}번 슬라이드 영문 카피 2`}
+                  />
                 </p>
               )}
             </div>
