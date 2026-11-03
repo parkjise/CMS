@@ -3,7 +3,7 @@
 
 **문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
+**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-125-G 반영) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -337,6 +337,8 @@ async def get_db_with_rls(
 - 순서 저장: 드롭 완료 이벤트 → `PATCH /api/sections/order` (배열 인덱스 전송)
 - 낙관적 업데이트(Optimistic Update) 적용: UI 즉시 반영 후 API 응답 검증
 
+**구현 메모 — [TAB: 공통 설정] (T-036-A · T-036-B):** 사업체 정보(대표 전화 · 이메일 · 주소 · 상세 주소 · 평일 / 토요일 영업시간 · 안내 · 주차 · 대표자 · 사업자등록번호) · 로고 · 파비콘 · 상단 메뉴(이름 · 보이기 · 코드형은 순서, 테마형은 섹션 순서를 따름). `?tab=settings` 로 이 탭을 바로 연다 (T-125-F). 값은 테마형 · 코드형 푸터 · 로고 · 파비콘 · JSON-LD 와 오시는 길(11.9)에 쓰이며, 영업시간은 자유 입력이라 JSON-LD `openingHours` 에 넣지 않는다.
+
 #### AD-02-B: 섹션 개별 편집 (메인 비주얼 예시)
 
 ```
@@ -408,6 +410,12 @@ async def get_db_with_rls(
 [프론트엔드: 최적화 결과 토스트 표시]
 "✅ 8.2MB → 340KB로 최적화되었습니다."
 ```
+
+**구현 메모 — AD-02-B:**
+- **모바일 설정 탭 (T-037-D):** 휴대폰에서 숨기기(767px 이하, 편집 모드에서는 보임) · 배경 사진 섹션의 휴대폰용 배경. 없으면 PC 사진을 쓴다.
+- **버튼 (T-088-A):** 버튼 스타일(채워진 · 테두리) · 새 창 열기가 관리자 · 편집 모드 팝업 · 홈페이지에서 일치한다. 새 창은 `noopener`.
+- **목록 칸 편집기 (T-037-E):** 슬라이드 · 카드 · 갤러리 등 목록 칸은 항목 카드로 추가 · 삭제 · 순서 변경. 저장 형식은 그대로 JSON, 목록 안 목록은 JSON 글자로 고친다. 게시판 샘플 글(BOARD · NOTICE_LATEST)은 제외.
+- **사진 칸 (T-125-B):** 사진 하나인 칸(`image_url` · `bg_image_url` 등)도 주소 입력 대신 업로드.
 
 ---
 
@@ -680,6 +688,8 @@ Access Token 갱신. Refresh Token은 Cookie에서 자동 추출.
 #### POST /auth/logout
 Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 
+**구현 메모 (T-043-B):** `POST /auth/refresh` 응답에 내 정보(`user`)를 포함해 첫 화면의 `/auth/me` 왕복을 없앴다.
+
 ---
 
 ### 5.3 섹션/콘텐츠 API
@@ -705,7 +715,8 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
           "bg_image_url": "https://cdn.cms.com/ten_uuid/hero/main_v3.webp",
           "cta_text": "온라인 상담하기",
           "cta_url": "/contact",
-          "cta_target": "_self"
+          "cta_style": "filled",
+          "cta_new_tab": false
         }
       },
       {
@@ -769,6 +780,15 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 ```json
 { "is_active": false }
 ```
+
+**구현 메모 — 섹션 설정 값:**
+- `cta_style`(`filled` · `outline`) · `cta_new_tab` (T-088-A)
+- `mobile_hidden`(true / false 로 정리, 다른 값 400) · `mobile_image_url`(주소 검사). 메인 슬라이더는 슬라이드별 `mobile_image_url` (T-037-D · T-037-E)
+- 목록 칸 안의 `*_url` 도 주소를 검사한다 — 위험한 주소는 400 + 몇 번째 항목인지 (관리자 저장 · 편집 모드 저장, T-037-E)
+
+**구현 메모 — 공통 설정 API (T-036-A · T-036-B):**
+- `GET/PUT /api/v1/site-settings` — 생략 = 그대로, `""` = 지우기. 전화 · 이메일 · 사업자번호 형식과 글자 수를 검사(400 + 칸 이름), 사업자번호는 `123-45-67890` 으로 정리, 저장 시 홈페이지 캐시 비움. 공개 사이트 응답에 `site_settings` 포함.
+- `GET/PUT /api/v1/site-settings/menu` — 지금 템플릿의 기본 메뉴(테마형: 노출 중인 홈 섹션 / 코드형: 템플릿 페이지) + 저장값. 지금 템플릿에 없는 key · 중복은 400, 이름 20자, 빈 이름 = 기본 이름. 다른 템플릿용 저장값은 남겨 템플릿을 되돌리면 다시 쓴다.
 
 ---
 
@@ -840,6 +860,10 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
         "format": "webp"
     }
 ```
+
+**구현 메모:**
+- `context` 추가: `site`(로고 · 파비콘, T-036-A) · `seo`(공유 이미지, T-037-C) — 둘은 `section_id` 없이 올리고, 섹션 용도는 `section_id` 필수(400). 30일 미사용 이미지 정리는 `seo_settings.og_image_url` 을 사용 중으로 본다.
+- `GET /api/v1/billing/storage` — 사용량 · 요금제 한도 bytes (업로드 한도 검사와 같은 계산, T-037-C).
 
 ---
 
@@ -943,38 +967,27 @@ SNS 설정 전체 저장
 **Request:**
 ```json
 {
-  "channels": [
-    {
-      "type": "INSTAGRAM",
-      "url": "https://instagram.com/my_hospital",
-      "is_active": true,
-      "show_in_footer": true,
-      "show_as_floating": false
-    },
-    {
-      "type": "KAKAO",
-      "url": "https://pf.kakao.com/_xAbCdE",
-      "is_active": true,
-      "show_in_footer": true,
-      "show_as_floating": true
-    }
-  ],
-  "notification": {
-    "kakao_phone": "010-1234-5678",
-    "sms_phone": "010-1234-5678",
-    "email": "admin@hospital.com",
-    "use_kakao": true,
-    "use_sms": true,
-    "use_email": false
-  }
+  "instagram_url": "https://instagram.com/my_hospital",
+  "kakao_url": "https://pf.kakao.com/_xAbCdE",
+  "facebook_url": null,
+  "youtube_url": null,
+  "blog_url": null,
+  "naver_url": null,
+  "show_in_footer": true,
+  "show_floating": true,
+  "floating_position": "BOTTOM_RIGHT"
 }
 ```
+
+알림 수신 설정은 별도 API `GET/PUT /notification-settings`, `POST /notification-settings/test` 를 쓴다.
 
 #### POST /sns-settings/test-url
 URL 유효성 테스트
 
 **Request:** `{ "url": "https://instagram.com/my_hospital" }`  
 **Response:** `{ "valid": true, "status_code": 200, "response_time_ms": 234 }`
+
+**구현 메모 — 노출 위치 (T-038-A):** 조회 · 저장 · 공개 사이트 응답에 `show_in_footer` · `show_floating` · `floating_position`(`BOTTOM_RIGHT` · `BOTTOM_LEFT`) 포함. 채널 수 한도는 저장 후 **주소가 있는** 채널 수로 확인한다. 코드형 템플릿은 SNS 설정을 쓰지 않는다.
 
 ---
 
@@ -997,6 +1010,12 @@ URL 유효성 테스트
 }
 ```
 
+**구현 메모 — 대표 키워드 (T-040-A):**
+- `PUT /api/v1/seo-settings` 의 `keywords` — 공백 정리 · 빈 값 · 중복 제거, 최대 5개 · 1개 30자(넘으면 400), 생략 = 그대로, `[]` = 모두 지움.
+- BASIC 이 키워드를 바꾸면 422 `PLAN_LIMIT_EXCEEDED`. 요금제를 내려도 저장된 키워드는 지우지 않고 계속 쓴다.
+- `GET /api/v1/seo-settings/limits` — 허용 여부 · 개수 · 글자 수 (요금제 판단은 서버).
+- 공개 응답 → JSON-LD `keywords`, 요청에 키워드가 없는 AI 문구 추천에도 쓴다.
+
 ---
 
 ## 6. 데이터베이스 스키마 설계
@@ -1011,8 +1030,8 @@ URL 유효성 테스트
 ```
 tenants (1) ──< users (N)
 tenants (1) ──< sections (N)
-tenants (1) ──< site_settings (N)     ← Key-Value 설정 저장소
-tenants (1) ──< sns_channel_settings (N)
+tenants (1) ──  site_settings (1)     ← 사업체 공통 정보 · 상단 메뉴
+tenants (1) ──  sns_channel_settings (1)
 tenants (1) ──< inquiries (N)
 tenants (1) ──< site_analytics (N)
 tenants (1) ──< notification_settings (1)
@@ -1127,7 +1146,8 @@ CREATE POLICY section_settings_tenant_isolation ON section_settings
 | sec_uuid | bg_image_url | https://cdn.../hero.webp | URL |
 | sec_uuid | cta_text | 온라인 상담하기 | STRING |
 | sec_uuid | cta_url | /contact | STRING |
-| sec_uuid | cta_target | _self | STRING |
+| sec_uuid | cta_style | filled | STRING |
+| sec_uuid | cta_new_tab | false | BOOLEAN |
 
 #### inquiries (문의 데이터)
 
@@ -1165,19 +1185,19 @@ CREATE POLICY inquiries_tenant_isolation ON inquiries
 ```sql
 CREATE TABLE sns_channel_settings (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  channel_type    VARCHAR(30) NOT NULL
-                  CHECK (channel_type IN (
-                    'INSTAGRAM','NAVER_BLOG','KAKAO','YOUTUBE',
-                    'FACEBOOK','TIKTOK','TWITTER'
-                  )),
-  url             VARCHAR(500),
-  is_active       BOOLEAN NOT NULL DEFAULT false,
+  tenant_id       UUID NOT NULL UNIQUE,     -- 테넌트당 1행
+  kakao_url       VARCHAR(500),
+  instagram_url   VARCHAR(500),
+  facebook_url    VARCHAR(500),
+  youtube_url     VARCHAR(500),
+  blog_url        VARCHAR(500),
+  naver_url       VARCHAR(500),
   show_in_footer  BOOLEAN NOT NULL DEFAULT true,
-  show_as_floating BOOLEAN NOT NULL DEFAULT false,
-  display_order   SMALLINT NOT NULL DEFAULT 0,
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (tenant_id, channel_type)
+  show_floating   BOOLEAN NOT NULL DEFAULT true,
+  floating_position VARCHAR(20) NOT NULL DEFAULT 'BOTTOM_RIGHT'
+                  CHECK (floating_position IN ('BOTTOM_RIGHT','BOTTOM_LEFT')),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 ALTER TABLE sns_channel_settings ENABLE ROW LEVEL SECURITY;
@@ -1211,7 +1231,7 @@ CREATE TABLE seo_settings (
   tenant_id       UUID UNIQUE NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   page_title      VARCHAR(60),
   meta_description VARCHAR(160),
-  keywords        VARCHAR(500)[],                 -- 배열 타입
+  keywords        VARCHAR(30)[] NOT NULL DEFAULT '{}',  -- 최대 5개 (서버 검사)
   og_title        VARCHAR(60),
   og_description  VARCHAR(200),
   og_image_url    VARCHAR(500),
@@ -1262,6 +1282,50 @@ CREATE TABLE uploaded_files (
 
 -- 스토리지 사용량 조회용
 CREATE INDEX idx_files_tenant ON uploaded_files(tenant_id);
+```
+
+#### site_settings (사업체 공통 정보 — T-036-A · T-036-B)
+
+```sql
+-- 마이그레이션 0030 · 0031, RLS 적용, 테넌트당 1행
+CREATE TABLE site_settings (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL UNIQUE,
+  phone           VARCHAR(20),
+  email           VARCHAR(255),
+  address         VARCHAR(200),
+  address_detail  VARCHAR(100),
+  hours_weekday   VARCHAR(100),
+  hours_saturday  VARCHAR(100),
+  hours_note      VARCHAR(200),
+  parking         VARCHAR(200),
+  ceo             VARCHAR(50),
+  business_number VARCHAR(12),
+  logo_url        VARCHAR(500),
+  favicon_url     VARCHAR(500),
+  menu_items      JSONB,        -- 순서대로 [{key, label, visible}], key 는 테마형 섹션 id · 코드형 페이지 key
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+#### ai_reports (AI 월간 리포트 — T-073-A)
+
+```sql
+-- 마이그레이션 0028, RLS 적용
+CREATE TABLE ai_reports (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL,
+  period          DATE NOT NULL,
+  kind            VARCHAR(10) NOT NULL CHECK (kind IN ('AUTO','MANUAL')),
+  source          VARCHAR(10) NOT NULL CHECK (source IN ('ai','rule')),
+  summary         TEXT NOT NULL,
+  metrics         JSONB NOT NULL,
+  strengths       JSONB NOT NULL,
+  improvements    JSONB NOT NULL,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
 ```
 
 ### 6.3 데이터 보관 정책
@@ -1454,6 +1518,8 @@ async def notification_stream(
     )
 ```
 
+**구현 메모 (T-043-A):** 기다리는 메시지가 없으면 keepalive 를 20초마다 1번만 보낸다. 예전에는 쉬지 않고 보내 2초에 약 230KB 가 나갔다. 대시보드는 첫 화면을 그린 뒤 연결한다.
+
 ---
 
 ## 8. 비기능 요구사항 (NFR)
@@ -1467,6 +1533,8 @@ async def notification_stream(
 | 이미지 최적화 처리 | ≤ 5초 (20MB 기준) | 서버 로그 |
 | 알림톡 발송 지연 | ≤ 30초 (문의 접수 후) | 큐 모니터링 |
 | 동시 접속 테넌트 | ≥ 500 | 부하 테스트 |
+
+**구현 결과 — 관리자 화면 (T-043-A · T-043-B):** Lighthouse 모바일 · 로그인 상태 기준으로 관리자 10개 화면 모두 성능 90 이상 · 접근성 100 · 화면 밀림(CLS) 0.1 미만 (대시보드 91, 로컬 측정). 측정은 `apps/admin` 의 `pnpm lighthouse`.
 
 ### 8.2 보안 요구사항
 
@@ -2068,6 +2136,7 @@ export interface TemplateManifest {
   - **온라인 예약:** `POST /api/public/inquiries` 에 `inquiry_type=RESERVATION` + `subject` · `reserved_date` · `reserved_time`.
   - 목업의 6자리 보안문자는 브라우저에서 만드는 장식이라 실제로는 보이지 않는 reCAPTCHA v3 로 대체한다.
 - 템플릿이 제공하지 않는 페이지 키로 접근하면 404.
+- **오시는 길 (T-125-F):** 주소(상세 주소 포함) · 대표전화 · 주차는 공통 설정이 먼저, 비어 있으면 섹션 값(샘플). 공통 설정 운영 시간이 있으면 '운영 시간' 줄을 추가한다. 대중교통은 공통 설정에 없는 칸이라 섹션 글자로 두고 편집 모드에서 고친다.
 
 ```typescript
 export interface TemplatePage {
@@ -2105,8 +2174,12 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 - 샘플로 교체(`replace_with_sample`)는 기존 섹션을 소프트 삭제하고 샘플을 복사한다. 롤백 시 교체 전 섹션을 되살린다 (첫 적용이라도 콘텐츠 복원 가능).
 - `GET /sections` 응답 각 setting 에 `is_sample` 포함, `PATCH` 저장 시 서버가 `is_sample=false` 로 갱신.
 - (T-125 구현) 공개 경량 API `GET /api/public/site/{slug}/template` → `{code, renderer}` — 사이트 캐시가 있으면 그 값을 쓰고 없으면 계산. 클라이언트 미들웨어 전용.
-- (T-125 구현) 템플릿별 라우트 분기: `apps/client/middleware.ts` 가 위 API 로 테넌트 템플릿을 확인(60초 캐시, 2초 타임아웃)하고 코드형이면 `/{slug}[/{page}[/{id}]]` 를 `/tpl-{key}/{slug}/...` 내부 라우트(`app/(code)/tpl-{key}/`)로 rewrite. `preview`·`login`·`sitemap.xml` 은 rewrite 하지 않고, `/tpl-*` 직접 접근은 404. 테마형 라우트(`app/[tenant_slug]/page.tsx`)는 템플릿 코드를 import 하지 않아 다른 테넌트에 템플릿 CSS·JS 가 내려가지 않는다. 템플릿 전환은 최대 60초 뒤 반영.
+- (T-125 구현) 템플릿별 라우트 분기: `apps/client/middleware.ts` 가 위 API 로 테넌트 템플릿을 확인(3초 캐시 — T-125-A, 2초 타임아웃)하고 코드형이면 `/{slug}[/{page}[/{id}]]` 를 `/tpl-{key}/{slug}/...` 내부 라우트(`app/(code)/tpl-{key}/`)로 rewrite. `preview`·`login`·`sitemap.xml` 은 rewrite 하지 않고, `/tpl-*` 직접 접근은 404. 테마형 라우트(`app/[tenant_slug]/page.tsx`)는 템플릿 코드를 import 하지 않아 다른 테넌트에 템플릿 CSS·JS 가 내려가지 않는다. 템플릿 전환은 몇 초 안에 반영.
 - (T-125 구현 — 모바일 성능) 코드형 템플릿 라우트는 테마형 글꼴(Noto Sans KR, `lib/fonts.ts`)을 불러오지 않는다 — 테넌트 공통 레이아웃은 `app/[tenant_slug]/TenantShell.tsx`, 글꼴은 `[tenant_slug]/layout.tsx` 에만. 템플릿 아이콘 폰트는 쓰는 아이콘만 담은 축소본(`pnpm icons:subset`, 새 아이콘을 쓰면 다시 생성 — 테스트가 누락 검사). 외부 웹폰트 CSS 는 첫 화면을 막지 않게 하이드레이션 후 적용(`templates/shared/DeferredStylesheets.tsx`), `font-display:auto` 인 키트(Typekit)는 swap 으로 바꿔 적용. 첫 화면 주인공 이미지(메인 슬라이드 · 서브 히어로)는 `fetchPriority="high"`, 스토리지(MinIO · CDN) 이미지도 Next 이미지 변환
+
+- (T-037-F 구현) 템플릿 전환 직후 미들웨어 캐시가 이전 템플릿을 기억하는 몇 초 동안은 404 · 깨진 화면 대신 공통 안내 화면(`templates/shared/TemplateSwitching.tsx`)을 보여 주고 1초 뒤 다시 불러온다. 같은 주소 5번까지(30초 지나면 다시 셈), 넘으면 새로고침 버튼만. 안내 화면은 noindex, 없는 테넌트 · 페이지는 그대로 404.
+- (T-055-A 구현) 테마형 적용(내용 유지) 시 템플릿 기본 섹션 중 그릴 수 있고 홈에 보일 섹션이 없는 종류만 시작 문구(샘플 표시)로 채운다 (`app/services/theme_content.py`). 내용 유지 적용으로 추가한 섹션은 이력에 남겨 되돌리기 때 함께 정리한다. 새 사업체의 기본 4개 섹션에도 시작 문구를 넣는다.
+- (T-057-A 구현) 테마형 홈 · 미리보기는 홈 페이지 · 노출 · 그릴 수 있는 섹션만 본문과 메뉴에 쓴다 (`lib/themeSections.ts`). 메뉴 글자는 줄바꿈 금지, 넘치면 가로 스크롤. 미리보기는 "지금 내용 중 N개 섹션은 이 템플릿에서 보이지 않습니다 (내용은 지워지지 않음)" 를 안내한다.
 
 ### 11.11 오픈 이슈 추가
 
@@ -2129,6 +2202,7 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 ```
 [편집 모드 OFF 상태 - 일반 방문자와 동일한 화면]
   → 로그인한 테넌트 어드민에게만 우측 하단 플로팅 버튼 노출
+    (코드형 템플릿은 왼쪽 아래 — 오른쪽은 템플릿 퀵메뉴, T-125-A)
   → ✏️ "편집 모드 켜기"
 
 [편집 모드 ON 상태]
@@ -2200,11 +2274,9 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 #### 편집 모드 활성화 방식
 
 ```typescript
-// apps/client/lib/editMode.ts
-
 // 편집 모드 진입 조건:
 // 1. 테넌트 어드민 로그인 상태
-// 2. URL에 ?edit=true 쿼리 OR 플로팅 버튼 클릭
+// 2. 플로팅 버튼 클릭 (URL ?edit=true 는 구현하지 않음)
 // 3. 해당 테넌트의 사이트 접속 중
 
 export const EDITABLE_ATTRS = {
@@ -2228,10 +2300,10 @@ export const EDITABLE_ATTRS = {
 #### 변경사항 임시 저장 구조 (Zustand)
 
 ```typescript
-// apps/client/stores/editStore.ts
+// apps/client/lib/editStore.ts
 interface EditStore {
   isEditMode: boolean
-  pendingChanges: Map<string, PendingChange>  // key: "{section_id}:{field}"
+  pendingChanges: Record<string, PendingChange>  // key: "{section_id}:{field}"
   isDirty: boolean  // 저장되지 않은 변경사항 존재 여부
 
   toggleEditMode: () => void
@@ -2248,6 +2320,12 @@ interface PendingChange {
   changed_at: Date
 }
 ```
+
+저장 전 값은 `localStorage`(`cms-edit-draft`)에 초안으로 남고, **편집 모드에서만** 화면에 쓴다 — 편집 모드 밖에서도 쓰면 서버 HTML 과 첫 렌더가 달라진다 (T-125-C).
+
+#### 페이지를 옮겨도 편집 모드 유지 (T-125-D)
+
+코드형 템플릿 메뉴는 일반 링크라 페이지를 새로 불러온다. 편집 모드를 켜고 끌 때 탭에 기억하고(`sessionStorage` `cms-edit-mode`, 같은 탭에서만), 새 페이지에서 로그인 확인이 끝나면 `restoreEditMode()` 로 다시 켠다. 로그아웃 · 만료면 켜지 않고 기억을 지운다.
 
 #### 페이지 이탈 방지
 
@@ -2275,6 +2353,22 @@ useEffect(() => {
 | 버튼 | 클릭 | 문구 + URL 입력 팝업 | `section_settings.cta_*` |
 | 섹션 순서 | 드래그 | 드래그앤드롭 | `sections.display_order` |
 | 섹션 노출 | 토글 | 클릭 | `sections.is_active` |
+
+**구현 메모 — 감싸개 배치 (T-125-G):** `EditableText` 의 편집 모드 감싸개는 제목 · 문단(h1~h4 · p · div)이면 `block`, 짧은 글자(span)면 `inline-block` 이다. 편집 모드에 들어가도 화면 배치가 보기 모드와 같아야 한다.
+
+**구현 메모 — 코드형 템플릿 편집 범위 (hospital-a):**
+
+| 요소 | 편집 방식 | 대상 |
+|---|---|---|
+| 단일 칸 글자 | 인라인 (`EditableText`) | 제목 · 설명 등 |
+| 목록 안 글자 (T-125-C · T-125-E) | 눌러서 고치기 (`templates/shared/TemplateListText.tsx`) — Enter · 바깥 누르기로 저장 대기, Esc 취소, 글자 수 한도, 링크로 이동 안 함 | 메인 슬라이드 제목 · 영문 카피, 서비스 카드, 브랜드 기능 이름, 영역별 소개, 기준 카드, 강점 목록, 가치 원형, 연혁 요약 |
+| 사진 (T-125-B) | 사진 위 '사진 변경'(· '휴대폰 사진') 버튼 → 업로드 창 (`templates/shared/TemplateImage.tsx`) | 메인 슬라이드, 브랜드 갤러리 · 기능 아이콘, 서비스 카드, 서브 상단, 사진 + 글 계열 섹션 |
+| 사업체 정보 (T-125-F) | 편집 모드 안내 "관리자 공통 설정에서 바꿔요 · 공통 설정 열기" (`CommonSettingsHint`) | 오시는 길 주소 · 대표전화 · 운영 시간 · 주차 |
+
+- 목록 안 항목을 고치면 그 항목만 바꾼 목록 전체를 저장 대기에 넣는다 (같은 목록을 여러 번 고쳐도 서로 덮어쓰지 않음).
+- 메인 슬라이드는 편집 모드에서 자동 재생 · 끌어 넘기기를 멈춘다.
+- **아직 편집 모드에서 못 고침 (관리자 AD-02 에서 수정):** 여러 문단 본문(StoryText), 연혁 타임라인(연도 → 월 → 사건), 영상 목록 제목, SplitStory 캡션, ValueCircles 더 보기 글자, SubHero 분류, 사진 설명(alt), 유튜브 썸네일, 연혁 연도 사진.
+- **일부러 관리자 전용:** 메뉴 · 푸터 · 퀵메뉴 · 헤더 로고(공통 설정), 게시판 샘플 글, 링크 · 지도 · 영상 ID.
 
 ### 12.5 API 추가 스펙
 
@@ -2315,6 +2409,8 @@ useEffect(() => {
   }
 }
 ```
+
+**구현 메모 (T-125-B · T-037-E):** 일반 칸 기본 한도는 1,000자. 이미 목록(JSON)인 칸은 20,000자 한도 · JSON 배열 검사 · 목록 형식 유지, 목록 안 `*_url` 은 주소를 검사한다.
 
 ---
 
@@ -2413,6 +2509,14 @@ useEffect(() => {
   [AI가 자동으로 개선안 적용하기]
   [개선 제안 상세 보기]
 ```
+
+**구현 메모 — 월간 리포트 (T-073-A):**
+- `GET/POST /api/v1/ai/reports`, `GET /api/v1/ai/reports/{id}` — 기능 플래그 `AI_MONTHLY_REPORT`(STANDARD 부터). 직접 만들기 월 한도(STANDARD 1 · PREMIUM 4, 자동 포함) 초과 422, BASIC 403, 다른 사업체 404.
+- Celery beat 매달 1일 06:00 — 대상 사업체의 지난달 리포트 자동 생성 + 관리자 메일.
+- 지난달 방문 · 문의 지표 + 홈페이지 규칙 점검으로 만들고, AI 키가 있으면 문장만 다듬는다. 없거나 장애면 기본 점검(`source=rule`) 그대로.
+- 위 화면의 **[AI가 자동으로 개선안 적용하기]는 v1 에서 보류** — 손볼 점마다 [이 섹션 고치러 가기] 링크로 대신한다.
+
+**구현 메모 — 템플릿 추천 (T-070-A):** `POST /api/v1/ai/recommend-templates` — 기능 플래그 `AI_TEMPLATE_RECOMMEND`(마이그레이션 0027). 업종 · 내용 · 요금제로 쓸 수 있는 템플릿 중 3개 + 이유, 1시간 저장 · [다시 추천] 은 새로. AI 키 없음 · 장애 · 이상 응답이면 업종 기준 기본 추천(`source=rule`). STANDARD 미만 403.
 
 ### 13.3 AI 어시스턴트 기술 스펙
 
@@ -2888,6 +2992,8 @@ CREATE TABLE announcement_reads (
 └────────────────────────────────────────────────────────────────────┘
 ```
 
+**구현 메모 — 공지 이메일 (T-088-A):** 공지 · 기능 배포 알림의 이메일은 대상 사업체의 활성 관리자 계정으로 보낸다. 같은 주소는 한 번, 뷰어 · 비활성 계정 제외, 한 주소의 실패가 나머지를 막지 않고 발송 · 실패 수를 기록한다.
+
 ---
 
 ### 14.5 테넌트 관리자 페이지 연동 (기능 플래그 반영)
@@ -2910,7 +3016,7 @@ GET /api/v1/tenant/features
     "VIDEO_SECTION": false,       ← 슈퍼 어드민이 OFF
     "AI_COPY_SUGGEST": true,
     "AI_CHAT_EDIT": true,         ← BETA
-    "AI_MONTHLY_REPORT": false,   ← PREMIUM 전용, 이 테넌트는 STANDARD
+    "AI_MONTHLY_REPORT": true,    ← STANDARD 부터 (T-073-A)
     "KAKAO_NOTIFICATION": true,
     "SEO_WIZARD": true,
     "NAVER_ANALYTICS": false      ← 아직 미배포
