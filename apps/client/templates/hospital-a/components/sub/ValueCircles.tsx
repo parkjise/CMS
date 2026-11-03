@@ -1,9 +1,9 @@
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
-import { RichLine } from './RichText'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface Props extends CodeSectionProps {
   /** more_page 페이지 키 → 주소 */
@@ -42,9 +42,19 @@ export function ValueCircles({ hrefFor, ...props }: Props) {
       <div className="page-container">
         <StoryText {...props} id={id} className="story-text--center story-text--light" />
         <ul className="value-circles__list">
-          {values.map((v) => (
-            <li className="value-circles__item" key={v}>
-              <RichLine text={v} />
+          {values.map((v, i) => (
+            <li className="value-circles__item" key={`${v}-${i}`}>
+              {/* **굵게** 표기 — 평소엔 굵게, 고칠 때는 표기 그대로 */}
+              <TemplateListText
+                section={section}
+                editable={editable}
+                field="values"
+                index={i}
+                multiline
+                maxLength={60}
+                label={`${i + 1}번 가치`}
+                boldMarks
+              />
             </li>
           ))}
         </ul>

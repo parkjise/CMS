@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 /**
  * 체크리스트 + 사진 — 목업 sub/strength-list.html (layout=strength-list)
@@ -18,10 +19,10 @@ export function StrengthList(props: CodeSectionProps) {
         <SectionHead {...props} id={id} sub />
         <div className="strength-list__row">
           <ul className="strength-list__items">
-            {items.map((item) => (
-              <li className="strength-list__item" key={item}>
+            {items.map((item, i) => (
+              <li className="strength-list__item" key={`${item}-${i}`}>
                 <i className="ri-check-line strength-list__icon" aria-hidden="true" />
-                {item}
+                <TemplateListText section={section} editable={editable} field="items" index={i} maxLength={60} label={`${i + 1}번 강점`} />
               </li>
             ))}
           </ul>

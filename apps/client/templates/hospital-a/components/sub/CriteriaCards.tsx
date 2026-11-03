@@ -3,6 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface Card {
   image_url: string
@@ -28,8 +29,19 @@ export function CriteriaCards(props: CodeSectionProps) {
               <figure className="criteria-cards__media">
                 <TemplateImage section={section} editable={editable} item={{ field: 'cards', index: i }} className="criteria-cards__image" sizes="(min-width: 1024px) 33vw, 100vw" maxWidth={828} alt="" loading="lazy" />
               </figure>
-              <h3 className="criteria-cards__title">{card.title}</h3>
-              {card.text && <p className="criteria-cards__text">{card.text}</p>}
+              <TemplateListText section={section} editable={editable} field="cards" index={i} itemKey="title" as="h3" className="criteria-cards__title" maxLength={40} label={`${i + 1}번 카드 제목`} />
+              <TemplateListText
+                section={section}
+                editable={editable}
+                field="cards"
+                index={i}
+                itemKey="text"
+                as="p"
+                className="criteria-cards__text"
+                multiline
+                maxLength={300}
+                label={`${i + 1}번 카드 본문`}
+              />
             </li>
           ))}
         </ul>

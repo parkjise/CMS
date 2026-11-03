@@ -7,6 +7,7 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
 import { ImageEditButtons, TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface ServiceCard {
   image_url: string
@@ -20,6 +21,7 @@ interface ServiceCard {
  * 서비스 카드 목록 — 목업 sections/service-cards.html + service-cards.js
  * 1024px 이상: 5단 그리드 / 미만: 슬라이드 (넓어지면 Swiper 해제)
  * 설정 키: eyebrow · title · description (인라인 편집) · cards [{ image_url, eyebrow, title, description, link_url }]
+ * (카드 사진 · 글자도 편집 모드에서 — T-125-B · E, 링크는 관리자에서)
  */
 export function ServiceCards({ section, editable }: CodeSectionProps) {
   const cards = getJson<ServiceCard[]>(section.settings, 'cards', [])
@@ -98,13 +100,38 @@ export function ServiceCards({ section, editable }: CodeSectionProps) {
                     />
                   </div>
                   <div className="service-cards__body">
-                    {card.eyebrow && (
-                      <span className="service-cards__eyebrow" lang="en">
-                        {card.eyebrow}
-                      </span>
-                    )}
-                    <h3 className="service-cards__title">{card.title}</h3>
-                    {card.description && <span className="service-cards__desc">{card.description}</span>}
+                    <TemplateListText
+                      section={section}
+                      editable={editable}
+                      field="cards"
+                      index={i}
+                      itemKey="eyebrow"
+                      className="service-cards__eyebrow"
+                      lang="en"
+                      maxLength={30}
+                      label={`${i + 1}번 카드 영문 소제목`}
+                    />
+                    <TemplateListText
+                      section={section}
+                      editable={editable}
+                      field="cards"
+                      index={i}
+                      itemKey="title"
+                      as="h3"
+                      className="service-cards__title"
+                      maxLength={30}
+                      label={`${i + 1}번 카드 제목`}
+                    />
+                    <TemplateListText
+                      section={section}
+                      editable={editable}
+                      field="cards"
+                      index={i}
+                      itemKey="description"
+                      className="service-cards__desc"
+                      maxLength={80}
+                      label={`${i + 1}번 카드 설명`}
+                    />
                   </div>
                   <ImageEditButtons section={section} editable={editable} item={{ field: 'cards', index: i }} />
                 </a>

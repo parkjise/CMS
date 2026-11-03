@@ -920,7 +920,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
-  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진 · 기능 이름 · 아이콘을 바꿔 저장하면 방문자 화면에 보인다 (T-125-B · C)', async ({
+  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진 · 기능 이름 · 아이콘 · 카드 · 슬라이드 · 강점 글자를 바꿔 저장하면 방문자 화면에 보인다 (T-125-B · C · E)', async ({
     page,
     request,
   }) => {
@@ -951,6 +951,13 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await expect(dialog).toBeHidden()
       return (await res.json()).data.url as string
     }
+    // 목록 안 글자 고치기 — 눌러서 전체 선택 후 입력, Enter 로 저장 대기 (T-125-E)
+    const editListText = async (name: string, text: string) => {
+      await page.getByRole('textbox', { name }).click()
+      await page.keyboard.press('ControlOrMeta+A')
+      await page.keyboard.type(text)
+      await page.keyboard.press('Enter')
+    }
     const save = async () => {
       const saved = page.waitForResponse((r) => r.url().includes('/edit/batch-save'))
       await page.getByRole('button', { name: /^저장 \(/ }).click()
@@ -979,6 +986,8 @@ test.describe('T-078 전체 통합 시나리오', () => {
       // 메인: 지금 슬라이드 사진 + 두 번째 서비스 카드 사진 (목록 칸 두 개)
       await enterEditMode(`${CLIENT_URL}/${slug}`)
       const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
+      // 같은 슬라이드 제목도 (사진과 같은 목록 칸 — 둘 다 남아야 한다)
+      await editListText('1번 슬라이드 제목', 'E2E 슬라이드')
       // 스크롤해야 나타나는 영역(ScrollReveal) — 먼저 화면으로
       await page.locator('.service-cards').scrollIntoViewIfNeeded()
       // 카드에 마우스를 올리면 사진이 흐려지지만 버튼은 흐려지지 않는다 (T-125-C)
@@ -992,6 +1001,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       })
       expect(blurred).toBe(false)
       const cardUrl = await replacePhoto(cardButton)
+      await editListText('2번 카드 제목', 'E2E 카드')
 
       // 브랜드 소개 기능 목록 — 이름 고치기 + 아이콘 바꾸기 (T-125-C)
       await page.locator('.brand-intro__features').scrollIntoViewIfNeeded()
@@ -1011,7 +1021,10 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.waitForURL(/\/about$/)
       await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toBeVisible({ timeout: 15_000 })
       const heroUrl = await replacePhoto(page.locator('.sub-hero').getByRole('button', { name: '사진 변경' }))
-      expect(await save()).toEqual(expect.objectContaining({ saved_count: 1, failed_count: 0 }))
+      // 강점 목록 (글자만 있는 목록)
+      await page.locator('.strength-list').scrollIntoViewIfNeeded()
+      await editListText('1번 강점', 'E2E 강점')
+      expect(await save()).toEqual(expect.objectContaining({ saved_count: 2, failed_count: 0 }))
 
       // 방문자 화면
       const visitor = await page.context().browser()!.newPage()
@@ -1023,9 +1036,12 @@ test.describe('T-078 전체 통합 시나리오', () => {
       expect(slideSrcs.some((src) => src.includes(slideUrl))).toBe(true)
       expect(await srcOf(visitor.locator('.service-cards__image').nth(1))).toContain(cardUrl)
       await expect(visitor.locator('.brand-intro__feature-name').first()).toHaveText('E2E 기능')
+      await expect(visitor.locator('.service-cards__title').nth(1)).toHaveText('E2E 카드')
+      await expect(visitor.locator('.hero-slider__title', { hasText: 'E2E 슬라이드' })).toHaveCount(1)
       expect(await srcOf(visitor.locator('.brand-intro__feature-icon-image').first())).toContain(iconUrl)
       await visitor.goto(`${CLIENT_URL}/${slug}/about`)
       expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
+      await expect(visitor.locator('.strength-list__item').first()).toContainText('E2E 강점')
       // 방문자에게는 편집 버튼이 없다
       await expect(visitor.locator('.tpl-image-edit')).toHaveCount(0)
       await visitor.close()
