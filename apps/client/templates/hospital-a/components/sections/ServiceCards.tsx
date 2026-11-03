@@ -6,7 +6,7 @@ import { A11y, Pagination } from 'swiper/modules'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
-import { TemplateImage } from '../../../shared/TemplateImage'
+import { ImageEditButtons, TemplateImage } from '../../../shared/TemplateImage'
 
 interface ServiceCard {
   image_url: string
@@ -87,7 +87,8 @@ export function ServiceCards({ section, editable }: CodeSectionProps) {
                   <div className="service-cards__media">
                     <TemplateImage
                       section={section}
-                      editable={editable}
+                      // 버튼은 아래 링크 바로 밑에 — 사진 영역은 마우스를 올리면 흐려진다 (T-125-C)
+                      editable={false}
                       item={{ field: 'cards', index: i }}
                       className="service-cards__image"
                       sizes="(min-width: 1024px) 20vw, (min-width: 600px) 45vw, 85vw"
@@ -105,6 +106,7 @@ export function ServiceCards({ section, editable }: CodeSectionProps) {
                     <h3 className="service-cards__title">{card.title}</h3>
                     {card.description && <span className="service-cards__desc">{card.description}</span>}
                   </div>
+                  <ImageEditButtons section={section} editable={editable} item={{ field: 'cards', index: i }} />
                 </a>
               </li>
             ))}

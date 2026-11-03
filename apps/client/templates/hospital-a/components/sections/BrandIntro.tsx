@@ -8,7 +8,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
-import { TemplateImage } from '../../../shared/TemplateImage'
+import { ImageEditButtons, TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 import type { PublicSection } from '@/lib/publicSite.types'
 
 interface GalleryImage {
@@ -116,6 +117,7 @@ const Gallery = memo(function Gallery({ section, editable, images }: GalleryProp
  * 브랜드 소개 + 이미지 갤러리 + 대표 서비스 3종 — 목업 sections/brand-intro.html + brand-intro.js
  * 설정 키: title · description · signature_title · signature_desc (인라인 편집)
  *          gallery [{ image_url, alt }] · features [{ name, name_en, icon_url, link_url }]
+ *          (기능 이름 · 영문 이름 · 아이콘은 편집 모드에서도 — T-125-C, 링크는 관리자에서)
  */
 export function BrandIntro({ section, editable }: CodeSectionProps) {
   const sectionRef = useRef<HTMLElement>(null)
@@ -202,24 +204,56 @@ export function BrandIntro({ section, editable }: CodeSectionProps) {
         {features.length > 0 && (
           <div className="page-container">
             <ul className="brand-intro__features">
-              {features.map((f) => (
-                <li className="brand-intro__feature" key={f.name}>
+              {features.map((f, i) => (
+                <li className="brand-intro__feature" key={`${f.name}-${i}`}>
                   <a className="brand-intro__feature-link" href={f.link_url || '#'}>
                     <span className="brand-intro__feature-text">
-                      <strong className="brand-intro__feature-name">{f.name}</strong>
-                      {f.name_en && (
-                        <span className="brand-intro__feature-en" lang="en">
-                          {f.name_en}
-                        </span>
-                      )}
+                      <TemplateListText
+                        section={section}
+                        editable={editable}
+                        field="features"
+                        index={i}
+                        itemKey="name"
+                        as="strong"
+                        className="brand-intro__feature-name"
+                        maxLength={20}
+                        label={`${i + 1}번 기능 이름`}
+                      />
+                      <TemplateListText
+                        section={section}
+                        editable={editable}
+                        field="features"
+                        index={i}
+                        itemKey="name_en"
+                        className="brand-intro__feature-en"
+                        lang="en"
+                        maxLength={40}
+                        label={`${i + 1}번 기능 영문 이름`}
+                      />
                     </span>
                     {f.icon_url && (
                       <span className="brand-intro__feature-icon" aria-hidden="true">
-                        {/* eslint-disable-next-line @next/next/no-img-element -- 장식용 SVG 아이콘 */}
-                        <img className="brand-intro__feature-icon-image" src={f.icon_url} alt="" />
+                        {/* 장식용 아이콘 — 버튼은 aria-hidden 밖(li)에 */}
+                        <TemplateImage
+                          section={section}
+                          editable={false}
+                          item={{ field: 'features', index: i, key: 'icon_url' }}
+                          className="brand-intro__feature-icon-image"
+                          sizes="180px"
+                          maxWidth={640}
+                          alt=""
+                        />
                       </span>
                     )}
                   </a>
+                  {f.icon_url && (
+                    <ImageEditButtons
+                      section={section}
+                      editable={editable}
+                      item={{ field: 'features', index: i, key: 'icon_url' }}
+                      label={`${i + 1}번 아이콘 변경`}
+                    />
+                  )}
                 </li>
               ))}
             </ul>

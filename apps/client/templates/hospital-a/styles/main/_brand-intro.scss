@@ -115,6 +115,7 @@
   }
   // 모바일: 세로로 쌓고 위 구분선 / 태블릿 이상: 3단 + 왼쪽 구분선
   &__feature {
+    position: relative; // 편집 모드 아이콘 변경 버튼 기준 (T-125-C)
     padding: 28px 24px;
     & + & {
       border-top: 1px solid rgba(255, 255, 255, 0.2);
