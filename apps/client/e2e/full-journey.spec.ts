@@ -979,6 +979,8 @@ test.describe('T-078 전체 통합 시나리오', () => {
       // 메인: 지금 슬라이드 사진 + 두 번째 서비스 카드 사진 (목록 칸 두 개)
       await enterEditMode(`${CLIENT_URL}/${slug}`)
       const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
+      // 스크롤해야 나타나는 영역(ScrollReveal) — 먼저 화면으로
+      await page.locator('.service-cards').scrollIntoViewIfNeeded()
       const cardUrl = await replacePhoto(page.locator('.service-cards').getByRole('button', { name: '2번 사진 변경' }))
       // 저장 전에도 바뀐 사진이 보인다
       await expect.poll(() => srcOf(page.locator('.service-cards__image').nth(1))).toContain(cardUrl)
@@ -993,7 +995,11 @@ test.describe('T-078 전체 통합 시나리오', () => {
       // 방문자 화면
       const visitor = await page.context().browser()!.newPage()
       await visitor.goto(`${CLIENT_URL}/${slug}`)
-      expect(await srcOf(visitor.locator('.hero-slider__image').first())).toContain(slideUrl)
+      // 슬라이드는 반복 재생(loop)이라 DOM 순서가 바뀔 수 있다 — 어느 슬라이드든 그 사진이 있으면
+      const slideSrcs = await visitor
+        .locator('.hero-slider__image')
+        .evaluateAll((imgs) => imgs.map((img) => decodeURIComponent(img.getAttribute('src') ?? '')))
+      expect(slideSrcs.some((src) => src.includes(slideUrl))).toBe(true)
       expect(await srcOf(visitor.locator('.service-cards__image').nth(1))).toContain(cardUrl)
       await visitor.goto(`${CLIENT_URL}/${slug}/about`)
       expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
@@ -1004,12 +1010,16 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
       expect(rb.ok(), await rb.text()).toBeTruthy()
       await page.evaluate(() => localStorage.removeItem('cms-edit-draft')).catch(() => {})
-      await visitWhileSwitching(
-        page,
-        `${CLIENT_URL}/${slug}`,
-        page.locator('section[data-section-type="HERO_BANNER"]'),
-      )
     }
+    // 되돌린 화면은 새 방문자 창에서 — 이 탭은 적용 · 되돌리기를 30초 안에 겪어
+    // 전환 안내의 자동 새로고침 횟수(5번)를 이미 썼을 수 있다
+    const after = await page.context().browser()!.newPage()
+    await visitWhileSwitching(
+      after,
+      `${CLIENT_URL}/${slug}`,
+      after.locator('section[data-section-type="HERO_BANNER"]'),
+    )
+    await after.close()
   })
 
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
