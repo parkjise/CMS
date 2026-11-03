@@ -16,6 +16,7 @@
 @use 'tokens'; // :root 토큰 (가장 먼저)
 @use 'reset';
 @use 'base'; // 리셋 · 레이아웃 · 공용 컴포넌트
+@use 'loader'; // 로딩 화면
 
 @use 'header/header'; // GNB
 
@@ -23,9 +24,11 @@
 // 괄호 안은 CMS 섹션 타입 기본 매핑 (이식 시 참고)
 @use 'main/hero-slider'; // 메인 비주얼 슬라이드 (HERO_BANNER)
 @use 'main/brand-intro'; // 브랜드 소개 + 갤러리 + 대표 서비스 (INTRO)
+@use 'main/data-sect'; // 핵심 수치 & 기술력 소개 (brainall.kr 데이터 섹션)
 @use 'main/service-cards'; // 서비스 카드 목록 (SERVICES)
 @use 'main/video-playlist'; // 영상 목록 (신규)
 @use 'main/notice'; // 공지 목록 (신규)
+@use 'main/popup'; // 메인 우측 슬라이드 팝업 (ELEV 클리닉 스타일)
 @use 'main/location'; // 지도 (MAP) — 현재 페이지 미사용
 
 // 서브 페이지 공통 (components/sub/*.html 과 1:1)

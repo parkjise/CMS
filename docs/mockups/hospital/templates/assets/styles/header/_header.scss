@@ -96,44 +96,636 @@
   &__menu {
     @include flex(stretch, start, 0, column);
     @include lg {
-      @include flex(center, start, 50px);
+      @include flex(center, start, 44px);
     }
   }
+
+  &__menu-item {
+    @include lg {
+      position: relative;
+      padding-block: 26px; // 80px 높이의 헤더 영역 전체를 호버 가능하게
+
+      &:hover,
+      &:focus-within {
+        .header__sub-menu {
+          opacity: 1;
+          visibility: visible;
+          transform: translate(-50%, 0);
+          pointer-events: auto;
+        }
+
+        .header__menu-link {
+          color: var(--color-primary);
+        }
+      }
+    }
+  }
+
   &__menu-link {
     display: block;
-    padding-block: 14px;
+    padding-block: 12px;
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    transition: color 0.2s ease;
     @include lg {
       padding-block: 0;
     }
-    font-size: 18px;
-    color: var(--color-text-secondary);
     @include focus-ring;
     &:hover {
       color: var(--color-primary);
     }
   }
 
-  &__menu-toggle {
-    @include button-reset;
-    @include focus-ring;
-    order: 1; // 맨 오른쪽
-    font-size: 24px;
-    line-height: 1;
-    color: var(--color-text-primary);
+  // ── GNB 서브메뉴 드롭다운 (마우스 오버 시 스무스하게 올라오며 페이드인) ──
+  &__sub-menu {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 0 10px 14px;
+    list-style: none;
+
     @include lg {
-      display: none;
+      display: block;
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 50%;
+      min-width: 154px;
+      padding: 8px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.03);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, 14px); // 마우스 오버 전: 아래에 위치
+      pointer-events: none;
+      transition: opacity 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+                  transform 0.26s cubic-bezier(0.16, 1, 0.3, 1),
+                  visibility 0.26s;
+      z-index: 50;
+
+      // 마우스가 메뉴 링크에서 드롭다운으로 이동할 때 호버 유지를 위한 보이지 않는 브리지
+      &::before {
+        content: '';
+        position: absolute;
+        top: -12px;
+        left: 0;
+        right: 0;
+        height: 12px;
+      }
     }
   }
 
-  &__account {
-    @include flex(start, start, 12px);
-    font-size: 13px;
-    @include md {
-      gap: 20px;
-      font-size: 14px;
+  &__sub-link {
+    display: block;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    border-radius: 8px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+
+    &:hover {
+      background-color: #f3f4f6;
+      color: var(--color-primary);
+      transform: translateX(3px);
     }
   }
-  &__account-link {
+
+  // 우측 아이콘 액션 (로그인 유저 아이콘 + 다국어 지구본 아이콘 + 전체메뉴 햄버거 아이콘)
+  &__actions {
+    @include flex(center, center, 6px);
+    margin-left: auto;
+    @include lg {
+      margin-left: 0;
+      gap: 8px;
+    }
+  }
+
+  &__action-btn {
+    @include button-reset;
+    @include flex(center, center);
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    color: var(--color-text-primary);
+    font-size: 22px;
+    line-height: 1;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, transform 0.15s ease;
     @include focus-ring;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+      color: var(--color-primary);
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
+
+  // ── 다국어 선택 드롭다운 ──
+  &__lang {
+    position: relative;
+
+    &:hover,
+    &.is-open {
+      .header__lang-dropdown {
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateX(-50%) translateY(0);
+      }
+
+      .header__action-btn--lang {
+        color: var(--color-primary);
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+    }
+  }
+
+  &__lang-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(6px);
+    min-width: 68px;
+    padding: 6px;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.1);
+    list-style: none;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+                visibility 0.22s;
+    z-index: 60;
+
+    // 마우스 이동 시 드롭다운 유지용 브리지
+    &::before {
+      content: "";
+      position: absolute;
+      top: -10px;
+      left: 0;
+      right: 0;
+      height: 10px;
+    }
+
+    li {
+      &:not(:last-child) {
+        margin-bottom: 2px;
+      }
+    }
+
+    .header__lang-link {
+      display: block;
+      padding: 6px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      color: #666;
+      text-decoration: none;
+      border-radius: 6px;
+      transition: all 0.15s ease;
+
+      &:hover {
+        background-color: #f3f4f6;
+        color: var(--color-primary);
+      }
+    }
+
+    li.is-active .header__lang-link {
+      background-color: var(--color-primary, #002c5f);
+      color: #fff;
+    }
+  }
+
+  &__menu-toggle {
+    display: inline-flex;
+  }
+}
+
+// ── 전체메뉴 (Hyundai AM Style All Menu Overlay) ──
+.all-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  visibility: hidden;
+  pointer-events: none;
+  transition: visibility 0.5s ease;
+
+  &--open {
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  &__backdrop {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    cursor: pointer;
+
+    .all-menu--open & {
+      opacity: 1;
+    }
+  }
+
+  &__container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    padding: clamp(14px, 3.2vw, 44px);
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__panel {
+    position: relative;
+    width: 100%;
+    max-width: 1540px;
+    height: auto;
+    max-height: calc(100vh - clamp(24px, 5vw, 64px));
+    background-color: #ffffff;
+    border-radius: clamp(22px, 2.5vw, 40px);
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    pointer-events: auto;
+    transform: translateY(-110%);
+    opacity: 0;
+    transition: transform 0.55s cubic-bezier(0.16, 1, 0.3, 1),
+                opacity 0.4s ease;
+
+    .all-menu--open & {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  // 상단 닫기 바 (우측 정렬 & 메뉴 겹침 방지)
+  &__top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding: clamp(14px, 1.8vw, 22px) clamp(20px, 3.2vw, 44px) 0;
+    flex-shrink: 0;
+  }
+
+  // 상단 닫기 X 버튼 (배경색 제거, 겹침 방지)
+  &__close {
+    @include button-reset;
+    @include flex(center, center);
+    width: 40px;
+    height: 40px;
+    background: transparent;
+    background-color: transparent;
+    border: none;
+    font-size: 32px;
+    line-height: 1;
+    color: #222;
+    cursor: pointer;
+    transition: transform 0.25s ease, color 0.2s ease;
+    @include focus-ring;
+
+    &:hover {
+      background: transparent;
+      background-color: transparent;
+      transform: rotate(90deg);
+      color: var(--color-primary);
+    }
+
+    &:active {
+      transform: scale(0.9) rotate(90deg);
+    }
+  }
+
+  // 스크롤 컨테이너
+  &__scroll {
+    width: 100%;
+    overflow-y: auto;
+    padding: clamp(8px, 1.2vw, 16px) clamp(20px, 3.2vw, 44px) clamp(22px, 2.8vw, 36px);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.15) transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      background-color: rgba(0, 0, 0, 0.15);
+      border-radius: 10px;
+    }
+  }
+
+  // 현대자산운용 카드 그리드 (3열 x 2행)
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: clamp(14px, 1.8vw, 24px);
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    @media (max-width: 1200px) {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    @media (max-width: 680px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  // 개별 카드 공통
+  &__card {
+    background-color: #F8F9FA;
+    border-radius: 20px;
+    padding: clamp(20px, 2.2vw, 32px) clamp(18px, 2vw, 28px);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: auto;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.06);
+      border-color: rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  &__card-head {
+    margin-bottom: 22px;
+  }
+
+  &__card-en {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  &__card-title {
+    font-size: clamp(22px, 1.8vw, 28px);
+    font-weight: 700;
+    color: #111;
+    letter-spacing: -0.02em;
+    margin: 0;
+
+    a {
+      color: inherit;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+  }
+
+  &__sub-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      width: calc((100% - 18px) / 2);
+      @media (max-width: 480px) {
+        width: 100%;
+      }
+    }
+
+    a {
+      display: inline-block;
+      font-size: clamp(15px, 1.05vw, 17px);
+      font-weight: 500;
+      color: #767676;
+      text-decoration: none;
+      transition: color 0.2s ease, transform 0.2s ease;
+
+      &:hover {
+        color: var(--color-primary);
+        font-weight: 600;
+        transform: translateX(3px);
+      }
+    }
+  }
+
+  // ── 브랜드 카드 (.logo-box 스타일) ──
+  &__card--brand {
+    background: var(--color-primary, #002c5f);
+    color: #ffffff;
+    border: none;
+
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 16px 36px rgba(0, 44, 95, 0.28);
+    }
+
+    .all-menu__brand-inner {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .all-menu__brand-logo {
+      display: inline-block;
+      line-height: 1;
+
+      img {
+        height: 28px;
+        width: auto;
+        display: block;
+        filter: brightness(0) invert(1);
+      }
+    }
+
+    .all-menu__brand-slogan {
+      font-size: clamp(16px, 1.25vw, 19px);
+      font-weight: 600;
+      line-height: 1.55;
+      color: rgba(255, 255, 255, 0.95);
+      margin: 0;
+      letter-spacing: -0.02em;
+    }
+
+    .all-menu__brand-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      padding: 10px 18px;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 999px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+
+      &:hover {
+        background-color: #ffffff;
+        color: var(--color-primary, #002c5f);
+        transform: translateX(2px);
+      }
+    }
+  }
+
+  // ── 고객지원 카드 ──
+  &__card--support {
+    .all-menu__support-content {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .all-menu__support-label {
+      display: block;
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 2px;
+    }
+
+    .all-menu__support-phone {
+      font-size: clamp(22px, 1.8vw, 28px);
+      font-weight: 800;
+      color: #111;
+      text-decoration: none;
+      letter-spacing: -0.01em;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: var(--color-primary);
+      }
+    }
+
+    .all-menu__support-hours {
+      font-size: 14px;
+      color: #666;
+      line-height: 1.45;
+      margin: 0;
+
+      span {
+        font-size: 13px;
+        color: #999;
+      }
+    }
+  }
+
+  // ── 하단 유틸리티 바 (.btn-box 스타일) ──
+  &__bottom {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-top: clamp(20px, 2.4vw, 32px);
+    padding-top: 18px;
+    border-top: 1px solid #ededed;
+  }
+
+  &__lang-box {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+
+      &:not(:last-child)::after {
+        content: "";
+        display: inline-block;
+        width: 1px;
+        height: 14px;
+        background-color: #ddd;
+        margin: 0 16px;
+      }
+    }
+
+    a {
+      font-size: 15px;
+      font-weight: 600;
+      color: #aaa;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: #111;
+      }
+    }
+
+    li.is-active a {
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+  }
+
+  &__link-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      display: flex;
+      align-items: center;
+
+      &:not(:last-child)::after {
+        content: "";
+        display: inline-block;
+        width: 1px;
+        height: 14px;
+        background-color: #ddd;
+        margin: 0 16px;
+      }
+    }
+
+    a {
+      font-size: 14px;
+      font-weight: 500;
+      color: #767676;
+      text-decoration: none;
+      transition: color 0.2s ease;
+
+      &:hover {
+        color: #111;
+      }
+    }
+
+    li.is-active a {
+      color: #111;
+      font-weight: 600;
+    }
   }
 }
