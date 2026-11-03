@@ -72,8 +72,12 @@ async function login(page: Page) {
 
 const enterEditMode = async (page: Page) => {
   await page.goto(`/${slug}`)
-  await page.getByRole('button', { name: '편집 모드' }).click()
-  await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toBeVisible()
+  // 같은 탭에서 켜 둔 편집 모드는 페이지를 옮겨도 이어진다 (T-125-D) — 그때는 툴바가 바로 보인다
+  const enter = page.getByRole('button', { name: '편집 모드' })
+  const toolbar = page.getByRole('toolbar', { name: '편집 모드 툴바' })
+  await expect(enter.or(toolbar)).toBeVisible({ timeout: 15_000 })
+  if (await enter.isVisible()) await enter.click()
+  await expect(toolbar).toBeVisible()
 }
 
 const heroTitle = (page: Page) =>

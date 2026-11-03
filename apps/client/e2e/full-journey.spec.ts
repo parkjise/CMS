@@ -1006,8 +1006,10 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const home = await save()
       expect(home).toEqual(expect.objectContaining({ saved_count: 3, failed_count: 0 }))
 
-      // 서브 페이지: 상단 사진 (사진 하나인 칸)
-      await enterEditMode(`${CLIENT_URL}/${slug}/about`)
+      // 서브 페이지: 상단 메뉴로 옮겨도 편집 모드가 이어진다 (T-125-D) → 상단 사진 (사진 하나인 칸)
+      await page.locator('.header__menu-link', { hasText: '회사소개' }).first().click()
+      await page.waitForURL(/\/about$/)
+      await expect(page.getByRole('toolbar', { name: '편집 모드 툴바' })).toBeVisible({ timeout: 15_000 })
       const heroUrl = await replacePhoto(page.locator('.sub-hero').getByRole('button', { name: '사진 변경' }))
       expect(await save()).toEqual(expect.objectContaining({ saved_count: 1, failed_count: 0 }))
 
