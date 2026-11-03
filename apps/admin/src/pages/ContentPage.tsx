@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { Layers, Lock, Plus, Settings } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { AddSectionModal } from '@/components/content/AddSectionModal'
@@ -10,7 +11,11 @@ import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSe
 type Tab = 'sections' | 'settings'
 
 export function ContentPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('sections')
+  // ?tab=settings — 홈페이지 편집 모드의 '공통 설정 열기' 링크로 바로 (T-125-F)
+  const [searchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<Tab>(
+    searchParams.get('tab') === 'settings' ? 'settings' : 'sections',
+  )
   const { data: sections, isLoading, isError } = useSections()
 
   return (
@@ -69,6 +74,7 @@ function TabButton({ active, onClick, icon: Icon, label }: TabButtonProps) {
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition ${
         active
           ? 'border-blue-600 text-blue-600'
