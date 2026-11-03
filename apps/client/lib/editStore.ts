@@ -33,6 +33,8 @@ interface EditStore {
 
   toggleEditMode: () => void
   enterEditMode: () => void
+  /** 같은 탭에서 켜 두었던 편집 모드를 페이지 이동 뒤 다시 켠다 — 로그인 확인 뒤에 부른다 (T-125-D) */
+  restoreEditMode: () => void
   exitEditMode: () => void
   toggleAiPanel: () => void
   setAiPanelOpen: (open: boolean) => void
@@ -51,6 +53,30 @@ interface EditStore {
 
 const buildKey = (sectionId: string, field: string) => `${sectionId}:${field}`
 
+/**
+ * 편집 모드 켜짐을 탭에 기억 (T-125-D) — 코드형 템플릿 메뉴는 일반 링크라 페이지를 옮기면
+ * 메모리 상태가 사라진다. 같은 탭에서만 유지(sessionStorage), 탭을 닫으면 끝.
+ * 첫 렌더에는 쓰지 않는다 — 로그인 확인 뒤 restoreEditMode() 로 켠다 (hydration 일치)
+ */
+export const EDIT_MODE_SESSION_KEY = 'cms-edit-mode'
+
+const rememberEditMode = (on: boolean) => {
+  try {
+    if (on) sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+    else sessionStorage.removeItem(EDIT_MODE_SESSION_KEY)
+  } catch {
+    // 저장소를 못 쓰면(사생활 보호 모드 등) 페이지를 옮길 때 편집 모드가 풀릴 뿐
+  }
+}
+
+const rememberedEditMode = (): boolean => {
+  try {
+    return sessionStorage.getItem(EDIT_MODE_SESSION_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+
 export const useEditStore = create<EditStore>()(
   persist(
     (set, get) => ({
@@ -63,14 +89,31 @@ export const useEditStore = create<EditStore>()(
       toggleEditMode: () => {
         const { isLoggedIn } = useClientAuthStore.getState()
         if (!isLoggedIn) return
-        set((s) => ({ isEditMode: !s.isEditMode, isPreview: false }))
+        const next = !get().isEditMode
+        rememberEditMode(next)
+        set({ isEditMode: next, isPreview: false })
       },
       enterEditMode: () => {
         const { isLoggedIn } = useClientAuthStore.getState()
         if (!isLoggedIn) return
+        rememberEditMode(true)
         set({ isEditMode: true })
       },
-      exitEditMode: () => set({ isEditMode: false, isAiPanelOpen: false, isPreview: false }),
+      exitEditMode: () => {
+        rememberEditMode(false)
+        set({ isEditMode: false, isAiPanelOpen: false, isPreview: false })
+      },
+      restoreEditMode: () => {
+        if (!rememberedEditMode()) return
+        const { isInitialized, isLoggedIn } = useClientAuthStore.getState()
+        if (!isInitialized) return
+        if (!isLoggedIn) {
+          // 로그아웃 · 만료 — 기억을 지운다
+          rememberEditMode(false)
+          return
+        }
+        set({ isEditMode: true, isPreview: false })
+      },
       toggleAiPanel: () => set((s) => ({ isAiPanelOpen: !s.isAiPanelOpen })),
       setAiPanelOpen: (open: boolean) => set({ isAiPanelOpen: open }),
       setPreview: (preview: boolean) =>

@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { toast } from 'sonner'
 import { EditToolbar } from '@/components/edit/EditToolbar'
-import { useEditStore } from '@/lib/editStore'
+import { EDIT_MODE_SESSION_KEY, useEditStore } from '@/lib/editStore'
 import { useClientAuthStore } from '@/lib/authStore'
 
 vi.mock('sonner', () => ({
@@ -40,7 +40,9 @@ const resetStores = () => {
   useClientAuthStore.setState({
     user: null,
     isLoggedIn: false,
+    isInitialized: false,
   })
+  window.sessionStorage.clear()
 }
 
 describe('EditToolbar', () => {
@@ -210,5 +212,14 @@ describe('EditToolbar', () => {
     await user.click(screen.getByRole('button', { name: '편집 종료' }))
 
     expect(exitSpy).toHaveBeenCalled()
+  })
+
+  it('메뉴로 페이지를 옮긴 뒤 — 로그인 확인이 끝나면 편집 툴바가 다시 열린다 (T-125-D)', async () => {
+    window.sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+    render(<EditToolbar />)
+    // 첫 화면은 서버와 같게(편집 모드 아님)
+    expect(screen.queryByRole('toolbar', { name: '편집 모드 툴바' })).toBeNull()
+    useClientAuthStore.setState({ isLoggedIn: true, isInitialized: true })
+    expect(await screen.findByRole('toolbar', { name: '편집 모드 툴바' })).toBeInTheDocument()
   })
 })
