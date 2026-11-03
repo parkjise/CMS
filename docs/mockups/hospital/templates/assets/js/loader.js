@@ -1,5 +1,6 @@
 // ── 로딩 화면 (참고: archin home-5 Preloader) ─────────────────────
 // 글자 사라짐 → 하단 곡선이 위로 휘며 → 평평해지고 → 화면 위로 걷힘
+/* global gsap */
 document.addEventListener('DOMContentLoaded', () => {
   const loader = document.querySelector('.loader');
   if (!loader) return;

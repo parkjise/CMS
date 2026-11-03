@@ -1,3 +1,4 @@
+/* global Swiper */
 // ════════════════════════════════════════════════════════════════
 // 메인 팝업 게이트 & 슬라이드 (ELEV Clinic Style Multi-slide Popup)
 // - 팝업 열림 시 전체 딤(배경 어두움) 및 본문 스크롤 잠금
@@ -15,7 +16,7 @@ const isPopupHidden = () => {
     const hiddenUntil = localStorage.getItem(POPUP_STORAGE_KEY)
     if (!hiddenUntil) return false
     return Date.now() < parseInt(hiddenUntil, 10)
-  } catch (e) {
+  } catch {
     return false
   }
 }
@@ -102,7 +103,7 @@ document.addEventListener('includes:loaded', () => {
     try {
       const oneDayMs = 24 * 60 * 60 * 1000
       localStorage.setItem(POPUP_STORAGE_KEY, String(Date.now() + oneDayMs))
-    } catch (e) {
+    } catch {
       // localStorage 불가 환경 대응
     }
   }
