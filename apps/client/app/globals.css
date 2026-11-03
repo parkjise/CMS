@@ -184,6 +184,30 @@ body.edit-mode .tpl-image-edit svg {
   height: 14px;
 }
 
+/* 공통 설정 안내 (T-125-F CommonSettingsHint) — 편집 모드에서만 그린다 */
+body.edit-mode .tpl-common-hint {
+  margin-top: 16px;
+  padding: 10px 14px;
+  border: 1px dashed var(--color-primary, #2563eb);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  font-size: 13px;
+  line-height: 1.5;
+}
+body.edit-mode .tpl-common-hint a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-primary, #2563eb);
+  font-weight: 600;
+  text-decoration: underline;
+}
+body.edit-mode .tpl-common-hint svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* 섹션 컨트롤 바 (T-065 SectionControls) — 편집 모드 + 섹션 hover 시 노출 */
 body.edit-mode [data-section-wrapper] {
   position: relative;

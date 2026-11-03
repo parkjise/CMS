@@ -237,7 +237,8 @@ export default function HospitalATemplate({
       case 'HISTORY_TIMELINE':
         return <HistoryTimeline {...props} />
       case 'MAP':
-        return <Location {...props} />
+        // 주소 · 전화 · 주차 · 운영 시간은 공통 설정(사업체 정보) — 비었으면 섹션 샘플 값 (T-125-F)
+        return <Location {...props} business={siteInfo} />
       case 'BOARD':
         return renderBoard(props)
       default:
