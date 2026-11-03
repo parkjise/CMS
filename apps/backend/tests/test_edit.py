@@ -1,3 +1,4 @@
+import json
 import uuid
 
 from httpx import AsyncClient
@@ -133,9 +134,7 @@ class TestBatchSave:
     async def test_empty_changes_rejected(
         self, client: AsyncClient, auth_headers: dict
     ):
-        resp = await client.post(
-            self._url, headers=auth_headers, json={"changes": []}
-        )
+        resp = await client.post(self._url, headers=auth_headers, json={"changes": []})
         assert resp.status_code == 400
 
     async def test_null_value_allowed(
@@ -182,3 +181,119 @@ class TestBatchSave:
             self._url, headers=auth_headers, json={"changes": changes}
         )
         assert resp.status_code == 400
+
+
+async def _seed_list_setting(section_id: str, tenant_id: str, value: str) -> None:
+    from sqlalchemy import text
+
+    from tests.conftest import _TestSession
+
+    async with _TestSession() as session:
+        await session.execute(
+            text("SELECT set_config('app.is_super_admin', 'true', true)")
+        )
+        await session.execute(
+            text(
+                "INSERT INTO section_settings (id, tenant_id, section_id, field_key,"
+                " field_value, value_type, created_at, updated_at) VALUES"
+                " (gen_random_uuid(), :tid, :sid, 'slides', :v, 'JSON', now(), now())"
+            ),
+            {"tid": tenant_id, "sid": section_id, "v": value},
+        )
+        await session.commit()
+
+
+async def _setting(section_id: str, field: str) -> tuple[str, str]:
+    from sqlalchemy import text
+
+    from tests.conftest import _TestSession
+
+    async with _TestSession() as session:
+        await session.execute(
+            text("SELECT set_config('app.is_super_admin', 'true', true)")
+        )
+        row = (
+            await session.execute(
+                text(
+                    "SELECT field_value, value_type FROM section_settings"
+                    " WHERE section_id = :sid AND field_key = :f"
+                ),
+                {"sid": section_id, "f": field},
+            )
+        ).one()
+        return row[0], row[1]
+
+
+class TestBatchSaveListField:
+    """목록 칸(슬라이드 · 카드) 안 사진 교체 — 목록 전체를 저장 (T-125-B)"""
+
+    _url = "/api/v1/edit/batch-save"
+
+    def _slides(self, n: int, url: str = "https://example.com/a.jpg") -> str:
+        return json.dumps(
+            [{"image_url": url, "title": "슬라이드 제목 " * 10} for _ in range(n)],
+            ensure_ascii=False,
+        )
+
+    async def test_long_list_saved_as_json(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        sid = test_section["id"]
+        await _seed_list_setting(sid, test_section["tenant_id"], self._slides(1))
+        value = self._slides(12, "https://example.com/new.jpg")
+        assert len(value) > 1000  # 일반 칸 한도를 넘는 목록
+        resp = await client.post(
+            self._url, headers=auth_headers, json=_body(sid, "slides", value)
+        )
+        assert resp.json()["data"]["saved_count"] == 1
+        saved, value_type = await _setting(sid, "slides")
+        assert value_type == "JSON"
+        assert json.loads(saved)[0]["image_url"] == "https://example.com/new.jpg"
+
+    async def test_list_rejects_non_list(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        sid = test_section["id"]
+        await _seed_list_setting(sid, test_section["tenant_id"], self._slides(1))
+        for bad in ("그냥 글자", '{"image_url": "x"}'):
+            resp = await client.post(
+                self._url, headers=auth_headers, json=_body(sid, "slides", bad)
+            )
+            assert resp.json()["data"]["failed_count"] == 1
+        saved, _ = await _setting(sid, "slides")
+        assert json.loads(saved)[0]["image_url"] == "https://example.com/a.jpg"
+
+    async def test_list_rejects_unsafe_nested_url(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        sid = test_section["id"]
+        await _seed_list_setting(sid, test_section["tenant_id"], self._slides(1))
+        resp = await client.post(
+            self._url,
+            headers=auth_headers,
+            json=_body(sid, "slides", self._slides(1, "javascript:alert(1)")),
+        )
+        assert resp.json()["data"]["failed_count"] == 1
+
+    async def test_list_too_long_rejected(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        sid = test_section["id"]
+        await _seed_list_setting(sid, test_section["tenant_id"], self._slides(1))
+        resp = await client.post(
+            self._url,
+            headers=auth_headers,
+            json=_body(sid, "slides", self._slides(300)),
+        )
+        assert resp.json()["data"]["failed_count"] == 1
+
+    async def test_text_field_keeps_text_limit(
+        self, client: AsyncClient, auth_headers: dict, test_section: dict
+    ):
+        """목록이 아닌 칸은 '[' 로 시작해도 일반 글자 한도 그대로"""
+        resp = await client.post(
+            self._url,
+            headers=auth_headers,
+            json=_body(test_section["id"], "notes", "[" + "a" * 1000),
+        )
+        assert resp.json()["data"]["failed_count"] == 1

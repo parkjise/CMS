@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime
 from uuid import UUID
@@ -32,6 +33,10 @@ _FIELD_MAX_LENGTHS: dict[str, int] = {
     "email": 100,
 }
 _DEFAULT_MAX_LEN = 1000
+# 목록 칸(슬라이드 · 카드 등 JSON) — 사진 주소만 바꿔도 목록 전체를 저장한다 (T-125-B)
+_LIST_MAX_LEN = 20000
+_LIST_VALUE_TYPE = "JSON"
+MSG_INVALID_LIST = "목록 형식이 올바르지 않습니다."
 
 
 def _max_len(field: str) -> int:
@@ -46,13 +51,32 @@ def _value_type(field: str) -> str:
     return "text"
 
 
-def _validate(field: str, value: str | None, rich: bool = False) -> str | None:
+def _validate_list(field: str, value: str) -> str:
+    """목록 칸 값 — JSON 배열이어야 하고, 안의 주소도 검사한다 (T-125-B)."""
+    if len(value) > _LIST_MAX_LEN:
+        raise ValueError(f"{field}은(는) {_LIST_MAX_LEN}자 이하여야 합니다.")
+    try:
+        data = json.loads(value)
+    except ValueError as exc:
+        raise ValueError(MSG_INVALID_LIST) from exc
+    if not isinstance(data, list):
+        raise ValueError(MSG_INVALID_LIST)
+    validate_nested_urls(field, value)
+    return value
+
+
+def _validate(
+    field: str, value: str | None, rich: bool = False, is_list: bool = False
+) -> str | None:
     """검사 후 저장할 값 — 갤러리 목록은 정리된 JSON 으로 (T-064-A)."""
     if value is None:
         return None
     if field == GALLERY_FIELD:
         # 장수 · 캡션 · 주소를 따로 검사 — 글자 수 한도(1000자) 대신
         return normalize_gallery_items(value)
+    if is_list:
+        # 이미 목록으로 저장된 칸 — 글자 수 한도(1000자) 대신 목록 한도로
+        return _validate_list(field, value)
     # 목록 칸 안의 주소 (T-037-E)
     validate_nested_urls(field, value)
     if is_url_field(field) and not rich:
@@ -78,7 +102,6 @@ async def batch_save(
     for change in changes:
         try:
             rich = change.format == "rich"
-            value = _validate(change.field, change.value, rich)
 
             section_row = await db.execute(
                 select(Section).where(
@@ -98,6 +121,13 @@ async def batch_save(
                 )
             )
             existing = existing_row.scalar_one_or_none()
+            # 이미 목록으로 저장된 칸은 목록 그대로 (value_type 유지)
+            is_list = (
+                existing is not None
+                and existing.value_type == _LIST_VALUE_TYPE
+                and change.field != GALLERY_FIELD
+            )
+            value = _validate(change.field, change.value, rich, is_list)
             if existing:
                 existing.field_value = value
                 if change.field == GALLERY_FIELD:
