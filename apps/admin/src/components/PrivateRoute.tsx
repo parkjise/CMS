@@ -14,8 +14,10 @@ export function PrivateRoute() {
 
   if (!initialized || isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+      // 회전 표시만 있으면 '아직 아무것도 안 보임'으로 잡혀 첫 화면이 늦게 측정된다 — 글자를 함께 (T-043-B)
+      <div className="min-h-screen flex items-center justify-center gap-3 bg-slate-50 text-sm text-slate-500">
+        <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+        불러오는 중…
       </div>
     )
   }

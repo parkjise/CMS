@@ -4,11 +4,12 @@ import { PrivateRoute } from '@/components/PrivateRoute'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { FeatureGuard } from '@/components/layout/FeatureGuard'
 import { PageFallback } from '@/components/layout/PageFallback'
-import { LoginPage } from '@/pages/LoginPage'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { type LazyPage, lazyPage } from '@/lib/lazyPage'
 
+// 로그인 화면도 따로 — 폼 라이브러리(react-hook-form · zod)가 다른 화면 첫 로딩에 섞이지 않게 (T-043-B)
+const LoginPage = lazyPage(() => import('@/pages/LoginPage'), 'LoginPage')
 const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'), 'DashboardPage')
 const ContentPage = lazyPage(() => import('@/pages/ContentPage'), 'ContentPage')
 const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
@@ -24,6 +25,7 @@ const ForbiddenPage = lazyPage(() => import('@/pages/ForbiddenPage'), 'Forbidden
 // 주소 → 페이지 (앞에서부터 먼저 맞는 것). 앱 시작 때 지금 주소의 페이지 코드를
 // 로그인 확인과 동시에 받아 둔다 (T-043-A)
 const ROUTE_PAGES: [RegExp, LazyPage][] = [
+  [/^\/login\/?$/, LoginPage],
   [/^\/admin\/dashboard\/?$/, DashboardPage],
   [/^\/admin\/content\/?$/, ContentPage],
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
@@ -57,7 +59,7 @@ const withFeature = (feature: string, element: ReactNode) => (
 export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <LoginPage />,
+    element: withSuspense(<LoginPage />),
     errorElement: <ErrorPage />,
   },
   {
