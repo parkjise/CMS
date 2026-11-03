@@ -5,10 +5,10 @@ import { createPortal } from 'react-dom'
 import { ImagePlus } from 'lucide-react'
 import { ImageUploadModal } from '@/components/edit/ImageUploadModal'
 import { selectEditingUi, useEditStore } from '@/lib/editStore'
-import { getString } from '@/lib/sectionSettings'
 import type { ImageContext } from '@/lib/uploadImage'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { ResponsiveImg } from './ResponsiveImg'
+import { itemString, parseList, replaceListItem, useFieldDraft } from './listDraft'
 
 /** 목록 칸 안의 사진 — slides[2].image_url 처럼 (T-125-B) */
 export interface ListImageTarget {
@@ -38,47 +38,23 @@ type Target = { field: string } | ListImageTarget
 
 const isList = (t: Target): t is ListImageTarget => 'index' in t
 
-const parseList = (raw: string | undefined): Record<string, unknown>[] | null => {
-  if (!raw) return null
-  try {
-    const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : null
-  } catch {
-    return null
-  }
-}
-
 /**
- * 템플릿 사진 칸의 지금 값과 바꾸기 — 저장 전 바꾼 값(pendingChanges)이 있으면 그 값.
- * 목록 안 사진은 그 칸만 바꾼 목록 전체를 저장 대기에 올린다 — 같은 목록의 사진 여러 장을
- * 바꿔도 앞서 바꾼 값 위에 더하므로 서로 덮어쓰지 않는다.
+ * 템플릿 사진 칸의 지금 값과 바꾸기 — 편집 모드면 저장 전 바꾼 값(pendingChanges).
+ * 목록 안 사진은 그 칸만 바꾼 목록 전체를 저장 대기에 올린다 (listDraft).
  */
 export function useTemplateImage(section: PublicSection, target: Target) {
-  const storeKey = `${section.id}:${target.field}`
-  const pending = useEditStore((s) => s.pendingChanges[storeKey])
   const updateField = useEditStore((s) => s.updateField)
-  const initial = getString(section.settings, target.field)
-  const current = pending?.new_value ?? initial
+  const { initial, value } = useFieldDraft(section, target.field)
 
   if (!isList(target)) {
     return {
-      url: current,
+      url: value,
       replace: (url: string) => updateField(section.id, target.field, url, initial),
     }
   }
-
-  const list = parseList(current)
-  const value = list?.[target.index]?.[target.key]
   return {
-    url: typeof value === 'string' ? value : '',
-    replace: (url: string) => {
-      // 최신 대기 값 위에서 바꾼다 — 렌더 뒤 다른 사진을 먼저 바꿨을 수도 있다
-      const latest = useEditStore.getState().pendingChanges[storeKey]?.new_value ?? initial
-      const next = parseList(latest)
-      if (!next || !next[target.index]) return
-      next[target.index] = { ...next[target.index], [target.key]: url }
-      updateField(section.id, target.field, JSON.stringify(next), initial)
-    },
+    url: itemString(parseList(value), target.index, target.key),
+    replace: (url: string) => replaceListItem(section, target.field, target.index, target.key, url),
   }
 }
 
