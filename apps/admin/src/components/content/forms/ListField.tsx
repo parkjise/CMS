@@ -3,7 +3,7 @@ import { Button, Input, Textarea } from '@cms/ui'
 import { FormField } from './FormField'
 import { ImageUploadField } from './ImageUploadField'
 import { fieldLabel } from '@/lib/fieldLabels'
-import { type ListItem as Item, parseList } from './listValue'
+import { type ListItem as Item, isImageKey, parseList } from './listValue'
 
 // 목록 칸 편집기 — 슬라이드 · 카드 · 갤러리 · 영상 등 JSON 목록을 사람이 쓰는 화면으로 (T-037-E)
 // 저장 형식은 그대로 JSON (홈페이지 렌더링 · 데이터 변경 없음)
@@ -11,8 +11,6 @@ import { type ListItem as Item, parseList } from './listValue'
 type Scalar = string | number | boolean | null
 
 const LONG_TEXT = new Set(['description', 'text', 'body', 'message', 'answer'])
-const isImageKey = (key: string) =>
-  key.endsWith('image_url') || key === 'thumb_url' || key === 'icon_url'
 
 const emptyLike = (v: unknown): unknown =>
   typeof v === 'boolean' ? false : Array.isArray(v) ? [] : v !== null && typeof v === 'object' ? {} : ''

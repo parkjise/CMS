@@ -2,8 +2,9 @@ import { useState } from 'react'
 import { Input } from '@cms/ui'
 import { FormField } from './FormField'
 import { SaveBar } from './HeroBannerForm'
+import { ImageUploadField } from './ImageUploadField'
 import { ListField } from './ListField'
-import { parseList } from './listValue'
+import { isImageKey, parseList } from './listValue'
 import { getSetting, isRichSetting, strSetting } from './utils'
 import type { SectionFormProps } from './types'
 import { fieldLabel } from '@/lib/fieldLabels'
@@ -75,6 +76,16 @@ export function GenericForm({ section, isSaving, onSubmit }: SectionFormProps) {
             sectionId={section.id}
             extraKeys={EXTRA_ITEM_KEYS[key]}
             onChange={(json) => setValues((prev) => ({ ...prev, [key]: json }))}
+          />
+        ) : isImageKey(key) ? (
+          // 사진 하나인 칸도 주소 입력 대신 업로드 (T-125-B)
+          <ImageUploadField
+            key={key}
+            label={fieldLabel(key)}
+            context={key === 'bg_image_url' ? 'hero' : 'gallery'}
+            sectionId={section.id}
+            value={value}
+            onChange={(url) => setValues((prev) => ({ ...prev, [key]: url }))}
           />
         ) : (
           <FormField key={key} label={fieldLabel(key)} rich={isRichSetting(section.settings, key)}>

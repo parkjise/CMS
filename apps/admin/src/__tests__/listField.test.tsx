@@ -141,4 +141,19 @@ describe('GenericForm 목록 칸', () => {
     expect(screen.queryByRole('button', { name: '항목 추가' })).not.toBeInTheDocument()
     expect(screen.getByLabelText('항목')).toHaveValue(JSON.stringify([{ subject: '공지' }]))
   })
+
+  it('사진 하나인 칸은 주소 입력 대신 업로드 칸 (T-125-B)', () => {
+    renderWithQuery(
+      <GenericForm
+        section={section('CONTENT_BLOCK', { image_url: '/a.jpg', bg_image_url: '/bg.jpg', title: '제목' })}
+        isSaving={false}
+        onSubmit={vi.fn()}
+      />,
+    )
+    expect(screen.getByLabelText('사진 업로드 — 끌어다 놓거나 눌러서 파일 선택')).toBeInTheDocument()
+    expect(screen.getByLabelText('배경 사진 업로드 — 끌어다 놓거나 눌러서 파일 선택')).toBeInTheDocument()
+    expect(screen.queryByDisplayValue('/a.jpg')).not.toBeInTheDocument()
+    // 사진이 아닌 칸은 그대로 글자 입력
+    expect(screen.getByDisplayValue('제목')).toBeInTheDocument()
+  })
 })
