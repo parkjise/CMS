@@ -5,7 +5,8 @@ import Swiper from 'swiper'
 import { A11y, Autoplay, Navigation, Pagination } from 'swiper/modules'
 import { gsap } from 'gsap'
 import { getJson } from '@/lib/sectionSettings'
-import { ResponsiveImg } from '../../../shared/ResponsiveImg'
+import { ImageEditButtons, TemplateImage } from '../../../shared/TemplateImage'
+import type { PublicSection } from '@/lib/publicSite.types'
 import type { CodeSectionProps } from '../../../shared/contracts'
 
 interface HeroSlide {
@@ -18,15 +19,19 @@ interface HeroSlide {
 }
 
 // 슬라이드 목록은 Swiper 가 DOM 순서를 바꾸므로(loop) 상태 변경 때 다시 그리지 않게 분리
-const HeroTrack = memo(function HeroTrack({ slides }: { slides: HeroSlide[] }) {
+// 사진은 TemplateImage 가 바꾼 값(저장 전)을 스스로 읽어 그 <img> 만 바꾼다 — 슬라이드 목록은 그대로
+const HeroTrack = memo(function HeroTrack({ section, slides }: { section: PublicSection; slides: HeroSlide[] }) {
   return (
     <div className="hero-slider__track swiper-wrapper">
       {slides.map((slide, i) => (
         <div className="hero-slider__slide swiper-slide" key={`${slide.image_url}-${i}`}>
-          <ResponsiveImg
+          <TemplateImage
+            section={section}
+            // 편집 버튼은 슬라이드 위 글자 · 조작 영역에 가리지 않게 아래 layout 에 (지금 슬라이드)
+            editable={false}
+            item={{ field: 'slides', index: i }}
+            mobileKey="mobile_image_url"
             className="hero-slider__image"
-            src={slide.image_url}
-            mobileSrc={slide.mobile_image_url}
             sizes="100vw"
             alt=""
             // 첫 슬라이드는 첫 화면 주인공 이미지 — 먼저 받고, 나머지는 나중에
@@ -42,9 +47,9 @@ const HeroTrack = memo(function HeroTrack({ slides }: { slides: HeroSlide[] }) {
 /**
  * 메인 비주얼 슬라이드 — 목업 sections/hero-slider.html + assets/js/hero-slider.js
  * 설정 키: slides [{ image_url, title, copy_primary, copy_secondary }]
- * 슬라이드 목록은 관리자(AD-02)에서 편집 (목록형 값은 인라인 편집 대상 아님)
+ * 슬라이드 추가 · 글자는 관리자(AD-02)에서, 사진은 편집 모드에서도 바꾼다 (T-125-B)
  */
-export function HeroSlider({ section }: CodeSectionProps) {
+export function HeroSlider({ section, editable }: CodeSectionProps) {
   const slides = getJson<HeroSlide[]>(section.settings, 'slides', [])
   const viewportRef = useRef<HTMLDivElement>(null)
   const bulletsRef = useRef<HTMLDivElement>(null)
@@ -116,9 +121,18 @@ export function HeroSlider({ section }: CodeSectionProps) {
   return (
     <section className="hero-slider" aria-roledescription="carousel" aria-label="메인 비주얼">
       <div className="hero-slider__viewport swiper" ref={viewportRef}>
-        <HeroTrack slides={slides} />
+        <HeroTrack section={section} slides={slides} />
 
         <div className="hero-slider__layout">
+          <ImageEditButtons
+            section={section}
+            editable={editable}
+            item={{ field: 'slides', index }}
+            mobileKey="mobile_image_url"
+            context="hero"
+            label={`${index + 1}번 슬라이드 사진 변경`}
+            className="tpl-image-edit-group--below-header"
+          />
           <div className="hero-slider__bullets" ref={bulletsRef} />
 
           {slides.map((slide, i) => (

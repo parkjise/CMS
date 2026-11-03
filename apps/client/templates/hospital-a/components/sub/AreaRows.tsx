@@ -2,7 +2,7 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { TemplateImage } from '../../../shared/TemplateImage'
 
 interface AreaRow {
   image_url: string
@@ -16,7 +16,7 @@ interface AreaRow {
  * 설정 키: eyebrow · title (인라인 편집) · rows [{ image_url, title, link_url, description }]
  */
 export function AreaRows(props: CodeSectionProps) {
-  const { section } = props
+  const { section, editable } = props
   const id = titleId('area-rows', section.id)
   const rows = getJson<AreaRow[]>(section.settings, 'rows', [])
   return (
@@ -26,8 +26,7 @@ export function AreaRows(props: CodeSectionProps) {
         {rows.map((row, i) => (
           <div className={`area-rows__row${i % 2 === 1 ? ' area-rows__row--reverse' : ''}`} key={`${row.title}-${i}`}>
             <figure className="area-rows__photo">
-              {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-              <img className="area-rows__image" {...optimizedImg(row.image_url, '(min-width: 1024px) 50vw, 100vw', 1200)} alt="" loading="lazy" />
+              <TemplateImage section={section} editable={editable} item={{ field: 'rows', index: i }} className="area-rows__image" sizes="(min-width: 1024px) 50vw, 100vw" maxWidth={1200} alt="" loading="lazy" />
             </figure>
             <div className="area-rows__body">
               <h3 className="area-rows__title">

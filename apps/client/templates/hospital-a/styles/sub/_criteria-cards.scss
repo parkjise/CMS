@@ -26,6 +26,7 @@
     text-align: center;
   }
   &__media {
+    position: relative; // 편집 모드 사진 변경 버튼 기준 (T-125-B)
     overflow: hidden;
   }
   &__image {

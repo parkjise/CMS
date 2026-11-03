@@ -7,26 +7,33 @@ import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { TemplateImage } from '../../../shared/TemplateImage'
+import type { PublicSection } from '@/lib/publicSite.types'
 
 interface Photo {
   image_url: string
   alt: string
 }
 
-const Slides = memo(function Slides({ photos, thumbs }: { photos: Photo[]; thumbs?: boolean }) {
+interface SlidesProps {
+  section: PublicSection
+  editable: boolean
+  photos: Photo[]
+  thumbs?: boolean
+}
+
+// 썸네일은 큰 사진과 같은 사진 — 바꾼 사진만 보여 주고 버튼은 큰 사진에만 (T-125-B)
+const Slides = memo(function Slides({ section, editable, photos, thumbs }: SlidesProps) {
   return (
     <div className="swiper-wrapper">
       {photos.map((p, i) =>
         thumbs ? (
           <div className="photo-gallery__thumb swiper-slide" key={`${p.image_url}-${i}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- 썸네일 */}
-            <img {...optimizedImg(p.image_url, '160px', 640)} alt="" loading="lazy" />
+            <TemplateImage section={section} editable={false} item={{ field: 'photos', index: i }} sizes="160px" maxWidth={640} alt="" loading="lazy" />
           </div>
         ) : (
           <div className="photo-gallery__slide swiper-slide" key={`${p.image_url}-${i}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- 목업 슬라이드 사진 */}
-            <img className="photo-gallery__image" {...optimizedImg(p.image_url, '(min-width: 1024px) 80vw, 100vw', 1920)} alt={p.alt} loading="lazy" />
+            <TemplateImage section={section} editable={editable} item={{ field: 'photos', index: i }} className="photo-gallery__image" sizes="(min-width: 1024px) 80vw, 100vw" maxWidth={1920} alt={p.alt} loading="lazy" />
           </div>
         ),
       )}
@@ -39,7 +46,7 @@ const Slides = memo(function Slides({ photos, thumbs }: { photos: Photo[]; thumb
  * 설정 키: eyebrow · title (인라인 편집) · photos [{ image_url, alt }]
  */
 export function PhotoGallery(props: CodeSectionProps) {
-  const { section } = props
+  const { section, editable } = props
   const id = titleId('photo-gallery', section.id)
   const photos = getJson<Photo[]>(section.settings, 'photos', [])
   const mainRef = useRef<HTMLDivElement>(null)
@@ -82,14 +89,14 @@ export function PhotoGallery(props: CodeSectionProps) {
             <i className="ri-arrow-left-s-line" aria-hidden="true" />
           </button>
           <div className="photo-gallery__main swiper" role="region" aria-label="공간 사진 슬라이드" ref={mainRef}>
-            <Slides photos={photos} />
+            <Slides section={section} editable={editable} photos={photos} />
           </div>
           <button className="photo-gallery__arrow photo-gallery__arrow--next" type="button" aria-label="다음 사진" ref={nextRef}>
             <i className="ri-arrow-right-s-line" aria-hidden="true" />
           </button>
         </div>
         <div className="photo-gallery__thumbs swiper" ref={thumbsRef}>
-          <Slides photos={photos} thumbs />
+          <Slides section={section} editable={editable} photos={photos} thumbs />
         </div>
         <div className="photo-gallery__progress swiper-pagination" aria-hidden="true" ref={progressRef} />
       </div>

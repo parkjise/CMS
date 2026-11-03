@@ -8,7 +8,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { TemplateImage } from '../../../shared/TemplateImage'
+import type { PublicSection } from '@/lib/publicSite.types'
 
 interface GalleryImage {
   image_url: string
@@ -24,7 +25,13 @@ interface Feature {
 // 보이는 영역보다 카드가 많아야 loop 가 자연스러워 목록을 4번 반복해 그린다 (목업 JS 의 cloneNode 대체)
 const REPEAT = 4
 
-const Gallery = memo(function Gallery({ images }: { images: GalleryImage[] }) {
+interface GalleryProps {
+  section: PublicSection
+  editable: boolean
+  images: GalleryImage[]
+}
+
+const Gallery = memo(function Gallery({ section, editable, images }: GalleryProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -85,10 +92,14 @@ const Gallery = memo(function Gallery({ images }: { images: GalleryImage[] }) {
               aria-hidden={i >= images.length ? true : undefined}
             >
               <figure className="brand-intro__gallery-card">
-                {/* eslint-disable-next-line @next/next/no-img-element -- 목업 카드 회전 효과 유지 */}
-                <img
+                <TemplateImage
+                  section={section}
+                  // 무한 흐름용 반복 카드는 바꾼 사진만 보여 주고 버튼은 원래 카드에만 (T-125-B)
+                  editable={editable && i < images.length}
+                  item={{ field: 'gallery', index: i % images.length }}
                   className="brand-intro__gallery-image"
-                  {...optimizedImg(image.image_url, '(min-width: 768px) 40vw, 80vw', 1200)}
+                  sizes="(min-width: 768px) 40vw, 80vw"
+                  maxWidth={1200}
                   alt={i < images.length ? image.alt : ''}
                   loading="lazy"
                 />
@@ -166,7 +177,7 @@ export function BrandIntro({ section, editable }: CodeSectionProps) {
         </header>
       </div>
 
-      {gallery.length > 0 && <Gallery images={gallery} />}
+      {gallery.length > 0 && <Gallery section={section} editable={editable} images={gallery} />}
 
       <div className="brand-intro__signature">
         <TemplateText

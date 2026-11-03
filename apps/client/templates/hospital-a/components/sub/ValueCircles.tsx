@@ -3,8 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
-import { ResponsiveImg } from '../../../shared/ResponsiveImg'
-import { mobileImage } from '@/lib/mobileSettings'
+import { TemplateImage } from '../../../shared/TemplateImage'
 
 interface Props extends CodeSectionProps {
   /** more_page 페이지 키 → 주소 */
@@ -17,7 +16,7 @@ interface Props extends CodeSectionProps {
  *          more_page(페이지 키) + more_hash(섹션 앵커) 또는 more_url
  */
 export function ValueCircles({ hrefFor, ...props }: Props) {
-  const { section } = props
+  const { section, editable } = props
   const id = titleId('value-circles', section.id)
   const values = getJson<string[]>(section.settings, 'values', [])
   const moreLabel = getString(section.settings, 'more_label')
@@ -29,10 +28,13 @@ export function ValueCircles({ hrefFor, ...props }: Props) {
   return (
     <section className="value-circles" aria-labelledby={id}>
       {/* 장식용 배경 사진 — 휴대폰용 사진이 있으면 휴대폰에서 그 사진 (T-037-D) */}
-      <ResponsiveImg
+      <TemplateImage
+        section={section}
+        editable={editable}
+        field="bg_image_url"
+        mobileKey="mobile_image_url"
+        context="hero"
         className="value-circles__bg"
-        src={getString(section.settings, 'bg_image_url')}
-        mobileSrc={mobileImage(section)}
         sizes="100vw"
         alt=""
         loading="lazy"
