@@ -134,4 +134,26 @@ describe('EditableText', () => {
     fireEvent.click(el)
     expect(screen.getByText(`${INITIAL.length} / 40`)).toBeInTheDocument()
   })
+
+  // T-125-G — 감싸개가 inline-block 이면 제목 · 문단이 옆 글자와 한 줄로 붙어 배치가 깨진다
+  it.each(['h1', 'h2', 'p', 'div'] as const)('편집 모드 %s 감싸개는 block', (tag) => {
+    enableEditMode()
+    render(<EditableText sectionId={SECTION_ID} field={FIELD} initialValue={INITIAL} as={tag} />)
+    const wrap = screen.getByText(INITIAL).parentElement!
+    expect(wrap).toHaveAttribute('data-editable-wrap')
+    expect(wrap).toHaveClass('block')
+    expect(wrap).not.toHaveClass('inline-block')
+  })
+
+  it('편집 모드 span 감싸개는 inline-block (글 사이 짧은 글자 유지)', () => {
+    enableEditMode()
+    render(<EditableText sectionId={SECTION_ID} field={FIELD} initialValue={INITIAL} as="span" />)
+    const wrap = screen.getByText(INITIAL).parentElement!
+    expect(wrap).toHaveClass('inline-block')
+  })
+
+  it('보기 모드에서는 감싸개 없이 태그만 그린다', () => {
+    renderText()
+    expect(screen.getByText(INITIAL).parentElement).not.toHaveAttribute('data-editable-wrap')
+  })
 })

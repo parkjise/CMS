@@ -14,6 +14,9 @@ import {
 
 type Tag = 'h1' | 'h2' | 'h3' | 'h4' | 'p' | 'span' | 'div'
 
+// 제목 · 문단은 편집 모드 감싸개도 한 줄을 다 차지해야 보기 모드와 배치가 같다 (T-125-G)
+const BLOCK_TAGS: ReadonlySet<Tag> = new Set(['h1', 'h2', 'h3', 'h4', 'p', 'div'])
+
 interface Props {
   sectionId: string
   field: string
@@ -201,7 +204,10 @@ export function EditableText({
   }
 
   return (
-    <span className="relative inline-block">
+    <span
+      data-editable-wrap=""
+      className={`relative ${BLOCK_TAGS.has(as) ? 'block' : 'inline-block'}`}
+    >
       <Tag
         ref={ref as React.Ref<never>}
         data-editable="text"
