@@ -123,6 +123,108 @@ describe('authStore', () => {
     })
   })
 
+  describe('refresh 응답의 내 정보 (T-043-B)', () => {
+    it('refresh 가 user 를 주면 /me 를 부르지 않는다 (저장된 사용자가 있어도)', async () => {
+      let meCalls = 0
+      server.use(
+        http.post(`${BASE}/v1/auth/refresh`, () =>
+          HttpResponse.json({
+            success: true,
+            data: { access_token: 'tok-with-user', user: { id: 'u-9', email: 'refresh@example.com' } },
+          }),
+        ),
+        http.get(`${BASE}/v1/auth/me`, () => {
+          meCalls += 1
+          return HttpResponse.json({ success: true, data: { id: 'u-9', email: 'me@example.com' } })
+        }),
+      )
+      useAuthStore.setState({ user: { id: 'u-9', email: 'cached@example.com' } as never })
+
+      await useAuthStore.getState().initialize()
+      await new Promise((r) => setTimeout(r, 20)) // 뒤에서 /me 를 부르지 않는지까지
+
+      const state = useAuthStore.getState()
+      expect(state.isAuthenticated).toBe(true)
+      expect(state.accessToken).toBe('tok-with-user')
+      expect(state.user?.email).toBe('refresh@example.com')
+      expect(meCalls).toBe(0)
+    })
+
+    it('user 가 없는 응답(예전 서버)이면 /me 로 채운다', async () => {
+      server.use(
+        http.post(`${BASE}/v1/auth/refresh`, () =>
+          HttpResponse.json({ success: true, data: { access_token: 'tok-old', user: null } }),
+        ),
+      )
+      await useAuthStore.getState().initialize()
+      expect(useAuthStore.getState().user?.email).toBe('me@example.com')
+    })
+  })
+
+  describe('index.html 이 미리 보낸 refresh (T-043-B)', () => {
+    afterEach(() => {
+      window.__cmsRefresh = undefined
+    })
+
+    const countRefresh = () => {
+      const calls = { n: 0 }
+      server.use(
+        http.post(`${BASE}/v1/auth/refresh`, () => {
+          calls.n += 1
+          return HttpResponse.json({ success: true, data: { access_token: 'tok-network' } })
+        }),
+      )
+      return calls
+    }
+
+    it('미리 받은 결과를 쓰고 refresh 를 다시 부르지 않는다 (한 번만 꺼냄)', async () => {
+      const calls = countRefresh()
+      window.__cmsRefresh = Promise.resolve({
+        status: 200,
+        body: { data: { access_token: 'tok-prefetched', user: { id: 'u-1', email: 'pre@example.com' } as never } },
+      })
+      await useAuthStore.getState().initialize()
+      const state = useAuthStore.getState()
+      expect(state.accessToken).toBe('tok-prefetched')
+      expect(state.user?.email).toBe('pre@example.com')
+      expect(calls.n).toBe(0)
+      expect(window.__cmsRefresh).toBeUndefined()
+    })
+
+    it('미리 받은 결과가 401 이면 같은 쿠키로 다시 부르지 않고 로그인 화면으로', async () => {
+      const calls = countRefresh()
+      window.__cmsRefresh = Promise.resolve({ status: 401, body: { data: { access_token: '' } } })
+      await useAuthStore.getState().initialize()
+      expect(useAuthStore.getState().isAuthenticated).toBe(false)
+      expect(calls.n).toBe(0)
+    })
+
+    it('연결 오류(null)면 직접 refresh 를 부른다', async () => {
+      const calls = countRefresh()
+      window.__cmsRefresh = Promise.resolve(null)
+      await useAuthStore.getState().initialize()
+      expect(useAuthStore.getState().accessToken).toBe('tok-network')
+      expect(calls.n).toBe(1)
+    })
+  })
+
+  it('initialize 를 동시에 두 번 불러도 refresh 는 한 번 (T-043-B — 개발 모드 StrictMode)', async () => {
+    let calls = 0
+    server.use(
+      http.post(`${BASE}/v1/auth/refresh`, () => {
+        calls += 1
+        return HttpResponse.json({
+          success: true,
+          data: { access_token: 'tok-once', user: { id: 'u-1', email: 'once@example.com' } },
+        })
+      }),
+    )
+    const { initialize } = useAuthStore.getState()
+    await Promise.all([initialize(), initialize()])
+    expect(calls).toBe(1)
+    expect(useAuthStore.getState().accessToken).toBe('tok-once')
+  })
+
   it('initialize는 두 번 호출해도 한 번만 실행', async () => {
     await useAuthStore.getState().initialize()
     const firstToken = useAuthStore.getState().accessToken

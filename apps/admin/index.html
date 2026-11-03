@@ -7,7 +7,13 @@
     <title>CMS 관리자</title>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- JS 를 받기 전에도 글자가 바로 보이게 (T-043-B, 첫 글자 표시 FCP) — 앱이 그려지면 통째로 바뀐다.
+         모양은 로그인 확인 화면(PrivateRoute)과 같다 -->
+    <div id="root">
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f8fafc; color: #64748b; font-size: 14px; font-family: system-ui, sans-serif">
+        불러오는 중…
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
