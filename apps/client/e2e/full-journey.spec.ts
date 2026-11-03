@@ -992,6 +992,20 @@ test.describe('T-078 전체 통합 시나리오', () => {
 
       // 메인: 지금 슬라이드 사진 + 두 번째 서비스 카드 사진 (목록 칸 두 개)
       await enterEditMode(`${CLIENT_URL}/${slug}`)
+      // 편집 모드에서도 제목 · 문단은 제 줄을 지킨다 — 다음 글이 옆에 붙지 않는다 (T-125-G)
+      const sideBySide = await page.evaluate(() =>
+        [...document.querySelectorAll('[data-editable-wrap]')]
+          .filter((wrap) => /^(H\d|P|DIV)$/.test(wrap.firstElementChild?.tagName ?? ''))
+          .filter((wrap) => getComputedStyle(wrap.parentElement!).display === 'block')
+          .flatMap((wrap) => {
+            const next = wrap.nextElementSibling
+            if (!next || getComputedStyle(next).position === 'absolute') return []
+            return next.getBoundingClientRect().top < wrap.getBoundingClientRect().bottom - 1
+              ? [wrap.firstElementChild!.textContent?.slice(0, 20)]
+              : []
+          }),
+      )
+      expect(sideBySide).toEqual([])
       const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
       // 같은 슬라이드 제목도 (사진과 같은 목록 칸 — 둘 다 남아야 한다)
       await editListText('1번 슬라이드 제목', 'E2E 슬라이드')
