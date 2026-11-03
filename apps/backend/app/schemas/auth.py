@@ -41,6 +41,9 @@ class LoginResponse(BaseModel):
 class RefreshResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    # 화면을 처음 열 때 /me 왕복 없이 바로 쓰도록 (T-043-B)
+    # — refresh 가 이미 사용자를 읽는다
+    user: UserResponse | None = None
 
 
 # ── 슈퍼 어드민 2FA (T-094) ───────────────────────────────────────────────

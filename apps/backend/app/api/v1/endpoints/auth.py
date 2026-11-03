@@ -159,7 +159,9 @@ async def refresh(
     # 구 refresh token 블랙리스트 등록 — 유예 시간 동안은 한 번 더 받아 준다
     await _mark_rotated(redis, refresh_token)
 
-    return ApiResponse.ok(RefreshResponse(access_token=new_access))
+    return ApiResponse.ok(
+        RefreshResponse(access_token=new_access, user=UserResponse.model_validate(user))
+    )
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

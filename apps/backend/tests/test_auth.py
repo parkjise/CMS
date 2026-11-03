@@ -115,6 +115,9 @@ class TestRefresh:
         body = resp.json()
         assert body["success"] is True
         assert "access_token" in body["data"]
+        # 내 정보도 함께 — 관리자 화면이 /me 를 따로 부르지 않는다 (T-043-B)
+        assert body["data"]["user"]["email"] == test_user["email"]
+        assert "hashed_password" not in body["data"]["user"]
 
     async def test_refresh_without_cookie(self, client: AsyncClient):
         resp = await client.post("/api/v1/auth/refresh")
