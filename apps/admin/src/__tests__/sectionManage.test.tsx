@@ -83,10 +83,10 @@ beforeEach(() => {
   )
 })
 
-const renderPage = () =>
+const renderPage = (url = '/admin/content') =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[url]}>
         <ContentPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -175,5 +175,22 @@ describe('섹션 삭제', () => {
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '취소' }))
     expect(deletedId).toBeNull()
     expect(screen.getByRole('button', { name: '소개 삭제' })).toBeInTheDocument()
+  })
+})
+
+describe('공통 설정 탭 바로 열기 (T-125-F)', () => {
+  it('?tab=settings 로 들어오면 공통 설정 탭이 열린다 — 홈페이지 편집 모드 안내 링크', () => {
+    server.use(
+      http.get(`${BASE}/v1/site-settings`, () => HttpResponse.json({ success: true, data: null })),
+      http.get(`${BASE}/v1/site-settings/menu`, () => HttpResponse.json({ success: true, data: { items: [] } })),
+    )
+    renderPage('/admin/content?tab=settings')
+    expect(screen.getByRole('button', { name: '공통 설정', pressed: true })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '섹션 관리', pressed: false })).toBeInTheDocument()
+  })
+
+  it('그 밖에는 섹션 관리 탭', () => {
+    renderPage()
+    expect(screen.getByRole('button', { name: '섹션 관리', pressed: true })).toBeInTheDocument()
   })
 })
