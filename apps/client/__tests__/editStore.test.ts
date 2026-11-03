@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { useEditStore } from '@/lib/editStore'
+import { EDIT_MODE_SESSION_KEY, useEditStore } from '@/lib/editStore'
 import { useClientAuthStore } from '@/lib/authStore'
 import { authApi } from '@/lib/api'
 
@@ -12,8 +12,10 @@ const resetStores = () => {
   useClientAuthStore.setState({
     user: null,
     isLoggedIn: false,
+    isInitialized: false,
   })
   window.localStorage.clear()
+  window.sessionStorage.clear()
 }
 
 describe('editStore', () => {
@@ -192,6 +194,65 @@ describe('editStore', () => {
     it('있으면 true', () => {
       useEditStore.getState().updateField('sec-1', 'f', 'v', 'o')
       expect(useEditStore.getState().hasPersistedDraft()).toBe(true)
+    })
+  })
+
+  describe('페이지를 옮겨도 편집 모드 유지 (T-125-D)', () => {
+    const remembered = () => window.sessionStorage.getItem(EDIT_MODE_SESSION_KEY)
+    const loggedIn = () => useClientAuthStore.setState({ isLoggedIn: true, isInitialized: true })
+
+    it('켜면 탭에 기억하고, 끄면(편집 종료 · 토글) 지운다', () => {
+      loggedIn()
+      useEditStore.getState().enterEditMode()
+      expect(remembered()).toBe('1')
+      useEditStore.getState().exitEditMode()
+      expect(remembered()).toBeNull()
+      useEditStore.getState().toggleEditMode()
+      expect(remembered()).toBe('1')
+      useEditStore.getState().toggleEditMode()
+      expect(remembered()).toBeNull()
+    })
+
+    it('새 페이지에서 로그인 확인이 끝나면 다시 켠다 · 미리보기는 풀린 채로', () => {
+      window.sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+      useEditStore.setState({ isPreview: true })
+      loggedIn()
+      useEditStore.getState().restoreEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(true)
+      expect(useEditStore.getState().isPreview).toBe(false)
+    })
+
+    it('로그인 확인 전에는 판단하지 않는다 (기억도 그대로)', () => {
+      window.sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+      useEditStore.getState().restoreEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(false)
+      expect(remembered()).toBe('1')
+    })
+
+    it('로그아웃 · 만료면 켜지 않고 기억을 지운다', () => {
+      window.sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+      useClientAuthStore.setState({ isLoggedIn: false, isInitialized: true })
+      useEditStore.getState().restoreEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(false)
+      expect(remembered()).toBeNull()
+    })
+
+    it('기억이 없으면 로그인해 있어도 켜지 않는다', () => {
+      loggedIn()
+      useEditStore.getState().restoreEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(false)
+    })
+
+    it('저장소를 못 쓰는 환경에서도 편집 모드 켜기 · 끄기는 된다', () => {
+      loggedIn()
+      vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+        throw new Error('blocked')
+      })
+      useEditStore.getState().enterEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(true)
+      useEditStore.getState().restoreEditMode()
+      useEditStore.getState().exitEditMode()
+      expect(useEditStore.getState().isEditMode).toBe(false)
     })
   })
 })

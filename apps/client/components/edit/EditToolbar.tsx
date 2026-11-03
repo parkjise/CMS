@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useEditStore } from '@/lib/editStore'
+import { useClientAuthStore } from '@/lib/authStore'
 import { AiEditPanel } from '@/components/ai/AiEditPanel'
 import { ExitConfirmDialog } from '@/components/layout/ExitConfirmDialog'
 
@@ -32,6 +33,15 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
   const toggleAiPanel = useEditStore((s) => s.toggleAiPanel)
   const isPreview = useEditStore((s) => s.isPreview)
   const setPreview = useEditStore((s) => s.setPreview)
+
+  const restoreEditMode = useEditStore((s) => s.restoreEditMode)
+  const authReady = useClientAuthStore((s) => s.isInitialized)
+  const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
+
+  // 메뉴로 페이지를 옮겨도 편집 모드 유지 — 로그인 확인이 끝난 뒤 다시 켠다 (T-125-D)
+  useEffect(() => {
+    if (authReady) restoreEditMode()
+  }, [authReady, isLoggedIn, restoreEditMode])
 
   const [saving, setSaving] = useState(false)
   const [exitOpen, setExitOpen] = useState(false)
