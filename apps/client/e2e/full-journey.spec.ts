@@ -920,7 +920,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
-  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진을 바꿔 저장하면 방문자 화면에 보인다 (T-125-B)', async ({
+  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진 · 기능 이름 · 아이콘을 바꿔 저장하면 방문자 화면에 보인다 (T-125-B · C)', async ({
     page,
     request,
   }) => {
@@ -981,11 +981,30 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
       // 스크롤해야 나타나는 영역(ScrollReveal) — 먼저 화면으로
       await page.locator('.service-cards').scrollIntoViewIfNeeded()
-      const cardUrl = await replacePhoto(page.locator('.service-cards').getByRole('button', { name: '2번 사진 변경' }))
+      // 카드에 마우스를 올리면 사진이 흐려지지만 버튼은 흐려지지 않는다 (T-125-C)
+      const cardButton = page.locator('.service-cards').getByRole('button', { name: '2번 사진 변경' })
+      await page.locator('.service-cards__link').nth(1).hover()
+      const blurred = await cardButton.evaluate((el) => {
+        for (let n: Element | null = el; n; n = n.parentElement) {
+          if (getComputedStyle(n).filter !== 'none') return true
+        }
+        return false
+      })
+      expect(blurred).toBe(false)
+      const cardUrl = await replacePhoto(cardButton)
+
+      // 브랜드 소개 기능 목록 — 이름 고치기 + 아이콘 바꾸기 (T-125-C)
+      await page.locator('.brand-intro__features').scrollIntoViewIfNeeded()
+      const featureName = page.getByRole('textbox', { name: '1번 기능 이름' })
+      await featureName.click()
+      await page.keyboard.press('ControlOrMeta+A')
+      await page.keyboard.type('E2E 기능')
+      await page.keyboard.press('Enter')
+      const iconUrl = await replacePhoto(page.getByRole('button', { name: '1번 아이콘 변경' }))
       // 저장 전에도 바뀐 사진이 보인다
       await expect.poll(() => srcOf(page.locator('.service-cards__image').nth(1))).toContain(cardUrl)
       const home = await save()
-      expect(home).toEqual(expect.objectContaining({ saved_count: 2, failed_count: 0 }))
+      expect(home).toEqual(expect.objectContaining({ saved_count: 3, failed_count: 0 }))
 
       // 서브 페이지: 상단 사진 (사진 하나인 칸)
       await enterEditMode(`${CLIENT_URL}/${slug}/about`)
@@ -1001,6 +1020,8 @@ test.describe('T-078 전체 통합 시나리오', () => {
         .evaluateAll((imgs) => imgs.map((img) => decodeURIComponent(img.getAttribute('src') ?? '')))
       expect(slideSrcs.some((src) => src.includes(slideUrl))).toBe(true)
       expect(await srcOf(visitor.locator('.service-cards__image').nth(1))).toContain(cardUrl)
+      await expect(visitor.locator('.brand-intro__feature-name').first()).toHaveText('E2E 기능')
+      expect(await srcOf(visitor.locator('.brand-intro__feature-icon-image').first())).toContain(iconUrl)
       await visitor.goto(`${CLIENT_URL}/${slug}/about`)
       expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
       // 방문자에게는 편집 버튼이 없다
