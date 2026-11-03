@@ -920,15 +920,22 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
-  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진 · 기능 이름 · 아이콘 · 카드 · 슬라이드 · 강점 글자를 바꿔 저장하면 방문자 화면에 보인다 (T-125-B · C · E)', async ({
+  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진 · 기능 이름 · 아이콘 · 카드 · 슬라이드 · 강점 글자를 바꿔 저장하면 방문자 화면에 보이고, 오시는 길은 공통 설정을 쓴다 (T-125-B · C · E · F)', async ({
     page,
     request,
   }) => {
+    // 사진 · 글자 교체와 페이지 이동이 많은 시나리오 — 기본 30초로는 개발 서버에서 빠듯하다
+    test.setTimeout(120_000)
     const headers = authHeader(token)
     const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
       .data as { templates: Array<{ id: string; locked: boolean; renderer?: string }> }
     const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
     expect(code, '코드형 템플릿이 필요 — 시드 확인').toBeTruthy()
+    const siteSettingsUrl = `${BACKEND_URL}/api/v1/site-settings`
+    const siteBefore = (await (await request.get(siteSettingsUrl, { headers })).json()).data
+    const originalSite = Object.fromEntries(
+      (['address', 'address_detail', 'parking'] as const).map((f) => [f, siteBefore?.[f] ?? '']),
+    )
     const applied = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
       headers,
       data: { template_id: code!.id, content_mode: 'replace_with_sample' },
@@ -1042,10 +1049,28 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await visitor.goto(`${CLIENT_URL}/${slug}/about`)
       expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
       await expect(visitor.locator('.strength-list__item').first()).toContainText('E2E 강점')
+
+      // 오시는 길 — 주소 · 주차는 공통 설정(사업체 정보)에서 (T-125-F)
+      const put = await request.put(siteSettingsUrl, {
+        headers,
+        data: { address: '서울특별시 E2E구 오시는길 7', address_detail: '3층', parking: 'E2E 주차 안내' },
+      })
+      expect(put.ok(), await put.text()).toBeTruthy()
+      await visitor.goto(`${CLIENT_URL}/${slug}/about-location`)
+      const info = visitor.locator('.location__info')
+      await expect(info).toContainText('서울특별시 E2E구 오시는길 7 3층')
+      await expect(info).toContainText('E2E 주차 안내')
+      await expect(visitor.getByRole('link', { name: /공통 설정 열기/ })).toHaveCount(0)
       // 방문자에게는 편집 버튼이 없다
       await expect(visitor.locator('.tpl-image-edit')).toHaveCount(0)
       await visitor.close()
+
+      // 편집 모드에서는 공통 설정 안내 · 바로가기
+      await page.goto(`${CLIENT_URL}/${slug}/about-location`)
+      await expect(page.getByRole('link', { name: /공통 설정 열기/ })).toHaveAttribute('href', /\/admin\/content\?tab=settings$/)
     } finally {
+      const restored = await request.put(siteSettingsUrl, { headers, data: originalSite })
+      expect(restored.ok(), await restored.text()).toBeTruthy()
       const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
       expect(rb.ok(), await rb.text()).toBeTruthy()
       await page.evaluate(() => localStorage.removeItem('cms-edit-draft')).catch(() => {})
