@@ -1,0 +1,58 @@
+// ── 로딩 화면 (블록: .loader) — 참고: archin home-5 Preloader ─────
+// 마크업은 include 지연을 피하려고 페이지 body 맨 위에 직접 넣는다.
+// 애니메이션: assets/js/loader.js (GSAP)
+
+// 로딩 중 스크롤 잠금 — .loader 가 DOM 에서 제거되면 자동 해제
+html:has(.loader),
+html:has(.loader) body {
+  overflow: hidden;
+}
+
+.loader {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  overflow: hidden;
+
+  &__curtain {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 110vh;
+    fill: #000;
+  }
+
+  &__text {
+    position: relative;
+    z-index: 1;
+    font-size: 20px;
+    font-weight: 200;
+    letter-spacing: 15px;
+    text-transform: uppercase;
+    color: #fff;
+
+    span {
+      animation: loader-blink 1s infinite alternate;
+
+      @for $i from 1 through 7 {
+        &:nth-child(#{$i}) {
+          animation-delay: #{($i - 1) * 0.1}s;
+        }
+      }
+    }
+  }
+}
+
+@keyframes loader-blink {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}

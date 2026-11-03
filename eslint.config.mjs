@@ -21,6 +21,10 @@ export default tseslint.config(
       '**/*.config.{js,ts,mjs,cjs}',
       '**/vite-env.d.ts',
       '**/next-env.d.ts',
+      // 저장소에 올리지 않는 디자인 참고 목업 (.gitignore 와 동일)
+      'docs/mockups/hospital/aigocy/**',
+      'docs/mockups/hospital/rayo/**',
+      'docs/mockups/hospital/mobbin/**',
     ],
   },
 
