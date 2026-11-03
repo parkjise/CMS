@@ -3,7 +3,7 @@ import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { TemplateImage } from '../../../shared/TemplateImage'
 
 interface Milestone {
   year: string
@@ -15,7 +15,7 @@ interface Milestone {
  * 설정 키: en_title · sub_title · paragraphs · left_image_url/alt · right_image_url/alt · milestones [{ year, text }]
  */
 export function MilestoneSplit(props: CodeSectionProps) {
-  const { section } = props
+  const { section, editable } = props
   const id = titleId('milestone-split', section.id)
   const milestones = getJson<Milestone[]>(section.settings, 'milestones', [])
   const s = (key: string) => getString(section.settings, key)
@@ -25,14 +25,12 @@ export function MilestoneSplit(props: CodeSectionProps) {
         <div className="milestone-split__col milestone-split__col--left">
           <StoryText {...props} id={id} />
           <figure className="milestone-split__media">
-            {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-            <img className="milestone-split__image" {...optimizedImg(s('left_image_url'), '(min-width: 1024px) 40vw, 100vw', 1200)} alt={s('left_image_alt')} loading="lazy" />
+            <TemplateImage section={section} editable={editable} field="left_image_url" className="milestone-split__image" sizes="(min-width: 1024px) 40vw, 100vw" maxWidth={1200} alt={s('left_image_alt')} loading="lazy" />
           </figure>
         </div>
         <div className="milestone-split__col milestone-split__col--right">
           <figure className="milestone-split__media">
-            {/* eslint-disable-next-line @next/next/no-img-element -- 목업 사진 비율 유지 */}
-            <img className="milestone-split__image" {...optimizedImg(s('right_image_url'), '(min-width: 1024px) 40vw, 100vw', 1200)} alt={s('right_image_alt')} loading="lazy" />
+            <TemplateImage section={section} editable={editable} field="right_image_url" className="milestone-split__image" sizes="(min-width: 1024px) 40vw, 100vw" maxWidth={1200} alt={s('right_image_alt')} loading="lazy" />
           </figure>
           <ol className="milestone-split__list">
             {milestones.map((m) => (

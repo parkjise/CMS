@@ -6,7 +6,7 @@ import { A11y, Pagination } from 'swiper/modules'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
-import { optimizedImg } from '../../../shared/optimizedImage'
+import { TemplateImage } from '../../../shared/TemplateImage'
 
 interface ServiceCard {
   image_url: string
@@ -85,10 +85,13 @@ export function ServiceCards({ section, editable }: CodeSectionProps) {
               <li className="service-cards__item" key={`${card.title}-${i}`}>
                 <a className="service-cards__link" href={card.link_url || '#'}>
                   <div className="service-cards__media">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- 목업 카드 hover 확대 효과 유지 */}
-                    <img
+                    <TemplateImage
+                      section={section}
+                      editable={editable}
+                      item={{ field: 'cards', index: i }}
                       className="service-cards__image"
-                      {...optimizedImg(card.image_url, '(min-width: 1024px) 20vw, (min-width: 600px) 45vw, 85vw', 828)}
+                      sizes="(min-width: 1024px) 20vw, (min-width: 600px) 45vw, 85vw"
+                      maxWidth={828}
                       alt=""
                       loading="lazy"
                     />

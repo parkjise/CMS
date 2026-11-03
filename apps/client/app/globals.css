@@ -139,6 +139,51 @@ body.edit-mode [data-editable="image"]:hover .image-edit-overlay {
   opacity: 1;
 }
 
+/* 코드형 템플릿 사진 변경 버튼 (T-125-B ImageEditButtons) — 가장 가까운 position 조상의 오른쪽 위.
+   템플릿 리셋(.루트 button) 보다 강하게 body.edit-mode 로 시작한다 */
+body.edit-mode .tpl-image-edit-group {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+/* 고정 헤더 아래 — 페이지 첫 화면 사진 (메인 슬라이드 · 서브 상단) */
+body.edit-mode .tpl-image-edit-group--below-header {
+  top: 112px;
+}
+body.edit-mode .tpl-image-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #111827;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+}
+body.edit-mode .tpl-image-edit:hover {
+  background: #fff;
+  outline: 2px solid var(--color-primary, #2563eb);
+}
+body.edit-mode .tpl-image-edit:focus-visible {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
+body.edit-mode .tpl-image-edit svg {
+  width: 14px;
+  height: 14px;
+}
+
 /* 섹션 컨트롤 바 (T-065 SectionControls) — 편집 모드 + 섹션 hover 시 노출 */
 body.edit-mode [data-section-wrapper] {
   position: relative;

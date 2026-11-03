@@ -920,6 +920,108 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
+  test('시나리오 22: 코드형 템플릿 편집 모드에서 메인 슬라이드 · 카드 · 서브 상단 사진을 바꿔 저장하면 방문자 화면에 보인다 (T-125-B)', async ({
+    page,
+    request,
+  }) => {
+    const headers = authHeader(token)
+    const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
+      .data as { templates: Array<{ id: string; locked: boolean; renderer?: string }> }
+    const code = list.templates.find((t) => t.renderer === 'code' && !t.locked)
+    expect(code, '코드형 템플릿이 필요 — 시드 확인').toBeTruthy()
+    const applied = await request.post(`${BACKEND_URL}/api/v1/templates/apply`, {
+      headers,
+      data: { template_id: code!.id, content_mode: 'replace_with_sample' },
+    })
+    expect(applied.ok(), await applied.text()).toBeTruthy()
+    // 1x1 PNG — 서버가 WebP 로 최적화해 저장소에 올린다
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8DwHwAFBQIAX8jx0gAAAABJRU5ErkJggg==',
+      'base64',
+    )
+    // '사진 변경' → 업로드 창에서 파일 올리기 → 올린 주소
+    const replacePhoto = async (button: ReturnType<typeof page.getByRole>) => {
+      await button.click()
+      const dialog = page.getByRole('dialog')
+      await dialog.locator('input[type="file"]').setInputFiles({ name: 'e2e.png', mimeType: 'image/png', buffer: png })
+      const uploaded = page.waitForResponse((r) => r.url().includes('/upload/image'))
+      await dialog.getByRole('button', { name: '업로드' }).click()
+      const res = await uploaded
+      expect(res.ok()).toBeTruthy()
+      await expect(dialog).toBeHidden()
+      return (await res.json()).data.url as string
+    }
+    const save = async () => {
+      const saved = page.waitForResponse((r) => r.url().includes('/edit/batch-save'))
+      await page.getByRole('button', { name: /^저장 \(/ }).click()
+      return (await (await saved).json()).data as { saved_count: number; failed_count: number }
+    }
+    // 최적화 주소(/_next/image?url=…) 안의 원래 주소까지 읽는다
+    const srcOf = (img: ReturnType<typeof page.locator>) =>
+      img.evaluate((el) => decodeURIComponent(el.getAttribute('src') ?? ''))
+    const enterEditMode = async (url: string) => {
+      await page.goto(url)
+      // 로그인 확인이 끝나야 버튼이 나온다 — 이미 편집 중이면(페이지 이동) 툴바가 바로 보인다
+      const enter = page.getByRole('button', { name: '편집 모드' })
+      const toolbar = page.getByRole('toolbar', { name: '편집 모드 툴바' })
+      await expect(enter.or(toolbar)).toBeVisible({ timeout: 15_000 })
+      if (await enter.isVisible()) await enter.click()
+      await expect(toolbar).toBeVisible()
+    }
+    try {
+      await visitWhileSwitching(page, `${CLIENT_URL}/${slug}`, page.locator('aside.quick-menu'))
+      await page.goto(`${CLIENT_URL}/${slug}/login`)
+      await page.locator('#login-email').fill(email)
+      await page.locator('#login-password').fill(password)
+      await page.locator('form button[type="submit"]').click()
+      await page.waitForURL((url) => !url.pathname.endsWith('/login'))
+
+      // 메인: 지금 슬라이드 사진 + 두 번째 서비스 카드 사진 (목록 칸 두 개)
+      await enterEditMode(`${CLIENT_URL}/${slug}`)
+      const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
+      // 스크롤해야 나타나는 영역(ScrollReveal) — 먼저 화면으로
+      await page.locator('.service-cards').scrollIntoViewIfNeeded()
+      const cardUrl = await replacePhoto(page.locator('.service-cards').getByRole('button', { name: '2번 사진 변경' }))
+      // 저장 전에도 바뀐 사진이 보인다
+      await expect.poll(() => srcOf(page.locator('.service-cards__image').nth(1))).toContain(cardUrl)
+      const home = await save()
+      expect(home).toEqual(expect.objectContaining({ saved_count: 2, failed_count: 0 }))
+
+      // 서브 페이지: 상단 사진 (사진 하나인 칸)
+      await enterEditMode(`${CLIENT_URL}/${slug}/about`)
+      const heroUrl = await replacePhoto(page.locator('.sub-hero').getByRole('button', { name: '사진 변경' }))
+      expect(await save()).toEqual(expect.objectContaining({ saved_count: 1, failed_count: 0 }))
+
+      // 방문자 화면
+      const visitor = await page.context().browser()!.newPage()
+      await visitor.goto(`${CLIENT_URL}/${slug}`)
+      // 슬라이드는 반복 재생(loop)이라 DOM 순서가 바뀔 수 있다 — 어느 슬라이드든 그 사진이 있으면
+      const slideSrcs = await visitor
+        .locator('.hero-slider__image')
+        .evaluateAll((imgs) => imgs.map((img) => decodeURIComponent(img.getAttribute('src') ?? '')))
+      expect(slideSrcs.some((src) => src.includes(slideUrl))).toBe(true)
+      expect(await srcOf(visitor.locator('.service-cards__image').nth(1))).toContain(cardUrl)
+      await visitor.goto(`${CLIENT_URL}/${slug}/about`)
+      expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
+      // 방문자에게는 편집 버튼이 없다
+      await expect(visitor.locator('.tpl-image-edit')).toHaveCount(0)
+      await visitor.close()
+    } finally {
+      const rb = await request.post(`${BACKEND_URL}/api/v1/templates/rollback`, { headers })
+      expect(rb.ok(), await rb.text()).toBeTruthy()
+      await page.evaluate(() => localStorage.removeItem('cms-edit-draft')).catch(() => {})
+    }
+    // 되돌린 화면은 새 방문자 창에서 — 이 탭은 적용 · 되돌리기를 30초 안에 겪어
+    // 전환 안내의 자동 새로고침 횟수(5번)를 이미 썼을 수 있다
+    const after = await page.context().browser()!.newPage()
+    await visitWhileSwitching(
+      after,
+      `${CLIENT_URL}/${slug}`,
+      after.locator('section[data-section-type="HERO_BANNER"]'),
+    )
+    await after.close()
+  })
+
   test('슈퍼 어드민 앱 로그인 화면이 열린다', async ({ page }) => {
     await page.goto(`${SYSTEM_URL}/login`)
     await expect(page.getByRole('button', { name: /로그인/ })).toBeVisible()
