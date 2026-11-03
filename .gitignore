@@ -76,3 +76,21 @@ playwright/.cache/
 
 # Playwright MCP 세션 로그/스크린샷 (임시)
 .playwright-mcp/
+
+# bkit 자동 생성 파일 (세션마다 바뀜)
+docs/.pdca-snapshots/
+docs/.pdca-status.json
+docs/.bkit-memory.json
+docs/mockups/docs/
+
+# 코드형 템플릿 SCSS 컴파일 산출물 (앱은 index.scss 를 직접 불러옴)
+apps/client/templates/*/css/
+apps/client/templates/*/styles/index.css
+apps/client/templates/*/styles/index.css.map
+docs/mockups/hospital/templates/assets/styles/template.css
+docs/mockups/hospital/templates/assets/styles/template.css.map
+
+# 디자인 참고용 목업 (외부 테마 재구성 — 저장소에 올리지 않음)
+docs/mockups/hospital/aigocy/
+docs/mockups/hospital/rayo/
+docs/mockups/hospital/mobbin/
