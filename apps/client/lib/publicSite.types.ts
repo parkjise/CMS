@@ -55,6 +55,7 @@ export interface PublicSeoSettings {
   og_title?: string | null
   og_description?: string | null
   canonical_url?: string | null
+  robots_txt?: string | null
   robots?: string
   /** 대표 키워드 (T-040-A) — 이전 백엔드 응답에는 없을 수 있다 */
   keywords?: string[]

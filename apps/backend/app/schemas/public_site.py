@@ -16,6 +16,10 @@ class PublicTenantResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PublicDomainResponse(BaseModel):
+    slug: str
+
+
 class PublicSettingItem(BaseModel):
     field_key: str
     field_value: str | None
@@ -64,6 +68,7 @@ class PublicSeoResponse(BaseModel):
     og_description: str | None = None
     canonical_url: str | None = None
     robots: str = "index,follow"
+    robots_txt: str | None = None
     keywords: list[str] = []
 
     model_config = {"from_attributes": True}

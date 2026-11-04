@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 import { serverApiBase } from './lib/apiBase'
+import { CUSTOM_HOST_HEADER, hostnameFromHeader, isCustomHost } from './lib/siteHost'
 
 /**
  * 코드형 템플릿 라우트 분기 (기획서 11.11 오픈 이슈 #26 — 결정: 미들웨어 rewrite)
@@ -57,18 +58,76 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
   return route
 }
 
+// 고객 도메인 → slug. 연결 · 해제는 자주 있지 않아 1분, 없는 도메인도 저장해 조회가 쌓이지 않게 (T-137)
+const DOMAIN_CACHE_TTL_MS = 60_000
+const domainCache = new Map<string, { slug: string | null; expires: number }>()
+
+/** undefined = 확인 실패(백엔드 장애), null = 연결되지 않은 도메인 */
+async function slugOfDomain(hostname: string): Promise<string | null | undefined> {
+  const hit = domainCache.get(hostname)
+  if (hit && hit.expires > Date.now()) return hit.slug
+  try {
+    const res = await fetch(`${serverApiBase()}/public/domain/${encodeURIComponent(hostname)}`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(2000),
+    })
+    if (res.status !== 200 && res.status !== 404) return undefined
+    const slug =
+      res.status === 200 ? ((await res.json()) as { data: { slug: string } }).data.slug : null
+    domainCache.set(hostname, { slug, expires: Date.now() + DOMAIN_CACHE_TTL_MS })
+    return slug
+  } catch {
+    return undefined
+  }
+}
+
 /** 테스트용 — 캐시 비우기 */
 export function clearTemplateCache() {
   cache.clear()
+  domainCache.clear()
 }
 
 export async function middleware(request: NextRequest) {
+  // 방문자가 보낸 값을 믿지 않는다 — 아래에서 확인한 도메인만 다시 넣는다
+  const headers = new Headers(request.headers)
+  headers.delete(CUSTOM_HOST_HEADER)
+  const hostname = hostnameFromHeader(request.headers.get('host'))
+  if (!isCustomHost(hostname)) return routeTenant(request, request.nextUrl.pathname, headers)
+
+  const slug = await slugOfDomain(hostname)
+  if (slug === undefined) return new NextResponse('Service Unavailable', { status: 503 })
+  if (slug === null) return new NextResponse('Not Found', { status: 404 })
+
   const { pathname } = request.nextUrl
+  // 고객 도메인의 정식 주소에는 slug 가 없다 — 옛 링크 · 메인 주소 기준 링크는 옮겨 준다.
+  // 프록시 뒤라 nextUrl 의 호스트 · 스킴은 내부 값이다 — 방문자가 접속한 값으로 만든다
+  if (pathname === `/${slug}` || pathname.startsWith(`/${slug}/`)) {
+    const target = pathname.slice(slug.length + 1) || '/'
+    const proto = request.headers.get('x-forwarded-proto') ?? request.nextUrl.protocol.replace(':', '')
+    const origin = `${proto}://${request.headers.get('host')}`
+    return NextResponse.redirect(new URL(`${target}${request.nextUrl.search}`, origin), 301)
+  }
+  headers.set(CUSTOM_HOST_HEADER, hostname)
+  return routeTenant(request, pathname === '/' ? `/${slug}` : `/${slug}${pathname}`, headers)
+}
+
+/** /{slug}/... 경로를 템플릿 라우트로 — 고객 도메인도 slug 를 붙여 같은 길로 */
+async function routeTenant(request: NextRequest, pathname: string, headers: Headers) {
+  const rewriteTo = (target: string) => {
+    const url = request.nextUrl.clone()
+    url.pathname = target
+    return NextResponse.rewrite(url, { request: { headers } })
+  }
+  const pass = () =>
+    pathname === request.nextUrl.pathname
+      ? NextResponse.next({ request: { headers } })
+      : rewriteTo(pathname)
+
   const segments = pathname.split('/').filter(Boolean)
   const [slug, page] = segments
 
-  if (!slug || RESERVED_ROOTS.has(slug)) return NextResponse.next()
-  if (slug.startsWith(CODE_ROUTE_PREFIX)) {
+  if (!slug || RESERVED_ROOTS.has(slug) || slug === 'sitemap.xml') return pass()
+  if (slug.startsWith(CODE_ROUTE_PREFIX) || (segments.length > 1 && segments[1].startsWith(CODE_ROUTE_PREFIX))) {
     return new NextResponse('Not Found', { status: 404 })
   }
   if (page === MEMBER_PAGE) {
@@ -77,23 +136,22 @@ export async function middleware(request: NextRequest) {
     // 회원 화면을 직접 그리는 코드형 템플릿이면 그 템플릿 라우트로 (헤더 · 푸터 안, T-124)
     const key = codeTemplateKey(route?.code ?? null)
     if (key && MEMBER_SCREEN_TEMPLATES.has(key) && segments.length === 3 && isMemberPage(segments[2])) {
-      const url = request.nextUrl.clone()
-      url.pathname = `/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`
-      return NextResponse.rewrite(url)
+      return rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)
     }
-    return NextResponse.next()
+    return pass()
   }
-  if (segments.length > 3 || (page && RESERVED_PAGES.has(page))) return NextResponse.next()
+  if (segments.length > 3 || (page && RESERVED_PAGES.has(page))) return pass()
 
   const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
-  if (!key) return NextResponse.next()
-
-  const url = request.nextUrl.clone()
-  url.pathname = `/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`
-  return NextResponse.rewrite(url)
+  if (!key) return pass()
+  return rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)
 }
 
 export const config = {
   // 정적 파일 · Next 내부 · 공용 템플릿 이미지는 제외
-  matcher: ['/((?!_next/|api/|templates/|favicon\\.ico|robots\\.txt|.*\\.[a-zA-Z0-9]+$).*)'],
+  // /sitemap.xml 은 고객 도메인의 사이트맵 (T-137)
+  matcher: [
+    '/sitemap.xml',
+    '/((?!_next/|api/|templates/|favicon\\.ico|robots\\.txt|.*\\.[a-zA-Z0-9]+$).*)',
+  ],
 }

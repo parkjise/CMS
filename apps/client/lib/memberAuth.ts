@@ -5,10 +5,12 @@
  * - access token 은 memberStore 메모리에만 둔다 (localStorage 저장 금지)
  * - 에러는 공통 형식(5.1) `{ success: false, error: { code, message, field, details } }`
  */
+import { browserApiBase } from './apiBase'
+import { onCustomHost } from './siteHost'
 import axios from 'axios'
 import type { SocialProvider } from './memberSocial'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+const BASE_URL = browserApiBase()
 
 export const memberHttp = axios.create({
   baseURL: `${BASE_URL}/public`,
@@ -194,14 +196,22 @@ export const resetPassword = (
 ) => call<{ reset: boolean }>(memberHttp.post(auth(slug, '/reset-password'), input))
 
 export const completeSocialSignup = (slug: string, input: SocialCompleteInput) =>
-  call<MemberSession & { return_to: string }>(
+  call<MemberSession & { return_to: string; handoff_url?: string | null }>(
     memberHttp.post(auth(slug, '/social/complete'), input),
+  )
+
+/** 고객 도메인에서 소셜 로그인 일회용 코드 교환 (T-137) */
+export const exchangeSocialHandoff = (slug: string, code: string) =>
+  call<MemberSession & { return_to: string }>(
+    memberHttp.post(auth(slug, '/social/exchange'), { code }),
   )
 
 /** 로그인 후 돌아갈 경로 — 같은 사이트 상대 경로만 (오픈 리다이렉트 방지) */
 export const safeNext = (slug: string, next: string | null | undefined): string => {
   const fallback = `/${slug}/member/mypage`
-  if (!next || !next.startsWith(`/${slug}`) || next.startsWith('//')) return fallback
+  if (!next || next.startsWith('//') || !next.startsWith('/')) return fallback
+  // 고객 도메인의 경로에는 slug 가 없다 (T-137)
+  if (!onCustomHost() && !next.startsWith(`/${slug}`)) return fallback
   if (next.includes('\\') || next.includes('://')) return fallback
   return next
 }

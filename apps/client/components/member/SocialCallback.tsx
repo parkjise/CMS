@@ -46,6 +46,10 @@ const SocialCallback = ({ navigate = goTo }: SocialCallbackProps) => {
 
     completeSocialCallback(tenantSlug, code, state)
       .then((result) => {
+        if (result.handoff_url) {
+          navigate(result.handoff_url)
+          return
+        }
         if (result.status === 'SIGNUP_REQUIRED' && result.signup_token) {
           savePendingSignup({
             slug: tenantSlug,
@@ -60,7 +64,9 @@ const SocialCallback = ({ navigate = goTo }: SocialCallbackProps) => {
         }
         if (result.status === 'LINKED') {
           const joiner = result.return_to.includes('?') ? '&' : '?'
-          navigate(`${result.return_to}${joiner}linked=${result.provider.toLowerCase()}`)
+          navigate(
+            `${result.return_origin ?? ''}${result.return_to}${joiner}linked=${result.provider.toLowerCase()}`,
+          )
           return
         }
         navigate(result.return_to)

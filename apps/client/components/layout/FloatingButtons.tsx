@@ -5,6 +5,7 @@ import { ArrowUp, LogIn, MessageCircle, Pencil } from 'lucide-react'
 import { canEditSite, useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 import { LoginModal } from '@/components/auth/LoginModal'
+import { mainSiteUrl, onCustomHost } from '@/lib/siteHost'
 import type { FloatingPosition } from '@/lib/publicSite.types'
 
 interface FloatingButtonsProps {
@@ -53,6 +54,11 @@ export function FloatingButtons({
 
   const handleAuthClick = () => {
     if (!isLoggedIn) {
+      // 로그인 쿠키는 메인 도메인 범위 — 고객 도메인에서는 기본 주소에서 편집한다 (T-137)
+      if (onCustomHost()) {
+        window.location.assign(`${mainSiteUrl()}/${tenantSlug}`)
+        return
+      }
       setLoginOpen(true)
       return
     }
