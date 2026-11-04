@@ -20,6 +20,7 @@ from app.core.crypto import decrypt_secret, encrypt_secret
 from app.models.billing import PaymentHistory, PlanChangeHistory, Subscription
 from app.models.tenant import Tenant
 from app.services import billing_notice, site_cache
+from app.services import feature as feature_service
 
 TOSS_BASE_URL = "https://api.tosspayments.com/v1"
 
@@ -324,6 +325,7 @@ async def change_plan(
     )
     await db.commit()
     await db.refresh(sub)
+    await feature_service.invalidate_cache(tenant_id)  # 요금제로 기본값이 달라진다
     return sub
 
 

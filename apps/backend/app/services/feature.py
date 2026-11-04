@@ -22,6 +22,9 @@ from app.models.tenant import Tenant
 from app.services import site_cache
 
 CACHE_TTL = 300  # 5분
+# 끌 수 없는 기본 기능 (기획서 SA-03) — 고객이 사이트를 고칠 수 없게 되면 안 된다.
+# 차단이 필요하면 사업체를 비활성화한다
+ALWAYS_ON_FEATURES = frozenset({"SECTION_EDITOR"})
 
 
 @dataclass
@@ -44,6 +47,28 @@ async def invalidate_cache(*tenant_ids: uuid.UUID | str) -> None:
     await redis.delete(*[_cache_key(tid) for tid in tenant_ids])
 
 
+def default_enabled(feature: Feature, tenant: Tenant | None) -> bool:
+    """슈퍼 어드민이 정한 값이 없을 때 — 업종(회원 기능) · 기본값 · 요금제."""
+    from app.services.member_features import default_enabled_for
+
+    on = default_enabled_for(feature.key, tenant.template_type if tenant else "")
+    if on is None:
+        on = feature.default_enabled
+    plan = PLAN_RANK.get(tenant.plan_type, 0) if tenant else 0
+    if feature.required_plan and PLAN_RANK.get(feature.required_plan, 0) > plan:
+        return False
+    return bool(on)
+
+
+def effective_enabled(
+    feature: Feature, explicit: bool | None, tenant: Tenant | None
+) -> bool:
+    """실제 켜짐 여부 — 끌 수 없는 기능 > 슈퍼 어드민이 정한 값 > 기본값 (T-138)."""
+    if feature.key in ALWAYS_ON_FEATURES:
+        return True
+    return explicit if explicit is not None else default_enabled(feature, tenant)
+
+
 # ── 테넌트용 조회 (캐시) ─────────────────────────────────────────────────
 async def get_tenant_features(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
     """활성 기능 목록 + flags 맵 반환. Redis 5분 캐시.
@@ -55,6 +80,7 @@ async def get_tenant_features(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
     if cached:
         return json.loads(cached)
 
+    tenant = await db.get(Tenant, tenant_id)
     rows = (
         await db.execute(
             select(Feature, TenantFeature.is_enabled)
@@ -73,7 +99,7 @@ async def get_tenant_features(db: AsyncSession, tenant_id: uuid.UUID) -> dict:
     flags: dict[str, bool] = {}
     features: list[dict] = []
     for feature, is_enabled in rows:
-        enabled = bool(is_enabled)
+        enabled = effective_enabled(feature, is_enabled, tenant)
         flags[feature.key] = enabled
         if enabled:
             features.append(
@@ -171,8 +197,13 @@ async def toggle_feature(
     actor_id: uuid.UUID | None = None,
     reason: str | None = None,
 ) -> TenantFeature:
-    await _get_feature(db, feature_id)
+    feature = await _get_feature(db, feature_id)
     await _ensure_tenant(db, tenant_id)
+    if feature.key in ALWAYS_ON_FEATURES and not enabled:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="기본 기능은 끌 수 없습니다. 차단하려면 사업체를 비활성화하세요.",
+        )
 
     tf = (
         await db.execute(
@@ -213,6 +244,7 @@ async def list_tenant_features(
 ) -> list[TenantFeatureItemRow]:
     """슈퍼 어드민이 특정 테넌트의 전체 기능 상태 조회."""
     await _ensure_tenant(db, tenant_id)
+    tenant = await db.get(Tenant, tenant_id)
     rows = (
         await db.execute(
             select(Feature, TenantFeature.is_enabled, TenantFeature.enabled_at)
@@ -229,7 +261,7 @@ async def list_tenant_features(
     return [
         TenantFeatureItemRow(
             feature=feature,
-            is_enabled=bool(is_enabled),
+            is_enabled=effective_enabled(feature, is_enabled, tenant),
             enabled_at=enabled_at,
         )
         for feature, is_enabled, enabled_at in rows
@@ -490,22 +522,15 @@ async def apply_defaults(db: AsyncSession, tenant: Tenant) -> list[str]:
 
     호출한 쪽에서 commit 한다. 켠 기능 key 목록을 돌려준다.
     """
-    from app.services.member_features import default_enabled_for
-
     features = (
         (await db.execute(select(Feature).where(Feature.is_active.is_(True))))
         .scalars()
         .all()
     )
-    plan = PLAN_RANK.get(tenant.plan_type, 0)
     now = datetime.now(UTC)
     enabled: list[str] = []
     for feature in features:
-        on = default_enabled_for(feature.key, tenant.template_type)
-        if on is None:
-            on = feature.default_enabled
-        if feature.required_plan and PLAN_RANK.get(feature.required_plan, 0) > plan:
-            on = False
+        on = default_enabled(feature, tenant)
         if not on:
             continue
         db.add(

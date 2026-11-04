@@ -3,7 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import PublicSiteResponse
@@ -40,7 +46,11 @@ async def list_templates(
     )
 
 
-@router.post("/apply", response_model=ApiResponse[TenantTemplateOverrideResponse])
+@router.post(
+    "/apply",
+    response_model=ApiResponse[TenantTemplateOverrideResponse],
+    dependencies=[Depends(require_feature("TEMPLATE_SELECT"))],
+)
 async def apply_template(
     body: TemplateApplyRequest,
     db: AsyncSession = Depends(get_db_with_rls),
@@ -59,7 +69,11 @@ async def apply_template(
     return ApiResponse.ok(response)
 
 
-@router.post("/rollback", response_model=ApiResponse[TenantTemplateOverrideResponse])
+@router.post(
+    "/rollback",
+    response_model=ApiResponse[TenantTemplateOverrideResponse],
+    dependencies=[Depends(require_feature("TEMPLATE_SELECT"))],
+)
 async def rollback_template(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
@@ -69,7 +83,11 @@ async def rollback_template(
     return ApiResponse.ok(TenantTemplateOverrideResponse.model_validate(override))
 
 
-@router.patch("/customize", response_model=ApiResponse[TenantTemplateOverrideResponse])
+@router.patch(
+    "/customize",
+    response_model=ApiResponse[TenantTemplateOverrideResponse],
+    dependencies=[Depends(require_feature("TEMPLATE_SELECT"))],
+)
 async def customize_template(
     body: TemplateCssOverrideUpdate,
     db: AsyncSession = Depends(get_db_with_rls),

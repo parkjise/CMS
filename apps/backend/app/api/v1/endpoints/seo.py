@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.db.session import set_super_admin_context
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -35,7 +41,11 @@ async def get_seo_limits(
     return ApiResponse.ok(await seo_service.get_limits(db, tenant_id))
 
 
-@router.put("", response_model=ApiResponse[SeoSettingsResponse])
+@router.put(
+    "",
+    response_model=ApiResponse[SeoSettingsResponse],
+    dependencies=[Depends(require_feature("SEO_WIZARD"))],
+)
 async def update_seo_settings(
     body: SeoSettingsUpdate,
     db: AsyncSession = Depends(get_db_with_rls),

@@ -1,4 +1,5 @@
 import { useSortable } from '@dnd-kit/sortable'
+import { useFeatureOn } from '@/lib/navItems'
 import { CSS } from '@dnd-kit/utilities'
 import {
   Briefcase,
@@ -62,6 +63,7 @@ export function SectionListItem({
   isToggling,
   onDelete,
 }: SectionListItemProps) {
+  const dragEnabled = useFeatureOn('DRAG_SECTION_ORDER')
   const {
     attributes,
     listeners,
@@ -69,7 +71,7 @@ export function SectionListItem({
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: section.id })
+  } = useSortable({ id: section.id, disabled: !dragEnabled })
 
   const sampleCount = sampleKeys(section).length
   // 모바일 설정 → 휴대폰에서 숨기기 (T-037-D)
@@ -93,16 +95,18 @@ export function SectionListItem({
         isDragging ? 'z-10 opacity-70 shadow-md' : ''
       } ${section.is_active ? '' : 'opacity-60'}`}
     >
-      {/* 드래그 핸들 */}
-      <button
-        type="button"
-        className="cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing"
-        aria-label={`${section.label} 순서 변경`}
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
+      {/* 드래그 핸들 — 순서 변경 기능이 꺼지면 숨긴다 (T-138) */}
+      {dragEnabled && (
+        <button
+          type="button"
+          className="cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 active:cursor-grabbing"
+          aria-label={`${section.label} 순서 변경`}
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+      )}
 
       {/* 타입 아이콘 */}
       <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-blue-50 text-blue-600">

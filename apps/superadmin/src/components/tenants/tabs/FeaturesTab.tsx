@@ -62,6 +62,9 @@ export function FeaturesTab({ tenantId, tenantPlan }: Props) {
                       {f.is_beta && <Badge variant="info">BETA</Badge>}
                       {!f.is_active && <Badge variant="default">미배포</Badge>}
                     </div>
+                    {f.always_on && (
+                      <p className="mt-0.5 text-xs text-slate-500">기본 기능 — 끌 수 없음</p>
+                    )}
                     {locked && (
                       <p className="mt-0.5 flex items-center gap-1 text-xs text-amber-600">
                         <Lock className="h-3 w-3" />
@@ -71,7 +74,7 @@ export function FeaturesTab({ tenantId, tenantPlan }: Props) {
                   </div>
                   <Toggle
                     checked={f.is_enabled}
-                    disabled={locked || toggle.isPending}
+                    disabled={locked || f.always_on || toggle.isPending}
                     onChange={(e) =>
                       toggle.mutate({
                         featureId: f.feature_id,

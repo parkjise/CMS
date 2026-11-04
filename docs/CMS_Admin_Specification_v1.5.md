@@ -1865,7 +1865,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 코드를 읽어 확인했고 운영 환경에서 재현하지는 않았다. **고치지 않은 상태** — 처리하면 이 표에서 뺀다.
 
-**오픈 전 필수** (번호는 고정 — 처리: #1 · #4 · #8 T-134, #3 · #14 T-136, #2 · #10 T-137)
+**오픈 전 필수** (번호는 고정 — 처리: #1 · #4 · #8 T-134, #3 · #14 T-136, #2 · #10 T-137, #9 T-138)
 
 | # | 기획 | 지금 코드 | 영향 |
 |---|---|---|---|
@@ -1877,7 +1877,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 | # | 기획 | 지금 코드 |
 |---|---|---|
-| 9 | 14.3 · 14.5 기능 플래그 | `AI_COPY_SUGGEST` · `AI_CHAT_EDIT` · `KAKAO_NOTIFICATION` · `DRAG_SECTION_ORDER` · `GALLERY_SECTION` 은 꺼도 효과가 없다(참조 코드 없음). `SEO_WIZARD` · `TEMPLATE_SELECT` · `SECTION_EDITOR` · `NAVER_ANALYTICS` 는 화면만 잠기고 API 는 열려 있다. `VIDEO_SECTION` 은 등록되지 않았다 |
 | 11 | 15.2 사이트 접근 차단 | 차단은 동작한다(캐시도 비움). 방문자에게는 안내 없이 404 |
 | 12 | 14.1 · 14.2 템플릿 관리 · SA-02 · SA-06 | 슈퍼 어드민에 템플릿 관리 화면 없음. SA-02 만료일 · 방문자 · 문의 수 칸 · 업종 필터 · 정렬 없음(API 는 업종 필터 지원). SA-06 [유예처리] 없음 |
 | 13 | AD-02 · AD-03 · AD-04 · AD-08 | AD-02 [미리보기] · 이미지 원본 보존 없음. AD-03 수신 번호 [인증] 없음. AD-04 페이지당 개수 · [새로고침] · 상태별 건수(대기만 있음) · [알림톡으로 답장] 없음. AD-08 카드 [삭제] 없음 |
@@ -2948,6 +2947,23 @@ CREATE TABLE announcement_reads (
 );
 ```
 
+**구현 메모 — 플래그 판정 · 적용 (T-138):**
+- 판정: 끌 수 없는 기능(`SECTION_EDITOR`) > 슈퍼 어드민이 정한 값(`tenant_features` 행) > 기본값(업종 · `default_enabled` · `required_plan`). 행이 없다고 꺼짐이 아니다. 기능 자체가 비활성(`is_active=false`)이면 꺼짐. 요금제를 바꾸면 캐시를 비운다.
+- 등록은 마이그레이션 0037 이 보장한다. 요금제 조건은 13.4 기준 — `AI_COPY_SUGGEST` 조건 없음, `AI_CHAT_EDIT` STANDARD 이상 기본 켜짐.
+- 서버 적용 (`require_feature`, 꺼지면 403). 쓰기만 막으므로 공개 홈페이지는 그대로 보인다:
+
+| 플래그 | 막는 것 |
+|---|---|
+| `AI_COPY_SUGGEST` · `AI_CHAT_EDIT` | 문구 추천 · 대화형 편집 API |
+| `SEO_WIZARD` | SEO 저장 |
+| `TEMPLATE_SELECT` | 템플릿 적용 · 롤백 · 색상 조정 |
+| `DRAG_SECTION_ORDER` | 섹션 순서 변경 |
+| `GALLERY_SECTION` | 갤러리 업로드 · 순서 · 삭제, 갤러리 섹션 추가 (이미 있는 갤러리의 글자 · 사진 수정과 공개 화면은 유지) |
+| `NAVER_ANALYTICS` | 방문 분석 조회 — 미배포라 전체 꺼짐 |
+| `KAKAO_NOTIFICATION` | 알림톡만 — 문자는 계속 보낸다 (문의를 놓치지 않게) |
+
+- 화면: 관리자 드래그 손잡이, 편집 모드 AI 버튼 · 이동 버튼을 숨긴다. 플래그를 불러오기 전 · 실패 시에는 보여 주고 서버가 막는다. 슈퍼 어드민은 끌 수 없는 기능의 토글을 잠근다(API 409).
+
 ---
 
 ### 14.4 화면 설계 (슈퍼 어드민 전용)
@@ -3019,7 +3035,6 @@ CREATE TABLE announcement_reads (
 │  │  섹션 편집기          [TGL: ON ]  ← 기본 기능 (끌 수 없음)    │  │
 │  │  드래그 섹션 순서 변경 [TGL: ON ]                             │  │
 │  │  갤러리 섹션           [TGL: ON ]                             │  │
-│  │  동영상 섹션           [TGL: OFF]  [? 이 테넌트만 비활성화]    │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │  ┌─── AI 기능 ─────────────────────────────────────────────────┐   │
 │  │  AI 문구 추천          [TGL: ON ]  월 100회 / 100회 사용 중   │   │
@@ -3132,7 +3147,6 @@ GET /api/v1/tenant/features
     "SECTION_EDITOR": true,
     "DRAG_SECTION_ORDER": true,
     "GALLERY_SECTION": true,
-    "VIDEO_SECTION": false,       ← 슈퍼 어드민이 OFF
     "AI_COPY_SUGGEST": true,
     "AI_CHAT_EDIT": true,         ← BETA
     "AI_MONTHLY_REPORT": true,    ← STANDARD 부터 (T-073-A)

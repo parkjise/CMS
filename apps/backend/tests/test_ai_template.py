@@ -9,6 +9,7 @@ from sqlalchemy import text
 
 from app.core.config import settings
 from app.services import ai as ai_service
+from app.services import feature as feature_service
 from tests.conftest import _TestSession  # type: ignore
 
 _URL = "/api/v1/ai/recommend-templates"
@@ -211,5 +212,12 @@ class TestAccess:
             "UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t",
             {"t": test_tenant["id"]},
         )
+        await _sql(
+            "INSERT INTO tenant_features (id, tenant_id, feature_id, is_enabled)"
+            " SELECT gen_random_uuid(), :t, id, false FROM features"
+            " WHERE key = 'AI_TEMPLATE_RECOMMEND'",
+            {"t": test_tenant["id"]},
+        )
+        await feature_service.invalidate_cache(test_tenant["id"])
         resp = await client.post(_URL, headers=auth_headers, json={})
         assert resp.status_code == 403

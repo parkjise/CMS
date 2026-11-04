@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { featureOn, useClientAuthStore } from '@/lib/authStore'
 import {
   ArrowDown,
   ArrowUp,
@@ -51,6 +52,7 @@ const buildOrderPayload = (wrappers: HTMLElement[]): OrderPayloadItem[] => {
 export function SectionControls({ sectionId, label, mobileHidden = false }: Props) {
   // 미리보기 중에는 편집 UI 를 숨긴다 (T-065-B)
   const isEditMode = useEditStore(selectEditingUi)
+  const canReorder = useClientAuthStore(featureOn('DRAG_SECTION_ORDER'))
 
   const barRef = useRef<HTMLDivElement | null>(null)
   const [canUp, setCanUp] = useState(false)
@@ -156,27 +158,32 @@ export function SectionControls({ sectionId, label, mobileHidden = false }: Prop
           )}
         </span>
 
-        <button
-          type="button"
-          onClick={() => move('up')}
-          disabled={!canUp || busy}
-          aria-label="섹션 위로 이동"
-          className="inline-flex items-center gap-1 rounded-[var(--border-radius-base)] px-1.5 py-1 transition hover:bg-[var(--color-background)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowUp className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">위로</span>
-        </button>
+        {/* 순서 변경 기능이 꺼지면 숨긴다 (T-138) */}
+        {canReorder && (
+          <>
+            <button
+              type="button"
+              onClick={() => move('up')}
+              disabled={!canUp || busy}
+              aria-label="섹션 위로 이동"
+              className="inline-flex items-center gap-1 rounded-[var(--border-radius-base)] px-1.5 py-1 transition hover:bg-[var(--color-background)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ArrowUp className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">위로</span>
+            </button>
 
-        <button
-          type="button"
-          onClick={() => move('down')}
-          disabled={!canDown || busy}
-          aria-label="섹션 아래로 이동"
-          className="inline-flex items-center gap-1 rounded-[var(--border-radius-base)] px-1.5 py-1 transition hover:bg-[var(--color-background)] disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <ArrowDown className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">아래로</span>
-        </button>
+            <button
+              type="button"
+              onClick={() => move('down')}
+              disabled={!canDown || busy}
+              aria-label="섹션 아래로 이동"
+              className="inline-flex items-center gap-1 rounded-[var(--border-radius-base)] px-1.5 py-1 transition hover:bg-[var(--color-background)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <ArrowDown className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">아래로</span>
+            </button>
+          </>
+        )}
 
         <button
           type="button"

@@ -32,6 +32,13 @@ export function useNavVisibility(): (to: string) => boolean {
   }
 }
 
+/** 기능이 켜져 있는지 — 불러오기 전 · 실패 시에는 켜진 것으로 (서버가 다시 막는다) */
+export function useFeatureOn(feature: string): boolean {
+  const loaded = useFeatureStore((s) => s.loaded)
+  const on = useFeatureStore((s) => s.flags[feature] === true)
+  return !loaded || on
+}
+
 /** 메뉴에 표시할 뱃지(BETA 우선, 그다음 NEW) 반환 훅 */
 export function useNavBadge(): (to: string) => NavBadge {
   const features = useFeatureStore((s) => s.features)

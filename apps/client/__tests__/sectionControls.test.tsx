@@ -22,7 +22,7 @@ const resetStores = () => {
     pendingChanges: {},
     isDirty: false,
   })
-  useClientAuthStore.setState({ user: null, isLoggedIn: false })
+  useClientAuthStore.setState({ user: null, isLoggedIn: false, flags: null })
 }
 
 const enableEditMode = () => {

@@ -13,6 +13,7 @@ from app.models.section import Section, SectionSetting
 from app.models.seo import SeoSetting
 from app.services import ai as ai_service
 from app.services import ai_report
+from app.services import feature as feature_service
 from tests.conftest import _TestSession  # type: ignore
 
 _URL = "/api/v1/ai/reports"
@@ -228,6 +229,13 @@ class TestReportApi:
             "UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t",
             {"t": test_tenant["id"]},
         )
+        await _sql(
+            "INSERT INTO tenant_features (id, tenant_id, feature_id, is_enabled)"
+            " SELECT gen_random_uuid(), :t, id, false FROM features"
+            " WHERE key = 'AI_MONTHLY_REPORT'",
+            {"t": test_tenant["id"]},
+        )
+        await feature_service.invalidate_cache(test_tenant["id"])
         assert (await client.get(_URL, headers=auth_headers)).status_code == 403
 
     async def test_requires_auth(self, client: AsyncClient):
@@ -378,6 +386,13 @@ class TestMetricsAndJob:
             "UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t",
             {"t": test_tenant["id"]},
         )
+        await _sql(
+            "INSERT INTO tenant_features (id, tenant_id, feature_id, is_enabled)"
+            " SELECT gen_random_uuid(), :t, id, false FROM features"
+            " WHERE key = 'AI_MONTHLY_REPORT'",
+            {"t": test_tenant["id"]},
+        )
+        await feature_service.invalidate_cache(test_tenant["id"])
         await worker._generate_monthly_reports(datetime(2026, 10, 1, tzinfo=UTC).date())
         row = await _sql(
             "SELECT count(*) FROM ai_reports WHERE tenant_id = :t",

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Loader2, RotateCw, Sparkles, X } from 'lucide-react'
 import { useCopySuggest } from '@/hooks/useCopySuggest'
+import { featureOn, useClientAuthStore } from '@/lib/authStore'
 
 interface Props {
   sectionId: string
@@ -29,6 +30,7 @@ export const popoverShift = (anchorRight: number, viewportWidth: number): number
 }
 
 export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
+  const enabled = useClientAuthStore(featureOn('AI_COPY_SUGGEST'))
   const rootRef = useRef<HTMLDivElement | null>(null)
   const [open, setOpen] = useState(false)
   const { suggestions, isLoading, error, generate, reset } = useCopySuggest()
@@ -90,6 +92,8 @@ export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
     setOpen(false)
     reset()
   }
+
+  if (!enabled) return null
 
   return (
     <div

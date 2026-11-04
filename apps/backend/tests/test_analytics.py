@@ -1,20 +1,31 @@
 from uuid import UUID
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select, text
 
 from app.db.session import AsyncSessionLocal, set_super_admin_context
 from app.models.analytics import SiteAnalytics
+from app.services import feature as feature_service
 from app.services.analytics import (
     _date_str,
     classify_referrer,
     flush_tenant_to_db,
     get_summary,
-    get_timeseries,
     is_mobile,
     max_days_for_plan,
     record_pageview,
 )
+
+
+@pytest.fixture(autouse=True)
+def analytics_deployed(monkeypatch):
+    """방문 분석은 아직 미배포 기능 (NAVER_ANALYTICS) — 조회 자체를 시험한다"""
+
+    async def enabled(*_):
+        return True
+
+    monkeypatch.setattr(feature_service, "is_enabled", enabled)
 
 
 class TestPageviewBeacon:

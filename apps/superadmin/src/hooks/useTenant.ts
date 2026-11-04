@@ -32,6 +32,8 @@ export interface TenantFeatureItem {
   is_active: boolean
   is_enabled: boolean
   enabled_at: string | null
+  /** 끌 수 없는 기본 기능 (T-138) */
+  always_on?: boolean
 }
 
 export interface AuditLogItem {
