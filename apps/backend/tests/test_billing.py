@@ -4,11 +4,15 @@ import base64
 import hashlib
 import hmac
 import json
+import re
 import uuid
+from pathlib import Path
 
 import pytest
 from sqlalchemy import text
 
+from app.services import super_dashboard
+from app.services.payment import PLAN_MONTHLY_PRICE
 from tests.conftest import _TestSession  # type: ignore
 
 
@@ -80,7 +84,7 @@ class TestBillingApi:
             )
             assert resp.status_code == 200
             assert resp.json()["data"]["plan_type"] == "PREMIUM"
-            assert resp.json()["data"]["monthly_amount"] == 129_000
+            assert resp.json()["data"]["monthly_amount"] == 189_000
 
             # plan_change_history 기록 확인
             async with _TestSession() as s:
@@ -248,3 +252,20 @@ class TestWebhook:
         assert resp.status_code == 200
         # 매칭되는 결제 없음 → processed True, matched 0
         assert resp.json()["data"]["matched"] == 0
+
+
+def test_plan_prices_match_admin_screen():
+    """결제 금액과 관리자 요금제 화면 금액이 같다 (T-126 — PREMIUM 이 어긋나 있었다)."""
+    plans = (
+        Path(__file__).parents[2] / "admin" / "src" / "lib" / "plans.ts"
+    ).read_text(encoding="utf-8")
+    shown = dict(
+        re.findall(r"key: '(\w+)'.*?monthlyPrice: ([\d_]+)", plans, flags=re.DOTALL)
+    )
+    assert {k: int(v.replace("_", "")) for k, v in shown.items()} == {
+        k: v for k, v in PLAN_MONTHLY_PRICE.items() if k != "FREE"
+    }
+
+
+def test_dashboard_uses_payment_prices():
+    assert super_dashboard.PLAN_MONTHLY_PRICE is PLAN_MONTHLY_PRICE

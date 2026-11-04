@@ -30,7 +30,7 @@ PLAN_MONTHLY_PRICE: dict[str, int] = {
     "FREE": 0,
     "BASIC": 39_000,
     "STANDARD": 89_000,
-    "PREMIUM": 129_000,
+    "PREMIUM": 189_000,
 }
 
 PERIOD_DAYS = 30

@@ -25,6 +25,7 @@ from app.models.section import Section, SectionSetting
 from app.models.template import Template
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.services.payment import PLAN_MONTHLY_PRICE
 
 # 기본 템플릿 6종 (T-056). css_variables / min_plan / template_type(추천 업종) 값은
 # 클라이언트 정의(apps/client/lib/templates/*.ts)와 반드시 일치시킨다.
@@ -472,15 +473,6 @@ async def seed_test_sections(db: AsyncSession, slug: str = "test-tenant") -> Non
         print(f"✅ 테스트 테넌트 섹션 생성: {', '.join(created)}")
     else:
         print("ℹ️  테스트 테넌트 E2E 섹션 이미 존재 — 건너뜀")
-
-
-# 플랜별 월 요금 (원) — super_dashboard.PLAN_MONTHLY_PRICE와 일치
-PLAN_MONTHLY_PRICE = {
-    "FREE": 0,
-    "BASIC": 39_000,
-    "STANDARD": 89_000,
-    "PREMIUM": 129_000,
-}
 
 
 async def seed_test_subscription(db: AsyncSession, tenant_id: uuid.UUID) -> None:
