@@ -4,11 +4,10 @@ from uuid import UUID
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.client_info import client_ip, client_user_agent
+from app.core.client_info import client_ip, client_user_agent, rate_limit_key
 from app.core.config import settings
 from app.core.deps import (
     get_current_user,
@@ -46,7 +45,7 @@ router = APIRouter(prefix="/inquiries", tags=["inquiries"])
 # 공개 라우터 — main.py에서 /api/public prefix로 등록
 public_router = APIRouter(prefix="/inquiries", tags=["public"])
 
-_limiter = Limiter(key_func=get_remote_address)
+_limiter = Limiter(key_func=rate_limit_key)
 
 
 async def _verify_recaptcha(token: str | None) -> None:

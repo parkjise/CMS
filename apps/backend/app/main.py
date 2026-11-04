@@ -6,7 +6,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.public.member_auth import options_router as member_options_router
@@ -21,6 +20,7 @@ from app.api.v1.endpoints.seo import public_router as seo_public_router
 from app.api.v1.endpoints.templates import public_router as template_public_router
 from app.api.v1.router import api_router
 from app.api.webhook.tosspayments import router as tosspayments_webhook_router
+from app.core.client_info import client_ip, rate_limit_key
 from app.core.config import settings
 from app.core.errors import (
     http_exception_handler,
@@ -36,7 +36,7 @@ from app.core.observability import setup_observability
 from app.core.redis import close_redis
 from app.schemas.common import ApiError
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 _IP_FORBIDDEN = "허용되지 않은 접속 위치입니다"
 
 
@@ -80,13 +80,8 @@ async def super_admin_ip_whitelist(request: Request, call_next):
         allowed = settings.super_admin_allowed_ips
         if allowed:
             allowed_set = {ip.strip() for ip in allowed.split(",")}
-            forwarded = request.headers.get("X-Forwarded-For")
-            client_ip = (
-                forwarded.split(",")[0].strip()
-                if forwarded
-                else (request.client.host if request.client else "")
-            )
-            if client_ip not in allowed_set:
+            # X-Forwarded-For 의 첫 값은 방문자가 넣을 수 있다 (T-136)
+            if client_ip(request) not in allowed_set:
                 return JSONResponse(
                     ApiError.of(
                         "FORBIDDEN", "허용되지 않은 접속 위치입니다"

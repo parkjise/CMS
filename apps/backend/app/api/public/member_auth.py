@@ -9,10 +9,10 @@ refresh 토큰은 `member_refresh_token` 쿠키에 담는다. 도메인을 지�
 from fastapi import APIRouter, Cookie, Depends, Request, Response, status
 from pydantic import EmailStr
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
+from app.core.client_info import rate_limit_key
 from app.core.config import settings
 from app.core.deps import (
     get_current_member,
@@ -66,7 +66,7 @@ router = APIRouter(
 options_router = APIRouter(prefix="/{tenant_slug}/auth", tags=["public-member"])
 
 # 인증 API IP 당 10회/분 (기획서 16.11)
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 _RATE = "10/minute"
 
 REFRESH_COOKIE = "member_refresh_token"
