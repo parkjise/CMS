@@ -1,9 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { http, HttpResponse } from 'msw'
-import { server } from './server'
 import { InquiryFilters } from '@/components/inquiries/InquiryFilters'
 import { downloadInquiriesExcel } from '@/hooks/useInquiries'
+import { api } from '@/lib/api'
 
 // 접수일 기간 필터 (T-127)
 describe('InquiryFilters 기간', () => {
@@ -27,17 +26,16 @@ describe('InquiryFilters 기간', () => {
     expect(screen.getByLabelText('접수 종료일')).toHaveAttribute('min', '2026-11-02')
   })
 
+  // responseType: 'blob' 은 Node 22 에서 MSW 가 처리하지 못해 요청 값만 확인한다
   it('엑셀 내보내기에 기간을 보낸다', async () => {
-    let query = ''
-    server.use(
-      http.get('http://localhost:8000/api/v1/inquiries/export', ({ request }) => {
-        query = new URL(request.url).search
-        return new HttpResponse('x')
-      }),
-    )
+    const get = vi.spyOn(api, 'get').mockResolvedValue({ data: new Blob(['x']) })
     window.URL.createObjectURL = vi.fn(() => 'blob:x')
     window.URL.revokeObjectURL = vi.fn()
     await downloadInquiriesExcel({ from_date: '2026-11-01', to_date: '2026-11-02' })
-    expect(query).toBe('?from_date=2026-11-01&to_date=2026-11-02')
+    expect(get).toHaveBeenCalledWith('/v1/inquiries/export', {
+      params: { from_date: '2026-11-01', to_date: '2026-11-02' },
+      responseType: 'blob',
+    })
+    get.mockRestore()
   })
 })
