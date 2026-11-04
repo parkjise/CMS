@@ -229,4 +229,101 @@ describe('글자 목록 · 여러 줄 · 굵게 표기 칸 (T-125-E)', () => {
     replaceListItem(sec('rows', [{ title: 'a' }]), 'rows', 0, undefined, 'x')
     expect(useEditStore.getState().pendingChanges).toEqual({})
   })
+
+  // T-125-I — 연혁처럼 목록 안의 목록
+  describe('겹 목록', () => {
+    const years = [
+      {
+        year: 2024,
+        months: [
+          { month: 3, events: [{ text: '첫 사건', highlight: true }, { text: '둘째 사건' }] },
+          { month: 7, events: [{ text: '다른 달 사건' }] },
+        ],
+      },
+    ]
+    const renderEvent = () =>
+      render(
+        <TemplateListText
+          section={sec('years', years)}
+          editable
+          field="years"
+          index={0}
+          itemKey={['months', 0, 'events', 1, 'text']}
+          label="연혁"
+        />,
+      )
+
+    it('그 위치 글자만 바꾸고 나머지 값은 그대로 둔다', () => {
+      useEditStore.setState({ isEditMode: true })
+      renderEvent()
+      const box = startEdit('연혁')
+      expect(box).toHaveTextContent('둘째 사건')
+      type(box, '고친 사건')
+      fireEvent.keyDown(box, { key: 'Enter' })
+      expect(pendingOf('years')).toEqual([
+        {
+          year: 2024,
+          months: [
+            { month: 3, events: [{ text: '첫 사건', highlight: true }, { text: '고친 사건' }] },
+            { month: 7, events: [{ text: '다른 달 사건' }] },
+          ],
+        },
+      ])
+    })
+
+    it('같은 목록의 다른 위치를 연달아 고쳐도 덮어쓰지 않는다', () => {
+      const s = sec('years', years)
+      replaceListItem(s, 'years', 0, ['months', 0, 'events', 0, 'text'], '가')
+      replaceListItem(s, 'years', 0, ['months', 1, 'events', 0, 'text'], '나')
+      const months = pendingOf('years')[0].months
+      expect(months[0].events[0].text).toBe('가')
+      expect(months[1].events[0].text).toBe('나')
+    })
+
+    it('방문자 화면에 data-field 경로를 단다', () => {
+      renderEvent()
+      expect(screen.getByText('둘째 사건')).toHaveAttribute('data-field', 'years.0.months.0.events.1.text')
+    })
+
+    it('없는 위치 · 글자가 아닌 값은 바꾸지 않는다', () => {
+      const s = sec('years', years)
+      replaceListItem(s, 'years', 0, ['months', 9, 'events', 0, 'text'], 'x')
+      replaceListItem(s, 'years', 0, ['months', 0, 'events', 9, 'text'], 'x')
+      replaceListItem(s, 'years', 0, ['months', 0], 'x')
+      expect(useEditStore.getState().pendingChanges).toEqual({})
+    })
+  })
+
+  // T-125-I — **굵게** 표기 · 링크 안 글자는 목록이 아니어도 같은 방식으로
+  describe('목록이 아닌 글자 칸', () => {
+    const caption = {
+      ...section,
+      settings: [{ field_key: 'caption', field_value: '**굵은** 설명', value_type: 'STRING' }],
+    } as PublicSection
+    const renderCaption = () =>
+      render(<TemplateListText section={caption} editable field="caption" multiline boldMarks label="사진 설명" />)
+    const pendingCaption = () => useEditStore.getState().pendingChanges['sec-1:caption']?.new_value
+
+    it('방문자 화면은 굵게, 고칠 때는 표기 그대로', () => {
+      renderCaption()
+      expect(screen.getByText('굵은').tagName).toBe('STRONG')
+      cleanup()
+      useEditStore.setState({ isEditMode: true })
+      renderCaption()
+      expect(startEdit('사진 설명')).toHaveTextContent('**굵은** 설명')
+    })
+
+    it('고치면 글자 그대로 저장 대기, 그대로면 올리지 않는다', () => {
+      useEditStore.setState({ isEditMode: true })
+      renderCaption()
+      let box = startEdit('사진 설명')
+      type(box, '**굵은** 설명')
+      fireEvent.blur(box)
+      expect(pendingCaption()).toBeUndefined()
+      box = startEdit('사진 설명')
+      type(box, '**새** 설명')
+      fireEvent.blur(box)
+      expect(pendingCaption()).toBe('**새** 설명')
+    })
+  })
 })

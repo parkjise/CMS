@@ -34,6 +34,8 @@ interface Props {
   valueType?: string
   /** 미니 툴바(굵게 · 기울임 · 색 · 크기 · 링크) 사용 — 링크 안의 글자 · 연락처 칸은 끈다 */
   formatting?: boolean
+  /** span 이어도 CSS 로 한 줄을 차지하는 글자 — 감싸개도 block 으로 (T-125-I) */
+  block?: boolean
 }
 
 export function EditableText({
@@ -49,6 +51,7 @@ export function EditableText({
   lang,
   valueType,
   formatting = false,
+  block = false,
 }: Props) {
   const isEditMode = useEditStore((s) => s.isEditMode)
   const isPreview = useEditStore((s) => s.isPreview)
@@ -211,7 +214,7 @@ export function EditableText({
     <span
       ref={wrapRef}
       data-editable-wrap=""
-      className={`relative ${BLOCK_TAGS.has(as) ? 'block' : 'inline-block'}`}
+      className={`relative ${block || BLOCK_TAGS.has(as) ? 'block' : 'inline-block'}`}
     >
       <Tag
         ref={ref as React.Ref<never>}

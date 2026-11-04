@@ -153,6 +153,12 @@ describe('EditableText', () => {
     expect(wrap).toHaveClass('inline-block')
   })
 
+  it('span 이어도 block 을 주면 감싸개는 block (한 줄을 차지하는 제목, T-125-I)', () => {
+    enableEditMode()
+    render(<EditableText sectionId={SECTION_ID} field={FIELD} initialValue={INITIAL} as="span" block />)
+    expect(screen.getByText(INITIAL).parentElement).toHaveClass('block')
+  })
+
   it('보기 모드에서는 감싸개 없이 태그만 그린다', () => {
     renderText()
     expect(screen.getByText(INITIAL).parentElement).not.toHaveAttribute('data-editable-wrap')

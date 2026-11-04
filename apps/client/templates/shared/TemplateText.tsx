@@ -15,6 +15,8 @@ interface Props {
   multiline?: boolean
   lang?: string
   id?: string
+  /** span 이어도 CSS 로 한 줄을 차지하는 글자 — 편집 모드 감싸개도 block 으로 (T-125-I) */
+  block?: boolean
 }
 
 /**
@@ -32,6 +34,7 @@ export function TemplateText({
   multiline = false,
   lang,
   id,
+  block,
 }: Props) {
   const value = getString(section.settings, field)
   if (!value) return null
@@ -53,6 +56,7 @@ export function TemplateText({
         lang={lang}
         valueType={valueType}
         formatting
+        block={block}
       />
     )
   }
