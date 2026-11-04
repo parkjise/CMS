@@ -60,6 +60,7 @@ class Subscription(Base, TimestampMixin):
     cancelled_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    cancel_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
 
 
 class PaymentHistory(Base):

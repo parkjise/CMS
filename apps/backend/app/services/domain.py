@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.domain import TenantDomain
 from app.models.tenant import Tenant
+from app.services import billing_notice
 
 SSL_VALID_DAYS = 90
 
@@ -189,6 +190,7 @@ async def verify_domain(db: AsyncSession, tenant_id: uuid.UUID) -> TenantDomain:
     )
     await db.commit()
     await db.refresh(row)
+    await billing_notice.domain_activated(db, tenant_id, row.domain)
     return row
 
 

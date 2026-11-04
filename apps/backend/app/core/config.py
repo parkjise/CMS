@@ -155,6 +155,8 @@ class Settings(BaseSettings):
             problems["app_secret_key"] = "예시 값(change-me…) 그대로입니다"
         if self.super_admin_password in ("", "change-me"):
             problems["super_admin_password"] = "슈퍼 어드민 비밀번호가 기본값입니다"
+        if not self.toss_webhook_secret:
+            problems["toss_webhook_secret"] = "결제 웹훅 서명을 검증할 수 없습니다"
         if not self.cookie_domain:
             problems["cookie_domain"] = (
                 "홈페이지 ↔ 관리자 로그인 공유용 상위 도메인이 없습니다"

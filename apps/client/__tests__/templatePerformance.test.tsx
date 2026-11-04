@@ -46,7 +46,14 @@ describe('Noto Sans KR 범위', () => {
     expect(read('app/layout.tsx')).not.toContain('next/font')
     expect(read('app/(code)/tpl-hospital-a/[tenant_slug]/layout.tsx')).toContain('TenantShell')
     expect(read('app/[tenant_slug]/TenantShell.tsx')).not.toContain('@/lib/fonts')
-    expect(read('app/[tenant_slug]/layout.tsx')).toContain('notoSansKr')
+    expect(read('app/[tenant_slug]/layout.tsx')).toContain('@/lib/fonts')
+  })
+
+  it('빌드가 구글에 의존하지 않는다 — next/font/google 금지 (T-135)', () => {
+    const fonts = read('lib/fonts.ts')
+    expect(fonts).toContain('@fontsource/noto-sans-kr/400.css')
+    expect(fonts).toContain('@fontsource/noto-sans-kr/700.css')
+    expect(fonts).not.toMatch(/from 'next\/font\/google'/)
   })
 })
 

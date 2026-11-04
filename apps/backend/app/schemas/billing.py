@@ -90,7 +90,7 @@ class ChangePlanRequest(BaseModel):
 
 
 class CancelSubscriptionRequest(BaseModel):
-    reason: str | None = None
+    reason: str | None = Field(default=None, max_length=200)
 
 
 class RegisterDomainRequest(BaseModel):

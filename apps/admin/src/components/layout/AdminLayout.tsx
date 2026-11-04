@@ -1,10 +1,10 @@
 import { ReadOnlyBanner } from '@/components/layout/ReadOnlyBanner'
 import { useEffect } from 'react'
-import { Outlet } from 'react-router'
+import { Outlet, useLocation } from 'react-router'
 import { SkipLink } from '@/components/a11y/SkipLink'
 import { useFeatureStore } from '@/stores/featureStore'
 import { ReSubscribeBanner } from '@/components/billing/ReSubscribeBanner'
-import { useSubscription } from '@/hooks/useBilling'
+import { isSubscriptionBlocked, useSubscription } from '@/hooks/useBilling'
 import { SubscriptionExpiredPage } from '@/pages/SubscriptionExpiredPage'
 import { AnnouncementBanner } from './AnnouncementBanner'
 import { BottomTabBar } from './BottomTabBar'
@@ -16,13 +16,14 @@ import { TrialBanner } from './TrialBanner'
 export function AdminLayout() {
   const loadFeatures = useFeatureStore((s) => s.load)
   const { data: sub } = useSubscription()
+  const { pathname } = useLocation()
 
   useEffect(() => {
     void loadFeatures()
   }, [loadFeatures])
 
-  // 구독 만료(SUSPENDED) 시 전체 접근 차단
-  if (sub?.status === 'SUSPENDED') {
+  // 구독이 멈추면 결제 화면 말고는 막는다 — 결제 화면까지 막으면 재구독할 길이 없다 (T-134)
+  if (isSubscriptionBlocked(sub) && pathname !== '/admin/billing') {
     return <SubscriptionExpiredPage />
   }
 

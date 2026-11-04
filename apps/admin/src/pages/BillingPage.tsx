@@ -1,5 +1,6 @@
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
+import { useSearchParams } from 'react-router'
 import { SubscriptionTab } from '@/components/billing/tabs/SubscriptionTab'
 import { PaymentMethodTab } from '@/components/billing/tabs/PaymentMethodTab'
 import { PaymentHistoryTab } from '@/components/billing/tabs/PaymentHistoryTab'
@@ -15,7 +16,8 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 export function BillingPage() {
-  const [tab, setTab] = useState<TabKey>('subscription')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<TabKey>(params.get('tab') === 'method' ? 'method' : 'subscription')
 
   return (
     <div className="space-y-6 p-6 md:p-8">

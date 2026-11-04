@@ -27,6 +27,13 @@ export interface PaymentHistoryItem {
   created_at: string
 }
 
+/** 구독 때문에 멈춘 상태 — 중단, 또는 해지하고 기간이 끝남 (기획서 15.7, T-134) */
+export function isSubscriptionBlocked(sub: Subscription | null | undefined): boolean {
+  if (!sub) return false
+  if (sub.status === 'SUSPENDED') return true
+  return sub.status === 'CANCELLED' && new Date(sub.current_period_end) <= new Date()
+}
+
 export function useSubscription() {
   return useQuery<Subscription | null>({
     queryKey: ['billing', 'subscription'],
