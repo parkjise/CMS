@@ -4,9 +4,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_info import rate_limit_key
 from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.billing import (
@@ -26,7 +26,7 @@ from app.services import payment as svc
 router = APIRouter(prefix="/billing", tags=["billing"])
 
 # 결제 쓰기 API 전용 rate limiter (분당 5회). 테스트는 conftest에서 비활성화.
-_limiter = Limiter(key_func=get_remote_address)
+_limiter = Limiter(key_func=rate_limit_key)
 
 
 @router.post("/register-card", response_model=ApiResponse[SubscriptionResponse])

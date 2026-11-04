@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
 from app.models.user import User
 from app.schemas.billing import (
+    DomainLimitsResponse,
     DomainStatusResponse,
     RegisterDomainRequest,
     TenantDomainResponse,
@@ -22,6 +23,20 @@ router = APIRouter(prefix="/domain", tags=["domain"])
 def _with_guide(row) -> DomainStatusResponse:
     data = TenantDomainResponse.model_validate(row).model_dump()
     return DomainStatusResponse(**data, cname_target=settings.domain_cname_target)
+
+
+@router.get("/limits", response_model=ApiResponse[DomainLimitsResponse])
+async def get_domain_limits(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    return ApiResponse.ok(
+        DomainLimitsResponse(
+            custom_domain_allowed=await svc.domain_allowed(db, tenant_id),
+            cname_target=settings.domain_cname_target,
+        )
+    )
 
 
 @router.post("/register", response_model=ApiResponse[DomainStatusResponse])
@@ -58,6 +73,7 @@ async def verify_domain(
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
+    await svc.ensure_domain_allowed(db, tenant_id)
     row = await svc.verify_domain(db, tenant_id)
     return ApiResponse.ok(_with_guide(row))
 

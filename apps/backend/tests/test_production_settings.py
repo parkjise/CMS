@@ -22,6 +22,8 @@ GOOD = {
     "email_mode": "live",
     "payment_mode": "live",
     "toss_webhook_secret": "whsec-test",
+    "super_admin_require_2fa": True,
+    "domain_cert_email": "ops@example.com",
     "social_mode": "live",
     "domain_mode": "live",
 }
@@ -43,6 +45,8 @@ def test_production_with_real_values_starts():
         ("super_admin_password", ""),
         ("cookie_domain", ""),
         ("toss_webhook_secret", ""),
+        ("super_admin_require_2fa", False),
+        ("domain_cert_email", ""),
         ("recaptcha_secret_key", ""),
         ("revalidate_secret", ""),
         ("client_internal_url", "http://localhost:3000"),

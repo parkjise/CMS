@@ -34,6 +34,8 @@ class TenantDomain(Base):
     domain_type: Mapped[str] = mapped_column(String(20), nullable=False)
     # PENDING, DNS_CHECKING, SSL_ISSUING, ACTIVE, FAILED
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDING")
+    # FAILED 일 때 사유 — DNS(우리 서버를 가리키지 않음), SSL(인증서 발급 실패)
+    failure_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
     ssl_expires_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )

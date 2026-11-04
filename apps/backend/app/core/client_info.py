@@ -23,5 +23,10 @@ def client_ip(request: Request) -> str | None:
         return None
 
 
+def rate_limit_key(request: Request) -> str:
+    """요청 횟수 제한 기준 — 방문자별. request.client 는 Nginx 다 (T-136)."""
+    return client_ip(request) or "unknown"
+
+
 def client_user_agent(request: Request) -> str | None:
     return request.headers.get("User-Agent", "")[:USER_AGENT_MAX_LEN] or None

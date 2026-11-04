@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router'
 import type { User } from '@cms/types'
+import { TwoFactorStep } from '@/components/auth/TwoFactorStep'
 import { superApi } from '@/lib/superApi'
 import { useSuperAuthStore } from '@/stores/superAuthStore'
 import { apiErrorMessage } from '@/lib/errors'
@@ -13,6 +14,15 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [twoFactor, setTwoFactor] = useState<{
+    mode: 'verify' | 'enroll'
+    challengeToken: string
+  } | null>(null)
+
+  const finishLogin = (token: string, user: User) => {
+    setAuth(token, user)
+    navigate('/dashboard', { replace: true })
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,17 +37,41 @@ export function LoginPage() {
         email,
         password,
       })
-      const { access_token, user } = data.data as {
-        access_token: string
-        user: User
+      const { access_token, user, requires_2fa, requires_2fa_setup, challenge_token } =
+        data.data as {
+          access_token: string
+          user: User
+          requires_2fa?: boolean
+          requires_2fa_setup?: boolean
+          challenge_token?: string
+        }
+      if ((requires_2fa || requires_2fa_setup) && challenge_token) {
+        setPassword('')
+        setTwoFactor({
+          mode: requires_2fa ? 'verify' : 'enroll',
+          challengeToken: challenge_token,
+        })
+        return
       }
-      setAuth(access_token, user)
-      navigate('/dashboard', { replace: true })
+      finishLogin(access_token, user)
     } catch (e) {
       setError(apiErrorMessage(e, '이메일 또는 비밀번호가 올바르지 않습니다.'))
     } finally {
       setSubmitting(false)
     }
+  }
+
+  if (twoFactor) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-100">
+        <TwoFactorStep
+          mode={twoFactor.mode}
+          challengeToken={twoFactor.challengeToken}
+          onDone={finishLogin}
+          onBack={() => setTwoFactor(null)}
+        />
+      </div>
+    )
   }
 
   return (

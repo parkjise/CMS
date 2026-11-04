@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_info import client_ip
 from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -70,12 +71,7 @@ async def record_pageview(
     db: AsyncSession = Depends(get_db),
 ):
     """1px 비콘 방식 페이지뷰 수집. tenant_id 쿼리 파라미터 필수."""
-    forwarded = request.headers.get("X-Forwarded-For")
-    ip = (
-        forwarded.split(",")[0].strip()
-        if forwarded
-        else (request.client.host if request.client else "unknown")
-    )
+    ip = client_ip(request) or "unknown"
     ua = request.headers.get("User-Agent", "")
     referrer = request.headers.get("Referer", "")
 

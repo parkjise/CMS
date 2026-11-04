@@ -7,6 +7,7 @@ interface Props {
   entry: CodeTemplateEntry
   site: PublicSite
   tenantSlug: string
+  onCustomDomain?: boolean
   pageKey: string
   preview?: boolean
   /**
@@ -30,6 +31,7 @@ export async function CodeTemplateRenderer({
   entry,
   site,
   tenantSlug,
+  onCustomDomain,
   pageKey,
   preview = false,
   contentSource = 'tenant',
@@ -61,6 +63,7 @@ export async function CodeTemplateRenderer({
       <Template
         site={site}
         tenantSlug={tenantSlug}
+        onCustomDomain={onCustomDomain}
         pageKey={pageKey}
         sections={sections}
         siteInfo={siteInfo}

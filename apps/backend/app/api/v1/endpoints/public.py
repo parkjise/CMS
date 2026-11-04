@@ -17,6 +17,7 @@ from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import (
+    PublicDomainResponse,
     PublicMemberFlags,
     PublicSectionResponse,
     PublicSeoResponse,
@@ -26,6 +27,7 @@ from app.schemas.public_site import (
     PublicTenantResponse,
 )
 from app.schemas.site import PublicSiteSettingsResponse
+from app.services import domain as domain_service
 from app.services import member_features
 
 router = APIRouter(tags=["public"])
@@ -130,6 +132,16 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             social_login=flags.social_login,
         ),
     )
+
+
+@router.get("/domain/{host}", response_model=ApiResponse[PublicDomainResponse])
+async def get_domain_slug(host: str, db: AsyncSession = Depends(get_db)):
+    """접속한 도메인의 사업체 — 연결이 끝난 도메인만 (T-137)."""
+    await set_super_admin_context(db)
+    slug = await domain_service.active_slug_for_host(db, host)
+    if not slug:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    return ApiResponse.ok(PublicDomainResponse(slug=slug))
 
 
 @router.get("/site/{tenant_slug}", response_model=ApiResponse[PublicSiteResponse])

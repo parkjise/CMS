@@ -5,8 +5,9 @@
  * refresh 토큰은 API 가 `member_refresh_token` 쿠키(Path=/api/public/{slug})로 심는다.
  */
 import axios from 'axios'
+import { browserApiBase } from './apiBase'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+const BASE_URL = browserApiBase()
 
 export type SocialProvider = 'KAKAO' | 'NAVER'
 
@@ -19,6 +20,9 @@ export interface SocialCallbackResult {
   signup_token: string | null
   email_required: boolean
   suggested_name: string | null
+  /** 고객 도메인에서 시작한 로그인 — 이 주소로 가서 세션을 받는다 (T-137) */
+  handoff_url?: string | null
+  return_origin?: string | null
 }
 
 /** 추가 정보 화면(T-113 /member/join-social)으로 넘기는 값 — 주소창에 토큰을 남기지 않는다 */

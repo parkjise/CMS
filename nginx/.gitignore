@@ -2,5 +2,3 @@
 certs/*
 !certs/.gitkeep
 # 커스텀 도메인 동적 서버 블록도 런타임 생성물
-sites-enabled/*
-!sites-enabled/.gitkeep

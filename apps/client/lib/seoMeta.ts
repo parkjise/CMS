@@ -15,6 +15,8 @@ export function robotsFrom(seo: PublicSeoSettings | null | undefined): {
  * 검색에서 빠지므로, 각 페이지 메타에서 경로를 붙여 쓴다.
  */
 export function canonicalMeta(site: PublicSite, path = ''): Pick<Metadata, 'alternates'> {
-  const base = site.seo_settings?.canonical_url?.replace(/\/+$/, '')
+  // 직접 정한 대표 주소가 먼저, 없으면 연결한 도메인 — 메인 주소와 중복 수집 방지 (T-137)
+  const custom = site.tenant.custom_domain ? `https://${site.tenant.custom_domain}` : null
+  const base = (site.seo_settings?.canonical_url ?? custom)?.replace(/\/+$/, '')
   return base ? { alternates: { canonical: `${base}${path}` } } : {}
 }

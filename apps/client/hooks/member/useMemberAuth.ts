@@ -79,7 +79,10 @@ export const useSocialComplete = (slug: string) => {
     SocialCompleteInput
   >({
     mutationFn: (input) => completeSocialSignup(slug, input),
-    onSuccess: (session) => setSession(slug, session),
+    // 고객 도메인으로 넘어가면 그쪽에서 세션을 받는다 (T-137)
+    onSuccess: (session) => {
+      if (!session.handoff_url) setSession(slug, session)
+    },
   })
 }
 

@@ -129,3 +129,103 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     expect(rewriteOf(await run('/clinic/a/b/c'))).toBeNull()
   })
 })
+
+describe('middleware — 고객 도메인 (T-137)', () => {
+  const HOST_HEADER = 'x-middleware-request-x-site-custom-host'
+  const runHost = (path: string, host = 'www.oo.com', extra: Record<string, string> = {}) =>
+    middleware(
+      new NextRequest(new URL(path, 'http://localhost:3000'), {
+        headers: { host, ...extra },
+      }),
+    )
+  const domainResponse = (slug: string | null) =>
+    slug
+      ? new Response(JSON.stringify({ data: { slug } }), { status: 200 })
+      : new Response('{}', { status: 404 })
+  /** 도메인 조회 → 템플릿 조회 순서로 응답 */
+  const mockSite = (slug: string | null, code: string | null = null) =>
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes('/public/domain/') ? domainResponse(slug) : templateResponse(code),
+      ),
+    )
+
+  it('테마형 — 첫 화면 · 서브 경로에 slug 를 붙여 내부 전환', async () => {
+    mockSite('clinic')
+    expect(rewriteOf(await runHost('/'))).toBe('http://localhost:3000/clinic')
+    expect(rewriteOf(await runHost('/about?x=1'))).toBe('http://localhost:3000/clinic/about?x=1')
+  })
+
+  it('코드형 — 템플릿 라우트로', async () => {
+    mockSite('clinic', 'TPL_HOSPITAL_A')
+    expect(rewriteOf(await runHost('/about'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/about',
+    )
+    expect(rewriteOf(await runHost('/member/login'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/member/login',
+    )
+  })
+
+  it('확인한 도메인을 헤더로 넘기고, 방문자가 보낸 값은 버린다', async () => {
+    mockSite('clinic')
+    const res = await runHost('/about', 'WWW.OO.com:443', { 'x-site-custom-host': 'evil.com' })
+    expect(res.headers.get(HOST_HEADER)).toBe('www.oo.com')
+  })
+
+  it('메인 주소에서 보낸 헤더도 버린다', async () => {
+    fetchMock.mockResolvedValue(templateResponse(null))
+    const res = await runHost('/clinic', 'localhost:3000', { 'x-site-custom-host': 'evil.com' })
+    expect(res.headers.get(HOST_HEADER)).toBeNull()
+  })
+
+  it('slug 가 붙은 주소는 301 — 쿼리 유지, 접속한 도메인 · 스킴으로', async () => {
+    mockSite('clinic')
+    const res = await runHost('/clinic/member/login?next=%2Fabout', 'www.oo.com', {
+      'x-forwarded-proto': 'https',
+    })
+    expect(res.status).toBe(301)
+    expect(res.headers.get('location')).toBe('https://www.oo.com/member/login?next=%2Fabout')
+    const home = await runHost('/clinic', 'www.oo.com', { 'x-forwarded-proto': 'https' })
+    expect(home.headers.get('location')).toBe('https://www.oo.com/')
+  })
+
+  it('slug 로 시작만 하는 경로는 옮기지 않는다', async () => {
+    mockSite('clinic')
+    const res = await runHost('/clinic-news')
+    expect(res.status).toBe(200)
+    expect(rewriteOf(res)).toBe('http://localhost:3000/clinic/clinic-news')
+  })
+
+  it('연결되지 않은 도메인은 404, 다음 요청은 저장된 값을 쓴다', async () => {
+    mockSite(null)
+    expect((await runHost('/')).status).toBe(404)
+    expect((await runHost('/about')).status).toBe(404)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('백엔드 장애는 503 — 없는 도메인으로 저장하지 않는다', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('down'))
+    expect((await runHost('/')).status).toBe(503)
+    mockSite('clinic')
+    expect(rewriteOf(await runHost('/'))).toBe('http://localhost:3000/clinic')
+  })
+
+  it('내부 템플릿 경로는 고객 도메인에서도 404', async () => {
+    mockSite('clinic')
+    expect((await runHost('/tpl-hospital-a/clinic')).status).toBe(404)
+  })
+
+  it('사이트맵은 사업체 사이트맵으로', async () => {
+    mockSite('clinic')
+    expect(rewriteOf(await runHost('/sitemap.xml'))).toBe(
+      'http://localhost:3000/clinic/sitemap.xml',
+    )
+  })
+
+  it('컨테이너 이름 · IP 는 고객 도메인이 아니다', async () => {
+    fetchMock.mockResolvedValue(templateResponse(null))
+    await runHost('/clinic', 'client:3000')
+    await runHost('/clinic', '10.0.0.5:3000')
+    expect(fetchMock.mock.calls.every(([u]) => !String(u).includes('/public/domain/'))).toBe(true)
+  })
+})

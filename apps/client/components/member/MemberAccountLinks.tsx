@@ -1,6 +1,7 @@
 'use client'
 
 import { useIsMember, useMemberStore } from '@/lib/memberStore'
+import { sitePath } from '@/lib/siteHost'
 
 export interface AccountLink {
   href: string
@@ -34,7 +35,7 @@ const MemberAccountLinks = ({
   const handleLogout = async () => {
     await logout()
     // 화면 상태(편집 · 폼)를 모두 비우도록 새로 불러온다
-    window.location.assign(`/${slug}`)
+    window.location.assign(sitePath(slug))
   }
 
   const items: React.ReactNode[] = isMember

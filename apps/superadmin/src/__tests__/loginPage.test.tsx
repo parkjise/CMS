@@ -71,4 +71,91 @@ describe('LoginPage (T-084)', () => {
     )
     expect(navigate).not.toHaveBeenCalled()
   })
+
+  const login = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.type(screen.getByPlaceholderText('admin@cms.io'), 'a@cms.io')
+    await user.type(screen.getByPlaceholderText('••••••••'), 'pw')
+    await user.click(screen.getByRole('button', { name: '로그인' }))
+  }
+
+  it('2FA 계정 — 코드 입력 뒤에야 로그인된다', async () => {
+    const user = userEvent.setup()
+    post.mockResolvedValueOnce({
+      data: { data: { requires_2fa: true, challenge_token: 'ch' } },
+    })
+    render(<LoginPage />)
+    await login(user)
+    await screen.findByText('2단계 인증')
+    expect(setAuth).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('6자리')
+
+    post.mockResolvedValueOnce({
+      data: { data: { access_token: 'tok', user: { id: 'u1' } } },
+    })
+    await user.type(screen.getByLabelText('인증 코드'), '123456')
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    await waitFor(() => expect(setAuth).toHaveBeenCalledWith('tok', { id: 'u1' }))
+    expect(post).toHaveBeenLastCalledWith('/v1/auth/verify-2fa', {
+      challenge_token: 'ch',
+      code: '123456',
+    })
+    expect(navigate).toHaveBeenCalledWith('/dashboard', { replace: true })
+  })
+
+  it('틀린 코드 — 안내를 보여 주고 입력을 비운다', async () => {
+    const user = userEvent.setup()
+    post.mockResolvedValueOnce({
+      data: { data: { requires_2fa: true, challenge_token: 'ch' } },
+    })
+    render(<LoginPage />)
+    await login(user)
+    await screen.findByText('2단계 인증')
+    post.mockRejectedValueOnce(new Error('bad'))
+    await user.type(screen.getByLabelText('인증 코드'), '000000')
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    await screen.findByRole('alert')
+    expect(screen.getByLabelText('인증 코드')).toHaveValue('')
+    expect(setAuth).not.toHaveBeenCalled()
+  })
+
+  it('첫 로그인 — QR 과 키를 보여 주고 등록 확인으로 로그인', async () => {
+    const user = userEvent.setup()
+    post
+      .mockResolvedValueOnce({
+        data: { data: { requires_2fa: false, requires_2fa_setup: true, challenge_token: 'ch' } },
+      })
+      .mockResolvedValueOnce({
+        data: { data: { secret: 'ABC234', otpauth_uri: 'otpauth://totp/x?secret=ABC234' } },
+      })
+    render(<LoginPage />)
+    await login(user)
+    expect(await screen.findByText('ABC234')).toBeInTheDocument()
+    expect(screen.getByTitle('인증 앱 등록 QR 코드')).toBeInTheDocument()
+    expect(post).toHaveBeenLastCalledWith('/v1/auth/2fa/enroll', { challenge_token: 'ch' })
+
+    post.mockResolvedValueOnce({
+      data: { data: { access_token: 'tok', user: { id: 'u1' } } },
+    })
+    await user.type(screen.getByLabelText('인증 코드'), '654321')
+    await user.click(screen.getByRole('button', { name: '확인' }))
+    await waitFor(() => expect(setAuth).toHaveBeenCalled())
+    expect(post).toHaveBeenLastCalledWith('/v1/auth/2fa/enroll/confirm', {
+      challenge_token: 'ch',
+      code: '654321',
+    })
+  })
+
+  it('처음으로 — 비밀번호 화면으로 돌아간다', async () => {
+    const user = userEvent.setup()
+    post.mockResolvedValueOnce({
+      data: { data: { requires_2fa: true, challenge_token: 'ch' } },
+    })
+    render(<LoginPage />)
+    await login(user)
+    await screen.findByText('2단계 인증')
+    await user.click(screen.getByRole('button', { name: '처음으로' }))
+    expect(screen.getByRole('button', { name: '로그인' })).toBeInTheDocument()
+  })
 })

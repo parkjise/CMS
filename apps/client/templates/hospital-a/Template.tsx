@@ -95,17 +95,20 @@ export default function HospitalATemplate({
   query,
   member,
   menuItems,
+  onCustomDomain,
 }: CodeTemplateProps) {
-  const hrefFor = (key: string) => pageHref(tenantSlug, key, previewQuery)
+  const noSlug = Boolean(onCustomDomain) && !previewQuery
+  const siteBase = noSlug ? '' : `/${tenantSlug}`
+  const hrefFor = (key: string) => pageHref(tenantSlug, key, previewQuery, { noSlug })
   // 게시판 페이지 주소 (상세 id · 검색 q · 페이지 p) — 미리보기면 미리보기 주소 유지
   const boardHref = (extra?: { id?: string; q?: string; p?: number }) =>
-    pageHref(tenantSlug, pageKey, previewQuery, extra)
+    pageHref(tenantSlug, pageKey, previewQuery, { ...extra, noSlug })
   const searchTarget: SearchTarget = previewQuery
     ? {
         action: `/${tenantSlug}/preview`,
         hidden: [...new URLSearchParams(previewQuery).entries(), ['page', pageKey]],
       }
-    : { action: `/${tenantSlug}/${pageKey}`, hidden: [] }
+    : { action: `${siteBase}/${pageKey}`, hidden: [] }
   const listPage = Math.max(1, Number(query?.p) || 1)
   const pages = hospitalAManifest.pages
   // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B)
@@ -116,8 +119,8 @@ export default function HospitalATemplate({
   ).map((p) => ({ href: hrefFor(p.key), title: p.label }))
   // 방문자 회원 화면 — 기획서 16.0 (/{slug}/member/*, T-113)
   const account: HeaderLink[] = [
-    { href: `/${tenantSlug}/member/login`, title: '로그인' },
-    { href: `/${tenantSlug}/member/join`, title: '회원가입' },
+    { href: `${siteBase}/member/login`, title: '로그인' },
+    { href: `${siteBase}/member/join`, title: '회원가입' },
   ]
   const kakaoUrl = siteInfo.kakao_url || undefined
   const quickLinks: QuickLink[] = [
@@ -222,7 +225,7 @@ export default function HospitalATemplate({
           <NoticeLatest
             {...props}
             listHref={hrefFor('notice')}
-            itemHref={(id) => pageHref(tenantSlug, 'notice', previewQuery, { id })}
+            itemHref={(id) => pageHref(tenantSlug, 'notice', previewQuery, { id, noSlug })}
           />
         )
       case 'SUB_HERO':

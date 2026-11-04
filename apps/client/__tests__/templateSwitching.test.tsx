@@ -3,6 +3,7 @@ import { act, render, screen } from '@testing-library/react'
 import type { PublicSite } from '@/lib/publicSite.types'
 
 const fetchPublicSite = vi.fn<(slug: string) => Promise<PublicSite | null>>()
+vi.mock('next/headers', () => ({ headers: async () => new Headers() }))
 vi.mock('@/lib/publicSite', () => ({ fetchPublicSite: (slug: string) => fetchPublicSite(slug) }))
 vi.mock('next/navigation', () => ({
   notFound: () => {
