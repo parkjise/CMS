@@ -32,7 +32,7 @@ describe('InquiryFilters 기간', () => {
     server.use(
       http.get('http://localhost:8000/api/v1/inquiries/export', ({ request }) => {
         query = new URL(request.url).search
-        return new HttpResponse(new Blob(['x']))
+        return new HttpResponse('x')
       }),
     )
     window.URL.createObjectURL = vi.fn(() => 'blob:x')
