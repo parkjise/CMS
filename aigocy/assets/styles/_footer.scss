@@ -1,0 +1,344 @@
+@use 'mixins' as *;
+
+/* Footer (egone.co.kr style) */
+.footer {
+  z-index: 2;
+  position: relative;
+  padding: 0 30px 30px;
+  background: transparent;
+
+  @include down(lg) {
+    padding: 0 16px 16px;
+  }
+
+  &-primary {
+    overflow: hidden;
+    position: relative;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #fff;
+    background: #0a1a25;
+    border-radius: 50px;
+
+    @include down(lg) {
+      font-size: 14px;
+      border-radius: 36px;
+    }
+
+    @include down(sm) {
+      font-size: 13px;
+    }
+
+    &-wrap {
+      padding: 0 70px;
+
+      @include down(lg) {
+        padding: 0 36px;
+      }
+
+      @include down(sm) {
+        padding: 0 24px;
+      }
+    }
+
+    &__row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+
+      &:nth-child(1) {
+        gap: 30px;
+        padding: 60px 0 100px;
+
+        @include down(lg) {
+          display: block;
+          padding: 40px 0 16px;
+        }
+
+        @include down(sm) {
+          padding: 30px 0 16px;
+        }
+      }
+
+      &:nth-child(2) {
+        padding-bottom: 60px;
+
+        @include down(lg) {
+          display: block;
+          padding-bottom: 40px;
+        }
+
+        @include down(sm) {
+          padding-bottom: 30px;
+        }
+
+        .footer-primary__col:first-child {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+
+          @include down(sm) {
+            flex-direction: column;
+            align-items: stretch;
+          }
+        }
+      }
+    }
+
+    &__col {
+      &--right {
+        flex-shrink: 0;
+        text-align: right;
+
+        @include down(lg) {
+          text-align: left;
+        }
+      }
+    }
+
+    &__heading {
+      margin-bottom: 20px;
+      line-height: 1.2;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+
+      @include down(lg) {
+        font-size: 16px;
+        margin-bottom: 16px;
+      }
+    }
+
+    &__info-data {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 0;
+      max-width: 890px;
+      margin: 0;
+      padding: 0;
+
+      @include down(lg) {
+        flex-direction: column;
+        gap: 2px 0;
+      }
+    }
+
+    &__info-item {
+      display: flex;
+      position: relative;
+      padding-right: 21px;
+
+      &::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 10px;
+        bottom: 0;
+        margin: auto;
+        width: 1px;
+        height: 60%;
+        background: #666666;
+      }
+
+      &:nth-child(3)::after,
+      &:last-child::after {
+        content: none;
+      }
+
+      @include down(lg) {
+        padding-right: 0;
+        &::after {
+          content: none;
+        }
+      }
+    }
+
+    &__info-dt {
+      flex-shrink: 0;
+      padding-right: 0.25em;
+      color: #9da3a8;
+    }
+
+    &__info-dd {
+      margin: 0;
+      color: #fff;
+    }
+
+    &__link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      list-style: none;
+      margin: 0;
+      padding: 0;
+
+      @include down(lg) {
+        gap: 16px;
+      }
+
+      @include down(sm) {
+        flex-wrap: wrap;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .button-icon {
+        --padding: 15px;
+        --height: 60px;
+        display: inline-flex;
+        align-items: center;
+        position: relative;
+        padding: 0 var(--padding);
+        min-width: 200px;
+        height: var(--height);
+        font-size: 16px;
+        font-weight: 500;
+        color: #fff !important;
+        background: transparent !important;
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--height);
+        text-decoration: none;
+        box-sizing: border-box;
+        transition: border-color 0.2s ease;
+
+        .span {
+          padding: 0 calc(var(--padding) + 15px);
+          text-align: left;
+          transition: transform 0.3s ease;
+        }
+
+        .icon {
+          overflow: hidden;
+          position: absolute;
+          right: var(--padding);
+          margin: 0 !important;
+          width: calc(var(--height) / 2);
+          height: calc(var(--height) / 2);
+          color: #000;
+          background: #fff;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transform: scale(0);
+          transition: transform 0.3s ease;
+
+          svg {
+            display: block;
+            stroke: #000;
+          }
+        }
+
+        @include hover {
+          border-color: #fff;
+
+          .icon {
+            transform: scale(1);
+          }
+
+          .span {
+            transform: translateX(-6px);
+          }
+        }
+
+        @include down(sm) {
+          width: 100%;
+          min-width: unset;
+          height: 50px;
+          --height: 50px;
+          font-size: 14px;
+        }
+      }
+    }
+
+    &__link-item {
+      position: relative;
+
+      @include down(sm) {
+        width: 100%;
+
+        &:has(.footer-primary__link-link--icon) {
+          width: auto;
+        }
+      }
+    }
+
+    &__link-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 200px;
+      height: 60px;
+      text-align: center;
+      font-weight: 600;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 60px;
+      transition: all 0.15s ease;
+      color: inherit;
+      text-decoration: none;
+
+      &--icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: auto;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        color: #9da3a8;
+
+        .icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
+
+          i {
+            font-size: 24px;
+            line-height: 1;
+            color: inherit;
+          }
+        }
+
+        svg {
+          display: block;
+        }
+
+        @include down(lg) {
+          width: 55px;
+          height: 55px;
+        }
+
+        @include down(sm) {
+          width: 44px;
+          height: 44px;
+
+          svg {
+            width: 22px;
+            height: 22px;
+          }
+        }
+      }
+
+      @include hover {
+        color: #fff;
+        border-color: #fff;
+      }
+    }
+
+    &__copyright {
+      display: block;
+      font-weight: 600;
+      color: #fff;
+
+      @include down(lg) {
+        margin-top: 16px;
+        font-size: 13px;
+      }
+    }
+  }
+}
+

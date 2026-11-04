@@ -1,0 +1,55 @@
+<section class="contact" id="contact" aria-labelledby="contact-title">
+  <div class="contact__visual">
+    <img
+      src="./assets/images/contact.jpg"
+      alt="Abstract red and silver sculptural surface"
+      loading="lazy"
+    />
+  </div>
+  <div class="container contact__inner section">
+    <header class="section-head section-head--left" data-reveal>
+      <p class="section-head__eyebrow">Contact</p>
+      <h2 class="section-head__title" id="contact-title">Let's Build<br />Intelligent Things</h2>
+      <dl class="contact__details">
+        <dt>Email address</dt>
+        <dd><a href="mailto:hello@example.com">hello@example.com</a></dd>
+        <dt>Phone number</dt>
+        <dd><a href="tel:+16475550172">+1 (647) 555 0172</a></dd>
+      </dl>
+    </header>
+    <form class="contact__form" data-contact-form>
+      <h3>Tell us what you're thinking.</h3>
+      <div class="contact__fields">
+        <label
+          >Your Name<input
+            name="name"
+            placeholder="Enter your full name"
+            autocomplete="name"
+            required /></label
+        ><label
+          >Email Address<input
+            name="email"
+            type="email"
+            placeholder="Enter your email address"
+            autocomplete="email"
+            required
+        /></label>
+      </div>
+      <label
+        >More About The Project<textarea
+          name="message"
+          rows="3"
+          placeholder="A little about your idea..."
+          required
+        ></textarea></label
+      ><label class="contact__attachment"
+        ><i class="ri-attachment-2" aria-hidden="true"></i
+        ><span data-file-label>Add an attachment</span
+        ><input type="file" name="attachment" accept=".pdf,.doc,.docx,.txt,.png,.jpg" /></label
+      ><button class="btn" type="submit">
+        Submit Message <i class="ri-arrow-right-up-line" aria-hidden="true"></i>
+      </button>
+      <p class="contact__status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+</section>

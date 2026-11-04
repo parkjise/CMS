@@ -1,0 +1,264 @@
+@use '../mixins' as *;
+
+.brand-intro {
+  padding-bottom: 0;
+
+  &__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+
+    @include lg {
+      grid-template-columns: 1.15fr 1fr;
+    }
+  }
+
+  &__world {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    background: #0114a7;
+    color: #fff;
+    border-radius: 30px;
+    text-align: center;
+    min-height: 430px;
+    padding: 40px 24px 260px;
+
+    img {
+      position: absolute;
+      width: 90%;
+      bottom: -30%;
+      left: 5%;
+      z-index: -1;
+    }
+
+    h3 {
+      font-size: 32px;
+      margin: 18px 0 24px;
+    }
+
+    .btn {
+      margin-inline: auto;
+    }
+
+    @include down(md) {
+      min-height: 330px;
+      padding: 32px 18px 180px;
+
+      h3 {
+        font-size: 24px;
+        margin: 14px 0 18px;
+      }
+
+      img {
+        width: 100%;
+        bottom: -22%;
+        left: 0;
+      }
+    }
+
+    @include lg {
+      min-height: 530px;
+      padding-top: 48px;
+    }
+  }
+
+  &__availability {
+    font-size: 13px;
+
+    span {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      background: #76dc97;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+  }
+
+  &__details {
+    display: grid;
+    gap: 24px;
+  }
+
+  &__review {
+    background: #ffffff;
+    border: 1px solid #f4f4f4;
+    border-radius: 26px;
+    padding: 32px;
+
+    > p {
+      font-size: 18px;
+      font-weight: 550;
+    }
+
+    @include down(md) {
+      padding: 22px 18px;
+      border-radius: 20px;
+
+      > p {
+        font-size: 15px;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  &__rating {
+    @include flex(center, space-between, 20px);
+    margin-top: 32px;
+    flex-wrap: wrap;
+
+    &-icon,
+    > img {
+      width: 100px;
+      height: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.08));
+
+      @include down(md) {
+        width: 52px;
+      }
+    }
+
+    > span {
+      font-size: 92px;
+      line-height: 0.9;
+      color: #c0c0c5;
+      font-weight: 500;
+
+      small {
+        font-size: 50px;
+      }
+    }
+
+    strong {
+      font-weight: 550;
+
+      i {
+        color: #219653;
+      }
+    }
+
+    @include down(md) {
+      margin-top: 18px;
+      gap: 12px;
+
+      > span {
+        font-size: 52px;
+
+        small {
+          font-size: 28px;
+        }
+      }
+
+      strong {
+        font-size: 13.5px;
+      }
+    }
+  }
+
+  &__stars {
+    font-size: 24px;
+    margin-top: 6px;
+    color: #333;
+
+    @include down(md) {
+      font-size: 18px;
+      margin-top: 4px;
+    }
+  }
+
+  &__quote {
+    @include flex(center, start, 24px);
+    padding: 24px;
+    background: #ffffff;
+    border-radius: 26px;
+
+    img {
+      width: 90px;
+      height: 110px;
+      object-fit: cover;
+      border-radius: 18px;
+    }
+
+    blockquote {
+      font-size: 18px;
+      font-weight: 550;
+      margin-bottom: 16px;
+    }
+
+    i {
+      font-size: 26px;
+      color: #babac1;
+    }
+
+    figcaption {
+      font-size: 13px;
+      font-weight: 650;
+
+      span {
+        display: block;
+        color: var(--color-text-secondary);
+        font-weight: 400;
+      }
+    }
+
+    @include down(md) {
+      padding: 18px;
+      gap: 16px;
+      border-radius: 20px;
+
+      img {
+        width: 72px;
+        height: 88px;
+      }
+
+      blockquote {
+        font-size: 14.5px;
+        line-height: 1.55;
+        margin-bottom: 10px;
+      }
+
+      i {
+        font-size: 22px;
+      }
+    }
+
+    @include down(sm) {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+
+  &__partners {
+    @include flex(center, space-between, 28px);
+    margin-top: 72px;
+    flex-wrap: wrap;
+    color: #797a82;
+
+    p {
+      font-size: 13px;
+    }
+
+    > span {
+      @include flex(center, center, 8px);
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    @include down(md) {
+      margin-top: 36px;
+      gap: 16px;
+      justify-content: center;
+
+      p {
+        width: 100%;
+        text-align: center;
+      }
+
+      > span {
+        font-size: 18px;
+      }
+    }
+  }
+}

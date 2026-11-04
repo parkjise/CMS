@@ -1,0 +1,103 @@
+@use '../mixins' as *;
+.project-grid {
+  &__list {
+    display: grid;
+    gap: 28px;
+
+    @include md {
+      gap: 60px;
+    }
+  }
+  &__item {
+    min-width: 0;
+    // Stacking cards: each card sticks and the next one slides over it
+    position: sticky;
+    top: var(--stack-top, 76px);
+    padding: 14px 14px 20px;
+    background: var(--color-bg, #fff);
+    border-radius: 22px;
+    box-shadow: 0 -10px 40px rgb(0 0 0 / 6%);
+
+    @include md {
+      top: var(--stack-top, 100px);
+      padding: 16px 16px 28px;
+      border-radius: 28px;
+    }
+  }
+  &__media {
+    @include button-reset;
+    display: block;
+    position: relative;
+    width: 100%;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #dedee2;
+    img {
+      width: 100%;
+      aspect-ratio: 2.15;
+      object-fit: cover;
+      transition: transform 0.7s;
+    }
+    > span {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      @include flex(center, center, 8px);
+      padding: 8px 14px;
+      background: #ffffffe6;
+      border-radius: 50px;
+      font-size: 12px;
+      font-weight: 600;
+
+      @include md {
+        bottom: 24px;
+        right: 24px;
+        gap: 18px;
+        padding: 12px 20px;
+        font-size: 14px;
+      }
+    }
+    &:hover img {
+      transform: scale(1.025);
+    }
+
+    @include md {
+      border-radius: 20px;
+    }
+  }
+  &__content {
+    display: grid;
+    gap: 14px;
+    padding: 18px 4px 0;
+    h3 {
+      font-size: 22px;
+      line-height: 1.25;
+    }
+    h4 {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--color-text-secondary);
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+    p {
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+    @include md {
+      grid-template-columns: 1.1fr 1.5fr 1fr 0.6fr;
+      gap: 28px;
+      padding: 28px 4px 0;
+      h3 {
+        font-size: 32px;
+      }
+      h4 {
+        margin-bottom: 12px;
+        font-weight: 500;
+      }
+      p {
+        font-size: 14px;
+      }
+    }
+  }
+}

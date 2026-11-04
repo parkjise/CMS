@@ -1,0 +1,219 @@
+@use '../mixins' as *;
+.profile-grid {
+  margin: 16px 10px 0;
+  padding-bottom: 0;
+  background: #090909;
+  border-radius: 30px;
+  color: #fff;
+  overflow: hidden;
+  @include md {
+    margin-inline: 16px;
+    border-radius: 40px;
+  }
+  .section-head__eyebrow {
+    background: #252525;
+    box-shadow:
+      inset 0 1px 0 #5c5c5c,
+      0 4px 0 #000;
+  }
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px 14px;
+
+    @include md {
+      gap: 32px 20px;
+    }
+
+    @include lg {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 40px 24px;
+    }
+  }
+  &__item {
+    img {
+      width: 100%;
+      aspect-ratio: 0.8;
+      object-fit: cover;
+      border-radius: 16px;
+      filter: grayscale(1);
+      transition: filter 0.4s;
+
+      @include md {
+        border-radius: 20px;
+      }
+    }
+    &:hover img {
+      filter: grayscale(0);
+    }
+    h3 {
+      font-size: 17px;
+      margin-block: 14px 4px;
+
+      @include md {
+        font-size: 21px;
+        margin-block: 22px 8px;
+      }
+    }
+    p {
+      font-size: 12px;
+      color: #a2a2aa;
+
+      @include md {
+        font-size: 13px;
+      }
+    }
+  }
+  &__contact {
+    @include flex(center, center, 12px);
+    margin-top: 36px;
+    border-top: 1px solid #ffffff20;
+    padding: 20px 16px;
+    font-size: 15px;
+    transition: background 0.3s;
+
+    @include md {
+      margin-top: 90px;
+      padding: 26px;
+      font-size: 18px;
+      gap: 16px;
+    }
+
+    &:hover {
+      background: #232323;
+    }
+  }
+}
+.statistics {
+  &__inner {
+    display: grid;
+    gap: 40px;
+    @include lg {
+      grid-template-columns: 1fr 1fr;
+      align-items: end;
+    }
+  }
+  .section-head {
+    margin-bottom: 0;
+  }
+  &__numbers {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    > div {
+      border-top: 1px solid var(--color-border);
+      padding-top: 16px;
+    }
+    span {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--color-text-secondary);
+      min-height: 34px;
+    }
+    strong {
+      display: block;
+      font-size: 46px;
+      font-weight: 500;
+      margin-top: 20px;
+      line-height: 1;
+      small {
+        font-size: 22px;
+      }
+      @include md {
+        font-size: 68px;
+      }
+    }
+  }
+}
+.awards {
+  padding-top: 0;
+  .section-head__title {
+    font-size: 34px;
+    @include md {
+      font-size: 48px;
+    }
+  }
+  &__list {
+    li {
+      display: grid;
+      grid-template-columns: 40px 1fr auto;
+      gap: 16px;
+      align-items: center;
+      padding: 30px 0;
+      border-top: 1px solid var(--color-border);
+      > i {
+        font-size: 32px;
+      }
+      h3 {
+        font-size: 22px;
+      }
+      p {
+        grid-column: 2;
+        color: var(--color-text-secondary);
+        font-size: 14px;
+      }
+      > span {
+        grid-column: 3;
+        grid-row: 1;
+        font-size: 14px;
+      }
+      @include md {
+        grid-template-columns: 70px 1.2fr 1fr auto;
+        p {
+          grid-column: 3;
+        }
+        > span {
+          grid-column: 4;
+        }
+      }
+    }
+  }
+}
+.testimonials {
+  &__inner {
+    display: grid;
+    gap: 30px;
+    @include lg {
+      grid-template-columns: 1fr 1.15fr;
+      gap: 80px;
+    }
+  }
+  &__controls {
+    @include flex(center, start, 10px);
+    margin-top: 32px;
+  }
+  &__quote {
+    min-height: 340px;
+    > i {
+      font-size: 48px;
+      color: var(--color-primary);
+    }
+    blockquote {
+      font-size: 28px;
+      line-height: 1.4;
+      margin-block: 20px 38px;
+      @include md {
+        font-size: 34px;
+      }
+    }
+    figcaption {
+      @include flex(center, start, 16px);
+      img {
+        width: 52px;
+        height: 52px;
+        border-radius: 50%;
+        object-fit: cover;
+      }
+      strong,
+      span {
+        display: block;
+      }
+      span {
+        color: var(--color-text-secondary);
+        font-size: 14px;
+        margin-top: 4px;
+      }
+    }
+  }
+}

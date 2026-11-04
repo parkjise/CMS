@@ -1,0 +1,214 @@
+@use '../mixins' as *;
+
+/* KonaBizCard Style Customers Marquee */
+.main-section.customers {
+  display: block;
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  padding-block: 72px;
+
+  @include down(md) {
+    padding-block: 36px;
+  }
+
+  @include down(sm) {
+    padding-block: 28px;
+  }
+
+  .customers-area {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .customers_title {
+    font-size: 32px;
+    line-height: 1.35;
+    font-weight: 700;
+    text-align: center;
+    color: var(--color-text-primary);
+    margin: 0;
+
+    @include down(md) {
+      font-size: 20px;
+    }
+  }
+
+  .text-shortcut {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto;
+    color: var(--color-primary);
+    font-size: 16px;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.2s ease-in-out;
+
+    @include down(md) {
+      font-size: 14px;
+    }
+
+    span {
+      position: relative;
+
+      &::after {
+        content: '';
+        display: block;
+        opacity: 0;
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 1.5px;
+        background-color: currentColor;
+        transition: opacity 0.2s ease-in-out;
+      }
+    }
+
+    &::after {
+      content: '↗';
+      display: inline-block;
+      font-size: 16px;
+      line-height: 1;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    @include hover {
+      color: var(--color-primary-hover);
+
+      span::after {
+        opacity: 1;
+      }
+
+      &::after {
+        transform: translate(2px, -2px);
+      }
+    }
+  }
+
+  .customers_list {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    width: 100%;
+    overflow: hidden;
+    margin: 0;
+    position: relative;
+    mask-image: linear-gradient(to right, transparent 0%, black 10%, black 90%, transparent 100%);
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent 0%,
+      black 10%,
+      black 90%,
+      transparent 100%
+    );
+
+    @include down(md) {
+      gap: 14px;
+    }
+  }
+
+  .customers_item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    width: max-content;
+    will-change: transform;
+
+    &.track {
+      animation: scroll-left 50s linear infinite;
+
+      &.reverse {
+        animation: scroll-right 50s linear infinite;
+      }
+    }
+
+    @include down(md) {
+      gap: 14px;
+
+      &.track {
+        animation-duration: 35s;
+
+        &.reverse {
+          animation-duration: 35s;
+        }
+      }
+    }
+
+    &:hover {
+      animation-play-state: paused !important;
+    }
+  }
+
+  .customers_item {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 16px 36px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition:
+      transform 0.2s ease,
+      box-shadow 0.2s ease;
+
+    @include hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(66, 98, 255, 0.1);
+    }
+
+    @include down(md) {
+      border-radius: 16px;
+      padding: 12px 24px;
+    }
+  }
+
+  .customers_logo {
+    display: block;
+    width: auto;
+    height: 32px;
+    max-width: 130px;
+    object-fit: contain;
+    opacity: 0.85;
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease;
+
+    @include hover {
+      opacity: 1;
+    }
+
+    @include down(md) {
+      height: 22px;
+      max-width: 95px;
+    }
+  }
+}
+
+@keyframes scroll-left {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes scroll-right {
+  0% {
+    transform: translateX(-50%);
+  }
+
+  100% {
+    transform: translateX(0);
+  }
+}

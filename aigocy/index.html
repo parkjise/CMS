@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="Aigocy AI agency design study. Strategy, design, and technology for a smarter tomorrow."
+    />
+    <title>Aigocy — AI Agency</title>
+    <link rel="stylesheet" href="../assets/vendor/remixicon/remixicon.css" />
+    <link rel="stylesheet" href="./assets/css/template.css" />
+    <script src="../assets/vendor/gsap/gsap.min.js" defer></script>
+    <script src="./assets/js/include.js" defer></script>
+    <script src="./assets/js/main.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div data-include="components/header.html"></div>
+    <main class="main" id="main" tabindex="-1">
+      <div data-include="components/sections/hero-slider.html"></div>
+      <!-- <div data-include="components/sections/multilink.html"></div> -->
+      <div data-include="components/sections/brand-intro.html"></div>
+      <div data-include="components/sections/customers.html"></div>
+      <div class="main__surface">
+        <div data-include="components/sections/project-grid.html"></div>
+        <!-- <div data-include="components/sections/process.html"></div> -->
+        <div data-include="components/sections/features.html"></div>
+      </div>
+      <div data-include="components/sections/profile-grid.html"></div>
+      <!-- <div data-include="components/sections/social-proof.html"></div> -->
+      <div data-include="components/sections/pricing.html"></div>
+      <!-- <div data-include="components/sections/contact.html"></div> -->
+    </main>
+    <div data-include="components/footer.html"></div>
+    <button class="back-top" type="button" aria-label="Back to top">
+      <i class="ri-arrow-up-line" aria-hidden="true"></i>
+    </button>
+    <dialog class="project-dialog" aria-labelledby="project-dialog-title">
+      <button class="project-dialog__close icon-button" type="button" aria-label="Close project">
+        <i class="ri-close-line" aria-hidden="true"></i>
+      </button>
+      <img class="project-dialog__image" src="./assets/images/work-1.jpg" alt="" />
+      <div class="project-dialog__body">
+        <p class="eyebrow">Selected project</p>
+        <h2 id="project-dialog-title"></h2>
+        <p class="project-dialog__description"></p>
+        <a class="btn" href="#contact"
+          >유사 프로젝트 문의하기 <i class="ri-arrow-right-up-line" aria-hidden="true"></i
+        ></a>
+      </div>
+    </dialog>
+    <div data-include="components/inquiry-modal.html"></div>
+  </body>
+</html>

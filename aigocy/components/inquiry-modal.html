@@ -1,0 +1,114 @@
+<dialog class="inquiry-dialog modal-dialog" id="inquiry-dialog" aria-labelledby="inquiry-modal-title">
+  <div class="inquiry-modal-wrapper">
+    <button class="inquiry-modal__close icon-button" type="button" aria-label="닫기">
+      <i class="ri-close-line" aria-hidden="true"></i>
+    </button>
+    <div class="inquiry-form-intro">
+      <span class="eyebrow">Enterprise Contact</span>
+      <h2 class="inquiry-form-intro_title" id="inquiry-modal-title">24시간 내 답변,<br />예산 맞춤 견적까지 한 번에</h2>
+      <p class="inquiry-form-intro_desc">전문 매니저의 빠른 상담과 투명한 맞춤 견적으로<br />최적의 AI 도입 방안을 제시합니다.</p>
+    </div>
+    <div class="inquiry-form-card">
+      <form id="inquiryForm" class="inquiry-form" novalidate>
+        <div class="inquiry-form-list">
+          <div class="inquiry-form-row">
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-org">회사명<span class="required">*</span></label>
+              <input type="text" id="inq-org" name="organization" class="inquiry-form-input" maxlength="30" placeholder="회사명 입력" required />
+              <div class="inquiry-form-error">회사명을 입력해주세요.</div>
+            </div>
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-bizno">사업자 번호<span class="required">*</span></label>
+              <input type="text" id="inq-bizno" name="businessNumber" class="inquiry-form-input" maxlength="12" placeholder="사업자 번호 10자리 입력" required />
+              <div class="inquiry-form-error">사업자 번호를 입력해주세요.</div>
+            </div>
+          </div>
+          <div class="inquiry-form-row">
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-name">담당자명<span class="required">*</span></label>
+              <input type="text" id="inq-name" name="name" class="inquiry-form-input" maxlength="20" placeholder="성함 입력" required />
+              <div class="inquiry-form-error">담당자명을 입력해주세요.</div>
+            </div>
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-phone">연락처<span class="required">*</span></label>
+              <input type="tel" id="inq-phone" name="phone" class="inquiry-form-input" maxlength="13" placeholder="연락처 입력 (예: 010-1234-5678)" required />
+              <div class="inquiry-form-error">연락처를 올바르게 입력해주세요.</div>
+            </div>
+          </div>
+          <div class="inquiry-form-row">
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-email">이메일<span class="required">*</span></label>
+              <input type="email" id="inq-email" name="email" class="inquiry-form-input" maxlength="100" placeholder="회사 이메일 입력" required />
+              <div class="inquiry-form-error">유효한 이메일 주소를 입력해주세요.</div>
+            </div>
+            <div class="inquiry-form-item form-item-suffix vertical">
+              <label class="inquiry-form-label" for="inq-employees">도입 예상 인원<span class="required">*</span></label>
+              <div class="inquiry-input-wrap">
+                <input type="number" id="inq-employees" name="employees" class="inquiry-form-input" min="1" placeholder="숫자만 입력" required />
+                <span class="inquiry-input-suffix">명</span>
+              </div>
+              <div class="inquiry-form-error">도입 예상 인원을 입력해주세요.</div>
+            </div>
+          </div>
+          <div class="inquiry-form-row">
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-product">주요 관심 서비스</label>
+              <div class="inquiry-select-wrap">
+                <select id="inq-product" name="product" class="inquiry-form-select">
+                  <option value="" selected>선택해주세요</option>
+                  <option value="AGENT">Agent-Powered Workflow (자율 에이전트)</option>
+                  <option value="KNOWLEDGE">Connected Knowledge (사내 지식/문서 LLM)</option>
+                  <option value="FINTECH">Connected Finance (핀테크 데이터 분석)</option>
+                  <option value="HEALTHCARE">Human Experience (헬스케어 AI)</option>
+                  <option value="COMMERCE">Discovery Engine (대화형 커머스 추천)</option>
+                  <option value="CUSTOM">엔터프라이즈 맞춤형 AI 구축</option>
+                  <option value="ETC">기타</option>
+                </select>
+                <i class="ri-arrow-down-s-line inquiry-select-arrow" aria-hidden="true"></i>
+              </div>
+            </div>
+            <div class="inquiry-form-item vertical">
+              <label class="inquiry-form-label" for="inq-channel">유입 경로</label>
+              <div class="inquiry-select-wrap">
+                <select id="inq-channel" name="channel" class="inquiry-form-select">
+                  <option value="" selected>선택해주세요</option>
+                  <option value="SEARCH">포털 검색 (구글, 네이버 등)</option>
+                  <option value="SNS">SNS 및 온라인 미디어</option>
+                  <option value="RECOMMEND">지인 / 파트너사 추천</option>
+                  <option value="ARTICLE">언론 보도 기사</option>
+                  <option value="EVENT">세미나 및 오프라인 행사</option>
+                  <option value="ETC">기타</option>
+                </select>
+                <i class="ri-arrow-down-s-line inquiry-select-arrow" aria-hidden="true"></i>
+              </div>
+            </div>
+          </div>
+          <div class="inquiry-form-item vertical">
+            <label class="inquiry-form-label" for="inq-contents">문의 내용</label>
+            <textarea id="inq-contents" name="contents" class="inquiry-form-textarea" rows="4" maxlength="1500" placeholder="현재 겪고 계신 과제나 구체적으로 궁금하신 사항을 자유롭게 남겨주세요."></textarea>
+          </div>
+        </div>
+        <div class="inquiry-form-footer">
+          <div class="inquiry-agree">
+            <label class="inquiry-checkbox-label" for="agree_chk">
+              <input type="checkbox" id="agree_chk" name="agree" class="inquiry-checkbox" required />
+              <span class="custom-checkbox"><i class="ri-check-line" aria-hidden="true"></i></span>
+              <span class="agree-text-wrap">
+                <span class="agree-text">(필수) 개인정보 수집 및 이용에 동의합니다.</span>
+                <a class="agree-link" href="#privacy" target="_blank" onclick="event.stopPropagation()">[약관 보기]</a>
+              </span>
+            </label>
+            <div class="inquiry-form-error agree-error">개인정보 수집 및 이용에 동의해주세요.</div>
+          </div>
+          <div class="inquiry-form-actions">
+            <button type="submit" id="btnInquirySubmit" class="btn inquiry-submit-btn">
+              문의 접수하기 <i class="ri-arrow-right-line" aria-hidden="true"></i>
+            </button>
+          </div>
+          <p class="inquiry-form-status" role="status" aria-live="polite"></p>
+        </div>
+      </form>
+    </div>
+  </div>
+</dialog>
+

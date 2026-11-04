@@ -1,0 +1,27 @@
+:root {
+  --color-primary: #4262ff;
+  --color-primary-hover: #2e4fe6;
+  --color-background: #ededed;
+  --color-surface: #fafafa;
+  --color-text-primary: #292b2c;
+  --color-text-secondary: #74747c;
+  --color-border: #d7d7dc;
+  --color-on-primary: #fff;
+  --spacing-container: 1296px;
+  --spacing-gutter: 18px;
+  --font-heading: 'Urbanist', 'Pretendard', Arial, sans-serif;
+  --font-body: 'Urbanist', 'Pretendard', Arial, sans-serif;
+  --shadow-raised: 0 4px 0 #dedee0, 0 8px 12px rgb(0 0 0 / 5%), inset 0 2px 1px #fff;
+}
+
+@media (min-width: 480px) {
+  :root {
+    --spacing-gutter: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  :root {
+    --spacing-gutter: 48px;
+  }
+}
