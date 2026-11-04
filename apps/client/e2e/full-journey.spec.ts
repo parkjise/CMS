@@ -1006,6 +1006,27 @@ test.describe('T-078 전체 통합 시나리오', () => {
           }),
       )
       expect(sideBySide).toEqual([])
+      // AI 추천 버튼은 줄 끝이 아니라 글자 옆에 있다 (T-125-H)
+      // 웹폰트가 늦게 적용돼도 맞아야 한다 — 다 받을 때까지 기다린 뒤에도 어긋나지 않는지
+      await expect
+        .poll(() =>
+          page.evaluate(async () => {
+            await document.fonts.ready
+            return [...document.querySelectorAll<HTMLElement>('[data-editable-wrap]')].flatMap((wrap) => {
+              const button = wrap.querySelector('.ai-copy-suggest')
+              const range = document.createRange()
+              range.selectNodeContents(wrap.firstElementChild!)
+              const text = range.getBoundingClientRect()
+              if (!button || !text.width) return [] // 숨은 슬라이드 제외
+              const box = button.getBoundingClientRect()
+              // 글자 바로 오른쪽, 자리가 없으면 글자 위 — 어느 쪽이든 글자를 가리지 않는다
+              const beside = box.left >= text.right - 1 && box.left - text.right <= 10
+              const above = box.bottom <= text.top + 6
+              return beside || above ? [] : [`${wrap.textContent?.slice(0, 20)}`]
+            })
+          }),
+        )
+        .toEqual([])
       const slideUrl = await replacePhoto(page.getByRole('button', { name: '1번 슬라이드 사진 변경' }))
       // 같은 슬라이드 제목도 (사진과 같은 목록 칸 — 둘 다 남아야 한다)
       await editListText('1번 슬라이드 제목', 'E2E 슬라이드')

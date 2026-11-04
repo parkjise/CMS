@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { CopySuggestPopover } from '@/components/ai/CopySuggestPopover'
 import { FormatToolbar } from '@/components/edit/FormatToolbar'
+import { useTextEndOffset } from '@/hooks/useTextEndOffset'
 import { useEditStore } from '@/lib/editStore'
 import {
   RICH_TEXT_VALUE_TYPE,
@@ -66,8 +67,11 @@ export function EditableText({
   const [editing, setEditing] = useState(false)
   const [currentLength, setCurrentLength] = useState(initialLength)
   const ref = useRef<HTMLElement | null>(null)
+  const wrapRef = useRef<HTMLSpanElement | null>(null)
   // 링크 주소 입력 창이 떠 있는 동안에는 blur 로 저장하지 않는다
   const toolbarBusy = useRef(false)
+
+  useTextEndOffset(wrapRef, ref, isEditMode && !isPreview)
 
   useEffect(() => {
     setCurrentLength(initialLength)
@@ -205,6 +209,7 @@ export function EditableText({
 
   return (
     <span
+      ref={wrapRef}
       data-editable-wrap=""
       className={`relative ${BLOCK_TAGS.has(as) ? 'block' : 'inline-block'}`}
     >
@@ -245,7 +250,7 @@ export function EditableText({
         <span
           aria-hidden="true"
           className={[
-            'pointer-events-none absolute -top-5 right-0 rounded bg-[var(--color-text-primary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-background)]',
+            'pointer-events-none absolute -top-5 right-[var(--edit-text-end,0px)] rounded bg-[var(--color-text-primary)] px-1.5 py-0.5 text-[10px] font-medium text-[var(--color-background)]',
             overLimit ? 'bg-[var(--color-danger)]' : '',
           ]
             .filter(Boolean)

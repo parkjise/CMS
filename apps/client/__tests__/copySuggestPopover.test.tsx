@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { CopySuggestPopover } from '@/components/ai/CopySuggestPopover'
+import { CopySuggestPopover, popoverShift } from '@/components/ai/CopySuggestPopover'
 
 const postMock = vi.fn()
 
@@ -43,6 +43,25 @@ describe('CopySuggestPopover', () => {
 
   afterEach(() => {
     cleanup()
+  })
+
+  // T-125-H — 버튼이 글자 옆으로 오면서 추천 창이 화면 왼쪽으로 잘릴 수 있다
+  it.each([
+    ['왼쪽 공간이 넉넉하면 그대로', 800, 1440, 0],
+    ['왼쪽이 모자라면 오른쪽으로', 100, 1440, -196],
+    ['휴대폰 화면 가운데', 200, 390, -96],
+    ['화면보다 좁은 창', 300, 280, 28],
+  ])('popoverShift: %s', (_name, anchorRight, viewport, expected) => {
+    expect(popoverShift(anchorRight, viewport)).toBe(expected)
+  })
+
+  it('열 때 화면에 맞는 위치를 정한다', async () => {
+    postMock.mockResolvedValue(okResponse(['추천 1']))
+    renderPopover()
+    const button = screen.getByRole('button', { name: 'AI 문구 추천' })
+    fireEvent.click(button)
+    expect(button.parentElement!.style.getPropertyValue('--popover-shift')).toMatch(/px$/)
+    await waitFor(() => expect(screen.getByText('추천 1')).toBeInTheDocument())
   })
 
   it('AI 추천 버튼을 노출한다', () => {

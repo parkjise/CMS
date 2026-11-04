@@ -14,6 +14,19 @@ interface Props {
 }
 
 const SECTION_TYPE_SELECTOR = '[data-section-type]'
+const POPOVER_WIDTH = 288
+const SCREEN_MARGIN = 8
+
+/**
+ * 추천 창이 화면 밖으로 나가지 않게 버튼 오른쪽 끝에서 옮길 거리(px) — 음수면 오른쪽으로 (T-125-H)
+ * 버튼이 글자 옆으로 오면서 왼쪽 정렬 글자에서는 창이 왼쪽으로 잘릴 수 있다
+ */
+export const popoverShift = (anchorRight: number, viewportWidth: number): number => {
+  const width = Math.min(POPOVER_WIDTH, viewportWidth - SCREEN_MARGIN * 2)
+  const overRight = anchorRight - (viewportWidth - SCREEN_MARGIN)
+  if (overRight > 0) return overRight
+  return Math.min(0, anchorRight - width - SCREEN_MARGIN)
+}
 
 export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -60,6 +73,11 @@ export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
   }, [open])
 
   const toggle = () => {
+    const root = rootRef.current
+    if (!open && root) {
+      const shift = popoverShift(root.getBoundingClientRect().right, window.innerWidth)
+      root.style.setProperty('--popover-shift', `${shift}px`)
+    }
     setOpen((prev) => {
       const next = !prev
       if (!next) reset()
@@ -74,7 +92,10 @@ export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
   }
 
   return (
-    <div ref={rootRef} className="ai-copy-suggest absolute -top-2 right-0 z-50">
+    <div
+      ref={rootRef}
+      className={`ai-copy-suggest absolute top-[var(--edit-text-top,-0.5rem)] right-[var(--edit-text-end,0px)] ${open ? 'z-[60]' : 'z-50'}`}
+    >
       <button
         type="button"
         onClick={toggle}
@@ -90,7 +111,7 @@ export function CopySuggestPopover({ field, currentValue, onApply }: Props) {
         <div
           role="dialog"
           aria-label="AI 문구 추천"
-          className="absolute right-0 top-full mt-1 w-72 rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] bg-[var(--color-background)] p-3 text-left shadow-[var(--shadow-floating)]"
+          className="absolute right-[var(--popover-shift,0px)] top-full mt-1 w-72 max-w-[calc(100vw-16px)] rounded-[var(--border-radius-card)] border border-[color:var(--color-border)] bg-[var(--color-background)] p-3 text-left shadow-[var(--shadow-floating)]"
         >
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold text-[color:var(--color-text-primary)]">
