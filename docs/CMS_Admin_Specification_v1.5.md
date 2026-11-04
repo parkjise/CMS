@@ -1869,7 +1869,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 | # | 기획 | 지금 코드 | 영향 |
 |---|---|---|---|
-| 2 | 15.3 커스텀 도메인 · 15.1 BASIC 서브도메인 | 앱 라우팅은 T-137-A 완료. Nginx 설정 · 인증서 발급 · 요금제 제한은 남음 — 그 전에는 운영에서 연결되지 않는다. BASIC 서브도메인은 오픈 후로 미룸 (사용자 결정 2026-11-04, 그때까지 `서비스.com/{slug}`) | 연결 완료 전까지 운영에서 사용 불가 |
+| 2 | 15.3 커스텀 도메인 · 15.1 BASIC 서브도메인 | 앱 라우팅(T-137-A) · Nginx · 인증서(T-137-B) 완료, 실제 Let's Encrypt 발급은 스테이징에서 확인 필요. 요금제 제한(STANDARD 이상)은 T-137-C. BASIC 서브도메인은 오픈 후로 미룸 (사용자 결정 2026-11-04, 그때까지 `서비스.com/{slug}`) | BASIC 도 신청 가능 |
 | 5 | 15.2 · 15.7 D+30 데이터 완전 삭제 | 해지 테넌트를 소프트 삭제만 한다. 미결제 · 체험 종료로 중단된 테넌트는 삭제 대상도 아니다 (체험 7일 규칙 없음) | 방문자 개인정보(문의 · 회원)가 기한 없이 남는다 — 파기 방식 결정 필요 (CLAUDE.md 6 소프트 삭제 원칙과 충돌) |
 | 6 | 15.2 · 15.4 카카오 · 삭제 메일 | 구독 안내 메일은 T-134 로 발송한다. 만료 안내 카카오 알림톡과 데이터 삭제 완료 메일은 없다 — 삭제 메일은 #5 를 정한 뒤 ("완전 삭제" 문구가 지금은 사실이 아니다) | 안내 일부 누락 |
 | 7 | 16.3 약관 [보기] | 가입 화면(공통 · hospital-a)에 약관 · 방침 내용을 볼 링크가 없다. 푸터 링크도 주소를 넣어야 나온다 | 내용을 보여 주지 않고 필수 동의를 받는다 — 법률 확인 필요 |
@@ -3714,6 +3714,13 @@ server {{
     subprocess.run(["nginx", "-s", "reload"], check=True)
 ```
 
+**구현 메모 — 실제 구성 (T-137-B, 위 코드 예시 대신 이 방식):**
+- 도메인마다 Nginx 설정을 만들지 않는다. `default_server` 하나가 위 `server_name` 에 없는 모든 도메인을 받고, 인증서는 접속 도메인 이름으로 `live/<도메인>/` 에서 찾는다 — 발급되면 재시작 없이 바로 쓰인다. 앱 컨테이너에 Nginx 제어 권한이 필요 없다.
+- 발급은 `domain-worker`(Celery `domain` 큐, 인증서 저장소를 쓸 수 있는 유일한 앱 컨테이너)가 `certbot certonly --webroot` 로. deploy hook 이 Nginx 워커가 읽도록 그룹 권한을 준다. API 는 `SSL_ISSUING` 으로 바꾸고 큐에 넣기만 하며, 끝나면 ACTIVE + 메일(화면은 상태를 다시 조회).
+- DNS 확인: CNAME 또는 같은 IP (루트 도메인은 CNAME 불가). 도메인 형식 검사, 우리 서비스 주소 거부.
+- 고객 도메인에는 `/api/public/` 만 연다 (그 밖의 `/api/` 404). 인증서와 Host 가 다르면 421. HSTS 는 서브도메인을 강제하지 않는다.
+- 만료일은 인증서 파일에서 읽는다. 갱신은 `certbot` 서비스 + `renew_expiring_ssl`.
+
 **구현 메모 — 고객 도메인 접속 (T-137-A):**
 - `GET /api/public/domain/{host}` — 연결이 끝난(ACTIVE) 활성 사업체의 slug. 미들웨어가 1분 저장(없는 도메인 포함). 연결 안 된 도메인 404, 백엔드 장애 503.
 - 미들웨어가 `/about` 을 `/{slug}/about` 으로 내부 전환하고 `x-site-custom-host` 를 넘긴다(방문자가 보낸 값은 버림). `/{slug}/...` 로 들어오면 slug 없는 주소로 301.
@@ -3961,9 +3968,9 @@ AWS_SES_REGION=ap-northeast-2
 AWS_SES_FROM_EMAIL=noreply@우리서비스.com
 
 # 도메인 자동화
-DOMAIN_MODE=test                       # test | live — live 만 실제 DNS · SSL · Nginx 처리
+DOMAIN_MODE=test                       # test | live — live 만 실제 DNS · 인증서 처리
 DOMAIN_CNAME_TARGET=cms.우리서비스.com  # 고객 CNAME 대상
-NGINX_SITES_DIR=/etc/nginx/sites-enabled
+DOMAIN_CERT_EMAIL=ops@우리서비스.com    # 인증서 만료 안내 (운영 필수)
 
 # 무료 체험
 TRIAL_DAYS=14                          # 무료 체험 기간 (일)

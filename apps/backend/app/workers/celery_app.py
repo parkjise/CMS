@@ -26,6 +26,13 @@ celery_app.conf.update(
     result_serializer="json",
     timezone="Asia/Seoul",
     enable_utc=True,
+    # 인증서 작업은 저장소를 쓸 수 있는 domain-worker 만 (T-137)
+    task_routes={
+        "app.workers.domain.issue_domain_certificate": {"queue": "domain"},
+        "app.workers.domain.renew_domain_certificate": {"queue": "domain"},
+        "app.workers.domain.delete_domain_certificate": {"queue": "domain"},
+        "app.workers.domain.renew_expiring_ssl": {"queue": "domain"},
+    },
     beat_schedule={
         "flush-analytics-every-hour": {
             "task": "app.workers.analytics.flush_analytics",
