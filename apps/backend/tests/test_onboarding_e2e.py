@@ -276,6 +276,16 @@ async def test_s4_trial_expire_then_reactivate(
 # ── S5: 도메인 등록 → 검증 → ACTIVE ─────────────────────────────────────────
 async def test_s5_domain_activation(client, auth_headers, test_tenant, test_user):
     try:
+        # 커스텀 도메인은 STANDARD 이상 (T-137-C)
+        async with _TestSession() as s:
+            await s.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await s.execute(
+                text("UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t"),
+                {"t": test_tenant["id"]},
+            )
+            await s.commit()
         dom = f"www.{uuid.uuid4().hex[:8]}.com"
         await client.post(
             "/api/v1/domain/register",

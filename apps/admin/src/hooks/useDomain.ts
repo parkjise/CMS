@@ -18,6 +18,13 @@ export interface DomainInfo {
   verified_at: string | null
   created_at: string
   cname_target: string
+  /** FAILED 사유 — DNS | SSL */
+  failure_code: string | null
+}
+
+export interface DomainLimits {
+  custom_domain_allowed: boolean
+  cname_target: string
 }
 
 /** 도메인 상태 조회 — 활성화 전까지 30초 폴링 */
@@ -34,7 +41,19 @@ export function useDomainStatus() {
     },
     refetchInterval: (query) => {
       const status = query.state.data?.status
+      if (status === 'SSL_ISSUING') return 10_000 // 발급은 보통 1분 안에 끝난다
       return status && status !== 'ACTIVE' && status !== 'FAILED' ? 30_000 : false
+    },
+  })
+}
+
+/** 요금제 잠금 · DNS 안내 값 — 서버가 판단한다 (T-137-C) */
+export function useDomainLimits() {
+  return useQuery<DomainLimits>({
+    queryKey: ['domain', 'limits'],
+    queryFn: async () => {
+      const { data } = await api.get('/v1/domain/limits')
+      return data.data as DomainLimits
     },
   })
 }
