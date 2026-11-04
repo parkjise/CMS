@@ -1,7 +1,12 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+RobotsValue = Literal[
+    "index,follow", "noindex,follow", "index,nofollow", "noindex,nofollow"
+]
 
 
 class SeoSettingsUpdate(BaseModel):
@@ -12,6 +17,10 @@ class SeoSettingsUpdate(BaseModel):
     google_analytics_id: str | None = None
     naver_site_verification: str | None = None
     google_site_verification: str | None = None
+    og_title: str | None = Field(None, max_length=60)
+    og_description: str | None = Field(None, max_length=200)
+    canonical_url: str | None = Field(None, max_length=500)
+    robots: RobotsValue | None = None
     # None = 바꾸지 않음, [] = 모두 지움 (T-040-A)
     keywords: list[str] | None = None
 
@@ -26,6 +35,10 @@ class SeoSettingsResponse(BaseModel):
     google_analytics_id: str | None
     naver_site_verification: str | None
     google_site_verification: str | None
+    og_title: str | None = None
+    og_description: str | None = None
+    canonical_url: str | None = None
+    robots: str = "index,follow"
     keywords: list[str] = []
     updated_at: datetime
 

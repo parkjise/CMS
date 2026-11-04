@@ -51,6 +51,11 @@ export interface PublicSeoSettings {
   google_analytics_id: string | null
   naver_site_verification: string | null
   google_site_verification: string | null
+  /** 소셜 공유 제목 · 설명, 대표 주소, 검색 노출 (T-129) — 이전 백엔드 응답에는 없을 수 있다 */
+  og_title?: string | null
+  og_description?: string | null
+  canonical_url?: string | null
+  robots?: string
   /** 대표 키워드 (T-040-A) — 이전 백엔드 응답에는 없을 수 있다 */
   keywords?: string[]
 }

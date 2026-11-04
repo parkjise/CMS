@@ -26,6 +26,16 @@ class SeoSetting(Base, TimestampMixin):
     google_site_verification: Mapped[str | None] = mapped_column(
         String(100), nullable=True
     )
+    # 소셜 공유 제목 · 설명, 대표 주소, 검색 노출 (T-129)
+    og_title: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    og_description: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    canonical_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    robots: Mapped[str] = mapped_column(
+        String(20),
+        nullable=False,
+        default="index,follow",
+        server_default="index,follow",
+    )
     # 대표 키워드 (T-040-A) — JSON-LD keywords · AI 문구 추천 컨텍스트
     keywords: Mapped[list[str]] = mapped_column(
         ARRAY(String(30)), nullable=False, default=list, server_default="{}"

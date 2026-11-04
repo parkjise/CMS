@@ -1,3 +1,4 @@
+import re
 from datetime import UTC, datetime
 from uuid import UUID
 
@@ -17,6 +18,7 @@ _META_DESC_MAX = 160
 KEYWORDS_MAX = 5
 KEYWORD_MAX_LENGTH = 30
 KEYWORD_PLANS = frozenset({"STANDARD", "PREMIUM"})
+_CANONICAL_URL = re.compile(r"^https://[^\s<>\"'`]+$")
 KEYWORDS_PLAN_MESSAGE = "대표 키워드는 STANDARD 이상 요금제에서 저장할 수 있습니다."
 
 
@@ -50,6 +52,16 @@ async def get_limits(db: AsyncSession, tenant_id: UUID) -> SeoLimitsResponse:
     )
 
 
+def _clean_canonical_url(value: str | None) -> str | None:
+    """대표 주소 — https 주소만, 빈 값은 지우기 (T-129)."""
+    url = (value or "").strip()
+    if not url:
+        return None
+    if not _CANONICAL_URL.match(url):
+        raise ValueError("대표 주소는 https:// 로 시작하는 주소여야 합니다.")
+    return url
+
+
 def _validate(data: SeoSettingsUpdate) -> None:
     if data.meta_title is not None and len(data.meta_title) > _META_TITLE_MAX:
         raise ValueError(f"페이지 제목은 {_META_TITLE_MAX}자 이하여야 합니다.")
@@ -69,6 +81,7 @@ async def update_seo_settings(
     data: SeoSettingsUpdate,
 ) -> SeoSetting:
     _validate(data)
+    data.canonical_url = _clean_canonical_url(data.canonical_url)
 
     result = await db.execute(select(SeoSetting))
     setting = result.scalar_one_or_none()
@@ -94,13 +107,18 @@ async def update_seo_settings(
         "google_analytics_id",
         "naver_site_verification",
         "google_site_verification",
+        "og_title",
+        "og_description",
+        "canonical_url",
     ]
+    # 보낸 칸만 바꾼다 — null 은 지우기 (보내지 않은 칸은 그대로)
+    sent = [f for f in update_fields if f in data.model_fields_set]
 
     if setting:
-        for field in update_fields:
-            val = getattr(data, field, None)
-            if val is not None:
-                setattr(setting, field, val)
+        for field in sent:
+            setattr(setting, field, getattr(data, field))
+        if data.robots is not None:
+            setting.robots = data.robots
         if keywords is not None:
             setting.keywords = keywords
         setting.updated_at = datetime.now(UTC)
@@ -110,7 +128,8 @@ async def update_seo_settings(
             created_at=datetime.now(UTC),
             updated_at=datetime.now(UTC),
             keywords=keywords or [],
-            **{f: getattr(data, f) for f in update_fields},
+            robots=data.robots or "index,follow",
+            **{f: getattr(data, f) for f in sent},
         )
         db.add(setting)
 

@@ -24,6 +24,8 @@ type Tab = 'basic' | 'social' | 'sitemap' | 'analytics'
 
 const TITLE_MAX = 60
 const DESC_MAX = 160
+const OG_TITLE_MAX = 60
+const OG_DESC_MAX = 200
 
 export function SeoPage() {
   const seoQuery = useSeoSettings()
@@ -37,6 +39,10 @@ export function SeoPage() {
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
   const [ogImage, setOgImage] = useState('')
+  const [ogTitle, setOgTitle] = useState('')
+  const [ogDescription, setOgDescription] = useState('')
+  const [canonicalUrl, setCanonicalUrl] = useState('')
+  const [robotsMeta, setRobotsMeta] = useState('index,follow')
   const [robots, setRobots] = useState('')
   const [gaId, setGaId] = useState('')
   const [naverCode, setNaverCode] = useState('')
@@ -52,6 +58,10 @@ export function SeoPage() {
     setMetaTitle(d.meta_title ?? '')
     setMetaDescription(d.meta_description ?? '')
     setOgImage(d.og_image_url ?? '')
+    setOgTitle(d.og_title ?? '')
+    setOgDescription(d.og_description ?? '')
+    setCanonicalUrl(d.canonical_url ?? '')
+    setRobotsMeta(d.robots ?? 'index,follow')
     setRobots(d.robots_txt ?? '')
     setGaId(d.google_analytics_id ?? '')
     setNaverCode(d.naver_site_verification ?? '')
@@ -234,18 +244,52 @@ export function SeoPage() {
                   context="seo"
                   hint="카카오톡 · 페이스북에 링크를 공유할 때 보이는 그림입니다. 1200×630 권장."
                 />
-                <p className="mt-3 text-xs text-slate-500">
-                  메타 제목·설명은 [기본 SEO] 탭에서 입력한 값을 그대로 사용합니다.
-                </p>
+                <div className="mt-4">
+                  <FormField
+                    label="소셜 공유 제목"
+                    htmlFor="seo-og-title"
+                    hint="비워 두면 [기본 SEO] 의 페이지 제목을 씁니다."
+                    trailing={<CharCounter current={ogTitle.length} max={OG_TITLE_MAX} />}
+                  >
+                    <Input
+                      id="seo-og-title"
+                      value={ogTitle}
+                      onChange={(e) => setOgTitle(e.target.value)}
+                    />
+                  </FormField>
+                </div>
+                <div className="mt-4">
+                  <FormField
+                    label="소셜 공유 설명"
+                    htmlFor="seo-og-description"
+                    hint="비워 두면 [기본 SEO] 의 메타 설명을 씁니다."
+                    trailing={<CharCounter current={ogDescription.length} max={OG_DESC_MAX} />}
+                  >
+                    <Textarea
+                      id="seo-og-description"
+                      value={ogDescription}
+                      onChange={(e) => setOgDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </FormField>
+                </div>
                 <div className="mt-6 flex justify-end border-t border-slate-200 pt-4">
                   <Button
                     type="button"
                     onClick={() =>
-                      save('소셜 미리보기', { og_image_url: ogImage || null })
+                      save('소셜 미리보기', {
+                        og_image_url: ogImage || null,
+                        og_title: ogTitle || null,
+                        og_description: ogDescription || null,
+                      })
                     }
-                    disabled={updateMutation.isPending}
+                    disabled={
+                      updateMutation.isPending ||
+                      ogTitle.length > OG_TITLE_MAX ||
+                      ogDescription.length > OG_DESC_MAX
+                    }
                   >
-                    {updateMutation.isPending ? '저장 중...' : 'OG 이미지 저장'}
+                    {updateMutation.isPending ? '저장 중...' : '소셜 미리보기 저장'}
                   </Button>
                 </div>
               </div>
@@ -266,6 +310,42 @@ export function SeoPage() {
 
                 <div className="mt-5">
                   <FormField
+                    label="검색 노출"
+                    htmlFor="seo-robots"
+                    hint="숨기면 네이버 · 구글 검색 결과에 나오지 않습니다."
+                  >
+                    <select
+                      id="seo-robots"
+                      value={robotsMeta}
+                      onChange={(e) => setRobotsMeta(e.target.value)}
+                      className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
+                    >
+                      <option value="index,follow">검색에 노출 (기본)</option>
+                      <option value="noindex,follow">이 사이트는 숨기고 링크만 따라가기</option>
+                      <option value="index,nofollow">노출하되 링크는 따라가지 않기</option>
+                      <option value="noindex,nofollow">검색에서 완전히 숨기기</option>
+                    </select>
+                  </FormField>
+                </div>
+
+                <div className="mt-5">
+                  <FormField
+                    label="대표 주소 (canonical)"
+                    htmlFor="seo-canonical"
+                    hint="연결한 도메인처럼 검색에 나오길 바라는 주소. 비워 두면 넣지 않습니다."
+                  >
+                    <Input
+                      id="seo-canonical"
+                      type="url"
+                      value={canonicalUrl}
+                      onChange={(e) => setCanonicalUrl(e.target.value)}
+                      placeholder="https://my-hospital.com"
+                    />
+                  </FormField>
+                </div>
+
+                <div className="mt-5">
+                  <FormField
                     label="robots.txt"
                     hint="검색 엔진 크롤러 동작을 제어합니다. 비워두면 기본값 (전체 허용)."
                   >
@@ -282,11 +362,15 @@ export function SeoPage() {
                   <Button
                     type="button"
                     onClick={() =>
-                      save('사이트맵', { robots_txt: robots || null })
+                      save('사이트맵', {
+                        robots: robotsMeta,
+                        canonical_url: canonicalUrl || null,
+                        robots_txt: robots || null,
+                      })
                     }
                     disabled={updateMutation.isPending}
                   >
-                    {updateMutation.isPending ? '저장 중...' : 'robots 저장'}
+                    {updateMutation.isPending ? '저장 중...' : '사이트맵 · 검색 설정 저장'}
                   </Button>
                 </div>
               </div>
@@ -368,8 +452,8 @@ export function SeoPage() {
             <h2 className="text-sm font-semibold text-slate-700">실시간 미리보기</h2>
             {activeTab === 'social' ? (
               <SocialPreview
-                title={metaTitle}
-                description={metaDescription}
+                title={ogTitle || metaTitle}
+                description={ogDescription || metaDescription}
                 url={siteUrl}
                 imageUrl={ogImage}
               />

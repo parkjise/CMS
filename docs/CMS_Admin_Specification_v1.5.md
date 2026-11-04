@@ -1000,7 +1000,11 @@ URL 유효성 테스트
 }
 ```
 
-소셜 공유 제목 · 설명(`og_title` · `og_description`)과 `canonical_url` 은 칸이 없다 (10.1 #6).
+**구현 메모 — 소셜 · 대표 주소 · 검색 노출 (T-129):**
+- `og_title`(60자) · `og_description`(200자) — 비어 있으면 검색용 제목 · 설명을 쓴다.
+- `canonical_url` — `https://` 주소만, 빈 값은 지우기. 메인은 그 주소, 서브 페이지는 경로를 붙인다 (`https://a.com/about`). 회원 화면에는 넣지 않는다.
+- `robots` — `index,follow`(기본) · `noindex,follow` · `index,nofollow` · `noindex,nofollow`. 테마형 · 코드형 공통 메타 태그. `robots_txt` 와는 별개 칸.
+- 저장은 보낸 칸만 바꾸고, `null` 은 지운다 (이전에는 `null` 을 무시해 칸을 비울 수 없었다).
 
 **구현 메모 — 대표 키워드 (T-040-A):**
 - `PUT /api/v1/seo-settings` 의 `keywords` — 공백 정리 · 빈 값 · 중복 제거, 최대 5개 · 1개 30자(넘으면 400), 생략 = 그대로, `[]` = 모두 지움.
@@ -1247,6 +1251,10 @@ CREATE TABLE seo_settings (
   meta_title               VARCHAR(200),
   meta_description         VARCHAR(500),
   og_image_url             VARCHAR(500),
+  og_title                 VARCHAR(60),
+  og_description           VARCHAR(200),
+  canonical_url            VARCHAR(500),
+  robots                   VARCHAR(20) NOT NULL DEFAULT 'index,follow',
   robots_txt               TEXT,
   google_analytics_id      VARCHAR(50),
   naver_site_verification  VARCHAR(100),
@@ -1846,7 +1854,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | # | 항목 | 기획서 | 코드 | 필요한 것 |
 |---|---|---|---|---|
 | 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
-| 6 | SEO 칸 | og_title · og_description · canonical_url · robots | robots_txt 만 있음, 나머지 없음 | 구현 또는 기획 삭제 |
 | 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
 
 

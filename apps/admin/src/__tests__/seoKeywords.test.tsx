@@ -71,3 +71,38 @@ describe('SeoPage 대표 키워드', () => {
     expect(put.mock.calls[0][1]).not.toHaveProperty('keywords')
   })
 })
+
+// 소셜 제목 · 설명, 대표 주소, 검색 노출 (T-129)
+describe('SEO 메타 칸', () => {
+  const putBody = () => vi.mocked(api.put).mock.calls.at(-1)?.[1]
+
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    mockGet(true)
+    vi.spyOn(api, 'put').mockResolvedValue(ok(SEO))
+  })
+
+  it('소셜 미리보기 탭에서 제목 · 설명을 함께 저장한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /소셜 미리보기/ }))
+    await user.type(screen.getByLabelText('소셜 공유 제목'), '공유 제목')
+    await user.type(screen.getByLabelText('소셜 공유 설명'), '공유 설명')
+    await user.click(screen.getByRole('button', { name: '소셜 미리보기 저장' }))
+    await waitFor(() =>
+      expect(putBody()).toEqual({ og_image_url: null, og_title: '공유 제목', og_description: '공유 설명' }),
+    )
+  })
+
+  it('사이트맵 탭에서 검색 노출 · 대표 주소를 저장한다', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: /사이트맵/ }))
+    await user.selectOptions(screen.getByLabelText('검색 노출'), 'noindex,nofollow')
+    await user.type(screen.getByLabelText('대표 주소 (canonical)'), 'https://a.com')
+    await user.click(screen.getByRole('button', { name: '사이트맵 · 검색 설정 저장' }))
+    await waitFor(() =>
+      expect(putBody()).toEqual({ robots: 'noindex,nofollow', canonical_url: 'https://a.com', robots_txt: null }),
+    )
+  })
+})
