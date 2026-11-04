@@ -338,7 +338,7 @@ async def get_db_with_rls(
 
 **드래그 앤 드롭 구현 스펙:**
 - 라이브러리: `@dnd-kit/core` + `@dnd-kit/sortable` (React DnD 대비 접근성 우수)
-- 순서 저장: 드롭 완료 이벤트 → `PATCH /api/sections/order` (배열 인덱스 전송)
+- 순서 저장: 드롭 완료 이벤트 → `PATCH /api/v1/sections/order` (배열 인덱스 전송)
 - 낙관적 업데이트(Optimistic Update) 적용: UI 즉시 반영 후 API 응답 검증
 
 **구현 메모 — [TAB: 공통 설정] (T-036-A · T-036-B):** 사업체 정보(대표 전화 · 이메일 · 주소 · 상세 주소 · 평일 / 토요일 영업시간 · 안내 · 주차 · 대표자 · 사업자등록번호) · 로고 · 파비콘 · 상단 메뉴(이름 · 보이기 · 코드형은 순서, 테마형은 섹션 순서를 따름). `?tab=settings` 로 이 탭을 바로 연다 (T-125-F). 값은 테마형 · 코드형 푸터 · 로고 · 파비콘 · JSON-LD 와 오시는 길(11.9)에 쓰이며, 영업시간은 자유 입력이라 JSON-LD `openingHours` 에 넣지 않는다.
@@ -396,16 +396,16 @@ async def get_db_with_rls(
   - 5MB 이하: 그대로 업로드
   - 5MB 초과 ~ 20MB 이하: "이미지가 큽니다. 자동으로 최적화됩니다." 안내
       ↓
-[POST /api/upload/image]
+[POST /api/v1/upload/image]
       ↓
 [서버: Pillow 처리]
   1. 메타데이터 확인 (exif 기반 실제 크기)
   2. 최대 1920px로 리사이즈 (비율 유지)
   3. WebP 변환 (quality: 82)
-  4. 원본 파일도 별도 보존 (복구용)
+  4. 원본 파일도 별도 보존 (복구용) — 미구현, 최적화본만 저장 (10.2 #13)
       ↓
 [MinIO/S3 업로드]
-  - 경로: /{tenant_id}/sections/{section_id}/{uuid}.webp
+  - 경로: /{tenant_id}/{folder}/{uuid}.webp (folder 예: sections · seo)
       ↓
 [DB 업데이트: section_settings.image_url]
       ↓
@@ -1860,6 +1860,37 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 대조에서 찾은 항목은 모두 처리했다 — PREMIUM 189,000원 · FREE 내부용 유지(T-126), 문의 기간 필터 · 섹션 글자 수(T-127), 문의 IP · 브라우저 정보(T-128), SEO 칸(T-129), TENANT_VIEWER(T-130), DB 값 제약 · 문의 인덱스(T-131). 4장 화면과 13~16장의 상세 동작 규칙은 전체를 대조하지 않았다.
 
+
+### 10.2 나머지 코드 대조 결과 (2026-11-04, 4장 · 13~16장 · T-132)
+
+코드를 읽어 확인했고 운영 환경에서 재현하지는 않았다. **고치지 않은 상태** — 처리하면 이 표에서 뺀다.
+
+**오픈 전 필수**
+
+| # | 기획 | 지금 코드 | 영향 |
+|---|---|---|---|
+| 1 | 15.2 · 15.7 재구독하면 즉시 복구 | 카드 재등록은 구독만 `ACTIVE` 로 바꾸고 `tenants.is_active` 를 켜지 않는다. 중단된 테넌트는 로그인도 거부되고(`auth.py`), 관리자 화면은 모든 주소에서 만료 페이지를 보여 [재구독하기] 가 결제 화면에 닿지 못한다 | 한 번 중단되면 고객이 혼자 복구할 수 없고 재결제해도 사이트가 404 |
+| 2 | 15.3 커스텀 도메인 · 15.1 BASIC 서브도메인 | 미들웨어가 주소 경로로만 테넌트를 찾고 호스트 · `X-Tenant-Slug` 를 읽지 않는다. Nginx 에 서브도메인 와일드카드가 없고, 자동 생성 설정에 443 · 인증서가 없다. 도메인 등록에 요금제 제한도 없다 | 연결 완료로 표시돼도 그 도메인에서 고객 사이트가 안 나온다. BASIC 도 신청 가능 |
+| 3 | 14.8 슈퍼 어드민 2FA 필수 | 백엔드 API 만 있고 슈퍼 어드민 앱에 2FA 화면이 없다. 켜지 않은 계정은 비밀번호만으로 로그인, 켜면 앱에서 로그인이 안 된다 | 최고 권한 계정 보호 없음 |
+| 4 | 15.7 해지 — 기간 끝에 차단, 그 뒤 30일 보관 | 차단 작업 대상이 ACTIVE · PAST_DUE 뿐이라 CANCELLED 는 기간이 끝나도 사이트가 유지된다. 삭제는 해지 신청일 + 30일 — 기간 초 해지면 보관 기간이 거의 없다. 해지 사유는 받기만 하고 버린다 | 무료 사용 · 보관 기간 미보장 |
+| 5 | 15.2 · 15.7 D+30 데이터 완전 삭제 | 해지 테넌트를 소프트 삭제만 한다. 미결제 · 체험 종료로 중단된 테넌트는 삭제 대상도 아니다 (체험 7일 규칙 없음) | 방문자 개인정보(문의 · 회원)가 기한 없이 남는다 — 파기 방식 결정 필요 (CLAUDE.md 6 소프트 삭제 원칙과 충돌) |
+| 6 | 15.4 이메일 9종 | 실제 발송은 환영 · 영수증뿐. 결제 실패 · 만료 D-7/D-3(관리자 공지만) · 중단 · 해지 · 삭제 · 도메인 활성화 메일은 템플릿만 있다 | 카드 만료 고객이 모른 채 중단된다 |
+| 7 | 16.3 약관 [보기] | 가입 화면(공통 · hospital-a)에 약관 · 방침 내용을 볼 링크가 없다. 푸터 링크도 주소를 넣어야 나온다 | 내용을 보여 주지 않고 필수 동의를 받는다 — 법률 확인 필요 |
+| 8 | 15.2 웹훅 서명 검증 필수 | `TOSS_WEBHOOK_SECRET` 이 비면 검증을 건너뛰고, 운영 설정 점검도 이 값을 보지 않는다 | 설정을 빠뜨리면 위조 결제 결과가 통과 |
+
+**기능이 동작하지 않음 · 화면 누락**
+
+| # | 기획 | 지금 코드 |
+|---|---|---|
+| 9 | 14.3 · 14.5 기능 플래그 | `AI_COPY_SUGGEST` · `AI_CHAT_EDIT` · `KAKAO_NOTIFICATION` · `DRAG_SECTION_ORDER` · `GALLERY_SECTION` 은 꺼도 효과가 없다(참조 코드 없음). `SEO_WIZARD` · `TEMPLATE_SELECT` · `SECTION_EDITOR` · `NAVER_ANALYTICS` 는 화면만 잠기고 API 는 열려 있다. `VIDEO_SECTION` 은 등록되지 않았다 |
+| 10 | AD-05 `robots_txt` | 저장만 되고 쓰이지 않는다 — `/robots.txt` 는 전체 공용 고정값. #2 뒤에 도메인별로 내보내거나 칸을 없앤다 |
+| 11 | 15.2 사이트 접근 차단 | 차단해도 공개 사이트 캐시(10분)를 비우지 않고, 방문자에게는 안내 없이 404 |
+| 12 | 14.1 · 14.2 템플릿 관리 · SA-02 · SA-06 | 슈퍼 어드민에 템플릿 관리 화면 없음. SA-02 만료일 · 방문자 · 문의 수 칸 · 업종 필터 · 정렬 없음(API 는 업종 필터 지원). SA-06 [유예처리] 없음 |
+| 13 | AD-02 · AD-03 · AD-04 · AD-08 | AD-02 [미리보기] · 이미지 원본 보존 없음. AD-03 수신 번호 [인증] 없음. AD-04 페이지당 개수 · [새로고침] · 상태별 건수(대기만 있음) · [알림톡으로 답장] 없음. AD-08 카드 [삭제] 없음 |
+| 14 | 14.8 모든 쓰기 작업 감사 로그 | 2FA 설정 · 확정(`/2fa/setup` · `/2fa/confirm`)만 기록하지 않는다. 그 밖의 슈퍼 어드민 쓰기는 모두 기록 |
+
+보안 후속(코드 수정 대기): 슈퍼 어드민 IP 제한이 위조 가능한 `X-Forwarded-For` 첫 값을 믿는 문제, uvicorn 프록시 신뢰 설정이 없어 요청 횟수 제한이 방문자 전체에 합산될 수 있는 문제.
+
 ---
 
 ## 11. 템플릿 선택 시스템 (Multi-Template Architecture)
@@ -2721,6 +2752,8 @@ async def chat_edit(body: ChatEditRequest, current_user = Depends(get_current_us
 | AI 분석 리포트 | ❌ | 월 1회 | 월 4회 |
 | AI 템플릿 추천 | ❌ | ✅ | ✅ |
 
+FREE(내부용, 3.2)는 문구 추천 월 5회, 대화형 편집 없음.
+
 **사용량 추적 테이블:**
 
 ```sql
@@ -3097,7 +3130,7 @@ CREATE TABLE announcement_reads (
 #### 기능 플래그 확인 API
 
 ```python
-# app/api/v1/endpoints/public.py
+# app/api/v1/endpoints/tenant_features.py
 # 테넌트 관리자 앱 초기화 시 호출
 GET /api/v1/tenant/features
 
@@ -3130,7 +3163,7 @@ GET /api/v1/tenant/features
 #### 테넌트 관리자 사이드바 동적 렌더링
 
 ```typescript
-// apps/admin/src/components/layout/Sidebar.tsx
+// apps/admin/src/components/layout/Sidebar.tsx · lib/navItems.ts (메뉴 ↔ 기능 키)
 // 기능 플래그에 따라 메뉴 항목 동적 노출
 
 const menuItems = [
@@ -3910,12 +3943,11 @@ TOSS_WEBHOOK_SECRET=...           # 웹훅 서명 검증 키
 # 이메일 (AWS SES)
 AWS_SES_REGION=ap-northeast-2
 AWS_SES_FROM_EMAIL=noreply@우리서비스.com
-AWS_SES_FROM_NAME=CMS 서비스
 
 # 도메인 자동화
-SSL_ADMIN_EMAIL=admin@우리서비스.com   # Let's Encrypt 관리자 이메일
-SERVICE_BASE_DOMAIN=우리서비스.com     # 서브도메인 기준 도메인
-NGINX_SITES_PATH=/etc/nginx/sites-enabled
+DOMAIN_MODE=test                       # test | live — live 만 실제 DNS · SSL · Nginx 처리
+DOMAIN_CNAME_TARGET=cms.우리서비스.com  # 고객 CNAME 대상
+NGINX_SITES_DIR=/etc/nginx/sites-enabled
 
 # 무료 체험
 TRIAL_DAYS=14                          # 무료 체험 기간 (일)
@@ -4752,10 +4784,10 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | 항목 | 처리 방식 |
 |---|---|
 | 비밀번호 저장 | bcrypt rounds=12 |
-| 연속 로그인 실패 | 5회 → 30분 잠금 (IP + 계정 기준) |
+| 연속 로그인 실패 | 계정 기준 5회 → 30분 잠금 (IP 는 Rate Limit 으로 대응, T-108) |
 | Rate Limiting | 인증 API IP당 10회/분 |
 | 이메일 마스킹 | 앞 2자리 외 `*` 처리 |
-| 재설정 토큰 | UUID, 30분 만료, 1회용 |
+| 재설정 토큰 | 무작위 토큰(`secrets.token_urlsafe`), DB 에는 SHA-256 해시만, 30분 만료, 1회용 |
 | 계정 존재 여부 노출 방지 | 없는 이메일도 "링크를 보냈어요" 동일 응답 |
 | 비밀번호 변경 보안 알림 | 변경 시 기존 이메일 + 문자로 알림 자동 발송 |
 | 휴대폰 인증 | 3분 만료, 1일 5회 제한 (스팸 방지) |
