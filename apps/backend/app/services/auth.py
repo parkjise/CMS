@@ -1,6 +1,7 @@
+from typing import cast
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -12,7 +13,7 @@ from app.core.security import (
     verify_password,
     verify_totp,
 )
-from app.db.session import set_super_admin_context
+from app.db.session import affected_rows, set_super_admin_context
 from app.models.billing import Subscription
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -92,10 +93,23 @@ async def authenticate_super_admin(
 
 
 async def setup_totp(db: AsyncSession, user: User) -> tuple[str, str]:
-    """TOTP secret 발급(미확정 저장). (secret, otpauth_uri) 반환."""
+    """TOTP secret 발급(미확정 저장). (secret, otpauth_uri) 반환.
+
+    이미 켠 계정은 거부 — 세션만 훔쳐 인증 앱을 바꿀 수 없게 (T-136).
+    """
     await _bypass_rls(db)
-    secret = generate_totp_secret()
-    await db.execute(update(User).where(User.id == user.id).values(totp_secret=secret))
+    if user.totp_enabled:
+        raise ValueError("2FA_ALREADY_ENABLED")
+    # 확정 전에는 같은 secret — 새로고침 · 동시 요청에도 앱에 찍은 QR 이 유효하다.
+    # 읽고 쓰기를 나누면 동시 요청이 서로 덮어쓰므로 한 문장으로 (T-136)
+    result = await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(totp_secret=func.coalesce(User.totp_secret, generate_totp_secret()))
+        .returning(User.totp_secret)
+    )
+    # coalesce 라 NULL 일 수 없다
+    secret = cast(str, result.scalar_one())
     await db.commit()
     return secret, totp_provisioning_uri(secret, user.email)
 
@@ -111,6 +125,24 @@ async def confirm_totp(db: AsyncSession, user: User, code: str) -> bool:
     await db.execute(update(User).where(User.id == user.id).values(totp_enabled=True))
     await db.commit()
     return True
+
+
+async def get_super_admin_by_id(db: AsyncSession, user_id: UUID) -> User | None:
+    await _bypass_rls(db)
+    user = await get_user_by_id(db, user_id)
+    return user if user and user.role == "SUPER_ADMIN" else None
+
+
+async def reset_totp(db: AsyncSession, email: str) -> bool:
+    """인증 앱을 잃은 슈퍼 어드민 복구 — 서버 스크립트 전용 (T-136)."""
+    await _bypass_rls(db)
+    result = await db.execute(
+        update(User)
+        .where(User.email == email, User.role == "SUPER_ADMIN")
+        .values(totp_enabled=False, totp_secret=None)
+    )
+    await db.commit()
+    return affected_rows(result) > 0
 
 
 async def verify_2fa_code(db: AsyncSession, user_id: UUID, code: str) -> User:

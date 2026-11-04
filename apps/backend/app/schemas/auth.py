@@ -51,6 +51,8 @@ class SuperLoginResponse(BaseModel):
     """2FA 미사용 시 access_token 발급, 사용 시 challenge_token 반환."""
 
     requires_2fa: bool
+    # 2FA 필수인데 아직 등록 전 — challenge_token 으로 등록부터 (T-136)
+    requires_2fa_setup: bool = False
     user: UserResponse | None = None
     access_token: str | None = None
     challenge_token: str | None = None
@@ -69,3 +71,7 @@ class TotpSetupResponse(BaseModel):
 
 class TotpConfirmRequest(BaseModel):
     code: str
+
+
+class TotpEnrollRequest(BaseModel):
+    challenge_token: str

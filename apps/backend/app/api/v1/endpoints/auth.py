@@ -3,9 +3,9 @@ import time
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response, status
 from slowapi import Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_info import rate_limit_key
 from app.core.config import settings
 from app.core.deps import get_db
 from app.core.redis import get_redis
@@ -20,7 +20,7 @@ from app.services.auth import (
     update_last_login,
 )
 
-limiter = Limiter(key_func=get_remote_address)
+limiter = Limiter(key_func=rate_limit_key)
 
 LOGIN_FAILED = "이메일 또는 비밀번호가 올바르지 않습니다"
 

@@ -43,6 +43,11 @@ def get_current_user_payload(token: str = Depends(_extract_token)) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
+    # 2FA 대기 · refresh 토큰은 API 를 쓸 수 없다 — 2FA 우회 차단 (T-136)
+    if payload.get("pending_2fa") or payload.get("type"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
+        )
     # 방문자 회원 토큰으로는 어드민 API 를 쓸 수 없다 (기획서 16.0)
     if payload.get("role") == SITE_MEMBER_ROLE:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="FORBIDDEN")

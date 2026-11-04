@@ -118,6 +118,8 @@ class Settings(BaseSettings):
     super_admin_allowed_ips: str = ""
     # 슈퍼 어드민 액세스 토큰 만료 (분) — 보안 강화로 짧게 유지
     super_admin_token_expire_minutes: int = 5
+    # 2FA 필수 (기획서 14.8) — 운영은 켜야 기동, 로컬 · CI 는 끔
+    super_admin_require_2fa: bool = False
 
     # 요청 한도 (IP 당) — 운영 기본값.
     # E2E CI 처럼 한 IP 에서 많이 부를 때만 올린다 (T-078-A)
@@ -155,6 +157,8 @@ class Settings(BaseSettings):
             problems["app_secret_key"] = "예시 값(change-me…) 그대로입니다"
         if self.super_admin_password in ("", "change-me"):
             problems["super_admin_password"] = "슈퍼 어드민 비밀번호가 기본값입니다"
+        if not self.super_admin_require_2fa:
+            problems["super_admin_require_2fa"] = "슈퍼 어드민 2FA 가 꺼져 있습니다"
         if not self.toss_webhook_secret:
             problems["toss_webhook_secret"] = "결제 웹훅 서명을 검증할 수 없습니다"
         if not self.cookie_domain:
