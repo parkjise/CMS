@@ -45,7 +45,7 @@ async def _poll_domain_dns(domain_id: str) -> dict:
     async with AsyncSessionLocal() as db:
         await _bypass(db)
         row = await db.get(TenantDomain, uuid.UUID(domain_id))
-        if row is None or row.status == "ACTIVE":
+        if row is None or row.status in ("ACTIVE", "SSL_ISSUING"):
             return {"status": "DONE", "reason": "NOT_FOUND_OR_ACTIVE"}
 
         if not domain_service.verify_dns(row.domain, settings.domain_cname_target):
@@ -53,6 +53,63 @@ async def _poll_domain_dns(domain_id: str) -> dict:
 
         activated = await domain_service.verify_domain(db, row.tenant_id)
         return {"status": activated.status, "domain": activated.domain}
+
+
+@celery_app.task(
+    name="app.workers.domain.issue_domain_certificate",
+    bind=True,
+    max_retries=1,
+)
+def issue_domain_certificate(self, domain_id: str) -> dict:
+    return asyncio.run(_issue_domain_certificate(domain_id))
+
+
+async def _issue_domain_certificate(domain_id: str) -> dict:
+    """인증서 발급 → ACTIVE. domain-worker 에서만 실행된다 (T-137)."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import domain as domain_service
+
+    async with AsyncSessionLocal() as db:
+        await _bypass(db)
+        row = await db.get(TenantDomain, uuid.UUID(domain_id))
+        if row is None or row.status != "SSL_ISSUING":
+            return {"status": "SKIPPED"}
+        done = await domain_service.finish_activation(db, row)
+        return {"status": done.status, "domain": done.domain}
+
+
+@celery_app.task(name="app.workers.domain.renew_domain_certificate")
+def renew_domain_certificate(domain_id: str) -> dict:
+    return asyncio.run(_renew_domain_certificate(domain_id))
+
+
+async def _renew_domain_certificate(domain_id: str) -> dict:
+    """슈퍼 어드민 수동 갱신 — 실패하면 만료 임박 갱신과 같이 알린다."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import domain as domain_service
+
+    async with AsyncSessionLocal() as db:
+        await _bypass(db)
+        row = await db.get(TenantDomain, uuid.UUID(domain_id))
+        if row is None:
+            return {"status": "SKIPPED"}
+        domain, previous = row.domain, row.ssl_expires_at
+        try:
+            row.ssl_expires_at = domain_service.renew_ssl_certificate(domain)
+            await db.commit()
+        except Exception as exc:
+            await db.rollback()
+            _alert_ssl_failure(domain, previous, str(exc))
+            return {"status": "FAILED"}
+        return {"status": "RENEWED"}
+
+
+@celery_app.task(name="app.workers.domain.delete_domain_certificate")
+def delete_domain_certificate(domain: str) -> dict:
+    from app.services import domain as domain_service
+
+    domain_service.delete_ssl_certificate(domain)
+    return {"deleted": domain}
 
 
 @celery_app.task(

@@ -38,6 +38,11 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && groupadd -r app && useradd -r -g app app
 
+# 고객 도메인 인증서 발급 — domain-worker 만 실행한다 (T-137). 앱 의존성과 섞이지 않게 별도 환경
+RUN python -m venv /opt/certbot \
+    && /opt/certbot/bin/pip install --no-cache-dir "certbot==5.9.0" \
+    && ln -s /opt/certbot/bin/certbot /usr/local/bin/certbot
+
 WORKDIR /app
 
 # 빌더에서 만든 가상환경만 복사 (빌드 툴체인 제외 → 이미지 경량화)
