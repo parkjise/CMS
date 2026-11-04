@@ -1,3 +1,4 @@
+import { READ_ONLY_MESSAGE, useCanEdit } from '@/hooks/useCanEdit'
 import { useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
@@ -21,6 +22,7 @@ import { useFeatureStore } from '@/stores/featureStore'
 import { applyResultMessage } from '@/lib/templateApply'
 
 export function TemplatesPage() {
+  const canEdit = useCanEdit()
   const [industry, setIndustry] = useState<IndustryType | null>(null)
   const [pendingApply, setPendingApply] = useState<TemplateItem | null>(null)
 
@@ -144,7 +146,7 @@ export function TemplatesPage() {
                   key={template.id}
                   template={template}
                   isCurrent={template.id === currentId}
-                  onApply={setPendingApply}
+                  onApply={canEdit ? setPendingApply : () => toast.error(READ_ONLY_MESSAGE)}
                   onPreview={handlePreview}
                 />
               ))}

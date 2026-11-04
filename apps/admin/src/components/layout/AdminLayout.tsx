@@ -1,3 +1,4 @@
+import { ReadOnlyBanner } from '@/components/layout/ReadOnlyBanner'
 import { useEffect } from 'react'
 import { Outlet } from 'react-router'
 import { SkipLink } from '@/components/a11y/SkipLink'
@@ -42,6 +43,7 @@ export function AdminLayout() {
       {/* 오른쪽 콘텐츠 */}
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <Header />
+        <ReadOnlyBanner />
         <TrialBanner />
         <ReSubscribeBanner />
         <AnnouncementBanner />

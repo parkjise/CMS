@@ -1591,6 +1591,8 @@ async def notification_stream(
     )
 ```
 
+**구현 메모 — 보기 전용 계정 (T-130):** `TENANT_VIEWER` 는 테넌트 API 를 조회만 한다. `api/v1/router.py` 의 공통 검사(`require_tenant_write`)가 쓰기 요청을 403 으로 막으므로 새 API 도 자동 적용된다 (본인 로그인 · 로그아웃, 공지 읽음 표시는 예외). 관리자 화면은 안내를 띄우고 입력칸 · 저장 버튼을 잠그며, 홈페이지에서는 편집 모드 버튼이 없다. 계정은 슈퍼 어드민 테넌트 상세에서 추가한다.
+
 **구현 메모 (T-043-A):** 기다리는 메시지가 없으면 keepalive 를 20초마다 1번만 보낸다. 예전에는 쉬지 않고 보내 2초에 약 230KB 가 나갔다. 대시보드는 첫 화면을 그린 뒤 연결한다.
 
 ---
@@ -1853,7 +1855,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 
 | # | 항목 | 기획서 | 코드 | 필요한 것 |
 |---|---|---|---|---|
-| 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
 | 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
 
 
@@ -3218,6 +3219,14 @@ GET /api/super/v1/monitoring   AI 비용 · 알림톡 사용량 · Celery 큐 ·
 GET /api/super/v1/revenue      수익 현황 (months 3~12)
 GET /api/super/v1/health       상태 확인
 GET /api/super/v1/audit-logs   감사 로그
+```
+
+#### 보기 전용 계정 API (T-130)
+
+```
+GET    /api/super/v1/tenants/{id}/viewers             보기 전용 계정 목록
+POST   /api/super/v1/tenants/{id}/viewers             추가 (임시 비밀번호는 응답에 한 번만)
+DELETE /api/super/v1/tenants/{id}/viewers/{user_id}   소프트 삭제 (관리자 계정은 404)
 ```
 
 #### 공지 API

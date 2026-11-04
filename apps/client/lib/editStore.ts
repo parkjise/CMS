@@ -3,7 +3,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { authApi } from './api'
-import { useClientAuthStore } from './authStore'
+import { canEditSite, useClientAuthStore } from './authStore'
 
 export interface PendingChange {
   section_id: string
@@ -87,15 +87,13 @@ export const useEditStore = create<EditStore>()(
       isPreview: false,
 
       toggleEditMode: () => {
-        const { isLoggedIn } = useClientAuthStore.getState()
-        if (!isLoggedIn) return
+        if (!canEditSite(useClientAuthStore.getState())) return
         const next = !get().isEditMode
         rememberEditMode(next)
         set({ isEditMode: next, isPreview: false })
       },
       enterEditMode: () => {
-        const { isLoggedIn } = useClientAuthStore.getState()
-        if (!isLoggedIn) return
+        if (!canEditSite(useClientAuthStore.getState())) return
         rememberEditMode(true)
         set({ isEditMode: true })
       },
@@ -105,9 +103,9 @@ export const useEditStore = create<EditStore>()(
       },
       restoreEditMode: () => {
         if (!rememberedEditMode()) return
-        const { isInitialized, isLoggedIn } = useClientAuthStore.getState()
-        if (!isInitialized) return
-        if (!isLoggedIn) {
+        const auth = useClientAuthStore.getState()
+        if (!auth.isInitialized) return
+        if (!canEditSite(auth)) {
           // 로그아웃 · 만료 — 기억을 지운다
           rememberEditMode(false)
           return

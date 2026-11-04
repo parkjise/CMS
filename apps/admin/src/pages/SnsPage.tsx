@@ -1,3 +1,4 @@
+import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useEffect, useState } from 'react'
 import {
   Facebook,
@@ -93,6 +94,7 @@ export function SnsPage() {
         </p>
       </div>
 
+      <ReadOnlyFieldset className="min-w-0 space-y-6">
       {/* SNS 채널 */}
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex items-baseline justify-between">
@@ -230,6 +232,7 @@ export function SnsPage() {
           알림 설정을 불러오지 못했습니다.
         </div>
       )}
+      </ReadOnlyFieldset>
     </div>
   )
 }

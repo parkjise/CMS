@@ -79,6 +79,24 @@ class ResetPasswordResponse(BaseModel):
     temporary_password: str
 
 
+class ViewerCreate(BaseModel):
+    email: EmailStr
+
+
+class ViewerItem(BaseModel):
+    id: uuid.UUID
+    email: str
+    last_login_at: datetime | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ViewerCreateResponse(BaseModel):
+    viewer: ViewerItem
+    temporary_password: str
+
+
 class ImpersonateResponse(BaseModel):
     impersonate_token: str
     redirect_url: str

@@ -1,3 +1,4 @@
+import { useCanEdit } from '@/hooks/useCanEdit'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { Copy, Trash2 } from 'lucide-react'
@@ -20,6 +21,7 @@ export function InquiryDetailModal({
   inquiryId,
   onClose,
 }: InquiryDetailModalProps) {
+  const canEdit = useCanEdit()
   const inquiryQuery = useInquiry(inquiryId)
   const updateMutation = useUpdateInquiry()
   const deleteMutation = useDeleteInquiry()
@@ -203,6 +205,7 @@ export function InquiryDetailModal({
                 답변 (홈페이지 상담 게시판에 표시)
               </label>
               <Textarea
+                disabled={!canEdit}
                 id="inquiry-answer"
                 value={answer}
                 onChange={(e) => setAnswer(e.target.value)}
@@ -226,6 +229,7 @@ export function InquiryDetailModal({
               상태 변경
             </label>
             <select
+              disabled={!canEdit}
               id="inquiry-status"
               value={status}
               onChange={(e) => setStatus(e.target.value as InquiryStatus)}
@@ -245,6 +249,7 @@ export function InquiryDetailModal({
               관리자 메모
             </label>
             <Textarea
+              disabled={!canEdit}
               value={memo}
               onChange={(e) => setMemo(e.target.value)}
               rows={4}
@@ -259,7 +264,7 @@ export function InquiryDetailModal({
               variant="danger"
               size="sm"
               onClick={handleDelete}
-              disabled={deleteMutation.isPending}
+              disabled={!canEdit || deleteMutation.isPending}
             >
               <Trash2 className="h-3.5 w-3.5" />
               삭제
@@ -276,7 +281,7 @@ export function InquiryDetailModal({
               <Button
                 type="button"
                 onClick={handleSave}
-                disabled={updateMutation.isPending}
+                disabled={!canEdit || updateMutation.isPending}
               >
                 {updateMutation.isPending ? '저장 중...' : '저장'}
               </Button>

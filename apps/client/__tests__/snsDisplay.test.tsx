@@ -93,3 +93,21 @@ describe('코드형 템플릿용 편집 입구 (T-125-A)', () => {
     expect(screen.getByRole('button', { name: /편집 모드|로딩 중/ })).toBeInTheDocument()
   })
 })
+
+// 보기 전용 계정에게는 편집 모드 버튼이 없다 (T-130)
+describe('FloatingButtons 계정 종류', () => {
+  afterEach(() => useClientAuthStore.setState({ user: null, isLoggedIn: false }))
+
+  it('뷰어 — 편집 모드 · 로그인 버튼 없음', () => {
+    useClientAuthStore.setState({ isLoggedIn: true, user: { role: 'TENANT_VIEWER' } as never })
+    render(<FloatingButtons tenantSlug="shop" kakaoUrl={null} />)
+    expect(screen.queryByRole('button', { name: '편집 모드' })).toBeNull()
+    expect(screen.queryByRole('button', { name: '관리자 로그인' })).toBeNull()
+  })
+
+  it('관리자 — 편집 모드 버튼', () => {
+    useClientAuthStore.setState({ isLoggedIn: true, user: { role: 'TENANT_ADMIN' } as never })
+    render(<FloatingButtons tenantSlug="shop" kakaoUrl={null} />)
+    expect(screen.getByRole('button', { name: '편집 모드' })).toBeInTheDocument()
+  })
+})

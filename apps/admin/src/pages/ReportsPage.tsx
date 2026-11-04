@@ -1,3 +1,4 @@
+import { useCanEdit } from '@/hooks/useCanEdit'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
@@ -8,6 +9,7 @@ import { fixLink, periodLabel } from '@/lib/reportLinks'
 
 /** AI 월간 리포트 (기획서 13.2 기능 3 · 13.4, T-073-A) */
 export function ReportsPage() {
+  const canEdit = useCanEdit()
   const list = useReports()
   const create = useCreateReport()
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -42,7 +44,7 @@ export function ReportsPage() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          <Button onClick={handleCreate} disabled={create.isPending || quota?.remaining === 0}>
+          <Button onClick={handleCreate} disabled={!canEdit || create.isPending || quota?.remaining === 0}>
             {create.isPending ? '분석 중…' : '지금 분석하기'}
           </Button>
           {quota && (

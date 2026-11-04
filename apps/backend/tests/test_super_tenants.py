@@ -374,3 +374,84 @@ class TestAuditLogs:
             f"/api/super/v1/tenants/{uuid.uuid4()}/audit-logs", headers=auth_headers
         )
         assert resp.status_code == 403
+
+
+class TestTenantViewers:
+    """보기 전용 계정 추가 · 삭제 (T-130)."""
+
+    @staticmethod
+    def _url(tenant_id: str) -> str:
+        return f"/api/super/v1/tenants/{tenant_id}/viewers"
+
+    async def test_create_login_list_remove(self, client, super_headers, test_tenant):
+        url = self._url(test_tenant["id"])
+        email = f"viewer-{uuid.uuid4().hex[:8]}@example.com"
+        created = await client.post(url, headers=super_headers, json={"email": email})
+        assert created.status_code == 200, created.text
+        data = created.json()["data"]
+
+        login = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": email,
+                "password": data["temporary_password"],
+                "tenant_slug": test_tenant["slug"],
+            },
+        )
+        assert login.status_code == 200
+        assert login.json()["data"]["user"]["role"] == "TENANT_VIEWER"
+
+        listed = await client.get(url, headers=super_headers)
+        assert [v["email"] for v in listed.json()["data"]] == [email]
+
+        viewer_id = data["viewer"]["id"]
+        removed = await client.delete(f"{url}/{viewer_id}", headers=super_headers)
+        assert removed.status_code == 200
+        assert (await client.get(url, headers=super_headers)).json()["data"] == []
+
+        # 지운 계정은 로그인 불가, 같은 이메일로 다시 만들면 되살린다
+        old = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": email,
+                "password": data["temporary_password"],
+                "tenant_slug": test_tenant["slug"],
+            },
+        )
+        assert old.status_code == 401
+        again = await client.post(url, headers=super_headers, json={"email": email})
+        assert again.status_code == 200
+        assert again.json()["data"]["viewer"]["id"] == viewer_id
+
+    async def test_duplicate_email_409(
+        self, client, super_headers, test_tenant, test_user
+    ):
+        resp = await client.post(
+            self._url(test_tenant["id"]),
+            headers=super_headers,
+            json={"email": test_user["email"]},
+        )
+        assert resp.status_code == 409
+
+    async def test_bad_email_400(self, client, super_headers, test_tenant):
+        resp = await client.post(
+            self._url(test_tenant["id"]), headers=super_headers, json={"email": "x"}
+        )
+        assert resp.status_code == 400
+
+    async def test_cannot_remove_admin_through_viewer_route(
+        self, client, super_headers, test_tenant, test_user
+    ):
+        url = f"{self._url(test_tenant['id'])}/{test_user['id']}"
+        assert (await client.delete(url, headers=super_headers)).status_code == 404
+
+    async def test_tenant_admin_cannot_use(self, client, auth_headers, test_tenant):
+        url = self._url(test_tenant["id"])
+        assert (await client.get(url, headers=auth_headers)).status_code == 403
+
+    async def test_requires_auth(self, client, test_tenant):
+        assert (await client.get(self._url(test_tenant["id"]))).status_code == 401
+
+    async def test_unknown_tenant_404(self, client, super_headers):
+        resp = await client.get(self._url(str(uuid.uuid4())), headers=super_headers)
+        assert resp.status_code == 404

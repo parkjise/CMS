@@ -1,3 +1,4 @@
+import { useCanEdit } from '@/hooks/useCanEdit'
 import dayjs from 'dayjs'
 import { ChevronLeft, ChevronRight, Mail, MailOpen } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
@@ -27,6 +28,7 @@ export function InquiryTable({
   onFiltersChange,
   onSelect,
 }: InquiryTableProps) {
+  const canEdit = useCanEdit()
   const updateMutation = useUpdateInquiry()
 
   const handleStatusChange = (item: InquiryListItem, next: InquiryStatus) => {
@@ -156,6 +158,7 @@ export function InquiryTable({
                     onClick={(e) => e.stopPropagation()}
                   >
                     <select
+                      disabled={!canEdit}
                       value={item.status}
                       onChange={(e) =>
                         handleStatusChange(item, e.target.value as InquiryStatus)

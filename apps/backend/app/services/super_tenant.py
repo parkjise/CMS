@@ -2,7 +2,7 @@
 
 import secrets
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import ColumnElement, func, select
@@ -28,6 +28,7 @@ DEFAULT_SECTIONS: list[tuple[str, str]] = [
 ]
 
 IMPERSONATE_EXPIRE_MINUTES = 30
+TENANT_VIEWER_ROLE = "TENANT_VIEWER"
 
 
 async def _get_tenant(db: AsyncSession, tenant_id: uuid.UUID) -> Tenant:
@@ -288,6 +289,79 @@ async def reset_admin_password(
     admin.password_hash = hash_password(temp_password)
     await db.commit()
     return admin.email, temp_password
+
+
+async def list_viewers(db: AsyncSession, tenant_id: uuid.UUID) -> list[User]:
+    await _get_tenant(db, tenant_id)
+    result = await db.execute(
+        select(User)
+        .where(
+            User.tenant_id == tenant_id,
+            User.role == TENANT_VIEWER_ROLE,
+            User.deleted_at.is_(None),
+        )
+        .order_by(User.created_at)
+    )
+    return list(result.scalars().all())
+
+
+async def create_viewer(
+    db: AsyncSession, tenant_id: uuid.UUID, email: str
+) -> tuple[User, str]:
+    """보기 전용 계정 추가 (T-130) — (계정, 임시 비밀번호). 지운 계정이면 되살린다."""
+    await _get_tenant(db, tenant_id)
+    existing = (
+        await db.execute(
+            select(User).where(User.tenant_id == tenant_id, User.email == email)
+        )
+    ).scalar_one_or_none()
+    if existing and existing.deleted_at is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="이 사업체에 이미 있는 이메일입니다.",
+        )
+    temp_password = secrets.token_urlsafe(9)
+    if existing:
+        # 지운 관리자 계정이어도 권한은 보기 전용으로만 되살린다
+        existing.role = TENANT_VIEWER_ROLE
+        existing.deleted_at = None
+        existing.is_active = True
+        existing.password_hash = hash_password(temp_password)
+        viewer = existing
+    else:
+        viewer = User(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            email=email,
+            password_hash=hash_password(temp_password),
+            role=TENANT_VIEWER_ROLE,
+            is_active=True,
+        )
+        db.add(viewer)
+    await db.commit()
+    await db.refresh(viewer)
+    return viewer, temp_password
+
+
+async def remove_viewer(
+    db: AsyncSession, tenant_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
+    """보기 전용 계정만 소프트 삭제 — 관리자 계정은 이 경로로 지울 수 없다."""
+    viewer = (
+        await db.execute(
+            select(User).where(
+                User.id == user_id,
+                User.tenant_id == tenant_id,
+                User.role == TENANT_VIEWER_ROLE,
+                User.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if not viewer:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    viewer.deleted_at = datetime.now(UTC)
+    viewer.is_active = False
+    await db.commit()
 
 
 async def get_stats(db: AsyncSession, tenant_id: uuid.UUID) -> dict:

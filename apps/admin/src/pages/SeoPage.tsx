@@ -1,3 +1,4 @@
+import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useLayoutEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import {
@@ -142,7 +143,7 @@ export function SeoPage() {
         <div key="seo-loading" className="h-96 animate-pulse rounded-lg bg-slate-100" />
       ) : (
         <div key="seo-ready" className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="space-y-6 lg:col-span-2">
+          <ReadOnlyFieldset className="min-w-0 space-y-6 lg:col-span-2">
             {activeTab === 'basic' && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
                 <FormField
@@ -445,7 +446,7 @@ export function SeoPage() {
                 </div>
               </div>
             )}
-          </div>
+          </ReadOnlyFieldset>
 
           {/* 우측 사이드: 미리보기 */}
           <aside className="space-y-4">
