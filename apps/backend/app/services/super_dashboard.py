@@ -10,14 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.ai import AiUsageLog
 from app.models.sns import NotificationSetting
 from app.models.tenant import Tenant
-
-# 플랜별 월 요금 (원). apps/admin/src/lib/plans.ts 와 일치시킨다.
-PLAN_MONTHLY_PRICE: dict[str, int] = {
-    "FREE": 0,
-    "BASIC": 39_000,
-    "STANDARD": 89_000,
-    "PREMIUM": 129_000,
-}
+from app.services.payment import PLAN_MONTHLY_PRICE
 
 EXPIRING_WITHIN_DAYS = 7
 RECENT_LIMIT = 5

@@ -91,8 +91,8 @@ class TestDashboard:
         data = resp.json()["data"]
         assert data["stats"]["total_tenants"] >= 1
         assert data["stats"]["active_tenants"] >= 1
-        # PREMIUM 129,000원이 MRR에 반영
-        assert data["stats"]["mrr"] >= 129_000
+        # PREMIUM 189,000원이 MRR에 반영
+        assert data["stats"]["mrr"] >= 189_000
 
     async def test_mrr_trend_has_six_points(self, client, super_headers):
         resp = await client.get("/api/super/v1/dashboard", headers=super_headers)
