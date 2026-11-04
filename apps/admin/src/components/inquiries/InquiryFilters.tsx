@@ -66,6 +66,26 @@ export function InquiryFilters({ value, onChange }: InquiryFiltersProps) {
         ))}
       </select>
 
+      <div className="flex items-center gap-2">
+        <Input
+          type="date"
+          aria-label="접수 시작일"
+          value={value.from_date ?? ''}
+          max={value.to_date}
+          onChange={(e) => update('from_date', e.target.value || undefined)}
+        />
+        <span aria-hidden="true" className="text-sm text-slate-500">
+          ~
+        </span>
+        <Input
+          type="date"
+          aria-label="접수 종료일"
+          value={value.to_date ?? ''}
+          min={value.from_date}
+          onChange={(e) => update('to_date', e.target.value || undefined)}
+        />
+      </div>
+
       <select
         value={value.is_read === undefined ? '' : value.is_read ? 'true' : 'false'}
         onChange={(e) => {

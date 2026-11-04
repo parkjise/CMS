@@ -3,7 +3,7 @@
 
 **문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-125-I 반영, API · DB · 요금제 코드 대조 — 10.1 미해결 목록) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
+**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-131 반영, API · DB · 요금제 코드 대조 — 10.1) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -338,7 +338,7 @@ async def get_db_with_rls(
 
 **드래그 앤 드롭 구현 스펙:**
 - 라이브러리: `@dnd-kit/core` + `@dnd-kit/sortable` (React DnD 대비 접근성 우수)
-- 순서 저장: 드롭 완료 이벤트 → `PATCH /api/sections/order` (배열 인덱스 전송)
+- 순서 저장: 드롭 완료 이벤트 → `PATCH /api/v1/sections/order` (배열 인덱스 전송)
 - 낙관적 업데이트(Optimistic Update) 적용: UI 즉시 반영 후 API 응답 검증
 
 **구현 메모 — [TAB: 공통 설정] (T-036-A · T-036-B):** 사업체 정보(대표 전화 · 이메일 · 주소 · 상세 주소 · 평일 / 토요일 영업시간 · 안내 · 주차 · 대표자 · 사업자등록번호) · 로고 · 파비콘 · 상단 메뉴(이름 · 보이기 · 코드형은 순서, 테마형은 섹션 순서를 따름). `?tab=settings` 로 이 탭을 바로 연다 (T-125-F). 값은 테마형 · 코드형 푸터 · 로고 · 파비콘 · JSON-LD 와 오시는 길(11.9)에 쓰이며, 영업시간은 자유 입력이라 JSON-LD `openingHours` 에 넣지 않는다.
@@ -396,16 +396,16 @@ async def get_db_with_rls(
   - 5MB 이하: 그대로 업로드
   - 5MB 초과 ~ 20MB 이하: "이미지가 큽니다. 자동으로 최적화됩니다." 안내
       ↓
-[POST /api/upload/image]
+[POST /api/v1/upload/image]
       ↓
 [서버: Pillow 처리]
   1. 메타데이터 확인 (exif 기반 실제 크기)
   2. 최대 1920px로 리사이즈 (비율 유지)
   3. WebP 변환 (quality: 82)
-  4. 원본 파일도 별도 보존 (복구용)
+  4. 원본 파일도 별도 보존 (복구용) — 미구현, 최적화본만 저장 (10.2 #13)
       ↓
 [MinIO/S3 업로드]
-  - 경로: /{tenant_id}/sections/{section_id}/{uuid}.webp
+  - 경로: /{tenant_id}/{folder}/{uuid}.webp (folder 예: sections · seo)
       ↓
 [DB 업데이트: section_settings.image_url]
       ↓
@@ -741,9 +741,9 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 | 필드 | 최대 길이 | 서버 검사 | 비고 |
 |---|---|---|---|
 | main_title | 40자 | 예 | 공백 포함 |
-| sub_copy | 80자 | 아니요 (10.1 #4) | |
-| cta_text | 20자 | 아니요 (10.1 #4) | |
-| cta_url | 200자 | 주소 안전 검사만 (10.1 #4) | |
+| sub_copy | 80자 | 예 | 바뀐 칸만 검사 (T-127) |
+| cta_text | 20자 | 예 | 바뀐 칸만 검사 (T-127) |
+| cta_url | 200자 | 예 | 주소 안전 검사 + 글자 수, 바뀐 칸만 검사 (T-127) |
 
 #### PATCH /sections/order
 섹션 순서 일괄 변경
@@ -865,11 +865,14 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 | page | integer | 1 | 페이지 번호 |
 | limit | integer | 20 | 페이지당 개수 (최대 100) |
 | status | string | all | `PENDING`, `IN_PROGRESS`, `DONE` |
-| inquiry_type | string | all | `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `GENERAL` |
+| inquiry_type | string | all | `GENERAL`, `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `SYMPTOM` |
 | is_read | boolean | - | 읽음 여부 |
 | search | string | - | 검색어 |
 
-기간 필터(`from_date` · `to_date`)는 구현되어 있지 않다 (10.1 #5).
+| from_date | date | - | 접수 시작일 YYYY-MM-DD (한국 날짜) |
+| to_date | date | - | 접수 종료일 YYYY-MM-DD (그날 전체 포함) |
+
+시작일이 종료일보다 늦으면 400. `GET /inquiries/export` 도 같은 기간 조건을 받는다 (T-127).
 
 **Response 200:**
 ```json
@@ -997,7 +1000,11 @@ URL 유효성 테스트
 }
 ```
 
-소셜 공유 제목 · 설명(`og_title` · `og_description`)과 `canonical_url` 은 칸이 없다 (10.1 #6).
+**구현 메모 — 소셜 · 대표 주소 · 검색 노출 (T-129):**
+- `og_title`(60자) · `og_description`(200자) — 비어 있으면 검색용 제목 · 설명을 쓴다.
+- `canonical_url` — `https://` 주소만, 빈 값은 지우기. 메인은 그 주소, 서브 페이지는 경로를 붙인다 (`https://a.com/about`). 회원 화면에는 넣지 않는다.
+- `robots` — `index,follow`(기본) · `noindex,follow` · `index,nofollow` · `noindex,nofollow`. 테마형 · 코드형 공통 메타 태그. `robots_txt` 와는 별개 칸.
+- 저장은 보낸 칸만 바꾸고, `null` 은 지운다 (이전에는 `null` 을 무시해 칸을 비울 수 없었다).
 
 **구현 메모 — 대표 키워드 (T-040-A):**
 - `PUT /api/v1/seo-settings` 의 `keywords` — 공백 정리 · 빈 값 · 중복 제거, 최대 5개 · 1개 30자(넘으면 400), 생략 = 그대로, `[]` = 모두 지움.
@@ -1165,6 +1172,8 @@ CREATE TABLE inquiries (
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at               TIMESTAMPTZ,
   admin_memo               TEXT,
+  ip_address               VARCHAR(45),
+  user_agent               VARCHAR(500),
   is_notified              BOOLEAN NOT NULL DEFAULT false,
   subject                  VARCHAR(200),
   is_board                 BOOLEAN NOT NULL DEFAULT false,
@@ -1179,7 +1188,14 @@ CREATE TABLE inquiries (
   PRIMARY KEY (id)
 );
 
--- 실제 인덱스: tenant_id, member_id, idx_inquiries_tenant_board (상태 · 등록일 복합 인덱스는 없음 — 10.1 #8)
+-- 값 제약 (마이그레이션 0034, T-131)
+-- tenants.template_type: HOSPITAL · PENSION · STARTUP · GENERAL
+-- tenants.plan_type: FREE · BASIC · STANDARD · PREMIUM
+-- users.role: SUPER_ADMIN · TENANT_ADMIN · TENANT_VIEWER
+-- inquiries.inquiry_type: GENERAL · CONSULT · RESERVATION · PARTNERSHIP · SYMPTOM
+-- inquiries.status: PENDING · IN_PROGRESS · DONE · SPAM
+CREATE INDEX idx_inquiries_tenant_status ON inquiries(tenant_id, status);
+CREATE INDEX idx_inquiries_tenant_created ON inquiries(tenant_id, created_at DESC);
 
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY inquiries_tenant_isolation ON inquiries
@@ -1242,6 +1258,10 @@ CREATE TABLE seo_settings (
   meta_title               VARCHAR(200),
   meta_description         VARCHAR(500),
   og_image_url             VARCHAR(500),
+  og_title                 VARCHAR(60),
+  og_description           VARCHAR(200),
+  canonical_url            VARCHAR(500),
+  robots                   VARCHAR(20) NOT NULL DEFAULT 'index,follow',
   robots_txt               TEXT,
   google_analytics_id      VARCHAR(50),
   naver_site_verification  VARCHAR(100),
@@ -1394,6 +1414,7 @@ CREATE TABLE member_social_accounts (
 | 문의 데이터 | 30일 후 삭제 | 180일 후 삭제 | 영구 보관 | 배치 job 매일 02:00 실행 |
 | 업로드 파일 | 1GB 한도 | 5GB 한도 | 20GB 한도 | 초과 시 업로드 차단 |
 | 방문 통계 | 3개월 | 12개월 | 36개월 | |
+| 문의 접수 IP · 브라우저 정보 | 90일 후 삭제 | 90일 후 삭제 | 90일 후 삭제 | 스팸 판단용, 배치 job 매일 02:15. 관리자 화면 · 내보내기에 노출하지 않음 (T-128) |
 
 ---
 
@@ -1576,6 +1597,8 @@ async def notification_stream(
         }
     )
 ```
+
+**구현 메모 — 보기 전용 계정 (T-130):** `TENANT_VIEWER` 는 테넌트 API 를 조회만 한다. `api/v1/router.py` 의 공통 검사(`require_tenant_write`)가 쓰기 요청을 403 으로 막으므로 새 API 도 자동 적용된다 (본인 로그인 · 로그아웃, 공지 읽음 표시는 예외). 관리자 화면은 안내를 띄우고 입력칸 · 저장 버튼을 잠그며, 홈페이지에서는 편집 모드 버튼이 없다. 계정은 슈퍼 어드민 테넌트 상세에서 추가한다.
 
 **구현 메모 (T-043-A):** 기다리는 메시지가 없으면 keepalive 를 20초마다 1번만 보낸다. 예전에는 쉬지 않고 보내 2초에 약 230KB 가 나갔다. 대시보드는 첫 화면을 그린 뒤 연결한다.
 
@@ -1833,19 +1856,40 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | 5 | 인스타그램 API 연동 | Instagram Basic Display API | URL 유효성만 확인 | 2주차 | 프론트 |
 | 6 | BASIC 플랜 섹션 수 제한 | 서버에서 강제 차단 | 프론트 UI만 제한 | 1주차 | 백엔드 |
 
-### 10.1 코드 대조 미해결 목록 (2026-11-04)
+### 10.1 코드 대조 결과 (2026-11-04)
 
-기획서와 코드가 다른데 어느 쪽이 맞는지 정해야 하거나, 코드에 없는 항목이다. 이 표의 코드는 고치지 않았다.
+대조에서 찾은 항목은 모두 처리했다 — PREMIUM 189,000원 · FREE 내부용 유지(T-126), 문의 기간 필터 · 섹션 글자 수(T-127), 문의 IP · 브라우저 정보(T-128), SEO 칸(T-129), TENANT_VIEWER(T-130), DB 값 제약 · 문의 인덱스(T-131). 4장 화면과 13~16장은 10.2 에서 대조했다.
 
-| # | 항목 | 기획서 | 코드 | 필요한 것 |
-|---|---|---|---|---|
-| 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
-| 4 | 섹션 글자 수 | sub_copy 80 · cta_text 20 · cta_url 200 | 서버 검사는 main_title 만 | 서버 검사 추가 여부 |
-| 5 | 문의 기간 필터 | from_date · to_date | 없음 | 구현 또는 기획 삭제 |
-| 6 | SEO 칸 | og_title · og_description · canonical_url · robots | robots_txt 만 있음, 나머지 없음 | 구현 또는 기획 삭제 |
-| 7 | 문의 스팸 기록 | ip_address · user_agent 저장 | 저장 안 함 (요청 한도 · reCAPTCHA 만) | 개인정보 고려해 결정 |
-| 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
 
+### 10.2 나머지 코드 대조 결과 (2026-11-04, 4장 · 13~16장 · T-132)
+
+코드를 읽어 확인했고 운영 환경에서 재현하지는 않았다. **고치지 않은 상태** — 처리하면 이 표에서 뺀다.
+
+**오픈 전 필수**
+
+| # | 기획 | 지금 코드 | 영향 |
+|---|---|---|---|
+| 1 | 15.2 · 15.7 재구독하면 즉시 복구 | 카드 재등록은 구독만 `ACTIVE` 로 바꾸고 `tenants.is_active` 를 켜지 않는다. 중단된 테넌트는 로그인도 거부되고(`auth.py`), 관리자 화면은 모든 주소에서 만료 페이지를 보여 [재구독하기] 가 결제 화면에 닿지 못한다 | 한 번 중단되면 고객이 혼자 복구할 수 없고 재결제해도 사이트가 404 |
+| 2 | 15.3 커스텀 도메인 · 15.1 BASIC 서브도메인 | 미들웨어가 주소 경로로만 테넌트를 찾고 호스트 · `X-Tenant-Slug` 를 읽지 않는다. Nginx 에 서브도메인 와일드카드가 없고, 자동 생성 설정에 443 · 인증서가 없다. 도메인 등록에 요금제 제한도 없다 | 연결 완료로 표시돼도 그 도메인에서 고객 사이트가 안 나온다. BASIC 도 신청 가능 |
+| 3 | 14.8 슈퍼 어드민 2FA 필수 | 백엔드 API 만 있고 슈퍼 어드민 앱에 2FA 화면이 없다. 켜지 않은 계정은 비밀번호만으로 로그인, 켜면 앱에서 로그인이 안 된다 | 최고 권한 계정 보호 없음 |
+| 4 | 15.7 해지 — 기간 끝에 차단, 그 뒤 30일 보관 | 차단 작업 대상이 ACTIVE · PAST_DUE 뿐이라 CANCELLED 는 기간이 끝나도 사이트가 유지된다. 삭제는 해지 신청일 + 30일 — 기간 초 해지면 보관 기간이 거의 없다. 해지 사유는 받기만 하고 버린다 | 무료 사용 · 보관 기간 미보장 |
+| 5 | 15.2 · 15.7 D+30 데이터 완전 삭제 | 해지 테넌트를 소프트 삭제만 한다. 미결제 · 체험 종료로 중단된 테넌트는 삭제 대상도 아니다 (체험 7일 규칙 없음) | 방문자 개인정보(문의 · 회원)가 기한 없이 남는다 — 파기 방식 결정 필요 (CLAUDE.md 6 소프트 삭제 원칙과 충돌) |
+| 6 | 15.4 이메일 9종 | 실제 발송은 환영 · 영수증뿐. 결제 실패 · 만료 D-7/D-3(관리자 공지만) · 중단 · 해지 · 삭제 · 도메인 활성화 메일은 템플릿만 있다 | 카드 만료 고객이 모른 채 중단된다 |
+| 7 | 16.3 약관 [보기] | 가입 화면(공통 · hospital-a)에 약관 · 방침 내용을 볼 링크가 없다. 푸터 링크도 주소를 넣어야 나온다 | 내용을 보여 주지 않고 필수 동의를 받는다 — 법률 확인 필요 |
+| 8 | 15.2 웹훅 서명 검증 필수 | `TOSS_WEBHOOK_SECRET` 이 비면 검증을 건너뛰고, 운영 설정 점검도 이 값을 보지 않는다 | 설정을 빠뜨리면 위조 결제 결과가 통과 |
+
+**기능이 동작하지 않음 · 화면 누락**
+
+| # | 기획 | 지금 코드 |
+|---|---|---|
+| 9 | 14.3 · 14.5 기능 플래그 | `AI_COPY_SUGGEST` · `AI_CHAT_EDIT` · `KAKAO_NOTIFICATION` · `DRAG_SECTION_ORDER` · `GALLERY_SECTION` 은 꺼도 효과가 없다(참조 코드 없음). `SEO_WIZARD` · `TEMPLATE_SELECT` · `SECTION_EDITOR` · `NAVER_ANALYTICS` 는 화면만 잠기고 API 는 열려 있다. `VIDEO_SECTION` 은 등록되지 않았다 |
+| 10 | AD-05 `robots_txt` | 저장만 되고 쓰이지 않는다 — `/robots.txt` 는 전체 공용 고정값. #2 뒤에 도메인별로 내보내거나 칸을 없앤다 |
+| 11 | 15.2 사이트 접근 차단 | 차단해도 공개 사이트 캐시(10분)를 비우지 않고, 방문자에게는 안내 없이 404 |
+| 12 | 14.1 · 14.2 템플릿 관리 · SA-02 · SA-06 | 슈퍼 어드민에 템플릿 관리 화면 없음. SA-02 만료일 · 방문자 · 문의 수 칸 · 업종 필터 · 정렬 없음(API 는 업종 필터 지원). SA-06 [유예처리] 없음 |
+| 13 | AD-02 · AD-03 · AD-04 · AD-08 | AD-02 [미리보기] · 이미지 원본 보존 없음. AD-03 수신 번호 [인증] 없음. AD-04 페이지당 개수 · [새로고침] · 상태별 건수(대기만 있음) · [알림톡으로 답장] 없음. AD-08 카드 [삭제] 없음 |
+| 14 | 14.8 모든 쓰기 작업 감사 로그 | 2FA 설정 · 확정(`/2fa/setup` · `/2fa/confirm`)만 기록하지 않는다. 그 밖의 슈퍼 어드민 쓰기는 모두 기록 |
+
+보안 후속(코드 수정 대기): 슈퍼 어드민 IP 제한이 위조 가능한 `X-Forwarded-For` 첫 값을 믿는 문제, uvicorn 프록시 신뢰 설정이 없어 요청 횟수 제한이 방문자 전체에 합산될 수 있는 문제.
 
 ---
 
@@ -2708,6 +2752,8 @@ async def chat_edit(body: ChatEditRequest, current_user = Depends(get_current_us
 | AI 분석 리포트 | ❌ | 월 1회 | 월 4회 |
 | AI 템플릿 추천 | ❌ | ✅ | ✅ |
 
+FREE(내부용, 3.2)는 문구 추천 월 5회, 대화형 편집 없음.
+
 **사용량 추적 테이블:**
 
 ```sql
@@ -3084,7 +3130,7 @@ CREATE TABLE announcement_reads (
 #### 기능 플래그 확인 API
 
 ```python
-# app/api/v1/endpoints/public.py
+# app/api/v1/endpoints/tenant_features.py
 # 테넌트 관리자 앱 초기화 시 호출
 GET /api/v1/tenant/features
 
@@ -3117,7 +3163,7 @@ GET /api/v1/tenant/features
 #### 테넌트 관리자 사이드바 동적 렌더링
 
 ```typescript
-// apps/admin/src/components/layout/Sidebar.tsx
+// apps/admin/src/components/layout/Sidebar.tsx · lib/navItems.ts (메뉴 ↔ 기능 키)
 // 기능 플래그에 따라 메뉴 항목 동적 노출
 
 const menuItems = [
@@ -3208,6 +3254,14 @@ GET /api/super/v1/monitoring   AI 비용 · 알림톡 사용량 · Celery 큐 ·
 GET /api/super/v1/revenue      수익 현황 (months 3~12)
 GET /api/super/v1/health       상태 확인
 GET /api/super/v1/audit-logs   감사 로그
+```
+
+#### 보기 전용 계정 API (T-130)
+
+```
+GET    /api/super/v1/tenants/{id}/viewers             보기 전용 계정 목록
+POST   /api/super/v1/tenants/{id}/viewers             추가 (임시 비밀번호는 응답에 한 번만)
+DELETE /api/super/v1/tenants/{id}/viewers/{user_id}   소프트 삭제 (관리자 계정은 404)
 ```
 
 #### 공지 API
@@ -3889,12 +3943,11 @@ TOSS_WEBHOOK_SECRET=...           # 웹훅 서명 검증 키
 # 이메일 (AWS SES)
 AWS_SES_REGION=ap-northeast-2
 AWS_SES_FROM_EMAIL=noreply@우리서비스.com
-AWS_SES_FROM_NAME=CMS 서비스
 
 # 도메인 자동화
-SSL_ADMIN_EMAIL=admin@우리서비스.com   # Let's Encrypt 관리자 이메일
-SERVICE_BASE_DOMAIN=우리서비스.com     # 서브도메인 기준 도메인
-NGINX_SITES_PATH=/etc/nginx/sites-enabled
+DOMAIN_MODE=test                       # test | live — live 만 실제 DNS · SSL · Nginx 처리
+DOMAIN_CNAME_TARGET=cms.우리서비스.com  # 고객 CNAME 대상
+NGINX_SITES_DIR=/etc/nginx/sites-enabled
 
 # 무료 체험
 TRIAL_DAYS=14                          # 무료 체험 기간 (일)
@@ -4731,10 +4784,10 @@ CREATE POLICY site_members_tenant_isolation ON site_members
 | 항목 | 처리 방식 |
 |---|---|
 | 비밀번호 저장 | bcrypt rounds=12 |
-| 연속 로그인 실패 | 5회 → 30분 잠금 (IP + 계정 기준) |
+| 연속 로그인 실패 | 계정 기준 5회 → 30분 잠금 (IP 는 Rate Limit 으로 대응, T-108) |
 | Rate Limiting | 인증 API IP당 10회/분 |
 | 이메일 마스킹 | 앞 2자리 외 `*` 처리 |
-| 재설정 토큰 | UUID, 30분 만료, 1회용 |
+| 재설정 토큰 | 무작위 토큰(`secrets.token_urlsafe`), DB 에는 SHA-256 해시만, 30분 만료, 1회용 |
 | 계정 존재 여부 노출 방지 | 없는 이메일도 "링크를 보냈어요" 동일 응답 |
 | 비밀번호 변경 보안 알림 | 변경 시 기존 이메일 + 문자로 알림 자동 발송 |
 | 휴대폰 인증 | 3분 만료, 1일 5회 제한 (스팸 방지) |

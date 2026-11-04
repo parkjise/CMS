@@ -80,6 +80,9 @@ export interface InquiryFilters {
   inquiry_type?: InquiryType | ''
   is_read?: boolean
   search?: string
+  /** 접수일 기간 (YYYY-MM-DD, 한국 날짜) */
+  from_date?: string
+  to_date?: string
 }
 
 export interface InquiryUpdate {
@@ -98,6 +101,8 @@ const cleanParams = (filters: InquiryFilters) => {
   if (filters.inquiry_type) out.inquiry_type = filters.inquiry_type
   if (typeof filters.is_read === 'boolean') out.is_read = filters.is_read
   if (filters.search) out.search = filters.search
+  if (filters.from_date) out.from_date = filters.from_date
+  if (filters.to_date) out.to_date = filters.to_date
   return out
 }
 
@@ -184,8 +189,12 @@ export function useDeleteInquiry() {
   })
 }
 
-export async function downloadInquiriesExcel() {
-  const resp = await api.get('/v1/inquiries/export', { responseType: 'blob' })
+/** 엑셀 내보내기 — 화면의 기간 필터를 그대로 적용 */
+export async function downloadInquiriesExcel(period: Pick<InquiryFilters, 'from_date' | 'to_date'> = {}) {
+  const resp = await api.get('/v1/inquiries/export', {
+    params: cleanParams(period),
+    responseType: 'blob',
+  })
   const url = window.URL.createObjectURL(new Blob([resp.data]))
   const link = document.createElement('a')
   link.href = url

@@ -20,6 +20,9 @@ from app.schemas.super_tenant import (
     TenantPlanUpdateRequest,
     TenantStatsResponse,
     TenantUpdateRequest,
+    ViewerCreate,
+    ViewerCreateResponse,
+    ViewerItem,
 )
 from app.services import super_tenant as svc
 
@@ -189,6 +192,59 @@ async def reset_password(
     return ApiResponse.ok(
         ResetPasswordResponse(admin_email=email, temporary_password=temp_password)
     )
+
+
+@router.get("/{tenant_id}/viewers", response_model=ApiResponse[list[ViewerItem]])
+async def list_viewers(
+    tenant_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    _: User = Depends(get_super_admin),
+):
+    viewers = await svc.list_viewers(db, tenant_id)
+    return ApiResponse.ok([ViewerItem.model_validate(v) for v in viewers])
+
+
+@router.post("/{tenant_id}/viewers", response_model=ApiResponse[ViewerCreateResponse])
+async def create_viewer(
+    tenant_id: uuid.UUID,
+    body: ViewerCreate,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_super_admin),
+):
+    viewer, temp_password = await svc.create_viewer(db, tenant_id, body.email)
+    await log_action(
+        db,
+        current_user,
+        action="TENANT_VIEWER_CREATED",
+        target_type="tenant",
+        target_id=tenant_id,
+        after={"email": viewer.email},
+    )
+    return ApiResponse.ok(
+        ViewerCreateResponse(
+            viewer=ViewerItem.model_validate(viewer),
+            temporary_password=temp_password,
+        )
+    )
+
+
+@router.delete("/{tenant_id}/viewers/{user_id}", response_model=ApiResponse[dict])
+async def remove_viewer(
+    tenant_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_super_admin),
+):
+    await svc.remove_viewer(db, tenant_id, user_id)
+    await log_action(
+        db,
+        current_user,
+        action="TENANT_VIEWER_REMOVED",
+        target_type="tenant",
+        target_id=tenant_id,
+        after={"user_id": str(user_id)},
+    )
+    return ApiResponse.ok({"removed": True})
 
 
 @router.get("/{tenant_id}/stats", response_model=ApiResponse[TenantStatsResponse])

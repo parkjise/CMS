@@ -1,7 +1,8 @@
 import io
 import json
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from openpyxl import Workbook
 from sqlalchemy import func, or_, select, update
@@ -19,6 +20,7 @@ from app.schemas.inquiry import (
 )
 from app.services.inquiry_fields import clean_detail
 
+KST = ZoneInfo("Asia/Seoul")
 _VALID_STATUSES = {"PENDING", "IN_PROGRESS", "DONE", "SPAM"}
 
 
@@ -28,6 +30,8 @@ async def create_inquiry(
     data: InquiryCreate,
     member_id: UUID | None = None,
     tenant: Tenant | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
 ) -> Inquiry:
     """문의 · 예약 접수.
 
@@ -46,6 +50,8 @@ async def create_inquiry(
         reserved_date=data.reserved_date,
         reserved_time=data.reserved_time,
         detail=detail,
+        ip_address=ip_address,
+        user_agent=user_agent,
         status="PENDING",
         is_read=False,
         member_id=member_id,
@@ -90,6 +96,21 @@ async def create_inquiry(
     return inquiry
 
 
+def _in_period(from_date: date | None, to_date: date | None) -> list:
+    """접수일 기간 조건 — 고객이 보는 한국 날짜 기준, 종료일 하루 전체 포함 (T-127)."""
+    conditions = []
+    if from_date:
+        conditions.append(
+            Inquiry.created_at >= datetime.combine(from_date, time.min, KST)
+        )
+    if to_date:
+        next_day = to_date + timedelta(days=1)
+        conditions.append(
+            Inquiry.created_at < datetime.combine(next_day, time.min, KST)
+        )
+    return conditions
+
+
 async def get_inquiries(
     db: AsyncSession,
     tenant_id: UUID,
@@ -99,10 +120,13 @@ async def get_inquiries(
     inquiry_type: str | None = None,
     is_read: bool | None = None,
     search: str | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
 ) -> InquiryListResponse:
     base = select(Inquiry).where(
         Inquiry.tenant_id == tenant_id,
         Inquiry.deleted_at.is_(None),
+        *_in_period(from_date, to_date),
     )
 
     if status:
@@ -230,10 +254,19 @@ def export_to_excel(inquiries: list[Inquiry]) -> bytes:
     return buf.getvalue()
 
 
-async def get_all_for_export(db: AsyncSession, tenant_id: UUID) -> list[Inquiry]:
+async def get_all_for_export(
+    db: AsyncSession,
+    tenant_id: UUID,
+    from_date: date | None = None,
+    to_date: date | None = None,
+) -> list[Inquiry]:
     result = await db.execute(
         select(Inquiry)
-        .where(Inquiry.tenant_id == tenant_id, Inquiry.deleted_at.is_(None))
+        .where(
+            Inquiry.tenant_id == tenant_id,
+            Inquiry.deleted_at.is_(None),
+            *_in_period(from_date, to_date),
+        )
         .order_by(Inquiry.created_at.desc())
     )
     return list(result.scalars().all())

@@ -7,6 +7,7 @@
  * - 페이지 키는 매니페스트에 있는 것만, 상세·글쓰기({id})는 BOARD 페이지만
  * - member/{page} 는 회원 화면을 직접 그리는 템플릿만 (T-124, 회원 기능 꺼져 있으면 404)
  */
+import { canonicalMeta } from '@/lib/seoMeta'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
@@ -81,14 +82,17 @@ export async function codeRouteMetadata(
   const resolved = await resolve(entry, params)
   if (!resolved) return { title: '페이지를 찾을 수 없습니다', robots: { index: false, follow: false } }
   if (resolved === SWITCHING) return { robots: { index: false, follow: false } }
-  if (resolved.pageKey === 'home') return {} // 메인은 [tenant_slug] 레이아웃 메타 그대로
+  // 메인은 [tenant_slug] 레이아웃 메타 그대로 + 대표 주소
+  if (resolved.pageKey === 'home') return canonicalMeta(resolved.site)
+  const path = [resolved.pageKey, resolved.detailId].filter(Boolean).join('/')
   return {
     title: `${resolved.pageTitle} | ${resolved.site.tenant.name}`,
-    // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외
-    robots:
-      (resolved.pageKey === 'consult' && resolved.detailId) || resolved.memberPage
-        ? { index: false, follow: false }
-        : undefined,
+    ...(resolved.memberPage ? {} : canonicalMeta(resolved.site, `/${path}`)),
+    // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외. 그 밖에는 키를 넣지 않는다 —
+    // undefined 도 레이아웃의 검색 노출 설정(T-129)을 덮어써 서브 페이지가 숨겨지지 않는다
+    ...((resolved.pageKey === 'consult' && resolved.detailId) || resolved.memberPage
+      ? { robots: { index: false, follow: false } }
+      : {}),
   }
 }
 

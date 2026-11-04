@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { fetchPublicSite } from '@/lib/publicSite'
+import { robotsFrom } from '@/lib/seoMeta'
 import { resolveOgImage } from '@/lib/socialMeta'
 import { buildCssVarBody } from '@/lib/theme'
 import { AuthInitializer } from '@/components/auth/AuthInitializer'
@@ -34,14 +35,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogImage = resolveOgImage(site)
   const images = ogImage ? [{ url: ogImage }] : undefined
   const url = `${getSiteUrl()}/${site.tenant.slug}`
+  // 소셜 제목 · 설명이 비어 있으면 검색용 값을 쓴다 (T-129)
+  const socialTitle = seo?.og_title || title
+  const socialDescription = seo?.og_description || description
 
   return {
     title,
     description,
-    robots: { index: true, follow: true },
+    robots: robotsFrom(seo),
     openGraph: {
-      title,
-      description,
+      title: socialTitle,
+      description: socialDescription,
       url,
       siteName: site.tenant.name,
       images,
@@ -50,8 +54,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: ogImage ? 'summary_large_image' : 'summary',
-      title,
-      description,
+      title: socialTitle,
+      description: socialDescription,
       images,
     },
     verification:

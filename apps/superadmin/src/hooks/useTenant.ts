@@ -119,6 +119,45 @@ export function useResetPassword(id: string) {
   })
 }
 
+export interface TenantViewer {
+  id: string
+  email: string
+  last_login_at: string | null
+  created_at: string
+}
+
+/** 보기 전용 계정 (T-130) */
+export function useTenantViewers(id: string) {
+  return useQuery<TenantViewer[]>({
+    queryKey: ['super', 'tenant', id, 'viewers'],
+    queryFn: async () => {
+      const { data } = await superApi.get(`/v1/tenants/${id}/viewers`)
+      return data.data
+    },
+  })
+}
+
+export function useCreateViewer(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (email: string) => {
+      const { data } = await superApi.post(`/v1/tenants/${id}/viewers`, { email })
+      return data.data as { viewer: TenantViewer; temporary_password: string }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['super', 'tenant', id, 'viewers'] }),
+  })
+}
+
+export function useRemoveViewer(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      await superApi.delete(`/v1/tenants/${id}/viewers/${userId}`)
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['super', 'tenant', id, 'viewers'] }),
+  })
+}
+
 /** 기능 토글 (낙관적 업데이트 + 실패 롤백). 백엔드가 Redis 캐시를 퍼지한다. */
 export function useToggleFeature(id: string) {
   const qc = useQueryClient()

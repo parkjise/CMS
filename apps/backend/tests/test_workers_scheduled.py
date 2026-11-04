@@ -378,3 +378,49 @@ class TestCleanupOldTemplateHistory:
                 text("DELETE FROM templates WHERE id = :t"), {"t": template_id}
             )
             await session.commit()
+
+
+# ── scrub_inquiry_client_info (T-128) ──────────────────────────────────────
+
+
+class TestScrubInquiryClientInfo:
+    @staticmethod
+    async def _set(inquiry_id: str) -> None:
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text(
+                    "UPDATE inquiries SET ip_address='203.0.113.7', user_agent='UA'"
+                    " WHERE id=:id"
+                ),
+                {"id": inquiry_id},
+            )
+            await session.commit()
+
+    @staticmethod
+    async def _get(inquiry_id: str):
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            row = await session.execute(
+                text("SELECT ip_address, user_agent, message FROM inquiries WHERE id=:id"),
+                {"id": inquiry_id},
+            )
+            return row.one()
+
+    async def test_clears_only_over_90_days_and_keeps_inquiry(self, test_tenant):
+        # PREMIUM 도 지운다 — 문의는 영구 보관이어도 IP 는 90일까지
+        await _set_tenant_plan(test_tenant["id"], "PREMIUM")
+        old_id = await _insert_inquiry(test_tenant["id"], days_ago=91)
+        recent_id = await _insert_inquiry(test_tenant["id"], days_ago=89)
+        await self._set(old_id)
+        await self._set(recent_id)
+        assert await worker._scrub_inquiry_client_info() >= 1
+        old = await self._get(old_id)
+        assert old.ip_address is None and old.user_agent is None
+        assert old.message == "테스트"
+        recent = await self._get(recent_id)
+        assert recent.ip_address == "203.0.113.7"

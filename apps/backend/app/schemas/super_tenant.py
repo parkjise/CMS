@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -23,11 +24,16 @@ class TenantListResponse(BaseModel):
     limit: int
 
 
+# DB 제약과 같은 값 (마이그레이션 0034, T-131)
+TemplateType = Literal["HOSPITAL", "PENSION", "STARTUP", "GENERAL"]
+PlanType = Literal["FREE", "BASIC", "STANDARD", "PREMIUM"]
+
+
 class TenantCreateRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     slug: str = Field(..., min_length=2, max_length=100, pattern=r"^[a-z0-9-]+$")
-    template_type: str = "GENERAL"
-    plan_type: str = "BASIC"
+    template_type: TemplateType = "GENERAL"
+    plan_type: PlanType = "BASIC"
     admin_email: EmailStr
     admin_password: str = Field(..., min_length=8, max_length=100)
     # 시작 템플릿 코드 ('TPL_HOSPITAL_A') — 주면 샘플 콘텐츠로 시작 (기획서 11.8)
@@ -56,13 +62,13 @@ class TenantCreateResponse(BaseModel):
 
 class TenantUpdateRequest(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=200)
-    template_type: str | None = None
+    template_type: TemplateType | None = None
     custom_domain: str | None = None
     is_active: bool | None = None
 
 
 class TenantPlanUpdateRequest(BaseModel):
-    plan_type: str
+    plan_type: PlanType
     plan_expires_at: datetime | None = None
 
 
@@ -76,6 +82,24 @@ class TenantStatsResponse(BaseModel):
 
 class ResetPasswordResponse(BaseModel):
     admin_email: str
+    temporary_password: str
+
+
+class ViewerCreate(BaseModel):
+    email: EmailStr
+
+
+class ViewerItem(BaseModel):
+    id: uuid.UUID
+    email: str
+    last_login_at: datetime | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ViewerCreateResponse(BaseModel):
+    viewer: ViewerItem
     temporary_password: str
 
 

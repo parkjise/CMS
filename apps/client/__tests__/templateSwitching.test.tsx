@@ -63,6 +63,13 @@ describe('코드형 템플릿 라우트 — 템플릿을 바꾼 직후 (T-037-F)
     })
   })
 
+  it('서브 페이지 메타에 robots 키를 넣지 않는다 — 레이아웃의 검색 노출 설정을 덮어쓰지 않게 (T-129)', async () => {
+    fetchPublicSite.mockResolvedValue(siteWith(CODE))
+    const meta = await codeRouteMetadata(hospitalAEntry, { tenant_slug: 'demo', path: ['about'] })
+    expect(meta).not.toHaveProperty('robots')
+    expect(meta.title).toContain('데모')
+  })
+
   it('없는 테넌트 · 없는 페이지는 여전히 404', async () => {
     fetchPublicSite.mockResolvedValue(null)
     await expect(codePage()).rejects.toThrow('NEXT_NOT_FOUND')

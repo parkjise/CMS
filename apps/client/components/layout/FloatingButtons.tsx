@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { ArrowUp, LogIn, MessageCircle, Pencil } from 'lucide-react'
-import { useClientAuthStore } from '@/lib/authStore'
+import { canEditSite, useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 import { LoginModal } from '@/components/auth/LoginModal'
 import type { FloatingPosition } from '@/lib/publicSite.types'
@@ -32,6 +32,7 @@ export function FloatingButtons({
   side = 'right',
 }: FloatingButtonsProps) {
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
+  const canEdit = useClientAuthStore(canEditSite)
   const isEditMode = useEditStore((s) => s.isEditMode)
   const enterEditMode = useEditStore((s) => s.enterEditMode)
 
@@ -60,7 +61,8 @@ export function FloatingButtons({
 
   // 편집 모드 진입 시에는 EditToolbar가 저장/종료를 담당하므로
   // 우하단 토글 버튼은 숨긴다 (중복 UI 제거).
-  const showAuthButton = !isEditMode
+  // 보기 전용 계정은 편집할 수 없으니 버튼도 없다 (T-130)
+  const showAuthButton = !isEditMode && !(isLoggedIn && !canEdit)
 
   const authLabel = !hydrated
     ? '로딩 중'

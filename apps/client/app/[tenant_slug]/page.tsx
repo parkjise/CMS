@@ -1,3 +1,4 @@
+import { canonicalMeta } from '@/lib/seoMeta'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { fetchPublicSite } from '@/lib/publicSite'
@@ -24,7 +25,8 @@ const isSwitching = (site: PublicSite): boolean =>
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const site = await fetchPublicSite((await params).tenant_slug)
   // 전환 안내 화면은 검색엔진 색인 제외 (T-037-F)
-  return site && isSwitching(site) ? { robots: { index: false, follow: false } } : {}
+  if (!site) return {}
+  return isSwitching(site) ? { robots: { index: false, follow: false } } : canonicalMeta(site)
 }
 
 export default async function TenantHomePage({ params }: Props) {

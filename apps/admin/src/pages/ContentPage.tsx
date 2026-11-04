@@ -1,3 +1,4 @@
+import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { Layers, Lock, Plus, Settings } from 'lucide-react'
@@ -48,6 +49,7 @@ export function ContentPage() {
       </div>
 
       {/* 콘텐츠 */}
+      <ReadOnlyFieldset>
       {activeTab === 'sections' && (
         <SectionsTab
           sections={sections ?? []}
@@ -56,6 +58,7 @@ export function ContentPage() {
         />
       )}
       {activeTab === 'settings' && <SettingsTab />}
+      </ReadOnlyFieldset>
     </div>
   )
 }

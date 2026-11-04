@@ -19,8 +19,12 @@ class InquiryAttachmentResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+# DB 제약과 같은 값 (마이그레이션 0034, T-131)
+InquiryType = Literal["GENERAL", "CONSULT", "RESERVATION", "PARTNERSHIP", "SYMPTOM"]
+
+
 class InquiryCreate(BaseModel):
-    inquiry_type: str = "GENERAL"
+    inquiry_type: InquiryType = "GENERAL"
     name: str = Field(..., max_length=100)
     phone: str = Field(..., max_length=20)
     email: EmailStr | None = None

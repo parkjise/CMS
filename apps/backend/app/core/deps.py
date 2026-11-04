@@ -1,7 +1,8 @@
+import re
 from collections.abc import AsyncGenerator
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -77,6 +78,32 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
     return user
+
+
+TENANT_VIEWER_ROLE = "TENANT_VIEWER"
+_READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
+# 뷰어도 할 수 있는 본인 동작 — 공지 읽음 표시
+_VIEWER_ALLOWED_WRITE = re.compile(r"/announcements/[^/]+/read$")
+
+
+async def require_tenant_write(
+    request: Request, user: User = Depends(get_current_user)
+) -> None:
+    """보기 전용 계정(TENANT_VIEWER)은 테넌트 API 를 조회만 (T-130).
+
+    라우터 단위로 걸어 새 쓰기 API 도 자동 적용된다 (api/v1/router.py).
+    """
+    if user.role != TENANT_VIEWER_ROLE or request.method in _READ_METHODS:
+        return
+    if _VIEWER_ALLOWED_WRITE.search(request.url.path):
+        return
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail={
+            "code": "FORBIDDEN",
+            "message": "보기 전용 계정은 내용을 변경할 수 없습니다.",
+        },
+    )
 
 
 async def get_tenant_id(

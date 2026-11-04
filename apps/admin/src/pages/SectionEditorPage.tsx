@@ -1,3 +1,4 @@
+import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
 import { ArrowLeft, Smartphone, Sliders } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -119,6 +120,7 @@ export function SectionEditorPage() {
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+        <ReadOnlyFieldset>
         {subTab === 'desktop' ? (
           <Form
             section={section}
@@ -133,6 +135,7 @@ export function SectionEditorPage() {
             onSubmit={handleSubmit}
           />
         )}
+        </ReadOnlyFieldset>
       </div>
     </div>
   )

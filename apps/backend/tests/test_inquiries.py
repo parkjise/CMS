@@ -1,7 +1,14 @@
 import uuid
+from datetime import UTC, datetime
+from io import BytesIO
 
 import pytest
 from httpx import AsyncClient
+from openpyxl import load_workbook
+from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
+
+from tests.conftest import _TestSession  # type: ignore
 
 
 class TestSubmitInquiry:
@@ -304,3 +311,185 @@ class TestInquiryValidation:
             },
         )
         assert resp.status_code == 200
+
+
+class TestInquiryPeriodFilter:
+    """접수일 기간 필터 — 한국 날짜 기준 (T-127)."""
+
+    _url = "/api/v1/inquiries"
+
+    @pytest.fixture
+    async def dated(self, client: AsyncClient, test_tenant: dict, test_inquiry: dict):
+        # 11-02 00:30 KST = 11-01 15:30 UTC — UTC 날짜로 자르면 전날로 잘못 들어간다
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',false)"))
+            await s.execute(
+                text("UPDATE inquiries SET created_at=:at WHERE id=:id"),
+                {"at": datetime(2026, 11, 1, 15, 30, tzinfo=UTC), "id": test_inquiry["id"]},
+            )
+            await s.commit()
+        return test_inquiry
+
+    async def _total(self, client, headers, **params) -> int:
+        resp = await client.get(self._url, headers=headers, params=params)
+        assert resp.status_code == 200
+        return resp.json()["data"]["total"]
+
+    async def test_korean_date_boundary(self, client, auth_headers, dated):
+        day = {"from_date": "2026-11-02", "to_date": "2026-11-02"}
+        assert await self._total(client, auth_headers, **day) == 1
+        prev = {"from_date": "2026-11-01", "to_date": "2026-11-01"}
+        assert await self._total(client, auth_headers, **prev) == 0
+
+    async def test_open_ended(self, client, auth_headers, dated):
+        assert await self._total(client, auth_headers, from_date="2026-11-03") == 0
+        assert await self._total(client, auth_headers, to_date="2026-11-02") == 1
+
+    async def test_reversed_period_400(self, client, auth_headers):
+        resp = await client.get(
+            self._url,
+            headers=auth_headers,
+            params={"from_date": "2026-11-03", "to_date": "2026-11-01"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["field"] == "from_date"
+
+    async def test_bad_date_400(self, client, auth_headers):
+        resp = await client.get(
+            self._url, headers=auth_headers, params={"from_date": "어제"}
+        )
+        assert resp.status_code == 400
+
+    async def test_export_uses_period(self, client, auth_headers, dated):
+        url = f"{self._url}/export"
+        hit = await client.get(
+            url, headers=auth_headers, params={"from_date": "2026-11-02"}
+        )
+        miss = await client.get(
+            url, headers=auth_headers, params={"from_date": "2026-11-03"}
+        )
+        assert hit.status_code == miss.status_code == 200
+        rows = lambda r: load_workbook(BytesIO(r.content)).active.max_row  # noqa: E731
+        assert rows(hit) == rows(miss) + 1
+        reversed_period = {"from_date": "2026-11-03", "to_date": "2026-11-01"}
+        bad = await client.get(url, headers=auth_headers, params=reversed_period)
+        assert bad.status_code == 400
+
+
+class TestInquiryClientInfo:
+    """접수 IP · 브라우저 정보 저장 (T-128)."""
+
+    _body = {
+        "name": "홍길동",
+        "phone": "010-1234-5678",
+        "message": "테스트 문의입니다. 답변 부탁드립니다.",
+    }
+
+    @staticmethod
+    async def _row(inquiry_id: str):
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',false)"))
+            result = await s.execute(
+                text("SELECT ip_address, user_agent FROM inquiries WHERE id=:id"),
+                {"id": inquiry_id},
+            )
+            return result.one()
+
+    async def _submit(self, client, slug: str, **headers) -> str:
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": slug},
+            json=self._body,
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        return resp.json()["data"]["inquiry_id"]
+
+    async def test_saves_real_ip_not_forwarded_for(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client,
+            test_tenant["slug"],
+            **{"X-Real-IP": "203.0.113.7", "X-Forwarded-For": "1.2.3.4"},
+        )
+        row = await self._row(inquiry_id)
+        assert row.ip_address == "203.0.113.7"
+
+    async def test_bad_ip_is_not_saved(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"X-Real-IP": "<script>"}
+        )
+        assert (await self._row(inquiry_id)).ip_address is None
+
+    async def test_long_user_agent_is_cut(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"User-Agent": "a" * 600}
+        )
+        assert len((await self._row(inquiry_id)).user_agent) == 500
+
+    async def test_board_post_saves_ip(self, client, test_tenant):
+        resp = await client.post(
+            "/api/public/inquiries/board",
+            params={"tenant_slug": test_tenant["slug"]},
+            headers={"X-Real-IP": "203.0.113.8"},
+            json={
+                "name": "홍길동",
+                "phone": "010-1234-5678",
+                "subject": "상담 제목",
+                "message": "상담 내용입니다. 답변 부탁드립니다.",
+                "password": "abcd1234",
+                "is_secret": False,
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        assert (await self._row(resp.json()["data"]["post_id"])).ip_address == "203.0.113.8"
+
+    async def test_not_exposed_in_admin_api(self, client, auth_headers, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"X-Real-IP": "203.0.113.9"}
+        )
+        detail = await client.get(f"/api/v1/inquiries/{inquiry_id}", headers=auth_headers)
+        listed = await client.get("/api/v1/inquiries", headers=auth_headers)
+        for resp in (detail, listed):
+            assert resp.status_code == 200
+            assert "203.0.113.9" not in resp.text
+            assert "ip_address" not in resp.text
+            assert "user_agent" not in resp.text
+
+
+class TestInquiryValueChecks:
+    """허용값 검사 · DB 제약 (T-131)."""
+
+    async def test_unknown_inquiry_type_400(self, client, test_tenant):
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": test_tenant["slug"]},
+            json={
+                "inquiry_type": "HACK",
+                "name": "홍길동",
+                "phone": "010-1234-5678",
+                "message": "테스트 문의입니다. 답변 부탁드립니다.",
+            },
+        )
+        assert resp.status_code == 400
+
+    @pytest.mark.parametrize(
+        ("sql", "constraint"),
+        [
+            ("UPDATE inquiries SET status='X' WHERE id=:id", "ck_inquiries_status"),
+            ("UPDATE inquiries SET inquiry_type='X' WHERE id=:id", "ck_inquiries_inquiry_type"),
+        ],
+    )
+    async def test_db_rejects_bad_value(self, test_inquiry, sql, constraint):
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',true)"))
+            with pytest.raises(IntegrityError, match=constraint):
+                await s.execute(text(sql), {"id": test_inquiry["id"]})
+            await s.rollback()
+
+    async def test_indexes_exist(self):
+        async with _TestSession() as s:
+            rows = await s.execute(
+                text("SELECT indexname FROM pg_indexes WHERE tablename='inquiries'")
+            )
+            names = {r[0] for r in rows}
+        assert {"idx_inquiries_tenant_status", "idx_inquiries_tenant_created"} <= names

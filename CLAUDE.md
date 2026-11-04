@@ -238,7 +238,7 @@ cms-project/                          ← 프로젝트 루트 (여기서 모든 
 | CSS (코드형 템플릿 전용) | sass | 1.x — `apps/client/templates/{key}/styles/` 에서만, 템플릿별 `styling` 선택 (기획서 11.7) |
 | 서버 상태 관리 | @tanstack/react-query | 5.x |
 | 클라이언트 상태 | zustand | 5.x |
-| 드래그앤드롭 | @dnd-kit/react | 0.4.x |
+| 드래그앤드롭 | @dnd-kit/core · @dnd-kit/sortable | 6.x · 10.x |
 | HTTP 클라이언트 | axios | 1.x |
 | 폼 관리 | react-hook-form | 7.x |
 | 유효성 검사 | zod | 3.x |
@@ -427,7 +427,7 @@ export default SectionCard
 
 # 공개 API (인증 불필요 - 고객 홈페이지용)
 /api/public/site/{tenant_slug}/...
-/api/public/inquiries/submit/...
+/api/public/inquiries?tenant_slug={tenant_slug}
 ```
 
 ---

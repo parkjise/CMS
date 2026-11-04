@@ -256,3 +256,26 @@ describe('editStore', () => {
     })
   })
 })
+
+// 보기 전용 계정은 편집 모드에 들어갈 수 없다 (T-130)
+describe('보기 전용 계정', () => {
+  const viewer = { role: 'TENANT_VIEWER' } as never
+
+  beforeEach(() => {
+    useEditStore.setState({ isEditMode: false })
+    useClientAuthStore.setState({ user: viewer, isLoggedIn: true, isInitialized: true })
+  })
+
+  it('켜기 · 토글이 동작하지 않는다', () => {
+    useEditStore.getState().enterEditMode()
+    useEditStore.getState().toggleEditMode()
+    expect(useEditStore.getState().isEditMode).toBe(false)
+  })
+
+  it('탭에 기억된 편집 모드를 되살리지 않고 지운다', () => {
+    sessionStorage.setItem(EDIT_MODE_SESSION_KEY, '1')
+    useEditStore.getState().restoreEditMode()
+    expect(useEditStore.getState().isEditMode).toBe(false)
+    expect(sessionStorage.getItem(EDIT_MODE_SESSION_KEY)).toBeNull()
+  })
+})

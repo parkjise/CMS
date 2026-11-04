@@ -39,6 +39,10 @@ celery_app.conf.update(
             "task": "app.workers.scheduled.reset_monthly_notification_count",
             "schedule": crontab(day_of_month=1, hour=0, minute=0),  # 매월 1일 00:00
         },
+        "scrub-inquiry-client-info-daily-0215": {
+            "task": "app.workers.scheduled.scrub_inquiry_client_info",
+            "schedule": crontab(hour=2, minute=15),  # 매일 02:15 (90일 지난 IP · UA)
+        },
         "cleanup-old-inquiries-daily-2am": {
             "task": "app.workers.scheduled.cleanup_old_inquiries",
             "schedule": crontab(hour=2, minute=0),  # 매일 02:00

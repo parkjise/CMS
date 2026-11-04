@@ -19,6 +19,10 @@ interface ClientAuthStore {
   logout: () => Promise<void>
 }
 
+/** 편집 모드를 쓸 수 있는 계정 — 보기 전용 계정(TENANT_VIEWER)은 제외 (T-130) */
+export const canEditSite = (s: Pick<ClientAuthStore, 'isLoggedIn' | 'user'>) =>
+  s.isLoggedIn && s.user?.role !== 'TENANT_VIEWER'
+
 export const useClientAuthStore = create<ClientAuthStore>((set) => ({
   user: null,
   isLoggedIn: false,

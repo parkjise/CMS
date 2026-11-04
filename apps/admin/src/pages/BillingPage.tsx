@@ -1,3 +1,4 @@
+import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
 import { SubscriptionTab } from '@/components/billing/tabs/SubscriptionTab'
 import { PaymentMethodTab } from '@/components/billing/tabs/PaymentMethodTab'
@@ -42,10 +43,12 @@ export function BillingPage() {
         ))}
       </div>
 
-      {tab === 'subscription' && <SubscriptionTab />}
-      {tab === 'method' && <PaymentMethodTab />}
+      <ReadOnlyFieldset>
+        {tab === 'subscription' && <SubscriptionTab />}
+        {tab === 'method' && <PaymentMethodTab />}
+        {tab === 'domain' && <DomainTab />}
+      </ReadOnlyFieldset>
       {tab === 'history' && <PaymentHistoryTab />}
-      {tab === 'domain' && <DomainTab />}
     </div>
   )
 }

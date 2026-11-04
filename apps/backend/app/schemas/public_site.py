@@ -60,6 +60,10 @@ class PublicSeoResponse(BaseModel):
     google_analytics_id: str | None
     naver_site_verification: str | None
     google_site_verification: str | None
+    og_title: str | None = None
+    og_description: str | None = None
+    canonical_url: str | None = None
+    robots: str = "index,follow"
     keywords: list[str] = []
 
     model_config = {"from_attributes": True}

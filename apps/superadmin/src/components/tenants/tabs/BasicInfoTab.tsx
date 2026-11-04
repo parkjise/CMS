@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { PLAN_TYPES } from '@/lib/plans'
+import { ViewersSection } from '@/components/tenants/ViewersSection'
 import {
   useChangePlan,
   useResetPassword,
@@ -102,6 +103,8 @@ export function BasicInfoTab({ tenant }: Props) {
           비밀번호 초기화
         </Button>
       </section>
+
+      <ViewersSection tenantId={tenant.id} />
     </div>
   )
 }

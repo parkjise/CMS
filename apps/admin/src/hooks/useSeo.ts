@@ -11,6 +11,10 @@ export interface SeoSettings {
   google_analytics_id: string | null
   naver_site_verification: string | null
   google_site_verification: string | null
+  og_title: string | null
+  og_description: string | null
+  canonical_url: string | null
+  robots: string
   keywords: string[]
   updated_at: string
 }
@@ -23,6 +27,10 @@ export interface SeoSettingsUpdate {
   google_analytics_id?: string | null
   naver_site_verification?: string | null
   google_site_verification?: string | null
+  og_title?: string | null
+  og_description?: string | null
+  canonical_url?: string | null
+  robots?: string
   /** 생략 = 바꾸지 않음, [] = 모두 지움 (T-040-A) */
   keywords?: string[]
 }

@@ -297,3 +297,39 @@ class TestBatchSaveListField:
             json=_body(test_section["id"], "notes", "[" + "a" * 1000),
         )
         assert resp.json()["data"]["failed_count"] == 1
+
+
+class TestBatchSaveFieldLimits:
+    """편집 모드 저장도 같은 글자 수 한도 (T-127)."""
+
+    _url = "/api/v1/edit/batch-save"
+
+    async def _save(self, client, headers, section_id, field, value) -> dict:
+        resp = await client.post(
+            self._url, headers=headers, json=_body(section_id, field, value)
+        )
+        assert resp.status_code == 200
+        return resp.json()["data"]
+
+    async def test_over_limit_fails(self, client, auth_headers, test_section):
+        sid = test_section["id"]
+        cases = [("sub_copy", "a" * 81), ("cta_text", "a" * 21), ("cta_url", "/" + "a" * 200)]
+        for field, value in cases:
+            assert (await self._save(client, auth_headers, sid, field, value))["failed_count"] == 1
+
+    async def test_rich_counts_plain_text(self, client, auth_headers, test_section):
+        resp = await client.post(
+            self._url,
+            headers=auth_headers,
+            json={
+                "changes": [
+                    {
+                        "section_id": test_section["id"],
+                        "field": "sub_copy",
+                        "value": "<strong>" + "a" * 81 + "</strong>",
+                        "format": "rich",
+                    }
+                ]
+            },
+        )
+        assert resp.json()["data"]["failed_count"] == 1
