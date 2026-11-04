@@ -6,6 +6,7 @@ import pytest
 from httpx import AsyncClient
 from openpyxl import load_workbook
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from tests.conftest import _TestSession  # type: ignore
 
@@ -453,3 +454,42 @@ class TestInquiryClientInfo:
             assert "203.0.113.9" not in resp.text
             assert "ip_address" not in resp.text
             assert "user_agent" not in resp.text
+
+
+class TestInquiryValueChecks:
+    """허용값 검사 · DB 제약 (T-131)."""
+
+    async def test_unknown_inquiry_type_400(self, client, test_tenant):
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": test_tenant["slug"]},
+            json={
+                "inquiry_type": "HACK",
+                "name": "홍길동",
+                "phone": "010-1234-5678",
+                "message": "테스트 문의입니다. 답변 부탁드립니다.",
+            },
+        )
+        assert resp.status_code == 400
+
+    @pytest.mark.parametrize(
+        ("sql", "constraint"),
+        [
+            ("UPDATE inquiries SET status='X' WHERE id=:id", "ck_inquiries_status"),
+            ("UPDATE inquiries SET inquiry_type='X' WHERE id=:id", "ck_inquiries_inquiry_type"),
+        ],
+    )
+    async def test_db_rejects_bad_value(self, test_inquiry, sql, constraint):
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',true)"))
+            with pytest.raises(IntegrityError, match=constraint):
+                await s.execute(text(sql), {"id": test_inquiry["id"]})
+            await s.rollback()
+
+    async def test_indexes_exist(self):
+        async with _TestSession() as s:
+            rows = await s.execute(
+                text("SELECT indexname FROM pg_indexes WHERE tablename='inquiries'")
+            )
+            names = {r[0] for r in rows}
+        assert {"idx_inquiries_tenant_status", "idx_inquiries_tenant_created"} <= names

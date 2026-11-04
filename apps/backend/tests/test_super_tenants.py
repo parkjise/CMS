@@ -5,6 +5,7 @@ import uuid
 import pytest
 from httpx import AsyncClient
 from sqlalchemy import text
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import create_access_token
 from tests.conftest import _TestSession  # type: ignore
@@ -455,3 +456,32 @@ class TestTenantViewers:
     async def test_unknown_tenant_404(self, client, super_headers):
         resp = await client.get(self._url(str(uuid.uuid4())), headers=super_headers)
         assert resp.status_code == 404
+
+
+class TestTenantValueChecks:
+    """허용값 검사 (T-131)."""
+
+    @pytest.mark.parametrize("field", ["template_type", "plan_type"])
+    async def test_unknown_value_400(self, client, super_headers, field):
+        resp = await client.post(
+            "/api/super/v1/tenants",
+            headers=super_headers,
+            json={
+                "name": "테스트",
+                "slug": f"t-{uuid.uuid4().hex[:8]}",
+                "admin_email": "a@example.com",
+                "admin_password": "password123",
+                field: "NOPE",
+            },
+        )
+        assert resp.status_code == 400
+
+    async def test_db_rejects_bad_role(self, test_user):
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',true)"))
+            with pytest.raises(IntegrityError, match="ck_users_role"):
+                await s.execute(
+                    text("UPDATE users SET role='OWNER' WHERE id=:id"),
+                    {"id": test_user["id"]},
+                )
+            await s.rollback()

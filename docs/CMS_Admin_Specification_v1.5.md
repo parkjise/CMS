@@ -3,7 +3,7 @@
 
 **문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-125-I 반영, API · DB · 요금제 코드 대조 — 10.1 미해결 목록) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
+**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-131 반영, API · DB · 요금제 코드 대조 — 10.1) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -865,7 +865,7 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 | page | integer | 1 | 페이지 번호 |
 | limit | integer | 20 | 페이지당 개수 (최대 100) |
 | status | string | all | `PENDING`, `IN_PROGRESS`, `DONE` |
-| inquiry_type | string | all | `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `GENERAL` |
+| inquiry_type | string | all | `GENERAL`, `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `SYMPTOM` |
 | is_read | boolean | - | 읽음 여부 |
 | search | string | - | 검색어 |
 
@@ -1188,7 +1188,14 @@ CREATE TABLE inquiries (
   PRIMARY KEY (id)
 );
 
--- 실제 인덱스: tenant_id, member_id, idx_inquiries_tenant_board (상태 · 등록일 복합 인덱스는 없음 — 10.1 #8)
+-- 값 제약 (마이그레이션 0034, T-131)
+-- tenants.template_type: HOSPITAL · PENSION · STARTUP · GENERAL
+-- tenants.plan_type: FREE · BASIC · STANDARD · PREMIUM
+-- users.role: SUPER_ADMIN · TENANT_ADMIN · TENANT_VIEWER
+-- inquiries.inquiry_type: GENERAL · CONSULT · RESERVATION · PARTNERSHIP · SYMPTOM
+-- inquiries.status: PENDING · IN_PROGRESS · DONE · SPAM
+CREATE INDEX idx_inquiries_tenant_status ON inquiries(tenant_id, status);
+CREATE INDEX idx_inquiries_tenant_created ON inquiries(tenant_id, created_at DESC);
 
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY inquiries_tenant_isolation ON inquiries
@@ -1849,14 +1856,9 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | 5 | 인스타그램 API 연동 | Instagram Basic Display API | URL 유효성만 확인 | 2주차 | 프론트 |
 | 6 | BASIC 플랜 섹션 수 제한 | 서버에서 강제 차단 | 프론트 UI만 제한 | 1주차 | 백엔드 |
 
-### 10.1 코드 대조 미해결 목록 (2026-11-04)
+### 10.1 코드 대조 결과 (2026-11-04)
 
-기획서와 코드가 다른데 어느 쪽이 맞는지 정해야 하거나, 코드에 없는 항목이다. 이 표의 코드는 고치지 않았다.
-
-| # | 항목 | 기획서 | 코드 | 필요한 것 |
-|---|---|---|---|---|
-| 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
-
+대조에서 찾은 항목은 모두 처리했다 — PREMIUM 189,000원 · FREE 내부용 유지(T-126), 문의 기간 필터 · 섹션 글자 수(T-127), 문의 IP · 브라우저 정보(T-128), SEO 칸(T-129), TENANT_VIEWER(T-130), DB 값 제약 · 문의 인덱스(T-131). 4장 화면과 13~16장의 상세 동작 규칙은 전체를 대조하지 않았다.
 
 ---
 
