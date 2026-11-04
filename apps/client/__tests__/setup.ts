@@ -31,6 +31,17 @@ Object.defineProperty(window, 'localStorage', {
   value: createStorageMock(),
 })
 
+// jsdom 에 없는 레이아웃 API — 편집 모드 글자 끝 위치 재기 (T-125-H)
+vi.stubGlobal(
+  'ResizeObserver',
+  class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  },
+)
+Range.prototype.getBoundingClientRect = () => new DOMRect()
+
 // next/font 는 빌드 시 처리되므로 테스트에서는 클래스 이름만 흉내 낸다 (코드형 템플릿 웹폰트)
 vi.mock('next/font/google', () => {
   const font = () => ({ className: 'font-mock', variable: 'font-variable-mock', style: { fontFamily: 'mock' } })
