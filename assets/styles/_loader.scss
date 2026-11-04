@@ -35,6 +35,7 @@ html:has(.loader) body {
     letter-spacing: 15px;
     text-transform: uppercase;
     color: #fff;
+    transition: opacity 0.3s ease;
 
     span {
       animation: loader-blink 1s infinite alternate;
@@ -44,6 +45,14 @@ html:has(.loader) body {
           animation-delay: #{($i - 1) * 0.1}s;
         }
       }
+    }
+  }
+
+  // 팝업 열림 대기 중: 로딩 텍스트 숨김 (팝업을 가리거나 시선을 분산시키지 않음)
+  &--waiting-popup {
+    .loader__text {
+      opacity: 0;
+      visibility: hidden;
     }
   }
 }
