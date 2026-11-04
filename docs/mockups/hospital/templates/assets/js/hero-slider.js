@@ -83,19 +83,23 @@ document.addEventListener('includes:loaded', () => {
         updateNumbers(swiper)
         resetContent()
 
+        const startHeroMotion = () => {
+          animateContent(swiper)
+          swiper.autoplay.start()
+          swiper.slides[swiper.activeIndex]?.querySelector('video')?.play().catch(() => {})
+        }
+
         // 팝업이 떠 있는 경우(mainPopupGate): 메인 슬라이더 정지 및 대기 후, 팝업 닫히면 작동
         if (window.mainPopupGate && window.mainPopupGate.isOpen()) {
           swiper.autoplay.stop()
           swiper.slides[swiper.activeIndex]?.querySelector('video')?.pause()
           if (fill) fill.style.transform = 'scaleX(0)'
+
           window.mainPopupGate.then(() => {
-            animateContent(swiper)
-            swiper.autoplay.start()
-            swiper.slides[swiper.activeIndex]?.querySelector('video')?.play().catch(() => {})
+            startHeroMotion()
           })
         } else {
-          animateContent(swiper)
-          swiper.slides[swiper.activeIndex]?.querySelector('video')?.play().catch(() => {})
+          startHeroMotion()
         }
       },
       slideChange: updateNumbers,

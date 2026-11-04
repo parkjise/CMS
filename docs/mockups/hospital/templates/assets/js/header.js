@@ -75,7 +75,8 @@ document.addEventListener('includes:loaded', () => {
       document.body.style.overflow = open ? 'hidden' : ''
     }
 
-    if (nav) {
+    // 모바일 전용 단순 nav 토글 (현대 스타일 전체메뉴 allMenu가 없을 때만 폴백 동작)
+    if (nav && !allMenu) {
       nav.classList.toggle('header__nav--open', open)
     }
   }
