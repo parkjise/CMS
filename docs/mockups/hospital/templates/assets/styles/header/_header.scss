@@ -96,11 +96,13 @@
   &__menu {
     @include flex(stretch, start, 0, column);
     @include lg {
-      @include flex(center, start, 44px);
+      @include flex(center, start, clamp(16px, 2.2vw, 44px));
+      flex-wrap: nowrap;
     }
   }
 
   &__menu-item {
+    flex-shrink: 0;
     @include lg {
       position: relative;
       padding-block: 26px; // 80px 높이의 헤더 영역 전체를 호버 가능하게

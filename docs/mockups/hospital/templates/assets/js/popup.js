@@ -69,7 +69,10 @@ if (!isPopupHidden()) {
 document.addEventListener('includes:loaded', () => {
   const popupWrap = document.getElementById('mainPopup')
   const popupBg = document.getElementById('mainPopupBg')
-  if (!popupWrap) return
+  if (!popupWrap) {
+    if (window.mainPopupGate) window.mainPopupGate.close()
+    return
+  }
 
   // 팝업 열기 (딤 배경 + 팝업 래퍼)
   const showPopup = () => {
@@ -85,7 +88,7 @@ document.addEventListener('includes:loaded', () => {
     })
   }
 
-  // 팝업 닫기 (딤 제거 + 본문 모션 게이트 해제)
+  // 팝업 닫기 (딤 제거 + 로딩 화면 및 본문 모션 게이트 해제)
   const closePopup = () => {
     if (popupBg) popupBg.classList.remove('is-visible')
     popupWrap.classList.remove('is-visible')
@@ -93,9 +96,10 @@ document.addEventListener('includes:loaded', () => {
     setTimeout(() => {
       if (popupBg) popupBg.style.display = 'none'
       popupWrap.style.display = 'none'
-      // 메인 팝업 게이트 해제 → 메인 슬라이더 등 후속 모션 시작
-      window.mainPopupGate.close()
-    }, 350)
+      // 메인 팝업 게이트 해제 → 로딩 화면 진행 및 메인 슬라이더 후속 모션 시작
+      if (window.mainPopupGate) window.mainPopupGate.close()
+      window.dispatchEvent(new CustomEvent('mainPopup:closed'))
+    }, 250)
   }
 
   // 오늘 하루 보지 않기 저장 (24시간)

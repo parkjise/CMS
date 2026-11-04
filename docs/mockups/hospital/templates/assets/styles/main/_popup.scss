@@ -8,15 +8,13 @@
 .main-popup-bg {
   position: fixed;
   inset: 0;
-  z-index: 1040;
+  z-index: 10040; // 로딩 화면(9999)보다 위
   background-color: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   opacity: 0;
   visibility: hidden;
-  transition:
-    opacity 0.3s ease,
-    visibility 0.3s ease;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
   cursor: pointer;
 
   &.is-visible {
@@ -29,24 +27,19 @@
 .main-popup-wrap {
   position: fixed;
   top: 50%;
-  right: clamp(24px, 9vw, 200px);
+  right: clamp(24px, 4vw, 50px);
   left: auto;
   bottom: auto;
   transform: translateY(-50%);
-  z-index: 1050;
+  z-index: 10050; // 로딩 화면 및 딤 배경보다 위
   width: min(360px, calc(100vw - 40px));
   border-radius: 20px;
   overflow: hidden;
   background-color: #ffffff;
-  box-shadow:
-    0 24px 60px rgba(0, 0, 0, 0.35),
-    0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.1);
   opacity: 0;
   visibility: hidden;
-  transition:
-    opacity 0.35s ease,
-    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-    visibility 0.35s;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
 
   &.is-visible {
     opacity: 1;
@@ -157,13 +150,13 @@
     display: block;
   }
 
-  input:checked ~ & {
+  input:checked~& {
     color: var(--color-primary, #002c5f);
     transform: scale(1.08);
   }
 }
 
-input:checked ~ .main-popup__check-text {
+input:checked~.main-popup__check-text {
   color: #111111;
   font-weight: 600;
 }
