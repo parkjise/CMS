@@ -17,6 +17,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.section import Section, SectionSetting
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
+from app.services import feature as feature_service
 from app.services import site_cache
 
 HOME_PAGE = "home"
@@ -115,8 +116,11 @@ async def get_limits(db: AsyncSession, tenant_id: UUID) -> SectionLimits:
     plan = await _plan_type(db, tenant_id)
     count = await _home_count(db, tenant_id)
     limit = SECTION_LIMITS.get(plan, SECTION_LIMITS["BASIC"])
+    gallery_on = await feature_service.is_enabled(db, tenant_id, "GALLERY_SECTION")
     types = [
-        {"section_type": t, "label": label} for t, label in THEME_SECTION_TYPES.items()
+        {"section_type": t, "label": label}
+        for t, label in THEME_SECTION_TYPES.items()
+        if t != "GALLERY" or gallery_on
     ]
 
     if await _uses_code_template(db, tenant_id):

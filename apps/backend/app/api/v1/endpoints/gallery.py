@@ -4,7 +4,12 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.models.gallery import GalleryItem
 from app.models.tenant import Tenant
 from app.models.user import User
@@ -21,7 +26,11 @@ from app.workers.image import generate_thumbnail
 router = APIRouter(tags=["gallery"])
 
 
-@router.post("/upload/gallery", response_model=ApiResponse[GalleryUploadResponse])
+@router.post(
+    "/upload/gallery",
+    response_model=ApiResponse[GalleryUploadResponse],
+    dependencies=[Depends(require_feature("GALLERY_SECTION"))],
+)
 async def upload_gallery(
     files: list[UploadFile] = File(...),
     section_id: UUID = Form(...),
@@ -120,7 +129,11 @@ async def list_gallery(
     return ApiResponse.ok([GalleryItemResponse.model_validate(i) for i in items])
 
 
-@router.patch("/gallery/order", response_model=ApiResponse[None])
+@router.patch(
+    "/gallery/order",
+    response_model=ApiResponse[None],
+    dependencies=[Depends(require_feature("GALLERY_SECTION"))],
+)
 async def reorder_gallery(
     body: GalleryOrderUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
@@ -131,7 +144,11 @@ async def reorder_gallery(
     return ApiResponse.ok(None)
 
 
-@router.delete("/gallery/{item_id}", response_model=ApiResponse[None])
+@router.delete(
+    "/gallery/{item_id}",
+    response_model=ApiResponse[None],
+    dependencies=[Depends(require_feature("GALLERY_SECTION"))],
+)
 async def delete_gallery_item(
     item_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),

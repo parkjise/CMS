@@ -4,7 +4,12 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.deps import get_current_user, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.core.redis import get_redis
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -15,6 +20,7 @@ from app.schemas.section import (
     SectionResponse,
     SectionUpdate,
 )
+from app.services import feature as feature_service
 from app.services import section as section_service
 from app.services import section_manage, site_cache
 
@@ -71,6 +77,13 @@ async def create_section(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     """섹션 추가 — 한도 초과 422 PLAN_LIMIT_EXCEEDED (기획서 AD-02, T-037-A)"""
+    if body.section_type == "GALLERY" and not await feature_service.is_enabled(
+        db, tenant_id, "GALLERY_SECTION"
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="이 기능은 현재 비활성화되어 있습니다.",
+        )
     try:
         section_id = await section_manage.add_section(
             db, tenant_id, body.section_type, body.label
@@ -117,7 +130,11 @@ async def get_section(
     return ApiResponse.ok(SectionResponse.model_validate(section))
 
 
-@router.patch("/order", response_model=ApiResponse[None])
+@router.patch(
+    "/order",
+    response_model=ApiResponse[None],
+    dependencies=[Depends(require_feature("DRAG_SECTION_ORDER"))],
+)
 async def reorder_sections(
     body: SectionOrderUpdate,
     db: AsyncSession = Depends(get_db_with_rls),

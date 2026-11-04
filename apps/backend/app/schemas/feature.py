@@ -139,6 +139,8 @@ class TenantFeatureItem(BaseModel):
     is_active: bool
     is_enabled: bool
     enabled_at: datetime | None
+    # 끌 수 없는 기본 기능 (T-138)
+    always_on: bool = False
 
     model_config = {"from_attributes": True}
 

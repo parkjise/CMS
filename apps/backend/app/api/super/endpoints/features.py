@@ -193,6 +193,7 @@ async def list_tenant_features(
                     is_active=row.feature.is_active,
                     is_enabled=row.is_enabled,
                     enabled_at=row.enabled_at,
+                    always_on=row.feature.key in svc.ALWAYS_ON_FEATURES,
                 )
                 for row in rows
             ],
@@ -239,6 +240,7 @@ async def toggle_tenant_feature(
             is_active=feature.is_active,
             is_enabled=tf.is_enabled,
             enabled_at=tf.enabled_at,
+            always_on=feature.key in svc.ALWAYS_ON_FEATURES,
         )
     )
 

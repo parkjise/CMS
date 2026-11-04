@@ -11,8 +11,8 @@ import {
   X,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { featureOn, useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
-import { useClientAuthStore } from '@/lib/authStore'
 import { AiEditPanel } from '@/components/ai/AiEditPanel'
 import { ExitConfirmDialog } from '@/components/layout/ExitConfirmDialog'
 
@@ -25,6 +25,7 @@ interface EditToolbarProps {
 
 export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
   const isEditMode = useEditStore((s) => s.isEditMode)
+  const canAiChat = useClientAuthStore(featureOn('AI_CHAT_EDIT'))
   const pendingChanges = useEditStore((s) => s.pendingChanges)
   const isDirty = useEditStore((s) => s.isDirty)
   const saveAll = useEditStore((s) => s.saveAll)
@@ -180,16 +181,18 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
             <span className="hidden sm:inline">미리보기</span>
           </button>
 
-          <button
-            type="button"
-            onClick={toggleAiPanel}
-            aria-label="AI 어시스턴트"
-            aria-pressed={isAiPanelOpen}
-            className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
-          >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="hidden sm:inline">AI 어시스턴트</span>
-          </button>
+          {canAiChat && (
+            <button
+              type="button"
+              onClick={toggleAiPanel}
+              aria-label="AI 어시스턴트"
+              aria-pressed={isAiPanelOpen}
+              className="inline-flex items-center gap-1.5 rounded-[var(--border-radius-base)] bg-[var(--color-background)] px-3 py-1.5 text-xs font-medium text-[color:var(--color-text-primary)] transition hover:bg-[var(--color-surface)]"
+            >
+              <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
+              <span className="hidden sm:inline">AI 어시스턴트</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -234,7 +237,7 @@ export function EditToolbar({ sampleCount = 0 }: EditToolbarProps = {}) {
         onExit={exitEditMode}
       />
 
-      <AiEditPanel />
+      {canAiChat && <AiEditPanel />}
     </>
   )
 }

@@ -262,6 +262,9 @@ async def change_plan(
     tenant.plan_expires_at = plan_expires_at
     await db.commit()
     await db.refresh(tenant)
+    from app.services import feature as feature_service
+
+    await feature_service.invalidate_cache(tenant_id)  # 요금제로 기본값이 달라진다
     return tenant, before, {"plan_type": plan_type}
 
 

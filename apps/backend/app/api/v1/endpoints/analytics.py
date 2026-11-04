@@ -5,7 +5,13 @@ from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.client_info import client_ip
-from app.core.deps import get_current_user, get_db, get_db_with_rls, get_tenant_id
+from app.core.deps import (
+    get_current_user,
+    get_db,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
 from app.models.tenant import Tenant
 from app.models.user import User
 from app.schemas.common import ApiResponse
@@ -87,7 +93,11 @@ async def record_pageview(
     )
 
 
-@router.get("/summary", response_model=ApiResponse[dict])
+@router.get(
+    "/summary",
+    response_model=ApiResponse[dict],
+    dependencies=[Depends(require_feature("NAVER_ANALYTICS"))],
+)
 async def get_summary(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
@@ -97,7 +107,11 @@ async def get_summary(
     return ApiResponse.ok(result)
 
 
-@router.get("/timeseries", response_model=ApiResponse[dict])
+@router.get(
+    "/timeseries",
+    response_model=ApiResponse[dict],
+    dependencies=[Depends(require_feature("NAVER_ANALYTICS"))],
+)
 async def get_timeseries(
     days: int = Query(default=7, ge=1, le=365),
     db: AsyncSession = Depends(get_db_with_rls),

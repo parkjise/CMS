@@ -41,7 +41,11 @@ async def get_usage(
     return ApiResponse.ok(result)
 
 
-@router.post("/suggest-copy", response_model=ApiResponse[CopySuggestResponse])
+@router.post(
+    "/suggest-copy",
+    response_model=ApiResponse[CopySuggestResponse],
+    dependencies=[Depends(require_feature("AI_COPY_SUGGEST"))],
+)
 async def suggest_copy(
     body: CopySuggestRequest,
     db: AsyncSession = Depends(get_db_with_rls),
@@ -52,7 +56,7 @@ async def suggest_copy(
     return ApiResponse.ok(result)
 
 
-@router.post("/chat-edit")
+@router.post("/chat-edit", dependencies=[Depends(require_feature("AI_CHAT_EDIT"))])
 async def chat_edit(
     body: ChatEditRequest,
     db: AsyncSession = Depends(get_db_with_rls),

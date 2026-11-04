@@ -118,7 +118,9 @@ describe('authStore 토큰 보관', () => {
     await useClientAuthStore.getState().initialize()
     expect(refresh).toHaveBeenCalledTimes(1)
     // 토큰을 먼저 받았으므로 /auth/me 는 401 없이 한 번에
-    expect(calls).toEqual([{ url: '/auth/me', auth: 'Bearer fresh' }])
+    expect(calls[0]).toEqual({ url: '/auth/me', auth: 'Bearer fresh' })
+    // 그다음 편집 모드 기능 플래그 (T-138)
+    expect(calls[1]).toEqual({ url: '/tenant/features', auth: 'Bearer fresh' })
     expect(useClientAuthStore.getState().isLoggedIn).toBe(true)
     expect(useClientAuthStore.getState().isInitialized).toBe(true)
   })

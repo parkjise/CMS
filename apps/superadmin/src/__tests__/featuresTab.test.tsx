@@ -85,4 +85,14 @@ describe('FeaturesTab (SA-03)', () => {
     await user.click(screen.getByRole('checkbox', { name: '방문자 회원 토글' }))
     expect(toggleMutate).toHaveBeenCalledWith({ featureId: 'SITE_MEMBER', enabled: false })
   })
+
+  it('기본 기능은 끌 수 없다 (T-138)', () => {
+    useTenantFeatures.mockReturnValue({
+      data: [feat({ key: 'SECTION_EDITOR', is_enabled: true, always_on: true })],
+      isLoading: false,
+    })
+    render(<FeaturesTab tenantId="t1" tenantPlan="BASIC" />)
+    expect(screen.getByText(/끌 수 없음/)).toBeInTheDocument()
+    expect(screen.getByLabelText('SECTION_EDITOR 토글')).toBeDisabled()
+  })
 })

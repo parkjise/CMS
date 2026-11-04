@@ -18,6 +18,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.sns import NotificationSetting
 from app.models.tenant import Tenant
+from app.services import feature as feature_service
 
 # 플랜별 월간 발송 한도 (BASIC은 알림톡 자체 미허용)
 PLAN_MONTHLY_LIMITS: dict[str, int] = {
@@ -192,6 +193,10 @@ async def _get_plan_type(db: AsyncSession, tenant_id: UUID) -> str:
     return result.scalar_one_or_none() or "BASIC"
 
 
+async def _kakao_on(db: AsyncSession, tenant_id: UUID) -> bool:
+    return await feature_service.is_enabled(db, tenant_id, "KAKAO_NOTIFICATION")
+
+
 async def notify_inquiry(
     db: AsyncSession,
     tenant_id: UUID,
@@ -231,7 +236,12 @@ async def notify_inquiry(
     kakao_sent = False
     sms_sent = False
 
-    if setting.alimtalk_enabled and setting.recipient_phone:
+    # 플래그를 꺼도 문자는 보낸다 — 문의 알림이 끊기면 고객이 문의를 놓친다 (T-138)
+    if (
+        setting.alimtalk_enabled
+        and setting.recipient_phone
+        and await _kakao_on(db, tenant_id)
+    ):
         kakao_sent = await send_kakao_alimtalk(
             to=setting.recipient_phone,
             template_code="INQUIRY_ALERT_V1",
@@ -308,7 +318,7 @@ async def notify_member_joined(
 
     kakao_sent = False
     sms_sent = False
-    if setting.alimtalk_enabled:
+    if setting.alimtalk_enabled and await _kakao_on(db, tenant_id):
         kakao_sent = await send_kakao_alimtalk(
             to=setting.recipient_phone,
             template_code="MEMBER_JOINED_V1",
