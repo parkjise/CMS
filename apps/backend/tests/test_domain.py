@@ -68,6 +68,113 @@ def _domain() -> str:
     return f"www.{uuid.uuid4().hex[:8]}.com"
 
 
+@pytest.fixture(autouse=True)
+async def standard_plan(test_tenant):
+    """커스텀 도메인은 STANDARD 이상 (T-137-C) — 시험용 테넌트 기본값은 FREE"""
+    async with _TestSession() as s:
+        await s.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await s.execute(
+            text("UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t"),
+            {"t": test_tenant["id"]},
+        )
+        await s.commit()
+
+
+async def _set_plan(tenant_id: str, plan: str) -> None:
+    async with _TestSession() as s:
+        await s.execute(text("SELECT set_config('app.is_super_admin', 'true', true)"))
+        await s.execute(
+            text("UPDATE tenants SET plan_type = :p WHERE id = :t"),
+            {"p": plan, "t": tenant_id},
+        )
+        await s.commit()
+
+
+class TestPlanLimit:
+    @pytest.mark.parametrize("plan", ["FREE", "BASIC"])
+    async def test_low_plan_rejected(self, client, auth_headers, test_tenant, plan):
+        await _set_plan(test_tenant["id"], plan)
+        limits = await client.get("/api/v1/domain/limits", headers=auth_headers)
+        assert limits.json()["data"]["custom_domain_allowed"] is False
+        res = await client.post(
+            "/api/v1/domain/register",
+            json={"domain": "www.oo.test"},
+            headers=auth_headers,
+        )
+        assert res.status_code == 422
+        assert res.json()["error"]["code"] == "PLAN_LIMIT_EXCEEDED"
+        assert "STANDARD" in res.json()["error"]["message"]
+
+    @pytest.mark.parametrize("plan", ["STANDARD", "PREMIUM"])
+    async def test_allowed_plan(self, client, auth_headers, test_tenant, plan):
+        await _set_plan(test_tenant["id"], plan)
+        limits = await client.get("/api/v1/domain/limits", headers=auth_headers)
+        data = limits.json()["data"]
+        assert data["custom_domain_allowed"] is True
+        assert data["cname_target"] == settings.domain_cname_target
+
+    async def test_downgrade_keeps_connected_but_blocks_new_verify(
+        self, client, auth_headers, test_tenant
+    ):
+        try:
+            await client.post(
+                "/api/v1/domain/register",
+                json={"domain": "www.oo.test"},
+                headers=auth_headers,
+            )
+            await _set_plan(test_tenant["id"], "BASIC")
+            status_res = await client.get("/api/v1/domain/status", headers=auth_headers)
+            assert status_res.status_code == 200
+            verify = await client.post("/api/v1/domain/verify", headers=auth_headers)
+            assert verify.status_code == 422
+        finally:
+            await _cleanup(test_tenant["id"])
+
+    async def test_limits_requires_auth(self, client):
+        assert (await client.get("/api/v1/domain/limits")).status_code == 401
+
+
+class TestFailureCode:
+    async def _register(self, client, auth_headers):
+        await client.post(
+            "/api/v1/domain/register",
+            json={"domain": "www.oo.test"},
+            headers=auth_headers,
+        )
+
+    async def test_dns_failure(self, client, auth_headers, test_tenant, monkeypatch):
+        monkeypatch.setattr(svc, "verify_dns", lambda *a: False)
+        try:
+            await self._register(client, auth_headers)
+            data = (
+                await client.post("/api/v1/domain/verify", headers=auth_headers)
+            ).json()["data"]
+            assert (data["status"], data["failure_code"]) == ("FAILED", "DNS")
+        finally:
+            await _cleanup(test_tenant["id"])
+
+    async def test_ssl_failure_then_retry_clears(
+        self, client, auth_headers, test_tenant, monkeypatch
+    ):
+        def boom(_):
+            raise svc.DomainError("x")
+
+        try:
+            await self._register(client, auth_headers)
+            with monkeypatch.context() as patch:
+                patch.setattr(svc, "issue_ssl_certificate", boom)
+                data = (
+                    await client.post("/api/v1/domain/verify", headers=auth_headers)
+                ).json()["data"]
+                assert (data["status"], data["failure_code"]) == ("FAILED", "SSL")
+            data = (
+                await client.post("/api/v1/domain/verify", headers=auth_headers)
+            ).json()["data"]
+            assert (data["status"], data["failure_code"]) == ("ACTIVE", None)
+        finally:
+            await _cleanup(test_tenant["id"])
+
+
 class TestDomainApi:
     async def test_register_and_status(
         self, client, auth_headers, test_tenant, test_user

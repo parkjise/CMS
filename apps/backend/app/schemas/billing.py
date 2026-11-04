@@ -67,6 +67,7 @@ class TenantDomainResponse(BaseModel):
     domain: str
     domain_type: str
     status: str
+    failure_code: str | None = None
     ssl_expires_at: datetime | None
     verified_at: datetime | None
     created_at: datetime
@@ -103,6 +104,13 @@ class TrialStatusResponse(BaseModel):
     status: str
     days_left: int
     trial_ends_at: datetime | None
+
+
+class DomainLimitsResponse(BaseModel):
+    """화면은 이 값으로 잠금 · DNS 안내를 그린다 (T-137-C)"""
+
+    custom_domain_allowed: bool
+    cname_target: str
 
 
 class DomainStatusResponse(TenantDomainResponse):

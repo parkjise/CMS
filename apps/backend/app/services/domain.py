@@ -25,6 +25,8 @@ from app.models.tenant import Tenant
 from app.services import billing_notice, site_cache
 
 SSL_VALID_DAYS = 90
+DOMAIN_PLANS = frozenset({"STANDARD", "PREMIUM"})
+DOMAIN_PLAN_MESSAGE = "커스텀 도메인은 STANDARD 이상 요금제에서 연결할 수 있습니다."
 _DOMAIN_RE = re.compile(
     r"^(?=.{4,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z0-9-]{0,61}[a-z0-9]$"
 )
@@ -154,6 +156,22 @@ async def active_slug_for_host(db: AsyncSession, host: str) -> str | None:
     ).scalar_one_or_none()
 
 
+async def domain_allowed(db: AsyncSession, tenant_id: uuid.UUID) -> bool:
+    plan = (
+        await db.execute(select(Tenant.plan_type).where(Tenant.id == tenant_id))
+    ).scalar_one_or_none()
+    return (plan or "").upper() in DOMAIN_PLANS
+
+
+async def ensure_domain_allowed(db: AsyncSession, tenant_id: uuid.UUID) -> None:
+    """새로 연결할 때만 검사 — 요금제를 내려도 이미 연결된 도메인은 끊지 않는다."""
+    if not await domain_allowed(db, tenant_id):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=DOMAIN_PLAN_MESSAGE,
+        )
+
+
 def _validated_domain(domain: str) -> str:
     """도메인 형식 · 서비스 주소 거부 — 인증서 폴더 이름 · certbot 인자로 쓰인다."""
     value = normalize_host(domain)
@@ -175,6 +193,7 @@ async def register_domain(
     domain_type: str = "CUSTOM",
 ) -> TenantDomain:
     """커스텀 도메인 등록 신청 (PENDING). 테넌트당 1개."""
+    await ensure_domain_allowed(db, tenant_id)
     domain = _validated_domain(domain)
     if await _get_domain(db, tenant_id) is not None:
         raise HTTPException(
@@ -218,10 +237,12 @@ async def verify_domain(db: AsyncSession, tenant_id: uuid.UUID) -> TenantDomain:
         return row  # 발급 중 · 완료 — 다시 눌러도 인증서를 또 발급하지 않는다
 
     row.status = "DNS_CHECKING"
+    row.failure_code = None
     await db.commit()
 
     if not verify_dns(row.domain, settings.domain_cname_target):
         row.status = "FAILED"
+        row.failure_code = "DNS"
         await db.commit()
         await db.refresh(row)
         return row
@@ -246,11 +267,13 @@ async def finish_activation(db: AsyncSession, row: TenantDomain) -> TenantDomain
         ssl_expires = issue_ssl_certificate(row.domain)
     except DomainError:
         row.status = "FAILED"
+        row.failure_code = "SSL"
         await db.commit()
         await db.refresh(row)
         return row
 
     row.status = "ACTIVE"
+    row.failure_code = None
     row.ssl_expires_at = ssl_expires
     row.verified_at = datetime.now(UTC)
     await db.execute(
