@@ -25,7 +25,7 @@ export function InquiriesPage() {
   const handleExport = async () => {
     setDownloading(true)
     try {
-      await downloadInquiriesExcel()
+      await downloadInquiriesExcel({ from_date: filters.from_date, to_date: filters.to_date })
       toast.success('엑셀 파일을 내려받았습니다.')
     } catch {
       toast.error('엑셀 내보내기에 실패했습니다.')

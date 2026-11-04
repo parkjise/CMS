@@ -20,6 +20,7 @@ from app.services.link_settings import (
     validate_nested_urls,
 )
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
+from app.services.section_limits import changed_field_limit, check_field_length
 
 # Per-field max lengths; any field not listed falls back to _DEFAULT_MAX_LEN
 _FIELD_MAX_LENGTHS: dict[str, int] = {
@@ -66,7 +67,11 @@ def _validate_list(field: str, value: str) -> str:
 
 
 def _validate(
-    field: str, value: str | None, rich: bool = False, is_list: bool = False
+    field: str,
+    value: str | None,
+    rich: bool = False,
+    is_list: bool = False,
+    current: str | None = None,
 ) -> str | None:
     """검사 후 저장할 값 — 갤러리 목록은 정리된 JSON 으로 (T-064-A)."""
     if value is None:
@@ -81,8 +86,10 @@ def _validate(
     validate_nested_urls(field, value)
     if is_url_field(field) and not rich:
         # 버튼 링크 · 이미지 주소 — javascript: 등 차단 (T-065-B)
-        return validate_link_url(field, value)
-    limit = _max_len(field)
+        url = validate_link_url(field, value)
+        check_field_length(field, url, current)
+        return url
+    limit = changed_field_limit(field, value, current) or _max_len(field)
     if rich:
         # 서식 글은 허용 태그만 남기고, 한도는 태그를 뺀 글자 수로 (T-065-A)
         return normalize_rich_text(field, value, limit)
@@ -127,7 +134,13 @@ async def batch_save(
                 and existing.value_type == _LIST_VALUE_TYPE
                 and change.field != GALLERY_FIELD
             )
-            value = _validate(change.field, change.value, rich, is_list)
+            value = _validate(
+                change.field,
+                change.value,
+                rich,
+                is_list,
+                existing.field_value if existing else None,
+            )
             if existing:
                 existing.field_value = value
                 if change.field == GALLERY_FIELD:

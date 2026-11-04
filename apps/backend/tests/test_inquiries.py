@@ -1,7 +1,13 @@
 import uuid
+from datetime import UTC, datetime
+from io import BytesIO
 
 import pytest
 from httpx import AsyncClient
+from openpyxl import load_workbook
+from sqlalchemy import text
+
+from tests.conftest import _TestSession  # type: ignore
 
 
 class TestSubmitInquiry:
@@ -304,3 +310,66 @@ class TestInquiryValidation:
             },
         )
         assert resp.status_code == 200
+
+
+class TestInquiryPeriodFilter:
+    """접수일 기간 필터 — 한국 날짜 기준 (T-127)."""
+
+    _url = "/api/v1/inquiries"
+
+    @pytest.fixture
+    async def dated(self, client: AsyncClient, test_tenant: dict, test_inquiry: dict):
+        # 11-02 00:30 KST = 11-01 15:30 UTC — UTC 날짜로 자르면 전날로 잘못 들어간다
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',false)"))
+            await s.execute(
+                text("UPDATE inquiries SET created_at=:at WHERE id=:id"),
+                {"at": datetime(2026, 11, 1, 15, 30, tzinfo=UTC), "id": test_inquiry["id"]},
+            )
+            await s.commit()
+        return test_inquiry
+
+    async def _total(self, client, headers, **params) -> int:
+        resp = await client.get(self._url, headers=headers, params=params)
+        assert resp.status_code == 200
+        return resp.json()["data"]["total"]
+
+    async def test_korean_date_boundary(self, client, auth_headers, dated):
+        day = {"from_date": "2026-11-02", "to_date": "2026-11-02"}
+        assert await self._total(client, auth_headers, **day) == 1
+        prev = {"from_date": "2026-11-01", "to_date": "2026-11-01"}
+        assert await self._total(client, auth_headers, **prev) == 0
+
+    async def test_open_ended(self, client, auth_headers, dated):
+        assert await self._total(client, auth_headers, from_date="2026-11-03") == 0
+        assert await self._total(client, auth_headers, to_date="2026-11-02") == 1
+
+    async def test_reversed_period_400(self, client, auth_headers):
+        resp = await client.get(
+            self._url,
+            headers=auth_headers,
+            params={"from_date": "2026-11-03", "to_date": "2026-11-01"},
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["field"] == "from_date"
+
+    async def test_bad_date_400(self, client, auth_headers):
+        resp = await client.get(
+            self._url, headers=auth_headers, params={"from_date": "어제"}
+        )
+        assert resp.status_code == 400
+
+    async def test_export_uses_period(self, client, auth_headers, dated):
+        url = f"{self._url}/export"
+        hit = await client.get(
+            url, headers=auth_headers, params={"from_date": "2026-11-02"}
+        )
+        miss = await client.get(
+            url, headers=auth_headers, params={"from_date": "2026-11-03"}
+        )
+        assert hit.status_code == miss.status_code == 200
+        rows = lambda r: load_workbook(BytesIO(r.content)).active.max_row  # noqa: E731
+        assert rows(hit) == rows(miss) + 1
+        reversed_period = {"from_date": "2026-11-03", "to_date": "2026-11-01"}
+        bad = await client.get(url, headers=auth_headers, params=reversed_period)
+        assert bad.status_code == 400

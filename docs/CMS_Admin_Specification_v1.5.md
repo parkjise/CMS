@@ -741,9 +741,9 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 | 필드 | 최대 길이 | 서버 검사 | 비고 |
 |---|---|---|---|
 | main_title | 40자 | 예 | 공백 포함 |
-| sub_copy | 80자 | 아니요 (10.1 #4) | |
-| cta_text | 20자 | 아니요 (10.1 #4) | |
-| cta_url | 200자 | 주소 안전 검사만 (10.1 #4) | |
+| sub_copy | 80자 | 예 | 바뀐 칸만 검사 (T-127) |
+| cta_text | 20자 | 예 | 바뀐 칸만 검사 (T-127) |
+| cta_url | 200자 | 예 | 주소 안전 검사 + 글자 수, 바뀐 칸만 검사 (T-127) |
 
 #### PATCH /sections/order
 섹션 순서 일괄 변경
@@ -869,7 +869,10 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 | is_read | boolean | - | 읽음 여부 |
 | search | string | - | 검색어 |
 
-기간 필터(`from_date` · `to_date`)는 구현되어 있지 않다 (10.1 #5).
+| from_date | date | - | 접수 시작일 YYYY-MM-DD (한국 날짜) |
+| to_date | date | - | 접수 종료일 YYYY-MM-DD (그날 전체 포함) |
+
+시작일이 종료일보다 늦으면 400. `GET /inquiries/export` 도 같은 기간 조건을 받는다 (T-127).
 
 **Response 200:**
 ```json
@@ -1840,8 +1843,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | # | 항목 | 기획서 | 코드 | 필요한 것 |
 |---|---|---|---|---|
 | 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
-| 4 | 섹션 글자 수 | sub_copy 80 · cta_text 20 · cta_url 200 | 서버 검사는 main_title 만 | 서버 검사 추가 여부 |
-| 5 | 문의 기간 필터 | from_date · to_date | 없음 | 구현 또는 기획 삭제 |
 | 6 | SEO 칸 | og_title · og_description · canonical_url · robots | robots_txt 만 있음, 나머지 없음 | 구현 또는 기획 삭제 |
 | 7 | 문의 스팸 기록 | ip_address · user_agent 저장 | 저장 안 함 (요청 한도 · reCAPTCHA 만) | 개인정보 고려해 결정 |
 | 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |

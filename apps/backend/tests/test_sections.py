@@ -1,6 +1,10 @@
 import uuid
 
+import pytest
 from httpx import AsyncClient
+from sqlalchemy import text
+
+from tests.conftest import _TestSession  # type: ignore
 
 
 class TestListSections:
@@ -218,3 +222,53 @@ class TestSectionStructure:
             json={"label": "무단 수정"},
         )
         assert resp.status_code == 401
+
+
+class TestSectionFieldLimits:
+    """sub_copy 80 · cta_text 20 · cta_url 200 서버 검사 (T-127)."""
+
+    @staticmethod
+    def _body(key: str, value: str) -> dict:
+        return {"settings": [{"field_key": key, "field_value": value}]}
+
+    @pytest.mark.parametrize(
+        ("key", "ok", "over"),
+        [
+            ("sub_copy", "a" * 80, "a" * 81),
+            ("cta_text", "a" * 20, "a" * 21),
+            ("cta_url", "/" + "a" * 199, "/" + "a" * 200),
+        ],
+    )
+    async def test_limits(self, client, auth_headers, test_section, key, ok, over):
+        url = f"/api/v1/sections/{test_section['id']}"
+        good = await client.patch(url, headers=auth_headers, json=self._body(key, ok))
+        assert good.status_code == 200
+        bad = await client.patch(url, headers=auth_headers, json=self._body(key, over))
+        assert bad.status_code == 400
+
+    async def test_old_long_value_saves_when_unchanged(
+        self, client, auth_headers, test_section
+    ):
+        """한도 전에 저장된 긴 글 — 다른 칸을 고칠 때 저장이 막히지 않는다."""
+        long_copy = "a" * 120
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',false)"))
+            await s.execute(
+                text(
+                    "INSERT INTO section_settings"
+                    " (id, tenant_id, section_id, field_key, field_value, value_type)"
+                    " VALUES (gen_random_uuid(), :t, :s, 'sub_copy', :v, 'STRING')"
+                ),
+                {"t": test_section["tenant_id"], "s": test_section["id"], "v": long_copy},
+            )
+            await s.commit()
+        url = f"/api/v1/sections/{test_section['id']}"
+        same = {
+            "settings": [
+                {"field_key": "sub_copy", "field_value": long_copy},
+                {"field_key": "cta_text", "field_value": "상담"},
+            ]
+        }
+        assert (await client.patch(url, headers=auth_headers, json=same)).status_code == 200
+        changed = self._body("sub_copy", "b" * 120)
+        assert (await client.patch(url, headers=auth_headers, json=changed)).status_code == 400

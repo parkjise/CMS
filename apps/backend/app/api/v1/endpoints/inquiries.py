@@ -1,3 +1,4 @@
+from datetime import date
 from uuid import UUID
 
 import httpx
@@ -197,6 +198,18 @@ async def unlock_board_post(
 # ── Admin ────────────────────────────────────────────────────────────────────
 
 
+def _check_period(from_date: date | None, to_date: date | None) -> None:
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": "시작일은 종료일보다 늦을 수 없습니다.",
+                "field": "from_date",
+            },
+        )
+
+
 @router.get("", response_model=ApiResponse[InquiryListResponse])
 async def list_inquiries(
     page: int = Query(1, ge=1),
@@ -205,10 +218,13 @@ async def list_inquiries(
     inquiry_type: str | None = Query(None),
     is_read: bool | None = Query(None),
     search: str | None = Query(None),
+    from_date: date | None = Query(None),
+    to_date: date | None = Query(None),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
+    _check_period(from_date, to_date)
     result = await inquiry_service.get_inquiries(
         db,
         tenant_id=tenant_id,
@@ -218,17 +234,24 @@ async def list_inquiries(
         inquiry_type=inquiry_type,
         is_read=is_read,
         search=search,
+        from_date=from_date,
+        to_date=to_date,
     )
     return ApiResponse.ok(result)
 
 
 @router.get("/export")
 async def export_inquiries(
+    from_date: date | None = Query(None),
+    to_date: date | None = Query(None),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    inquiries = await inquiry_service.get_all_for_export(db, tenant_id)
+    _check_period(from_date, to_date)
+    inquiries = await inquiry_service.get_all_for_export(
+        db, tenant_id, from_date, to_date
+    )
     xlsx_bytes = inquiry_service.export_to_excel(inquiries)
     return Response(
         content=xlsx_bytes,

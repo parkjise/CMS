@@ -427,7 +427,7 @@ export default SectionCard
 
 # 공개 API (인증 불필요 - 고객 홈페이지용)
 /api/public/site/{tenant_slug}/...
-/api/public/inquiries/submit/...
+/api/public/inquiries?tenant_slug={tenant_slug}
 ```
 
 ---

@@ -19,6 +19,7 @@ from app.services.link_settings import (
     validate_nested_urls,
 )
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, normalize_rich_text
+from app.services.section_limits import changed_field_limit, check_field_length
 
 # main_title 필드 최대 길이
 MAIN_TITLE_MAX_LEN = 40
@@ -88,7 +89,8 @@ async def update_section_settings(
 
     # settings upsert
     if data.settings:
-        _validate_settings(data.settings)
+        current = {s.field_key: s.field_value for s in section.settings}
+        _validate_settings(data.settings, current)
         for s in data.settings:
             existing_result = await db.execute(
                 select(SectionSetting).where(
@@ -136,7 +138,9 @@ def _normalize_bool(field: str, value: str | None) -> str:
     raise ValueError(f"{field} 값은 true 또는 false 여야 합니다.")
 
 
-def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
+def _validate_settings(
+    settings: list[SectionSettingUpdate], current: dict[str, str | None]
+) -> None:
     for s in settings:
         if s.field_key == MOBILE_HIDDEN_FIELD:
             s.field_value = _normalize_bool(s.field_key, s.field_value)
@@ -152,15 +156,23 @@ def _validate_settings(settings: list[SectionSettingUpdate]) -> None:
         if is_url_field(s.field_key):
             # 주소 칸 — javascript: 등 차단 (T-065-B)
             s.field_value = validate_link_url(s.field_key, s.field_value)
+            check_field_length(s.field_key, s.field_value, current.get(s.field_key))
             continue
         if s.value_type == RICH_TEXT_VALUE_TYPE and s.field_value is not None:
             # 서식 글 (T-065-A) — 허용 태그만, 한도는 태그를 뺀 글자 수
-            limit = MAIN_TITLE_MAX_LEN if s.field_key == "main_title" else None
+            limit = (
+                MAIN_TITLE_MAX_LEN
+                if s.field_key == "main_title"
+                else changed_field_limit(
+                    s.field_key, s.field_value, current.get(s.field_key)
+                )
+            )
             s.field_value = normalize_rich_text(s.field_key, s.field_value, limit)
             continue
         too_long = s.field_value and len(s.field_value) > MAIN_TITLE_MAX_LEN
         if s.field_key == "main_title" and too_long:
             raise ValueError(f"main_title은 {MAIN_TITLE_MAX_LEN}자 이하여야 합니다.")
+        check_field_length(s.field_key, s.field_value, current.get(s.field_key))
 
 
 async def update_sections_order(
