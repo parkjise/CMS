@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
+import { TemplateListText } from '../../../shared/TemplateListText'
 import { SectionHead } from './SectionHead'
 import { titleId } from './ids'
 
@@ -30,10 +31,10 @@ const pad = (n: number) => String(n).padStart(2, '0')
  * 연혁 — 목업 sub/history-timeline.html + history-timeline.js (HISTORY_TIMELINE)
  * - 스크롤 위치에 따라 왼쪽 고정 연도·사진과 활성 구간 탭이 바뀐다
  * 설정 키: eyebrow · title · description (인라인 편집) · ranges [{ from, to }] ·
- *          years [{ year, image_url?, months [{ month, events [{ text, highlight }] }] }] (최근 연도부터)
+ *          years [{ year, image_url?, months [{ month, events [{ text, highlight }] }] }] (최근 연도부터, text 는 인라인 편집 — T-125-I)
  */
 export function HistoryTimeline(props: CodeSectionProps) {
-  const { section } = props
+  const { section, editable } = props
   const id = titleId('history-timeline', section.id)
   const years = getJson<HistoryYear[]>(section.settings, 'years', [])
   const ranges = getJson<HistoryRange[]>(section.settings, 'ranges', [])
@@ -128,31 +129,37 @@ export function HistoryTimeline(props: CodeSectionProps) {
         </div>
 
         <ol className="history-timeline__years">
-          {years.map((y, i) => (
+          {years.map((y, yi) => (
             <li
               className="history-timeline__year"
               id={`history-${y.year}`}
               key={y.year}
               ref={(el) => {
-                yearRefs.current[i] = el
+                yearRefs.current[yi] = el
               }}
             >
               <h3 className="history-timeline__year-title">{y.year}</h3>
               <ol className="history-timeline__months">
-                {y.months.map((m) => (
+                {y.months.map((m, mi) => (
                   <li className="history-timeline__month" key={m.month}>
                     <time className="history-timeline__month-label" dateTime={`${y.year}-${pad(m.month)}`}>
                       {pad(m.month)}
                       <span className="sr-only">월</span>
                     </time>
                     <ul className="history-timeline__events">
-                      {m.events.map((e) => (
-                        <li
+                      {m.events.map((e, ei) => (
+                        <TemplateListText
+                          key={ei}
+                          section={section}
+                          editable={editable}
+                          field="years"
+                          index={yi}
+                          itemKey={['months', mi, 'events', ei, 'text']}
+                          as="li"
                           className={`history-timeline__event${e.highlight ? ' history-timeline__event--highlight' : ''}`}
-                          key={e.text}
-                        >
-                          {e.text}
-                        </li>
+                          maxLength={200}
+                          label={`${y.year}년 ${m.month}월 ${ei + 1}번 연혁`}
+                        />
                       ))}
                     </ul>
                   </li>

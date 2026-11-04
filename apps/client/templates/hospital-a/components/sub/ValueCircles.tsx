@@ -61,7 +61,7 @@ export function ValueCircles({ hrefFor, ...props }: Props) {
         {moreLabel && moreHref && (
           <p className="value-circles__more">
             <a className="value-circles__link" href={moreHref}>
-              {moreLabel}
+              <TemplateListText section={section} editable={editable} field="more_label" maxLength={30} label="더 보기 글자" />
               <span className="value-circles__arrow" aria-hidden="true" />
             </a>
           </p>

@@ -3,7 +3,7 @@
 
 **문서 버전:** v1.5  
 **작성일:** 2026-05-24  
-**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-125-H 반영) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
+**최종 수정:** 2026-11-04 (구현 동기화: T-036-A ~ T-125-I 반영, API · DB · 요금제 코드 대조 — 10.1 미해결 목록) / 2026-10-25 (v1.5: SaaS 운영 시스템 추가 — 결제·온보딩·도메인·구독 관리 섹션 15 / 방문자 인증 섹션 16 추가 / 코드형 템플릿·샘플 콘텐츠 11.7~11.11 추가)  
 **대상 독자:** 개발팀 내부 (풀스택 개발자, 백엔드 엔지니어, DBA)  
 **문서 분류:** 기밀 (Internal Only)
 
@@ -73,7 +73,7 @@
 │  ┌─────────────────────────┐   ┌──────────────────────────────────┐  │
 │  │  apps/admin             │   │  apps/client                     │  │
 │  │  관리자 페이지            │   │  고객 홈페이지 (테넌트별)           │  │
-│  │  React 18 + Vite        │   │  Next.js 15 (SSR/SSG)            │  │
+│  │  React 19 + Vite        │   │  Next.js 15 (SSR/SSG)            │  │
 │  │  TypeScript  :3001      │   │  TypeScript  :3000               │  │
 │  └─────────────────────────┘   └──────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────────┐   │
@@ -202,6 +202,8 @@ async def get_db_with_rls(
 | SNS 연동 채널 수 | 2개 | 4개 | 무제한 |
 | 기술 지원 | 이메일 (5영업일) | 이메일 (1영업일) | 전담 슬랙 채널 |
 | **추천 대상** | 개인사업자 초기 | 활성 운영 업체 | 마케팅 집중 업체 |
+
+> ⚠️ **미해결 (10.1 #1):** PREMIUM 요금이 이 표와 관리자 화면은 189,000원, 실제 결제 · MRR 계산은 129,000원이다. 또 코드에는 이 표에 없는 `FREE` 요금제 값이 있다 (섹션 5개 · 문구 추천 월 5회 · 요금 0원).
 
 ### 3.3 수익 시뮬레이션
 
@@ -590,14 +592,13 @@ async def get_db_with_rls(
 
 ### 5.1 API 공통 규격
 
-**Base URL:** `https://api.cms-admin.com/v1`
+**Base URL:** `/api/v1` (공개 API `/api/public`, 슈퍼 어드민 `/api/super/v1`, 결제 웹훅 `/api/webhook`)
 
 **공통 요청 헤더:**
 
 ```
 Authorization: Bearer {jwt_access_token}
 Content-Type: application/json
-X-Tenant-ID: {tenant_uuid}          ← 검증용 (JWT에도 포함)
 Accept-Language: ko-KR
 ```
 
@@ -697,67 +698,50 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 #### GET /sections
 현재 테넌트의 섹션 목록 조회
 
-**Response 200:**
+**Response 200:** `data` 는 섹션 배열. 각 항목은 아래 형식
 ```json
 {
-  "success": true,
-  "data": {
-    "sections": [
-      {
-        "id": "sec_uuid_1",
-        "type": "HERO_BANNER",
-        "label": "메인 비주얼",
-        "order": 1,
-        "is_active": true,
-        "settings": {
-          "main_title": "강남 최고의 통증의학과, OO의원",
-          "sub_copy": "비수술적 치료로 당신의 관절 건강을 지킵니다.",
-          "bg_image_url": "https://cdn.cms.com/ten_uuid/hero/main_v3.webp",
-          "cta_text": "온라인 상담하기",
-          "cta_url": "/contact",
-          "cta_style": "filled",
-          "cta_new_tab": false
-        }
-      },
-      {
-        "id": "sec_uuid_2",
-        "type": "INTRO",
-        "label": "병원 소개",
-        "order": 2,
-        "is_active": true,
-        "settings": { ... }
-      }
-    ]
-  }
+  "id": "sec_uuid_1",
+  "tenant_id": "ten_uuid",
+  "section_type": "HERO_BANNER",
+  "label": "메인 비주얼",
+  "display_order": 0,
+  "is_active": true,
+  "page_key": "home",
+  "settings": [
+    { "field_key": "main_title", "field_value": "강남 최고의 통증의학과, OO의원", "value_type": "STRING", "is_sample": false },
+    { "field_key": "cta_style", "field_value": "filled", "value_type": "STRING", "is_sample": false },
+    { "field_key": "cta_new_tab", "field_value": "false", "value_type": "STRING", "is_sample": false }
+  ],
+  "created_at": "2026-05-24T14:23:00Z",
+  "updated_at": "2026-05-24T14:23:00Z"
 }
 ```
 
-#### PATCH /sections/:id
-섹션 설정 수정 (부분 업데이트)
+#### GET /sections/limits · POST /sections · DELETE /sections/{id}
+요금제 한도 · 추가할 수 있는 종류 조회, 섹션 추가 · 소프트 삭제 (T-037-A). FREE · BASIC 은 추가 · 삭제 불가.
+
+#### PATCH /sections/{id}
+섹션 수정 (부분 업데이트)
 
 **Request:**
 ```json
 {
-  "main_title": "새로운 타이틀",
-  "cta_text": "지금 상담하기"
+  "label": "메인 비주얼",
+  "is_active": true,
+  "settings": [
+    { "field_key": "main_title", "field_value": "새로운 타이틀", "value_type": "STRING" }
+  ]
 }
 ```
 
 **Validation Rules:**
-| 필드 | 최대 길이 | 필수 여부 | 비고 |
+| 필드 | 최대 길이 | 서버 검사 | 비고 |
 |---|---|---|---|
-| main_title | 40자 | Y | 공백 포함 |
-| sub_copy | 80자 | N | |
-| cta_text | 20자 | N | |
-| cta_url | 200자 | N | `/`로 시작하거나 `https://`로 시작해야 함 |
-
-**Response 200:**
-```json
-{
-  "success": true,
-  "data": { "updated_section": { ... } }
-}
-```
+| main_title | 40자 | 예 | 공백 포함 |
+| sub_copy | 80자 | 아니요 (10.1 #4) | |
+| cta_text | 20자 | 아니요 (10.1 #4) | |
+| cta_url | 200자 | 주소 안전 검사만 (10.1 #4) | |
 
 #### PATCH /sections/order
 섹션 순서 일괄 변경
@@ -765,15 +749,15 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 **Request:**
 ```json
 {
-  "order": [
-    { "id": "sec_uuid_1", "order": 1 },
-    { "id": "sec_uuid_3", "order": 2 },
-    { "id": "sec_uuid_2", "order": 3 }
+  "sections": [
+    { "id": "sec_uuid_1", "display_order": 0 },
+    { "id": "sec_uuid_3", "display_order": 1 },
+    { "id": "sec_uuid_2", "display_order": 2 }
   ]
 }
 ```
 
-#### PATCH /sections/:id/toggle
+#### PATCH /sections/{id}/toggle
 섹션 활성화/비활성화
 
 **Request:**
@@ -801,7 +785,7 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 | 필드 | 타입 | 설명 |
 |---|---|---|
 | file | File | 이미지 파일 (JPG/PNG/WebP/GIF) |
-| context | string | 사용 위치 (`hero`, `gallery`, `intro`) |
+| context | string | 사용 위치 (`hero`, `gallery`, `intro`, `services`, `team`, `portfolio`, `seo`, `site`) |
 | section_id | string | 연결할 섹션 ID |
 
 **Response 200:**
@@ -809,6 +793,7 @@ Refresh Token 쿠키 삭제 + Redis 블랙리스트 등록
 {
   "success": true,
   "data": {
+    "id": "file_uuid",
     "url": "https://cdn.cms.com/ten_uuid/hero/uuid.webp",
     "original_size_kb": 8192,
     "optimized_size_kb": 340,
@@ -878,10 +863,11 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 | page | integer | 1 | 페이지 번호 |
 | limit | integer | 20 | 페이지당 개수 (최대 100) |
 | status | string | all | `PENDING`, `IN_PROGRESS`, `DONE` |
-| type | string | all | `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `GENERAL` |
-| from_date | date | - | YYYY-MM-DD |
-| to_date | date | - | YYYY-MM-DD |
-| keyword | string | - | 이름/업체명 검색 |
+| inquiry_type | string | all | `CONSULT`, `RESERVATION`, `PARTNERSHIP`, `GENERAL` |
+| is_read | boolean | - | 읽음 여부 |
+| search | string | - | 검색어 |
+
+기간 필터(`from_date` · `to_date`)는 구현되어 있지 않다 (10.1 #5).
 
 **Response 200:**
 ```json
@@ -894,7 +880,7 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
     "items": [
       {
         "id": "inq_uuid",
-        "type": "CONSULT",
+        "inquiry_type": "CONSULT",
         "name": "홍길동",
         "phone": "010-1234-5678",
         "email": "hong@email.com",
@@ -909,7 +895,7 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 }
 ```
 
-#### PATCH /inquiries/:id
+#### GET /inquiries/{id} · PATCH /inquiries/{id} · DELETE /inquiries/{id} · GET /inquiries/export
 문의 상태 변경 및 메모 저장
 
 **Request:**
@@ -920,14 +906,13 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 }
 ```
 
-#### POST /inquiries (Public API - 인증 불필요)
+#### POST /api/public/inquiries?tenant_slug={slug} (인증 불필요)
 홈페이지에서 고객 문의 제출
 
 **Request:**
 ```json
 {
-  "tenant_id": "ten_uuid",
-  "type": "CONSULT",
+  "inquiry_type": "CONSULT",
   "name": "홍길동",
   "phone": "010-1234-5678",
   "email": "hong@email.com",
@@ -937,7 +922,7 @@ def optimize_image(file_bytes: bytes) -> tuple[bytes, dict]:
 
 **Validation:**
 - phone: 한국 휴대폰 번호 정규식 `^01[016789]-?\d{3,4}-?\d{4}$`
-- message: 최대 1,000자
+- message: 10자 이상 1,000자 이하
 - 스팸 방지: reCAPTCHA v3 (score ≥ 0.5) + IP 기준 1분 3회 제한
 
 **Response 200:**
@@ -999,16 +984,18 @@ URL 유효성 테스트
 **Request:**
 ```json
 {
-  "page_title": "강남 통증의학과 OO의원 - 비수술 관절·척추 치료",
+  "meta_title": "강남 통증의학과 OO의원 - 비수술 관절·척추 치료",
   "meta_description": "강남역 2번 출구 도보 3분...",
   "keywords": ["강남 통증의학과", "허리 비수술", "관절 치료"],
-  "og_title": "OO의원",
-  "og_description": "...",
   "og_image_url": "https://...",
-  "robots": "index,follow",
-  "canonical_url": "https://my-hospital.com"
+  "robots_txt": "User-agent: *\nAllow: /",
+  "google_analytics_id": "G-XXXXXXX",
+  "naver_site_verification": "...",
+  "google_site_verification": "..."
 }
 ```
+
+소셜 공유 제목 · 설명(`og_title` · `og_description`)과 `canonical_url` 은 칸이 없다 (10.1 #6).
 
 **구현 메모 — 대표 키워드 (T-040-A):**
 - `PUT /api/v1/seo-settings` 의 `keywords` — 공백 정리 · 빈 값 · 중복 제거, 최대 5개 · 1개 30자(넘으면 400), 생략 = 그대로, `[]` = 모두 지움.
@@ -1068,17 +1055,21 @@ CREATE INDEX idx_tenants_is_active ON tenants(is_active);
 #### users (관리자 계정)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE users (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  email           VARCHAR(255) NOT NULL,
-  password_hash   VARCHAR(255) NOT NULL,         -- bcrypt, rounds=12
-  role            VARCHAR(20) NOT NULL DEFAULT 'TENANT_ADMIN'
-                  CHECK (role IN ('SUPER_ADMIN','TENANT_ADMIN','TENANT_VIEWER')),
-  last_login_at   TIMESTAMPTZ,
-  is_active       BOOLEAN NOT NULL DEFAULT true,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID,
+  email                    VARCHAR(255) NOT NULL,
+  password_hash            VARCHAR(255) NOT NULL,
+  role                     VARCHAR(50) NOT NULL DEFAULT 'TENANT_ADMIN',
+  last_login_at            TIMESTAMPTZ,
+  is_active                BOOLEAN NOT NULL DEFAULT true,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at               TIMESTAMPTZ,
+  totp_secret              VARCHAR(64),
+  totp_enabled             BOOLEAN NOT NULL DEFAULT false,
+  PRIMARY KEY (id),
   UNIQUE (tenant_id, email)
 );
 
@@ -1118,16 +1109,19 @@ CREATE POLICY sections_tenant_isolation ON sections
 #### section_settings (섹션 콘텐츠 - Key-Value)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE section_settings (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  section_id      UUID NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  setting_key     VARCHAR(100) NOT NULL,
-  setting_value   TEXT,
-  value_type      VARCHAR(20) NOT NULL DEFAULT 'STRING'
-                  CHECK (value_type IN ('STRING','INTEGER','BOOLEAN','JSON','URL')),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE (section_id, setting_key)
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  section_id               UUID NOT NULL,
+  field_key                VARCHAR(100) NOT NULL,
+  field_value              TEXT,
+  value_type               VARCHAR(20) NOT NULL DEFAULT 'STRING',
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  is_sample                BOOLEAN NOT NULL DEFAULT false,
+  PRIMARY KEY (id),
+  UNIQUE (section_id, field_key)
 );
 
 CREATE INDEX idx_section_settings_section ON section_settings(section_id);
@@ -1139,7 +1133,7 @@ CREATE POLICY section_settings_tenant_isolation ON section_settings
 
 **section_settings 데이터 예시 (HERO_BANNER):**
 
-| section_id | setting_key | setting_value | value_type |
+| section_id | field_key | field_value | value_type |
 |---|---|---|---|
 | sec_uuid | main_title | 강남 최고의 통증의학과 | STRING |
 | sec_uuid | sub_copy | 비수술적 치료로... | STRING |
@@ -1147,33 +1141,43 @@ CREATE POLICY section_settings_tenant_isolation ON section_settings
 | sec_uuid | cta_text | 온라인 상담하기 | STRING |
 | sec_uuid | cta_url | /contact | STRING |
 | sec_uuid | cta_style | filled | STRING |
-| sec_uuid | cta_new_tab | false | BOOLEAN |
+| sec_uuid | cta_new_tab | false | STRING |
+
+`value_type` 은 `STRING` · `RICH_TEXT` 등 문자열이며 DB CHECK 제약은 없다.
 
 #### inquiries (문의 데이터)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE inquiries (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  type            VARCHAR(30) NOT NULL DEFAULT 'GENERAL'
-                  CHECK (type IN ('CONSULT','RESERVATION','PARTNERSHIP','GENERAL')),
-  status          VARCHAR(20) NOT NULL DEFAULT 'PENDING'
-                  CHECK (status IN ('PENDING','IN_PROGRESS','DONE','SPAM')),
-  name            VARCHAR(100) NOT NULL,
-  phone           VARCHAR(20) NOT NULL,
-  email           VARCHAR(255),
-  message         TEXT NOT NULL,
-  admin_memo      TEXT,
-  ip_address      INET,                           -- 스팸 감지용
-  user_agent      TEXT,
-  is_notified     BOOLEAN NOT NULL DEFAULT false, -- 알림 발송 여부
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  inquiry_type             VARCHAR(50) NOT NULL DEFAULT 'GENERAL',
+  name                     VARCHAR(100) NOT NULL,
+  phone                    VARCHAR(20) NOT NULL,
+  email                    VARCHAR(255),
+  message                  TEXT NOT NULL,
+  status                   VARCHAR(50) NOT NULL DEFAULT 'PENDING',
+  is_read                  BOOLEAN NOT NULL DEFAULT false,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at               TIMESTAMPTZ,
+  admin_memo               TEXT,
+  is_notified              BOOLEAN NOT NULL DEFAULT false,
+  subject                  VARCHAR(200),
+  is_board                 BOOLEAN NOT NULL DEFAULT false,
+  is_secret                BOOLEAN NOT NULL DEFAULT false,
+  password_hash            VARCHAR(255),
+  answer                   TEXT,
+  answered_at              TIMESTAMPTZ,
+  reserved_date            DATE,
+  reserved_time            VARCHAR(5),
+  member_id                UUID,
+  detail                   JSONB NOT NULL DEFAULT '{}',
+  PRIMARY KEY (id)
 );
 
-CREATE INDEX idx_inquiries_tenant_status ON inquiries(tenant_id, status);
-CREATE INDEX idx_inquiries_tenant_created ON inquiries(tenant_id, created_at DESC);
-CREATE INDEX idx_inquiries_ip ON inquiries(ip_address, created_at);
+-- 실제 인덱스: tenant_id, member_id, idx_inquiries_tenant_board (상태 · 등록일 복합 인덱스는 없음 — 10.1 #8)
 
 ALTER TABLE inquiries ENABLE ROW LEVEL SECURITY;
 CREATE POLICY inquiries_tenant_isolation ON inquiries
@@ -1208,53 +1212,63 @@ CREATE POLICY sns_settings_tenant_isolation ON sns_channel_settings
 #### notification_settings (알림 설정)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE notification_settings (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID UNIQUE NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  use_kakao       BOOLEAN NOT NULL DEFAULT false,
-  kakao_phone     VARCHAR(20),
-  use_sms         BOOLEAN NOT NULL DEFAULT false,
-  sms_phone       VARCHAR(20),
-  use_email       BOOLEAN NOT NULL DEFAULT false,
-  notification_email VARCHAR(255),
-  monthly_kakao_count INTEGER NOT NULL DEFAULT 0,  -- 이번 달 발송 수
-  monthly_reset_at DATE NOT NULL DEFAULT CURRENT_DATE,
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  alimtalk_enabled         BOOLEAN NOT NULL DEFAULT false,
+  sms_enabled              BOOLEAN NOT NULL DEFAULT false,
+  email_enabled            BOOLEAN NOT NULL DEFAULT false,
+  recipient_phone          VARCHAR(20),
+  recipient_email          VARCHAR(255),
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  monthly_kakao_count      INTEGER NOT NULL DEFAULT 0,
+  monthly_reset_at         DATE NOT NULL DEFAULT CURRENT_DATE,
+  PRIMARY KEY (id),
+  UNIQUE (tenant_id)
 );
 ```
 
 #### seo_settings (SEO 메타 설정)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE seo_settings (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID UNIQUE NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  page_title      VARCHAR(60),
-  meta_description VARCHAR(160),
-  keywords        VARCHAR(30)[] NOT NULL DEFAULT '{}',  -- 최대 5개 (서버 검사)
-  og_title        VARCHAR(60),
-  og_description  VARCHAR(200),
-  og_image_url    VARCHAR(500),
-  robots          VARCHAR(50) DEFAULT 'index,follow',
-  canonical_url   VARCHAR(500),
-  google_site_verification VARCHAR(100),
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  meta_title               VARCHAR(200),
+  meta_description         VARCHAR(500),
+  og_image_url             VARCHAR(500),
+  robots_txt               TEXT,
+  google_analytics_id      VARCHAR(50),
   naver_site_verification  VARCHAR(100),
-  updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  google_site_verification VARCHAR(100),
+  keywords                 VARCHAR(30)[] NOT NULL DEFAULT '{}'[],
+  PRIMARY KEY (id),
+  UNIQUE (tenant_id)
 );
 ```
 
 #### site_analytics (방문 통계)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE site_analytics (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  date            DATE NOT NULL,
-  page_views      INTEGER NOT NULL DEFAULT 0,
-  unique_visitors INTEGER NOT NULL DEFAULT 0,
-  mobile_ratio    DECIMAL(5,2),                   -- 모바일 비율 %
-  top_referrer    VARCHAR(255),
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  date                     DATE NOT NULL,
+  page_views               INTEGER NOT NULL DEFAULT 0,
+  unique_visitors          INTEGER NOT NULL DEFAULT 0,
+  bounce_rate              DOUBLE PRECISION,
+  avg_session_duration     INTEGER,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  mobile_views             INTEGER NOT NULL DEFAULT 0,
+  referrers                JSONB NOT NULL DEFAULT '{}',
+  PRIMARY KEY (id),
   UNIQUE (tenant_id, date)
 );
 
@@ -1264,20 +1278,19 @@ CREATE INDEX idx_analytics_tenant_date ON site_analytics(tenant_id, date DESC);
 #### uploaded_files (파일 메타데이터)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE uploaded_files (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  section_id      UUID REFERENCES sections(id),
-  original_name   VARCHAR(255) NOT NULL,
-  stored_path     VARCHAR(500) NOT NULL,          -- MinIO/S3 경로
-  cdn_url         VARCHAR(500) NOT NULL,
-  mime_type       VARCHAR(50) NOT NULL,
-  original_size   INTEGER NOT NULL,               -- bytes
-  optimized_size  INTEGER,                        -- bytes (WebP 변환 후)
-  width           SMALLINT,
-  height          SMALLINT,
-  context         VARCHAR(50),                    -- hero, gallery, intro 등
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  file_name                VARCHAR(255) NOT NULL,
+  file_url                 VARCHAR(500) NOT NULL,
+  file_size                INTEGER NOT NULL,
+  mime_type                VARCHAR(100) NOT NULL,
+  uploaded_by              UUID,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  thumbnail_url            VARCHAR(500),
+  PRIMARY KEY (id)
 );
 
 -- 스토리지 사용량 조회용
@@ -1325,6 +1338,50 @@ CREATE TABLE ai_reports (
   improvements    JSONB NOT NULL,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
+#### gallery_items · inquiry_attachments · member_social_accounts
+
+```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
+CREATE TABLE gallery_items (
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  section_id               UUID NOT NULL,
+  file_id                  UUID NOT NULL,
+  image_url                VARCHAR(500) NOT NULL,
+  storage_key              VARCHAR(500) NOT NULL,
+  caption                  VARCHAR(200),
+  display_order            INTEGER NOT NULL DEFAULT 0,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE inquiry_attachments (
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  inquiry_id               UUID NOT NULL,
+  file_url                 VARCHAR(500) NOT NULL,
+  file_name                VARCHAR(255) NOT NULL,
+  file_size                INTEGER NOT NULL,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id)
+);
+
+CREATE TABLE member_social_accounts (
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  member_id                UUID NOT NULL,
+  provider                 VARCHAR(20) NOT NULL,
+  provider_user_id         VARCHAR(200) NOT NULL,
+  email                    VARCHAR(255),
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at               TIMESTAMPTZ,
+  PRIMARY KEY (id)
 );
 ```
 
@@ -1623,7 +1680,7 @@ async def notification_stream(
 ```
 cms-project/
 ├── apps/
-│   ├── admin/               ← React 18 + Vite (관리자 페이지)
+│   ├── admin/               ← React 19 + Vite (관리자 페이지)
 │   │   ├── src/
 │   │   ├── vite.config.ts
 │   │   └── package.json
@@ -1774,6 +1831,21 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 | 5 | 인스타그램 API 연동 | Instagram Basic Display API | URL 유효성만 확인 | 2주차 | 프론트 |
 | 6 | BASIC 플랜 섹션 수 제한 | 서버에서 강제 차단 | 프론트 UI만 제한 | 1주차 | 백엔드 |
 
+### 10.1 코드 대조 미해결 목록 (2026-11-04)
+
+기획서와 코드가 다른데 어느 쪽이 맞는지 정해야 하거나, 코드에 없는 항목이다. 이 표의 코드는 고치지 않았다.
+
+| # | 항목 | 기획서 | 코드 | 필요한 것 |
+|---|---|---|---|---|
+| 1 | PREMIUM 월 요금 | 189,000원 (3.2), 관리자 화면 `apps/admin/src/lib/plans.ts` 도 189,000원 | 129,000원 (`services/payment.py`, `services/super_dashboard.py`, 시드, 테스트) | **금액 결정 — 화면과 실제 청구액이 다름** |
+| 2 | FREE 요금제 | 없음 (BASIC · STANDARD · PREMIUM) | 요금 · 섹션 · AI 한도에 값 있음 | 유지 또는 제거 결정 |
+| 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
+| 4 | 섹션 글자 수 | sub_copy 80 · cta_text 20 · cta_url 200 | 서버 검사는 main_title 만 | 서버 검사 추가 여부 |
+| 5 | 문의 기간 필터 | from_date · to_date | 없음 | 구현 또는 기획 삭제 |
+| 6 | SEO 칸 | og_title · og_description · canonical_url · robots | robots_txt 만 있음, 나머지 없음 | 구현 또는 기획 삭제 |
+| 7 | 문의 스팸 기록 | ip_address · user_agent 저장 | 저장 안 함 (요청 한도 · reCAPTCHA 만) | 개인정보 고려해 결정 |
+| 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
+
 
 ---
 
@@ -1868,19 +1940,21 @@ export type TemplateIndustry =
 #### templates (템플릿 마스터)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조) — 코드형 칸은 11.10
 CREATE TABLE templates (
-  id              VARCHAR(50) PRIMARY KEY,     -- "TPL_MODERN_MINIMAL"
-  name            VARCHAR(100) NOT NULL,
-  description     TEXT,
-  thumbnail_url   VARCHAR(500),
-  preview_url     VARCHAR(500),
-  industry_tags   VARCHAR(30)[],               -- 배열: ['HOSPITAL','STARTUP']
-  css_variables   JSONB NOT NULL,              -- CSSVariableSet JSON
-  section_layout  JSONB NOT NULL,              -- SectionLayoutConfig JSON
-  is_premium      BOOLEAN NOT NULL DEFAULT false,
-  is_active       BOOLEAN NOT NULL DEFAULT true,
-  sort_order      SMALLINT NOT NULL DEFAULT 0,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  template_type            VARCHAR(50) NOT NULL,
+  name                     VARCHAR(100) NOT NULL,
+  description              TEXT,
+  thumbnail_url            VARCHAR(500),
+  css_variables            JSONB NOT NULL DEFAULT '{}',
+  section_layouts          JSONB NOT NULL DEFAULT '[]',
+  is_active                BOOLEAN NOT NULL DEFAULT true,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  min_plan                 VARCHAR(50) NOT NULL DEFAULT 'BASIC',
+  PRIMARY KEY (id),
+  UNIQUE (code)
 );
 
 -- 테넌트별 커스터마이징 오버라이드 저장
@@ -1895,14 +1969,16 @@ CREATE TABLE tenant_template_overrides (
 );
 
 -- 템플릿 변경 이력 (롤백용)
+-- 실제 스키마 기준 (2026-11-04 대조) — content_snapshot 은 11.10
 CREATE TABLE template_change_history (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  from_template_id VARCHAR(50),
-  to_template_id  VARCHAR(50) NOT NULL,
-  css_snapshot    JSONB NOT NULL,              -- 변경 전 전체 CSS 변수 스냅샷
-  changed_by      UUID REFERENCES users(id),
-  changed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  template_id              UUID NOT NULL,
+  changed_by               UUID,
+  before_css               JSONB,
+  after_css                JSONB NOT NULL DEFAULT '{}',
+  changed_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_template_history_tenant ON template_change_history(tenant_id, changed_at DESC);
@@ -2363,13 +2439,14 @@ useEffect(() => {
 | 요소 | 편집 방식 | 대상 |
 |---|---|---|
 | 단일 칸 글자 | 인라인 (`EditableText`) | 제목 · 설명 등 |
-| 목록 안 글자 (T-125-C · T-125-E) | 눌러서 고치기 (`templates/shared/TemplateListText.tsx`) — Enter · 바깥 누르기로 저장 대기, Esc 취소, 글자 수 한도, 링크로 이동 안 함 | 메인 슬라이드 제목 · 영문 카피, 서비스 카드, 브랜드 기능 이름, 영역별 소개, 기준 카드, 강점 목록, 가치 원형, 연혁 요약 |
+| 목록 안 글자 (T-125-C · T-125-E) | 눌러서 고치기 (`templates/shared/TemplateListText.tsx`) — Enter · 바깥 누르기로 저장 대기, Esc 취소, 글자 수 한도, 링크로 이동 안 함 | 메인 슬라이드 제목 · 영문 카피, 서비스 카드, 브랜드 기능 이름, 영역별 소개, 기준 카드, 강점 목록, 가치 원형, 연혁 요약, 본문 문단, 영상 제목, 연혁 타임라인 사건, 사진 설명 글자(캡션), 상단 분류, 더 보기 글자 |
 | 사진 (T-125-B) | 사진 위 '사진 변경'(· '휴대폰 사진') 버튼 → 업로드 창 (`templates/shared/TemplateImage.tsx`) | 메인 슬라이드, 브랜드 갤러리 · 기능 아이콘, 서비스 카드, 서브 상단, 사진 + 글 계열 섹션 |
 | 사업체 정보 (T-125-F) | 편집 모드 안내 "관리자 공통 설정에서 바꿔요 · 공통 설정 열기" (`CommonSettingsHint`) | 오시는 길 주소 · 대표전화 · 운영 시간 · 주차 |
 
 - 목록 안 항목을 고치면 그 항목만 바꾼 목록 전체를 저장 대기에 넣는다 (같은 목록을 여러 번 고쳐도 서로 덮어쓰지 않음).
 - 메인 슬라이드는 편집 모드에서 자동 재생 · 끌어 넘기기를 멈춘다.
-- **아직 편집 모드에서 못 고침 (관리자 AD-02 에서 수정):** 여러 문단 본문(StoryText), 연혁 타임라인(연도 → 월 → 사건), 영상 목록 제목, SplitStory 캡션, ValueCircles 더 보기 글자, SubHero 분류, 사진 설명(alt), 유튜브 썸네일, 연혁 연도 사진.
+- **겹 목록 · 목록 아닌 글자 (T-125-I):** 연혁은 경로(`years.0.months.0.events.1.text`)로 그 사건 글자만 바꾼다. `caption` · `category` · `more_label` 은 목록이 아니어도 같은 방식 — `**굵게**` 표기는 평소엔 굵게, 고칠 때는 표기 그대로.
+- **편집 모드에서 안 고침 (관리자 AD-02 에서 수정):** 항목 추가 · 삭제 · 순서, 연혁의 연도 · 월 숫자 · 강조 표시, 사진 설명(alt), 유튜브 썸네일, 연혁 연도 사진.
 - **일부러 관리자 전용:** 메뉴 · 푸터 · 퀵메뉴 · 헤더 로고(공통 설정), 게시판 샘플 글, 링크 · 지도 · 영상 ID.
 
 ### 12.5 API 추가 스펙
@@ -2634,13 +2711,15 @@ async def chat_edit(body: ChatEditRequest, current_user = Depends(get_current_us
 **사용량 추적 테이블:**
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE ai_usage_log (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-  feature         VARCHAR(50) NOT NULL,
-                  -- COPY_SUGGEST, CHAT_EDIT, ANALYSIS_REPORT
-  tokens_used     INTEGER NOT NULL DEFAULT 0,
-  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  user_id                  UUID,
+  action_type              VARCHAR(100) NOT NULL,
+  tokens_used              INTEGER NOT NULL DEFAULT 0,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_ai_usage_tenant_month
@@ -3102,7 +3181,7 @@ POST /api/super/v1/tenants/{id}/impersonate
 # Response:
 {
   "impersonate_token": "eyJ...",  # 30분짜리 단기 토큰
-  "redirect_url": "https://admin.mysite.com?token=eyJ..."
+  "redirect_url": "https://admin.mysite.com/login?impersonate=eyJ...&tenant={slug}"
 }
 # → 슈퍼 어드민이 해당 URL 접속 시 테넌트 어드민으로 로그인된 상태
 # → 모든 대리 접속 행위는 audit_logs 테이블에 기록
@@ -3115,7 +3194,8 @@ GET    /api/super/v1/features                           전체 기능 목록
 POST   /api/super/v1/features                           새 기능 등록
 PATCH  /api/super/v1/features/{id}                      기능 정보 수정
 POST   /api/super/v1/features/{id}/deploy               기능 배포 실행
-POST   /api/super/v1/features/{id}/rollback             기능 배포 롤백
+GET    /api/super/v1/features/{id}/deployments          배포 이력
+POST   /api/super/v1/features/{id}/rollback/{deployment_id} 기능 배포 롤백
 GET    /api/super/v1/tenants/{id}/features              테넌트별 기능 목록
 PATCH  /api/super/v1/tenants/{id}/features/{feature_id} 테넌트 개별 기능 On/Off
 ```
@@ -3123,12 +3203,11 @@ PATCH  /api/super/v1/tenants/{id}/features/{feature_id} 테넌트 개별 기능 
 #### 대시보드·모니터링 API
 
 ```
-GET /api/super/v1/dashboard/stats       전체 통계 (테넌트 수, MRR, 알림톡 수, AI 비용)
-GET /api/super/v1/dashboard/mrr-chart   MRR 추이 차트 데이터
-GET /api/super/v1/dashboard/expiring    만료 예정 테넌트 목록
-GET /api/super/v1/monitoring/ai-cost    AI 비용 현황 (OpenAI 월별)
-GET /api/super/v1/monitoring/errors     최근 서버 에러 목록 (Sentry 연동)
-GET /api/super/v1/monitoring/queue      Celery 큐 대기 현황
+GET /api/super/v1/dashboard    통계 · 요금제 분포 · MRR 추이 · 만료 예정 테넌트 · 최근 테넌트 · SSL 만료 예정 (한 번에)
+GET /api/super/v1/monitoring   AI 비용 · 알림톡 사용량 · Celery 큐 · 서버 에러 (한 번에)
+GET /api/super/v1/revenue      수익 현황 (months 3~12)
+GET /api/super/v1/health       상태 확인
+GET /api/super/v1/audit-logs   감사 로그
 ```
 
 #### 공지 API
@@ -3148,20 +3227,19 @@ POST   /api/super/v1/announcements/{id}/send    즉시 발송 (예약 발송 포
 #### audit_logs (슈퍼 어드민 행위 감사 로그)
 
 ```sql
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE audit_logs (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    actor_id        UUID NOT NULL REFERENCES users(id),
-    actor_role      VARCHAR(20) NOT NULL,           -- SUPER_ADMIN
-    action          VARCHAR(100) NOT NULL,
-                    -- TENANT_CREATED, PLAN_CHANGED, FEATURE_TOGGLED,
-                    -- IMPERSONATE_START, PASSWORD_RESET, FEATURE_DEPLOYED
-    target_type     VARCHAR(50),                    -- tenant, feature, announcement
-    target_id       UUID,
-    before_value    JSONB,                          -- 변경 전 값
-    after_value     JSONB,                          -- 변경 후 값
-    ip_address      INET,
-    user_agent      TEXT,
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  id                       UUID NOT NULL,
+  actor_id                 UUID NOT NULL,
+  actor_role               VARCHAR(50) NOT NULL,
+  action                   VARCHAR(100) NOT NULL,
+  target_type              VARCHAR(100) NOT NULL,
+  target_id                TEXT,
+  before_value             JSONB,
+  after_value              JSONB,
+  ip_address               VARCHAR(45),
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  PRIMARY KEY (id)
 );
 
 CREATE INDEX idx_audit_logs_actor ON audit_logs(actor_id, created_at DESC);
@@ -4399,29 +4477,32 @@ POST /api/public/{tenant_slug}/auth/login
 
 ```sql
 -- 테넌트 사이트 방문자 회원
+-- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE site_members (
-    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    email           VARCHAR(255) NOT NULL,
-    password_hash   VARCHAR(255),              -- 소셜 가입 시 NULL
-    name            VARCHAR(100) NOT NULL,
-    phone           VARCHAR(20),
-    birth_date      DATE,
-    social_provider VARCHAR(20),               -- KAKAO, NAVER, NULL
-    social_id       VARCHAR(200),              -- 소셜 고유 ID
-    is_active       BOOLEAN NOT NULL DEFAULT true,
-    marketing_agree BOOLEAN NOT NULL DEFAULT false,
-    sms_agree       BOOLEAN NOT NULL DEFAULT true,
-    email_agree     BOOLEAN NOT NULL DEFAULT false,
-    notify_reservation_confirmed BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 확정 알림
-    notify_reservation_cancelled BOOLEAN NOT NULL DEFAULT true,  -- 알림 설정(16.7) 예약 취소 알림
-    last_login_at   TIMESTAMPTZ,
-    failed_login_count INT NOT NULL DEFAULT 0,  -- 연속 실패 횟수 (5회 → 잠금)
-    locked_until    TIMESTAMPTZ,               -- 로그인 잠금 해제 시각
-    password_changed_at TIMESTAMPTZ,           -- (T-109) 비밀번호 재설정·변경 시각 — 이전 발급 토큰 거부
-    created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    deleted_at      TIMESTAMPTZ                -- 탈퇴 시 소프트 삭제
+  id                       UUID NOT NULL DEFAULT gen_random_uuid(),
+  tenant_id                UUID NOT NULL,
+  email                    VARCHAR(255) NOT NULL,
+  password_hash            VARCHAR(255),
+  name                     VARCHAR(100) NOT NULL,
+  phone                    VARCHAR(20),
+  birth_date               DATE,
+  social_provider          VARCHAR(20),
+  social_id                VARCHAR(200),
+  is_active                BOOLEAN NOT NULL DEFAULT true,
+  marketing_agree          BOOLEAN NOT NULL DEFAULT false,
+  sms_agree                BOOLEAN NOT NULL DEFAULT true,
+  email_agree              BOOLEAN NOT NULL DEFAULT false,
+  notify_reservation_confirmed BOOLEAN NOT NULL DEFAULT true,
+  notify_reservation_cancelled BOOLEAN NOT NULL DEFAULT true,
+  last_login_at            TIMESTAMPTZ,
+  failed_login_count       INTEGER NOT NULL DEFAULT 0,
+  locked_until             TIMESTAMPTZ,
+  created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  deleted_at               TIMESTAMPTZ,
+  password_changed_at      TIMESTAMPTZ,
+  withdrawal_reason        VARCHAR(500),
+  PRIMARY KEY (id)
 );
 
 -- (T-107) 테넌트별 이메일 · 소셜 계정 중복 불가 — 탈퇴 회원 제외 부분 유니크

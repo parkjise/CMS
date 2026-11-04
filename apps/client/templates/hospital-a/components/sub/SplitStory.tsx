@@ -1,9 +1,9 @@
 import { getBoolean, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { StoryText } from './StoryText'
-import { RichLine } from './RichText'
 import { titleId } from './ids'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface Props extends CodeSectionProps {
   /** 사진 | 글 순서 (layout=split-story-reverse) */
@@ -28,7 +28,7 @@ export function SplitStory({ reverse = false, ...props }: Props) {
       <TemplateImage section={section} editable={editable} field="image_url" className="split-story__image" sizes="(min-width: 1024px) 50vw, 100vw" maxWidth={1200} alt={getString(section.settings, 'image_alt')} loading="lazy" />
       {caption && (
         <figcaption className="split-story__caption">
-          <RichLine text={caption} />
+          <TemplateListText section={section} editable={editable} field="caption" multiline boldMarks maxLength={200} label="사진 설명" />
         </figcaption>
       )}
     </figure>

@@ -5,6 +5,7 @@ import { getBoolean, getPlainString, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
 import { TemplateImage } from '../../../shared/TemplateImage'
+import { TemplateListText } from '../../../shared/TemplateListText'
 
 interface Props extends CodeSectionProps {
   homeHref: string
@@ -65,7 +66,7 @@ export function SubHero({ section, editable, homeHref, scrollIconUrl }: Props) {
               </a>
             </li>
             <li className="breadcrumb__item">
-              <span lang="en">{getString(section.settings, 'category')}</span>
+              <TemplateListText section={section} editable={editable} field="category" lang="en" maxLength={30} label="상단 분류" />
             </li>
             <li className="breadcrumb__item">
               <span aria-current="page">{title}</span>

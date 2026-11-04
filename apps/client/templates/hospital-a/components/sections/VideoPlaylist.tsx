@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import { getJson, getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
+import { TemplateListText } from '../../../shared/TemplateListText'
 import { TemplateText } from '../../../shared/TemplateText'
 import { optimizedImg } from '../../../shared/optimizedImage'
 
@@ -124,7 +125,16 @@ export function VideoPlaylist({ section, editable }: CodeSectionProps) {
                         </span>
                       )}
                     </span>
-                    <span className="video-playlist__title">{v.title}</span>
+                    <TemplateListText
+                      section={section}
+                      editable={editable}
+                      field="videos"
+                      index={i}
+                      itemKey="title"
+                      className="video-playlist__title"
+                      maxLength={100}
+                      label={`${i + 1}번 영상 제목`}
+                    />
                   </a>
                 </li>
               ))}

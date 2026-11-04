@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react'
 import { selectEditingUi, useEditStore } from '@/lib/editStore'
 import type { PublicSection } from '@/lib/publicSite.types'
-import { itemString, parseList, replaceListItem, useFieldDraft } from './listDraft'
+import {
+  itemString,
+  parseList,
+  replaceFieldText,
+  replaceListItem,
+  useFieldDraft,
+  type ItemKey,
+} from './listDraft'
 import { RichLine } from './RichLine'
 
 type Tag = 'strong' | 'span' | 'p' | 'h2' | 'h3' | 'h4' | 'li' | 'time'
@@ -13,9 +20,13 @@ interface Props {
   editable: boolean
   /** 목록 칸 이름 (features · cards …) */
   field: string
-  index: number
-  /** 항목 안 글자 키 (name · title …) — 없으면 글자만 있는 목록의 항목 자체 (T-125-E) */
-  itemKey?: string
+  /** 몇 번째 항목 — 없으면 목록이 아닌 글자 칸 전체 (**굵게** 표기 · 링크 안 글자, T-125-I) */
+  index?: number
+  /**
+   * 항목 안 글자 키 (name · title …) — 없으면 글자만 있는 목록의 항목 자체 (T-125-E).
+   * 겹 목록은 경로로 — ['months', 0, 'events', 1, 'text'] (T-125-I)
+   */
+  itemKey?: ItemKey
   as?: Tag
   className?: string
   lang?: string
@@ -62,7 +73,7 @@ export function TemplateListText({
 }: Props) {
   const isEditing = useEditStore(selectEditingUi)
   const { value: raw } = useFieldDraft(section, field)
-  const value = itemString(parseList(raw), index, itemKey)
+  const value = index === undefined ? raw : itemString(parseList(raw), index, itemKey)
 
   const [editing, setEditing] = useState(false)
   const [length, setLength] = useState(value.length)
@@ -85,7 +96,7 @@ export function TemplateListText({
 
   const shown = boldMarks ? <RichLine text={value} /> : value
   // 어느 칸인지 — 편집 글자(EditableText)처럼 방문자 화면에도 단다 (서버 · 첫 화면 같게)
-  const dataField = itemKey === undefined ? `${field}.${index}` : `${field}.${index}.${itemKey}`
+  const dataField = [field, index, ...[itemKey ?? []].flat()].filter((p) => p !== undefined).join('.')
 
   if (!editable || !isEditing) {
     return value ? (
@@ -102,7 +113,9 @@ export function TemplateListText({
     const next = typeof maxLength === 'number' ? text.slice(0, maxLength) : text
     setEditing(false)
     setLength(next.length)
-    if (next !== value) replaceListItem(section, field, index, itemKey, next)
+    if (next === value) return
+    if (index === undefined) replaceFieldText(section, field, next)
+    else replaceListItem(section, field, index, itemKey, next)
   }
 
   const cancel = () => {
@@ -142,7 +155,7 @@ export function TemplateListText({
         .join(' ')}
       lang={lang}
       role="textbox"
-      aria-label={label ?? `${index + 1}번 항목`}
+      aria-label={label ?? (index === undefined ? field : `${index + 1}번 항목`)}
       aria-multiline={multiline || undefined}
       tabIndex={0}
       contentEditable={editing}
