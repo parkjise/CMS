@@ -163,11 +163,16 @@ class TestPublicInquiryIsolation:
         from app.core.security import create_access_token
         from app.core.redis import get_redis
 
-        # inactive_tenant에 임시 유저 생성
+        # 다른 테넌트에 임시 유저 생성 — 활성 상태여야 구독 중단 차단(403)이 아니라
+        # 테넌트 격리(404)를 확인한다 (T-134)
         uid = uuid.uuid4()
         async with _TestSession() as session:
             await session.execute(
                 text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            await session.execute(
+                text("UPDATE tenants SET is_active = true WHERE id = :tid"),
+                {"tid": inactive_tenant["id"]},
             )
             await session.execute(
                 text(

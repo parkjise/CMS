@@ -6,12 +6,16 @@ test 모드(`settings.email_mode != "live"`)에서는 SES 호출 없이 결정�
 """
 
 import asyncio
+from datetime import datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.core.config import settings
+
+KST = ZoneInfo("Asia/Seoul")
 
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "email"
 
@@ -132,7 +136,7 @@ async def send_payment_failed(to: str, *, tenant_name: str, attempt_count: int) 
         variables={
             "tenant_name": tenant_name,
             "attempt_count": attempt_count,
-            "billing_url": f"{settings.admin_base_url}/billing",
+            "billing_url": f"{settings.admin_base_url}/admin/billing?tab=method",
         },
     )
 
@@ -145,17 +149,34 @@ async def send_expiring_notice(to: str, *, tenant_name: str, days_left: int) -> 
         variables={
             "tenant_name": tenant_name,
             "days_left": days_left,
-            "billing_url": f"{settings.admin_base_url}/billing",
+            "billing_url": f"{settings.admin_base_url}/admin/billing?tab=method",
         },
     )
 
 
-async def send_cancellation_confirmed(to: str, *, tenant_name: str) -> dict:
+async def send_cancellation_confirmed(
+    to: str, *, tenant_name: str, period_end: datetime
+) -> dict:
     return await send_email(
         to,
-        subject="[CMS] 구독 해지가 완료되었습니다",
+        subject="[CMS] 구독 해지가 접수되었습니다",
         template="cancellation_confirmed",
-        variables={"tenant_name": tenant_name},
+        variables={
+            "tenant_name": tenant_name,
+            "period_end": period_end.astimezone(KST).strftime("%Y년 %m월 %d일"),
+        },
+    )
+
+
+async def send_service_suspended(to: str, *, tenant_name: str) -> dict:
+    return await send_email(
+        to,
+        subject="[CMS] 서비스가 일시 중단되었습니다",
+        template="service_suspended",
+        variables={
+            "tenant_name": tenant_name,
+            "billing_url": f"{settings.admin_base_url}/admin/billing?tab=method",
+        },
     )
 
 

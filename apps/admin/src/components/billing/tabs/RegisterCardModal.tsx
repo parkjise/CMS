@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, Input, Modal, toast } from '@cms/ui'
+import { pickErrorMessage } from '@/lib/errorMessages'
 import { useRegisterCard } from '@/hooks/useBilling'
 
 interface Props {
@@ -29,8 +30,8 @@ export function RegisterCardModal({ open, onClose }: Props) {
       })
       toast.success('결제 수단이 등록되었습니다.')
       onClose()
-    } catch {
-      toast.error('카드 등록에 실패했습니다.')
+    } catch (e) {
+      toast.error(pickErrorMessage(e, '카드 등록에 실패했습니다.'))
     }
   }
 

@@ -1,5 +1,7 @@
 """T-098 이메일 발송 서비스 테스트 (email_mode=test stub)."""
 
+from datetime import UTC, datetime
+
 import pytest
 
 from app.services import email as svc
@@ -93,7 +95,10 @@ class TestSend:
                 "t@x.com", tenant_name="T", attempt_count=3
             ),
             lambda: svc.send_expiring_notice("t@x.com", tenant_name="T", days_left=3),
-            lambda: svc.send_cancellation_confirmed("t@x.com", tenant_name="T"),
+            lambda: svc.send_cancellation_confirmed(
+                "t@x.com", tenant_name="T", period_end=datetime.now(UTC)
+            ),
+            lambda: svc.send_service_suspended("t@x.com", tenant_name="T"),
             lambda: svc.send_data_deleted("t@x.com"),
         ],
     )

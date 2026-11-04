@@ -21,7 +21,7 @@ export function ReSubscribeBanner() {
         중단됩니다.
       </span>
       <Link
-        to="/admin/billing"
+        to="/admin/billing?tab=method"
         className="shrink-0 rounded-md bg-white/70 px-2 py-1 text-xs font-medium hover:bg-white"
       >
         재구독

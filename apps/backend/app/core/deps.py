@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
@@ -78,6 +79,33 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="UNAUTHORIZED"
         )
     return user
+
+
+# 구독이 멈춘 사업체가 쓸 수 있는 API — 재구독 · 화면 초기화 (T-134)
+_INACTIVE_TENANT_ALLOWED = re.compile(r"/api/v1/(billing/|tenant/features$)")
+
+
+async def require_tenant_active(
+    request: Request, user: User = Depends(get_current_user)
+) -> None:
+    """차단된 사업체는 결제 외 테넌트 API 를 쓸 수 없다 — 이미 받은 토큰도 (T-134)."""
+    if user.tenant_id is None or _INACTIVE_TENANT_ALLOWED.search(request.url.path):
+        return
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        active = (
+            await db.execute(
+                select(Tenant.is_active).where(Tenant.id == user.tenant_id)
+            )
+        ).scalar_one_or_none()
+    if active is False:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={
+                "code": "SUBSCRIPTION_INACTIVE",
+                "message": "구독이 중단되었습니다. 결제 수단을 등록해 주세요.",
+            },
+        )
 
 
 TENANT_VIEWER_ROLE = "TENANT_VIEWER"

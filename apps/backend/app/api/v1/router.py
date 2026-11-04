@@ -21,7 +21,7 @@ from app.api.v1.endpoints import (
     tenant_features,
     upload,
 )
-from app.core.deps import get_tenant_id, require_tenant_write
+from app.core.deps import get_tenant_id, require_tenant_active, require_tenant_write
 
 api_router = APIRouter()
 
@@ -29,8 +29,12 @@ api_router = APIRouter()
 # 전에는 RLS 를 우회한 채 들어와 모든 테넌트 행이 섞여 500 (SNS · SEO 조회) 이 났다.
 # 새 라우터도 이 목록에 넣으면 자동 적용. 예외: auth(로그인 자체),
 # notifications(EventSource 라 ?token= 으로 직접 확인)
-# 보기 전용 계정의 쓰기 차단도 여기서 (T-130).
-_tenant_only = [Depends(get_tenant_id), Depends(require_tenant_write)]
+# 보기 전용 계정의 쓰기 차단(T-130) · 구독 중단 사업체 차단(T-134)도 여기서.
+_tenant_only = [
+    Depends(get_tenant_id),
+    Depends(require_tenant_active),
+    Depends(require_tenant_write),
+]
 
 api_router.include_router(auth.router)
 api_router.include_router(notifications.router)

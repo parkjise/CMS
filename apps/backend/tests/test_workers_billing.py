@@ -246,6 +246,7 @@ class TestDeleteCancelled:
                 test_tenant["id"],
                 status="CANCELLED",
                 cancelled_at=now - timedelta(days=31),
+                current_period_end=now - timedelta(days=31),
             )
             deleted = await worker._delete_cancelled_tenant_data()
             assert deleted >= 1

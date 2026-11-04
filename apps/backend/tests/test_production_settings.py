@@ -21,6 +21,7 @@ GOOD = {
     "notification_mode": "live",
     "email_mode": "live",
     "payment_mode": "live",
+    "toss_webhook_secret": "whsec-test",
     "social_mode": "live",
     "domain_mode": "live",
 }
@@ -41,6 +42,7 @@ def test_production_with_real_values_starts():
         ("super_admin_password", "change-me"),
         ("super_admin_password", ""),
         ("cookie_domain", ""),
+        ("toss_webhook_secret", ""),
         ("recaptcha_secret_key", ""),
         ("revalidate_secret", ""),
         ("client_internal_url", "http://localhost:3000"),

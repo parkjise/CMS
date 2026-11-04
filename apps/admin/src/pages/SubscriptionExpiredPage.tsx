@@ -18,11 +18,11 @@ export function SubscriptionExpiredPage() {
       </div>
       <h1 className="text-xl font-bold text-slate-900">구독이 종료되었습니다</h1>
       <p className="mt-2 max-w-md text-sm text-slate-500">
-        결제가 완료되지 않아 서비스 이용이 일시 중단되었습니다. 재구독하시면 즉시 다시
-        이용하실 수 있습니다. 데이터는 30일간 안전하게 보관됩니다.
+        구독이 끝나 서비스 이용이 일시 중단되었습니다. 결제 수단을 등록하면 바로 결제되고
+        즉시 다시 이용하실 수 있습니다.
       </p>
       <div className="mt-6 flex gap-2">
-        <Button onClick={() => (window.location.href = '/admin/billing')}>
+        <Button onClick={() => (window.location.href = '/admin/billing?tab=method')}>
           재구독하기
         </Button>
         <Button variant="ghost" onClick={handleLogout}>

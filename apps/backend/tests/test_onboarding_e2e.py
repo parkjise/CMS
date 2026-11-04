@@ -315,13 +315,16 @@ async def test_s6_cancel_then_delete(
         )
         assert cancel.json()["data"]["status"] == "CANCELLED"
 
-        # 해지 31일 경과로 조정
+        # 구독 기간 종료 후 31일 경과로 조정
         async with _TestSession() as s:
             await s.execute(
                 text("SELECT set_config('app.is_super_admin', 'true', true)")
             )
             await s.execute(
-                text("UPDATE subscriptions SET cancelled_at = :c WHERE tenant_id = :t"),
+                text(
+                    "UPDATE subscriptions SET current_period_end = :c "
+                    "WHERE tenant_id = :t"
+                ),
                 {
                     "c": datetime.now(UTC) - timedelta(days=31),
                     "t": test_tenant["id"],

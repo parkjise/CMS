@@ -13,6 +13,7 @@ from app.core.security import (
     verify_totp,
 )
 from app.db.session import set_super_admin_context
+from app.models.billing import Subscription
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -20,6 +21,15 @@ from app.models.user import User
 async def _bypass_rls(db: AsyncSession) -> None:
     """로그인 흐름: 테넌트 컨텍스트 없이 조회하기 위해 슈퍼어드민 모드로 RLS 우회"""
     await set_super_admin_context(db)
+
+
+async def _stopped_by_subscription(db: AsyncSession, tenant_id: UUID) -> bool:
+    status = (
+        await db.execute(
+            select(Subscription.status).where(Subscription.tenant_id == tenant_id)
+        )
+    ).scalar_one_or_none()
+    return status in ("SUSPENDED", "CANCELLED")
 
 
 async def authenticate_user(
@@ -33,12 +43,14 @@ async def authenticate_user(
     tenant_result = await db.execute(
         select(Tenant).where(
             Tenant.slug == tenant_slug,
-            Tenant.is_active.is_(True),
             Tenant.deleted_at.is_(None),
         )
     )
     tenant = tenant_result.scalar_one_or_none()
     if not tenant:
+        raise ValueError("UNAUTHORIZED")
+    # 구독 때문에 멈춘 사업체도 재구독하러 들어온다 (T-134, require_tenant_active)
+    if not tenant.is_active and not await _stopped_by_subscription(db, tenant.id):
         raise ValueError("UNAUTHORIZED")
 
     user_result = await db.execute(

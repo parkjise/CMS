@@ -32,8 +32,8 @@ _STATUS_MAP = {
 def _verify_signature(raw_body: bytes, signature: str | None) -> bool:
     secret = settings.toss_webhook_secret
     if not secret:
-        # 시크릿 미설정(로컬) — 검증 스킵
-        return True
+        # 시크릿 미설정 — 로컬만 검증 스킵, 운영은 거부 (T-134)
+        return settings.app_env != "production"
     if not signature:
         return False
     digest = hmac.new(secret.encode(), raw_body, hashlib.sha256).digest()

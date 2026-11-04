@@ -19,6 +19,7 @@ from app.core.config import settings
 from app.core.crypto import decrypt_secret, encrypt_secret
 from app.models.billing import PaymentHistory, PlanChangeHistory, Subscription
 from app.models.tenant import Tenant
+from app.services import billing_notice, site_cache
 
 TOSS_BASE_URL = "https://api.tosspayments.com/v1"
 
@@ -173,11 +174,40 @@ async def register_card(
     sub.billing_key = encrypt_secret(billing_key)
     sub.billing_email = billing_email
     sub.billing_name = billing_name
-    if sub.status in ("CANCELLED", "SUSPENDED", "PAST_DUE"):
-        sub.status = "ACTIVE"
     await db.commit()
+    if sub.status in ("CANCELLED", "SUSPENDED", "PAST_DUE"):
+        await _resume_subscription(db, sub)
     await db.refresh(sub)
     return sub
+
+
+async def _resume_subscription(db: AsyncSession, sub: Subscription) -> None:
+    """재구독 (T-134) — 기간이 남은 해지는 취소만, 그 밖에는 바로 결제하고 사이트 복구.
+
+    결제에 실패하면 상태를 그대로 두고 402 — 다른 카드로 다시 시도할 수 있다.
+    """
+    previous = sub.status
+    if previous != "CANCELLED" or sub.current_period_end <= datetime.now(UTC):
+        sub.status = "ACTIVE"
+        payment = await charge_subscription(db, sub, notify_failure=False)
+        if payment.status != "SUCCESS":
+            sub.status = previous
+            await db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_402_PAYMENT_REQUIRED,
+                detail={
+                    "code": "PAYMENT_FAILED",
+                    "message": "카드 결제에 실패했습니다. 다른 카드로 시도해 주세요.",
+                },
+            )
+    sub.status = "ACTIVE"
+    sub.cancelled_at = None
+    sub.cancel_reason = None
+    await db.execute(
+        update(Tenant).where(Tenant.id == sub.tenant_id).values(is_active=True)
+    )
+    await db.commit()
+    await site_cache.purge_site(db, sub.tenant_id)
 
 
 async def start_trial(
@@ -245,10 +275,14 @@ async def cancel_subscription(
     db: AsyncSession, tenant_id: uuid.UUID, reason: str | None = None
 ) -> Subscription:
     sub = await get_subscription(db, tenant_id)
+    if sub.status == "CANCELLED":
+        return sub
     sub.status = "CANCELLED"
     sub.cancelled_at = datetime.now(UTC)
+    sub.cancel_reason = reason
     await db.commit()
     await db.refresh(sub)
+    await billing_notice.cancelled(db, tenant_id, sub.current_period_end)
     return sub
 
 
@@ -293,8 +327,35 @@ async def change_plan(
     return sub
 
 
+async def consecutive_failures(db: AsyncSession, sub: Subscription) -> int:
+    """마지막 성공 결제 뒤의 실패 횟수 — 예전 실패로 중단되지 않게 (T-134)."""
+    last_success = (
+        await db.execute(
+            select(func.max(PaymentHistory.created_at)).where(
+                PaymentHistory.subscription_id == sub.id,
+                PaymentHistory.status == "SUCCESS",
+            )
+        )
+    ).scalar_one()
+    query = (
+        select(func.count())
+        .select_from(PaymentHistory)
+        .where(
+            PaymentHistory.subscription_id == sub.id,
+            PaymentHistory.status == "FAILED",
+        )
+    )
+    if last_success is not None:
+        query = query.where(PaymentHistory.created_at > last_success)
+    return int((await db.execute(query)).scalar_one())
+
+
 async def charge_subscription(
-    db: AsyncSession, sub: Subscription, *, order_id: str | None = None
+    db: AsyncSession,
+    sub: Subscription,
+    *,
+    order_id: str | None = None,
+    notify_failure: bool = True,
 ) -> PaymentHistory:
     """구독 자동 결제 실행 + 이력 기록. 정기결제/수동결제 공용."""
     now = datetime.now(UTC)
@@ -356,6 +417,10 @@ async def charge_subscription(
                 "paid_at": now.isoformat(),
                 "receipt_url": payment.receipt_url,
             },
+        )
+    if payment.status == "FAILED" and notify_failure:
+        await billing_notice.payment_failed(
+            db, sub.tenant_id, await consecutive_failures(db, sub)
         )
     return payment
 
