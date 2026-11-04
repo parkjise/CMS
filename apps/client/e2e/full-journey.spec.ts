@@ -925,7 +925,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
     request,
   }) => {
     // 사진 · 글자 교체와 페이지 이동이 많은 시나리오 — 기본 30초로는 개발 서버에서 빠듯하다
-    test.setTimeout(120_000)
+    test.setTimeout(180_000)
     const headers = authHeader(token)
     const list = (await (await request.get(`${BACKEND_URL}/api/v1/templates`, { headers })).json())
       .data as { templates: Array<{ id: string; locked: boolean; renderer?: string }> }
@@ -1052,11 +1052,14 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.keyboard.press('ControlOrMeta+A')
       await page.keyboard.type('E2E 기능')
       await page.keyboard.press('Enter')
+      // 영상 목록 제목 — 링크 안이어도 영상을 바꾸지 않고 고친다 (T-125-I)
+      await page.locator('.video-playlist__sidebar').scrollIntoViewIfNeeded()
+      await editListText('1번 영상 제목', 'E2E 영상')
       const iconUrl = await replacePhoto(page.getByRole('button', { name: '1번 아이콘 변경' }))
       // 저장 전에도 바뀐 사진이 보인다
       await expect.poll(() => srcOf(page.locator('.service-cards__image').nth(1))).toContain(cardUrl)
       const home = await save()
-      expect(home).toEqual(expect.objectContaining({ saved_count: 3, failed_count: 0 }))
+      expect(home).toEqual(expect.objectContaining({ saved_count: 4, failed_count: 0 }))
 
       // 서브 페이지: 상단 메뉴로 옮겨도 편집 모드가 이어진다 (T-125-D) → 상단 사진 (사진 하나인 칸)
       await page.locator('.header__menu-link', { hasText: '회사소개' }).first().click()
@@ -1066,7 +1069,32 @@ test.describe('T-078 전체 통합 시나리오', () => {
       // 강점 목록 (글자만 있는 목록)
       await page.locator('.strength-list').scrollIntoViewIfNeeded()
       await editListText('1번 강점', 'E2E 강점')
+      // 상단 분류 — 목록이 아닌 글자 칸 (T-125-I)
+      await editListText('상단 분류', 'E2E Cat')
+      expect(await save()).toEqual(expect.objectContaining({ saved_count: 3, failed_count: 0 }))
+
+      // 본문 문단 · 사진 설명 — 여러 줄 칸은 바깥을 누르면 저장 대기, **굵게** 표기 유지 (T-125-I)
+      await enterEditMode(`${CLIENT_URL}/${slug}/business`)
+      // 스크롤해야 나타나는 영역이라 역할 대신 칸 경로로 찾는다
+      const editMultiline = async (dataField: string, text: string) => {
+        const box = page.locator(`[data-field="${dataField}"]`).first()
+        await box.scrollIntoViewIfNeeded()
+        await box.click()
+        await page.keyboard.press('ControlOrMeta+A')
+        await page.keyboard.type(text)
+        await box.blur()
+      }
+      await editMultiline('paragraphs.0', 'E2E **문단**')
+      await editMultiline('caption', 'E2E **설명**')
       expect(await save()).toEqual(expect.objectContaining({ saved_count: 2, failed_count: 0 }))
+
+      // 연혁 타임라인 — 연도 → 월 → 사건 겹 목록 (T-125-I)
+      await enterEditMode(`${CLIENT_URL}/${slug}/about-history`)
+      const event = page.locator('.history-timeline__event[role="textbox"]').first()
+      await event.scrollIntoViewIfNeeded()
+      const eventName = (await event.getAttribute('aria-label'))!
+      await editListText(eventName, 'E2E 연혁')
+      expect(await save()).toEqual(expect.objectContaining({ saved_count: 1, failed_count: 0 }))
 
       // 방문자 화면
       const visitor = await page.context().browser()!.newPage()
@@ -1084,6 +1112,14 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await visitor.goto(`${CLIENT_URL}/${slug}/about`)
       expect(await srcOf(visitor.locator('.sub-hero__image'))).toContain(heroUrl)
       await expect(visitor.locator('.strength-list__item').first()).toContainText('E2E 강점')
+      await expect(visitor.locator('.breadcrumb__item').nth(1)).toHaveText('E2E Cat')
+      await visitor.goto(`${CLIENT_URL}/${slug}/business`)
+      await expect(visitor.locator('.story-text__desc p').first().locator('strong')).toHaveText('문단')
+      await expect(visitor.locator('.split-story__caption strong').first()).toHaveText('설명')
+      await visitor.goto(`${CLIENT_URL}/${slug}/about-history`)
+      await expect(visitor.locator('.history-timeline__event').first()).toHaveText('E2E 연혁')
+      await visitor.goto(`${CLIENT_URL}/${slug}`)
+      await expect(visitor.locator('.video-playlist__title').first()).toHaveText('E2E 영상')
 
       // 오시는 길 — 주소 · 주차는 공통 설정(사업체 정보)에서 (T-125-F)
       const put = await request.put(siteSettingsUrl, {
