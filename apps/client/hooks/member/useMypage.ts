@@ -5,6 +5,7 @@
  * 공통 화면(components/member/mypage)과 코드형 템플릿 화면이 함께 쓴다.
  */
 import { useMemo, useState } from 'react'
+import { sitePath } from '@/lib/siteHost'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -71,7 +72,7 @@ export const useMypageView = (slug: string) => {
 
   const signOut = async () => {
     await logout()
-    window.location.assign(`/${slug}`)
+    window.location.assign(sitePath(slug))
   }
 
   return {

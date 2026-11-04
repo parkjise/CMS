@@ -7,6 +7,7 @@
  * 같은 훅을 쓴다 → 검증 · 인증 타이머 · 잠금 · API 호출 로직은 한 곳에서만 고친다.
  */
 import { useEffect, useState } from 'react'
+import { sitePath } from '@/lib/siteHost'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -335,7 +336,11 @@ export const useJoinSocialForm = (slug: string) => {
       {
         onSuccess: (result) => {
           clearPendingSignup()
-          router.replace(result.return_to || `/${slug}`)
+          if (result.handoff_url) {
+            window.location.replace(result.handoff_url)
+            return
+          }
+          router.replace(result.return_to || sitePath(slug))
         },
         onError: (error) => {
           if (error.field === 'email') form.setError('email', { message: error.message })

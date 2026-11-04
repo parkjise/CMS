@@ -7,6 +7,8 @@
  * - 페이지 키는 매니페스트에 있는 것만, 상세·글쓰기({id})는 BOARD 페이지만
  * - member/{page} 는 회원 화면을 직접 그리는 템플릿만 (T-124, 회원 기능 꺼져 있으면 404)
  */
+import { headers } from 'next/headers'
+import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { canonicalMeta } from '@/lib/seoMeta'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -108,6 +110,7 @@ export async function CodeRoutePage({
   const resolved = await resolve(entry, params)
   if (!resolved) notFound()
   if (resolved === SWITCHING) return <TemplateSwitching />
+  const onCustomDomain = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
   const { site, pageKey, detailId, memberPage } = resolved
   const pageSections = site.sections.filter((s) => (s.page_key ?? 'home') === pageKey)
 
@@ -124,6 +127,7 @@ export async function CodeRoutePage({
         entry={entry}
         site={site}
         tenantSlug={params.tenant_slug}
+        onCustomDomain={onCustomDomain}
         pageKey={pageKey}
         detailId={detailId}
         query={{ q: searchParams.q, p: searchParams.p }}

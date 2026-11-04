@@ -22,6 +22,8 @@ export interface CodeSectionProps {
 export interface CodeTemplateProps {
   site: PublicSite
   tenantSlug: string
+  /** 고객 도메인으로 접속 — 링크에 slug 를 넣지 않는다 (T-137) */
+  onCustomDomain?: boolean
   /** 현재 페이지 키 ('home' | 'about' …) */
   pageKey: string
   /** 페이지에 그릴 섹션 (샘플 콘텐츠와 합쳐진 결과 — resolvePageSections) */
@@ -59,6 +61,8 @@ export interface HrefExtra {
   id?: string
   q?: string
   p?: number | string
+  /** 고객 도메인 — 주소에 slug 를 넣지 않는다 (T-137) */
+  noSlug?: boolean
 }
 
 /**
@@ -81,7 +85,8 @@ export function pageHref(
     params.forEach((value, name) => preview.set(name, value))
     return `/${slug}/preview?${preview.toString()}`
   }
-  const path = key === 'home' ? `/${slug}` : `/${slug}/${key}${extra.id ? `/${extra.id}` : ''}`
+  const base = extra.noSlug ? '' : `/${slug}`
+  const path = key === 'home' ? base || '/' : `${base}/${key}${extra.id ? `/${extra.id}` : ''}`
   const search = params.toString()
   return search ? `${path}?${search}` : path
 }

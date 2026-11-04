@@ -47,6 +47,7 @@ from app.schemas.site_member import (
     SocialAuthorizeResponse,
     SocialCallbackResponse,
     SocialCompleteRequest,
+    SocialExchangeRequest,
 )
 from app.services import member_auth as member_auth_service
 from app.services import (
@@ -339,7 +340,12 @@ async def social_authorize(
     """소셜 로그인 주소 (state 포함). stub_user 는 test 모드에서만 쓰인다."""
     await member_social.ensure_enabled(db, tenant)
     url, state = await member_social.start(
-        tenant, parse_provider(provider), "login", return_to, stub_user=stub_user
+        tenant,
+        parse_provider(provider),
+        "login",
+        return_to,
+        stub_user=stub_user,
+        origin_host=member_social.origin_host_of(tenant, request.headers.get("host")),
     )
     return ApiResponse.ok(SocialAuthorizeResponse(authorize_url=url, state=state))
 
@@ -366,7 +372,13 @@ async def social_callback(
         email_required=result.email_required,
         suggested_name=result.suggested_name,
     )
-    if result.status == "LOGGED_IN" and result.member is not None:
+    if result.origin_host and result.status == "LINKED":
+        data.return_origin = member_social.origin_url(result.origin_host)
+    elif result.origin_host and result.status == "LOGGED_IN" and result.member:
+        data.handoff_url = await member_social.create_handoff(
+            tenant, result.member, result.origin_host, result.return_to
+        )
+    elif result.status == "LOGGED_IN" and result.member is not None:
         access, refresh = member_auth_service.issue_tokens(result.member, False)
         _set_refresh_cookie(response, tenant, refresh, False)
         data.access_token = access
@@ -389,13 +401,50 @@ async def social_complete(
 ):
     """소셜 신규 가입 — 휴대폰 인증 · 약관 동의 후 자동 로그인."""
     await member_social.ensure_enabled(db, tenant)
+    origin_host = await member_social.signup_origin_host(body.signup_token)
     member, return_to = await member_social.complete_signup(db, tenant, body)
+    if origin_host:
+        return ApiResponse.ok(
+            SocialCallbackResponse(
+                status="LOGGED_IN",
+                provider=member.social_provider,  # type: ignore[arg-type]
+                return_to=return_to,
+                handoff_url=await member_social.create_handoff(
+                    tenant, member, origin_host, return_to
+                ),
+            )
+        )
     access, refresh = member_auth_service.issue_tokens(member, False)
     _set_refresh_cookie(response, tenant, refresh, False)
     return ApiResponse.ok(
         SocialCallbackResponse(
             status="LOGGED_IN",
             provider=member.social_provider,  # type: ignore[arg-type]
+            return_to=return_to,
+            access_token=access,
+            member=MemberSummary.model_validate(member),
+        )
+    )
+
+
+@router.post("/social/exchange", response_model=ApiResponse[SocialCallbackResponse])
+@limiter.limit(_RATE)
+async def social_exchange(
+    request: Request,
+    body: SocialExchangeRequest,
+    response: Response,
+    tenant: Tenant = Depends(get_member_tenant),
+    db: AsyncSession = Depends(get_member_db),
+):
+    """고객 도메인에서 일회용 코드 교환 — 이 도메인에 refresh 쿠키를 심는다 (T-137)."""
+    await member_social.ensure_enabled(db, tenant)
+    member, return_to = await member_social.exchange_handoff(db, tenant, body.code)
+    access, refresh = member_auth_service.issue_tokens(member, False)
+    _set_refresh_cookie(response, tenant, refresh, False)
+    return ApiResponse.ok(
+        SocialCallbackResponse(
+            status="LOGGED_IN",
+            provider=member.social_provider or "KAKAO",  # type: ignore[arg-type]
             return_to=return_to,
             access_token=access,
             member=MemberSummary.model_validate(member),

@@ -401,6 +401,13 @@ class SocialCallbackResponse(BaseModel):
     # 소셜이 이메일을 주지 않아 추가 정보 화면에서 받아야 함
     email_required: bool = False
     suggested_name: str | None = None
+    # 고객 도메인에서 시작한 로그인 — 쿠키를 그 도메인에 심도록 넘긴다 (T-137)
+    handoff_url: str | None = None
+    return_origin: str | None = None
+
+
+class SocialExchangeRequest(BaseModel):
+    code: str = Field(..., min_length=20, max_length=200)
 
 
 class SocialAccountItem(BaseModel):

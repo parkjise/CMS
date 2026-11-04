@@ -1,7 +1,7 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
+import { browserApiBase } from './apiBase'
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+const BASE_URL = browserApiBase()
 
 // Public API 클라이언트 — 인증 불필요 (/api/public/* 전용)
 export const publicApi = axios.create({

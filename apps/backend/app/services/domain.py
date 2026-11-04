@@ -111,6 +111,27 @@ async def _get_domain(db: AsyncSession, tenant_id: uuid.UUID) -> TenantDomain | 
     ).scalar_one_or_none()
 
 
+def normalize_host(host: str) -> str:
+    """Host 헤더 → 도메인 (소문자, 포트 · 끝 점 제거)."""
+    return host.strip().lower().split(":", 1)[0].rstrip(".")
+
+
+async def active_slug_for_host(db: AsyncSession, host: str) -> str | None:
+    """연결이 끝난 도메인의 사업체 slug — 홈페이지 미들웨어 · robots.txt 용 (T-137)."""
+    return (
+        await db.execute(
+            select(Tenant.slug)
+            .join(TenantDomain, TenantDomain.tenant_id == Tenant.id)
+            .where(
+                TenantDomain.domain == normalize_host(host),
+                TenantDomain.status == "ACTIVE",
+                Tenant.is_active.is_(True),
+                Tenant.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+
+
 async def register_domain(
     db: AsyncSession,
     tenant_id: uuid.UUID,

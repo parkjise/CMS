@@ -23,6 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import member_errors as errors
+from app.core.config import settings
 from app.core.member_errors import MemberAuthError
 from app.core.redis import get_redis
 from app.models.site_member import MemberSocialAccount, SiteMember
@@ -30,11 +31,14 @@ from app.models.tenant import Tenant
 from app.schemas.site_member import SocialCompleteRequest
 from app.services import member_auth, member_features, member_verification
 from app.services import social_providers as providers
+from app.services.domain import normalize_host
 from app.services.social_providers import Provider, SocialAuthError, SocialProfile
 
 STATE_TTL_SECONDS = 600
 SIGNUP_TTL_SECONDS = 1800
 _STATE_PREFIX = "member_social_state:"
+_HANDOFF_PREFIX = "member_social_handoff:"
+HANDOFF_TTL_SECONDS = 60
 _SIGNUP_PREFIX = "member_social_signup:"
 
 Mode = Literal["login", "link"]
@@ -53,6 +57,7 @@ class CallbackResult:
     signup_token: str | None = None
     email_required: bool = False
     suggested_name: str | None = None
+    origin_host: str | None = None
 
 
 async def ensure_enabled(db: AsyncSession, tenant: Tenant) -> None:
@@ -80,6 +85,7 @@ async def start(
     return_to: str | None,
     member_id: UUID | None = None,
     stub_user: str | None = None,
+    origin_host: str | None = None,
 ) -> tuple[str, str]:
     # 고정된 공용 콜백 페이지가 테넌트를 알 수 있게 slug 를 앞에 붙인다 (비밀 아님).
     # 검증은 뒤의 난수 전체를 Redis 에서 1회용으로 꺼내 테넌트 · 공급자와 대조한다.
@@ -95,6 +101,7 @@ async def start(
                 "mode": mode,
                 "member_id": str(member_id) if member_id else None,
                 "return_to": safe_return_to(tenant, return_to),
+                "origin_host": origin_host,
             }
         ),
     )
@@ -167,6 +174,7 @@ async def handle_callback(
         raise MemberAuthError(502, "SOCIAL_AUTH_FAILED", errors.SOCIAL_AUTH_FAILED)
 
     return_to = data["return_to"]
+    origin_host = data.get("origin_host")
     linked = await _linked_account(db, tenant.id, provider, profile.provider_user_id)
 
     if data["mode"] == "link":
@@ -176,11 +184,15 @@ async def handle_callback(
         if member is None:
             raise MemberAuthError(401, "UNAUTHORIZED", errors.UNAUTHORIZED)
         await _link(db, tenant, member, profile, linked)
-        return CallbackResult("LINKED", provider, return_to, member=member)
+        return CallbackResult(
+            "LINKED", provider, return_to, member=member, origin_host=origin_host
+        )
 
     if linked is not None:
         member = await _member_for_login(db, tenant, linked.member_id)
-        return CallbackResult("LOGGED_IN", provider, return_to, member=member)
+        return CallbackResult(
+            "LOGGED_IN", provider, return_to, member=member, origin_host=origin_host
+        )
 
     if profile.email and not await member_auth.is_email_available(
         db, tenant.id, profile.email
@@ -200,6 +212,7 @@ async def handle_callback(
                 "email": profile.email,
                 "name": profile.name,
                 "return_to": return_to,
+                "origin_host": origin_host,
             }
         ),
     )
@@ -210,7 +223,63 @@ async def handle_callback(
         signup_token=signup_token,
         email_required=profile.email is None,
         suggested_name=profile.name,
+        origin_host=origin_host,
     )
+
+
+def origin_host_of(tenant: Tenant, host: str | None) -> str | None:
+    """요청이 이 사업체의 연결 도메인에서 왔으면 그 도메인 (포트 포함) (T-137)."""
+    if not host or not tenant.custom_domain:
+        return None
+    return host if normalize_host(host) == tenant.custom_domain else None
+
+
+def origin_url(host: str) -> str:
+    scheme = "http" if settings.app_env == "development" else "https"
+    return f"{scheme}://{host}"
+
+
+async def create_handoff(
+    tenant: Tenant, member: SiteMember, host: str, return_to: str
+) -> str:
+    """소셜 콜백은 메인 도메인 하나라 쿠키를 고객 도메인에 심을 수 없다.
+
+    일회용 코드를 주소로 넘겨 그 도메인에서 교환한다 (60초 · 1회용, 오픈 이슈 T-137).
+    돌아갈 도메인은 요청 값이 아니라 state 에 저장한 사업체 연결 도메인이다.
+    """
+    code = secrets.token_urlsafe(32)
+    redis = await get_redis()
+    await redis.setex(
+        _HANDOFF_PREFIX + code,
+        HANDOFF_TTL_SECONDS,
+        json.dumps(
+            {
+                "tenant_id": str(tenant.id),
+                "member_id": str(member.id),
+                "return_to": return_to,
+            }
+        ),
+    )
+    return f"{origin_url(host)}/member/handoff?code={code}"
+
+
+async def exchange_handoff(
+    db: AsyncSession, tenant: Tenant, code: str
+) -> tuple[SiteMember, str]:
+    """일회용 코드 → (회원, 돌아갈 경로). 다른 사업체 코드 · 재사용은 거부."""
+    redis = await get_redis()
+    raw = await redis.getdel(_HANDOFF_PREFIX + code)
+    data = json.loads(raw) if raw else None
+    if data is None or data["tenant_id"] != str(tenant.id):
+        raise MemberAuthError(400, "HANDOFF_EXPIRED", errors.HANDOFF_EXPIRED)
+    member = await _member_for_login(db, tenant, UUID(data["member_id"]))
+    return member, data["return_to"]
+
+
+async def signup_origin_host(signup_token: str) -> str | None:
+    redis = await get_redis()
+    raw = await redis.get(_SIGNUP_PREFIX + signup_token)
+    return json.loads(raw).get("origin_host") if raw else None
 
 
 async def _member_for_login(

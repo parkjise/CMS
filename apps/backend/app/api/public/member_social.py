@@ -82,6 +82,7 @@ async def link_authorize(
         return_to or f"/{tenant.slug}/member/mypage",
         member_id=member.id,
         stub_user=stub_user,
+        origin_host=member_social.origin_host_of(tenant, request.headers.get("host")),
     )
     return ApiResponse.ok(SocialAuthorizeResponse(authorize_url=url, state=state))
 

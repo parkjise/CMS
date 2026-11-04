@@ -1,3 +1,5 @@
+import { onCustomHost } from './siteHost'
+
 /**
  * API 기본 주소.
  * - 브라우저: 공개 주소(NEXT_PUBLIC_API_BASE_URL — 빌드 때 고정)
@@ -7,6 +9,12 @@
  */
 export const PUBLIC_API_BASE =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+
+/**
+ * 브라우저 API 주소 — 고객 도메인에서는 같은 주소의 /api (Nginx 가 백엔드로 넘긴다).
+ * CORS 없이 동작하고 방문자 refresh 쿠키가 그 도메인에 심긴다 (T-137)
+ */
+export const browserApiBase = (): string => (onCustomHost() ? '/api' : PUBLIC_API_BASE)
 
 export const serverApiBase = (): string =>
   (typeof window === 'undefined' && process.env.API_INTERNAL_URL) || PUBLIC_API_BASE

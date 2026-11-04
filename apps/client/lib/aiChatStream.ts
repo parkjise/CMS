@@ -4,9 +4,9 @@
  */
 
 import { getAccessToken, refreshAccessToken } from './api'
+import { browserApiBase } from './apiBase'
 
-const BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:8000/api'
+const BASE_URL = browserApiBase()
 
 export interface AiAction {
   action: 'update_text' | 'update_theme' | 'change_template' | 'explain'
