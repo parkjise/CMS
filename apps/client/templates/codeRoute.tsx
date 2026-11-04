@@ -88,11 +88,11 @@ export async function codeRouteMetadata(
   return {
     title: `${resolved.pageTitle} | ${resolved.site.tenant.name}`,
     ...(resolved.memberPage ? {} : canonicalMeta(resolved.site, `/${path}`)),
-    // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외
-    robots:
-      (resolved.pageKey === 'consult' && resolved.detailId) || resolved.memberPage
-        ? { index: false, follow: false }
-        : undefined,
+    // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외. 그 밖에는 키를 넣지 않는다 —
+    // undefined 도 레이아웃의 검색 노출 설정(T-129)을 덮어써 서브 페이지가 숨겨지지 않는다
+    ...((resolved.pageKey === 'consult' && resolved.detailId) || resolved.memberPage
+      ? { robots: { index: false, follow: false } }
+      : {}),
   }
 }
 
