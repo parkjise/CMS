@@ -37,25 +37,40 @@
         filter: blur(10px);
       }
       .service-cards__body {
-        transform: translateY(-60px);
+        grid-template-rows: auto auto 1fr;
+      }
+      .service-cards__desc {
+        opacity: 1;
       }
     }
   }
   &__media {
+    position: relative;
     height: 100%;
     transition: filter 0.4s ease;
+
+    &::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, rgb(0 0 0 / 80%), rgb(0 0 0 / 35%) 40%, transparent 75%);
+      pointer-events: none;
+    }
   }
   &__image {
     @include cover;
   }
   &__body {
     position: absolute;
+    z-index: 1;
+    display: grid;
+    grid-template-rows: auto auto 0fr;
     left: 0;
+    right: 0;
     bottom: 0;
     color: #fff;
     padding: 1.5rem;
-    transform: translateY(2.8rem);
-    transition: transform 0.4s ease;
+    transition: grid-template-rows 0.4s ease;
   }
   &__eyebrow {
     display: block;
@@ -69,8 +84,12 @@
   }
   &__desc {
     display: block;
+    min-height: 0;
+    overflow: hidden;
+    opacity: 0;
     font-size: 1.125rem;
     line-height: 1.2;
+    transition: opacity 0.4s ease;
   }
 
   // ── 슬라이드 모드 (lg 미만) — 위 기본 규칙을 덮어쓰도록 맨 아래에 둔다 ──
@@ -88,12 +107,13 @@
     &__item {
       flex-shrink: 0;
     }
-    // 터치 기기엔 hover 가 없으므로 설명까지 처음부터 노출 + 밝은 사진 위 글자 대비
+    // 터치 기기엔 hover 가 없으므로 설명까지 처음부터 노출
     &__body {
-      right: 0;
+      grid-template-rows: auto auto 1fr;
       padding-top: 4rem;
-      background: linear-gradient(to top, rgb(0 0 0 / 55%), transparent);
-      transform: none;
+    }
+    &__desc {
+      opacity: 1;
     }
   }
 }

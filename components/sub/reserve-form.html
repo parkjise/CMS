@@ -1,0 +1,84 @@
+<!-- RESERVE FORM: 온라인 예약 신청 폼 — 이름·희망 날짜/시간·연락처·제목·내용·보안문자·약관 동의 + 등록 (서브 공통)
+  용도 예: 온라인 예약, 방문 상담 신청 / 스타일은 게시판 입력 폼 공용 블록 .board-form
+  - 검증·보안문자·완료 안내: assets/js/board-form.js (목업용, 실제는 서버 검증 + 보안문자 이미지)
+  - 필수 칸의 data-error = 비었을 때 안내 문구, data-error-short = minlength 미달 안내 문구
+  - 시간대 보기는 업종 운영 시간에 맞춰 바꾼다 (점심 13:00 제외 예시)
+-->
+<section class="board-form" aria-labelledby="reserve-form-title">
+  <div class="container">
+    <h2 class="sr-only" id="reserve-form-title">온라인 예약 신청</h2>
+
+    <form class="board-form__form" action="reservation.html" method="post" novalidate data-success="예약 신청이 접수되었습니다. 확인 후 연락드리겠습니다.">
+      <div class="board-form__panel">
+        <p class="board-form__note"><span class="board-form__req" aria-hidden="true">*</span>는 필수 표기 항목입니다.</p>
+
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="rv-name">이름<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="text" id="rv-name" data-error="이름을 입력해 주세요." name="name" placeholder="이름을 입력해 주세요." autocomplete="name" required />
+          </div>
+
+          <fieldset class="board-form__row">
+            <legend class="board-form__label">희망 날짜 &amp; 시간대<span class="board-form__req" aria-hidden="true">*</span></legend>
+            <div class="board-form__cols">
+              <div class="board-form__field">
+                <label class="sr-only" for="rv-date">희망 날짜</label>
+                <input class="board-form__input" type="date" id="rv-date" data-min-today data-error="희망 날짜를 선택해 주세요." name="date" required />
+              </div>
+              <div class="board-form__field board-form__field--select">
+                <label class="sr-only" for="rv-time">희망 시간대</label>
+                <select class="board-form__input board-form__select" id="rv-time" data-error="희망 시간대를 선택해 주세요." name="time" required>
+                  <option value="" selected disabled>시간대 선택</option>
+              <option value="10:00">10:00</option>
+              <option value="11:00">11:00</option>
+              <option value="12:00">12:00</option>
+              <option value="14:00">14:00</option>
+              <option value="15:00">15:00</option>
+              <option value="16:00">16:00</option>
+              <option value="17:00">17:00</option>
+                </select>
+                <i class="ri-arrow-down-s-line" aria-hidden="true"></i>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="rv-tel">연락처<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="tel" id="rv-tel" data-error="연락처를 입력해 주세요." data-error-short="연락처를 정확히 입력해 주세요." minlength="9" data-digits name="tel" placeholder="숫자만 입력해 주세요." inputmode="numeric" autocomplete="tel" required />
+          </div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="rv-subject">제목<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="text" id="rv-subject" data-error="제목을 입력해 주세요." name="subject" placeholder="제목을 입력해 주세요." required />
+          </div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="rv-content">내용<span class="board-form__req" aria-hidden="true">*</span></label>
+            <textarea class="board-form__input board-form__textarea" id="rv-content" data-error="내용을 입력해 주세요." name="content" placeholder="상담받고 싶은 내용을 입력해 주세요." required></textarea>
+          </div>
+
+          <div class="board-form__row">
+            <label class="board-form__label" for="rv-captcha">보안문자<span class="board-form__req" aria-hidden="true">*</span></label>
+            <div class="board-form__captcha">
+              <span class="board-form__captcha-code" aria-hidden="true" data-captcha>000000</span>
+              <span class="sr-only" id="rv-captcha-hint">화면에 보이는 보안문자 여섯 자리를 입력해 주세요.</span>
+              <input class="board-form__input" type="text" id="rv-captcha" data-captcha-input data-error="보안문자를 입력해 주세요." name="captcha" inputmode="numeric" maxlength="6" placeholder="보안문자를 입력해 주세요." autocomplete="off" aria-describedby="rv-captcha-hint" required />
+            </div>
+          </div>
+
+          <div class="board-form__row board-form__row--check">
+            <input class="board-form__checkbox" type="checkbox" id="rv-agree" data-error="이용약관 및 개인정보 수집·이용에 동의해 주세요." name="agree" required />
+            <label class="board-form__check" for="rv-agree">이용약관 및 개인정보 수집·이용 동의<span class="board-form__req" aria-hidden="true">*</span></label>
+            <a class="board-form__terms" href="#">[보기]</a>
+          </div>
+        </div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+      </div>
+
+      <div class="board-form__actions">
+        <button class="board-form__submit" type="submit">등록</button>
+      </div>
+    </form>
+  </div>
+</section>

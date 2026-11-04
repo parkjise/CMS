@@ -1,0 +1,70 @@
+<!-- CONSULT VIEW: 온라인 상담 상세 — 답변여부 배지·제목·작성자·등록일 + 문의 내용 + 답변 + 이전/목록/다음 (서브 공통)
+  용도 예: 온라인 상담, 1:1 문의, Q&A 상세
+  - 게시판 상세 블록(.board-view) 재사용 + 상담 전용 요소(__meta, __answer)
+  - 답변 전이면 .board-view__answer 대신 .board-view__answer--wait 안내 한 줄만 표시
+  - 비밀글은 실제 이식 시 작성자 본인 확인(비밀번호/로그인) 후에만 열림
+-->
+<section class="board-view" aria-labelledby="board-view-title">
+  <div class="container">
+    <article class="board-view__article">
+      <header class="board-view__head">
+        <h2 class="board-view__title" id="board-view-title">
+          <span class="board-view__badge">답변완료</span>
+          첫 상담 예약 시 준비할 서류 문의
+        </h2>
+        <dl class="board-view__meta">
+          <div class="board-view__meta-item">
+            <dt>작성자</dt>
+            <dd>이**</dd>
+          </div>
+          <div class="board-view__meta-item">
+            <dt>등록일</dt>
+            <dd><time datetime="2026-10-21T14:31">2026. 10. 21</time></dd>
+          </div>
+        </dl>
+      </header>
+
+      <div class="board-view__content">
+        <p>
+          안녕하세요. 다음 주에 처음으로 방문 상담을 받아 보려고 합니다.<br />
+          상담 예약을 할 때 미리 준비해 가야 하는 서류나 자료가 있을까요?
+        </p>
+        <p>
+          그리고 가족과 함께 방문해도 되는지, 상담 시간은 보통 얼마나 걸리는지도 궁금합니다.
+        </p>
+      </div>
+
+      <section class="board-view__answer" aria-labelledby="board-view-answer-title">
+        <header class="board-view__answer-head">
+          <h3 class="board-view__answer-title" id="board-view-answer-title">
+            <span class="board-view__answer-mark" aria-hidden="true">A</span>BAZZAR 답변
+          </h3>
+          <time class="board-view__answer-date" datetime="2026-10-22T10:05">2026. 10. 22</time>
+        </header>
+        <div class="board-view__content board-view__content--answer">
+          <p>안녕하세요, BAZZAR입니다. 문의 주셔서 감사합니다.</p>
+          <p><strong>첫 상담 시 준비하실 것</strong></p>
+          <ul>
+            <li>신분증 (본인 확인용)</li>
+            <li>기존에 받으신 상담·이용 내역이 있다면 함께 가져와 주세요.</li>
+            <li>궁금하신 점을 미리 메모해 오시면 더 자세히 안내해 드릴 수 있습니다.</li>
+          </ul>
+          <p>
+            가족분과 함께 방문하셔도 괜찮으며, 첫 상담은 보통 40분~1시간 정도 소요됩니다.<br />
+            추가로 궁금하신 점은 고객 상담(02-1234-5678)으로 편하게 문의해 주세요.
+          </p>
+        </div>
+      </section>
+    </article>
+
+    <nav class="board-view__nav" aria-label="게시글 이동">
+      <a class="board-view__nav-item board-view__nav-item--prev" href="consult-view.html">
+        <i class="ri-arrow-left-line" aria-hidden="true"></i>이전 게시글
+      </a>
+      <a class="board-view__list-button" href="consult.html">목록보기</a>
+      <a class="board-view__nav-item board-view__nav-item--next" href="consult-view.html">
+        다음 게시글<i class="ri-arrow-right-line" aria-hidden="true"></i>
+      </a>
+    </nav>
+  </div>
+</section>

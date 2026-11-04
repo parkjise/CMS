@@ -1,0 +1,38 @@
+// ── PAGINATION — 게시판 페이지 이동 ──────────────────────────────────
+// 게시판 공용 (board-list, consult-board)
+@use '../mixins' as *;
+
+.pagination {
+  @include flex(center, center, 4px);
+  @include md {
+    gap: 8px;
+  }
+
+  &__pages {
+    @include flex(center, center, 4px);
+  }
+  &__page {
+    @include flex-center;
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    font-size: 1rem;
+    @include focus-ring;
+
+    &[aria-current='page'] {
+      background: var(--color-text-primary);
+      color: #fff;
+      font-weight: 700;
+    }
+    &--arrow {
+      font-size: 1.375rem;
+      color: #94a3b8;
+    }
+
+    @include hover {
+      &:not([aria-current='page']) {
+        color: var(--color-primary);
+      }
+    }
+  }
+}

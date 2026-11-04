@@ -1,0 +1,50 @@
+<!-- FIND PW FORM: 비밀번호 찾기 — ① 이메일 + 휴대폰 인증 → ② 재설정 링크 발송 완료(60초 뒤 재발송) (기획서 16.6 Step 1·2)
+  - 검사: .board-form + assets/js/board-form.js / 단계 전환·재발송 대기: assets/js/member-form.js ([data-find-pw])
+  - 계정 유무와 관계없이 같은 완료 화면 (계정 존재 여부 노출 방지 — 기획서 16.11)
+  - 목업: 인증번호 123456 / 메일 대신 화면의 '목업' 링크로 reset-pw.html 열기 (실제는 POST /auth/forgot-password)
+-->
+<section class="board-form member-form" aria-labelledby="find-pw-title">
+  <div class="container">
+    <div data-include="components/sub/find-tabs.html" data-current="pw"></div>
+
+    <form class="board-form__form" action="find-pw.html" method="post" novalidate data-find-pw data-step="form">
+      <div class="board-form__panel board-form__panel--narrow">
+        <a class="member-form__back" href="login.html"><i class="ri-arrow-left-line" aria-hidden="true"></i>로그인으로 돌아가기</a>
+        <h2 class="member-form__heading" id="find-pw-title">비밀번호 재설정</h2>
+        <p class="member-form__desc">가입한 이메일과 휴대폰으로 본인 확인 후 새 비밀번호를 설정할 수 있어요.</p>
+
+        <div class="board-form__list">
+          <div class="board-form__row">
+            <label class="board-form__label" for="fp-email">이메일<span class="board-form__req" aria-hidden="true">*</span></label>
+            <input class="board-form__input" type="email" id="fp-email" name="email" placeholder="가입한 이메일 주소" autocomplete="email" required data-error="이메일을 입력해 주세요." data-error-format="올바른 이메일 형식으로 입력해 주세요." />
+          </div>
+          <div data-include="components/sub/phone-verify.html" data-id="fp"></div>
+        </div>
+
+        <p class="board-form__status" role="status" aria-live="polite"></p>
+
+        <button class="member-form__submit" type="submit">재설정 링크 보내기</button>
+      </div>
+    </form>
+
+    <!-- ② 발송 완료 -->
+    <div class="board-form__panel board-form__panel--narrow member-form__done" data-step="sent" tabindex="-1" hidden>
+      <i class="ri-mail-send-line member-form__done-icon" aria-hidden="true"></i>
+      <h2 class="member-form__title">이메일을 확인해 주세요</h2>
+      <p class="member-form__desc">
+        <strong data-sent-email>ho****@email.com</strong> 으로<br />비밀번호 재설정 링크를 보냈어요. 링크는 <strong>30분간</strong> 유효합니다.
+      </p>
+      <div class="member-form__resend">
+        <p>이메일을 받지 못하셨나요? 스팸 메일함을 확인해 보세요.</p>
+        <button class="member-form__button member-form__button--line" type="button" data-resend disabled>재발송하기</button>
+        <p class="member-form__result member-form__result--ok" role="status" aria-live="polite" data-resend-status></p>
+      </div>
+      <div class="member-form__buttons">
+        <a class="member-form__submit" href="login.html">로그인으로 돌아가기</a>
+      </div>
+      <p class="member-form__demo">
+        목업 · 메일 속 링크 열기: <a href="reset-pw.html">재설정 화면</a> / <a href="reset-pw.html#expired">만료된 링크</a>
+      </p>
+    </div>
+  </div>
+</section>

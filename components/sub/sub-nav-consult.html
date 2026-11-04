@@ -1,0 +1,16 @@
+<!-- SUB NAV (상담 예약): 온라인 상담 | 온라인 예약 탭
+  사용: <div data-include="components/sub/sub-nav-consult.html" data-current="consult"></div>
+  data-current 와 같은 data-key 탭에 aria-current="page" (assets/js/sub-nav.js)
+-->
+<nav class="sub-nav" aria-label="하위 메뉴" data-current="{{current}}">
+  <div class="container">
+    <ul class="sub-nav__list">
+      <li class="sub-nav__item">
+        <a class="sub-nav__link" href="consult.html" data-key="consult">온라인 상담</a>
+      </li>
+      <li class="sub-nav__item">
+        <a class="sub-nav__link" href="reservation.html" data-key="reservation">온라인 예약</a>
+      </li>
+    </ul>
+  </div>
+</nav>

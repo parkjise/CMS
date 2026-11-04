@@ -30,7 +30,8 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: minmax(0, 1fr);
-    // 이미지 위 어두운 오버레이 (텍스트 대비 확보)
+
+    // 기본 슬라이드 오버레이 (텍스트 대비 확보)
     &::after {
       content: '';
       grid-area: 1 / 1;
@@ -38,8 +39,22 @@
       pointer-events: none;
       z-index: 1;
     }
+
+    // 동영상 슬라이드: 다크블루 계열 그라데이션 오버레이로 차분하고 고급스러운 무드 연출
+    &--video,
+    &:has(.hero-slider__video) {
+      &::after {
+        background: linear-gradient(
+          180deg,
+          rgba(4, 15, 36, 0.82) 0%,
+          rgba(8, 26, 60, 0.85) 45%,
+          rgba(2, 9, 24, 0.92) 100%
+        );
+      }
+    }
   }
-  &__image {
+  &__image,
+  &__video {
     grid-area: 1 / 1;
     min-height: 0;
     width: 100%;
@@ -145,6 +160,10 @@
     flex: 0 0 44px;
     width: 44px;
     height: 44px;
+    &:hover i {
+      background: var(--color-text-primary);
+      border-color: var(--color-text-primary);
+    }
     @include md {
       flex-basis: 60px;
       width: 60px;

@@ -6,7 +6,7 @@
     <title>홈페이지 템플릿 — 기본 스캐폴드</title>
     <!--
     공통 홈페이지 템플릿 시안 (직접 CSS/SCSS 작성)
-    - 업종 무관 스캐폴드. 문구는 어느 업종에서도 자연스러운 샘플 카피(브랜드: ONDO).
+    - 업종 무관 스캐폴드. 문구는 어느 업종에서도 자연스러운 샘플 카피(브랜드: BAZZAR).
     - 이름 규칙: partial 파일명 = SCSS 파일명 = BEM 블록명 = JS 파일명
       hero-slider · brand-intro · service-cards · video-playlist · notice (+ location 미사용)
       예) components/sections/service-cards.html ↔ styles/main/_service-cards.scss ↔ .service-cards__*
@@ -36,9 +36,11 @@
     <script src="./assets/vendor/gsap/gsap.min.js" defer></script>
     <script src="./assets/vendor/gsap/ScrollTrigger.min.js" defer></script>
 
+    <script src="./assets/js/loader.js" defer></script>
     <script src="assets/js/include.js" defer></script>
     <script src="./assets/js/header.js" defer></script>
     <script src="./assets/js/quick-menu.js" defer></script>
+    <script src="./assets/js/popup.js" defer></script>
     <script src="./assets/js/hero-slider.js" defer></script>
     <script src="./assets/js/brand-intro.js" defer></script>
     <script src="./assets/js/service-cards.js" defer></script>
@@ -46,11 +48,22 @@
     <script src="./assets/js/scroll-reveal.js" defer></script>
   </head>
   <body>
+    <!-- 로딩 화면 (include 지연 없이 바로 보이도록 직접 삽입) -->
+    <div class="loader" aria-hidden="true">
+      <svg class="loader__curtain" viewBox="0 0 1000 1000" preserveAspectRatio="none">
+        <path class="loader__path" d="M0,1005S175,995,500,995s500,5,500,5V0H0Z"></path>
+      </svg>
+      <div class="loader__text">
+        <span>L</span><span>o</span><span>a</span><span>d</span><span>i</span><span>n</span><span>g</span>
+      </div>
+    </div>
+
     <div data-include="components/header.html"></div>
 
     <main class="main" id="main" tabindex="-1">
       <div data-include="components/sections/hero-slider.html"></div>
       <div data-include="components/sections/brand-intro.html"></div>
+      <div data-include="components/sections/data-sect.html"></div>
       <div data-include="components/sections/service-cards.html"></div>
       <div data-include="components/sections/video-playlist.html"></div>
       <div data-include="components/sections/notice.html"></div>
@@ -58,6 +71,7 @@
 
     <div data-include="components/footer.html"></div>
     <div data-include="components/quick-menu.html"></div>
+    <div data-include="components/popup.html"></div>
 
   </body>
 </html>

@@ -1,0 +1,578 @@
+// ── MEMBER FORM — 회원 화면 전용 요소 (기획서 16 — 로그인·가입·찾기·재설정·탈퇴) ──
+// components/sub/login-form · join-form · join-social-form · find-email-form · find-pw-form · reset-pw-form
+//   · withdraw-form + 공용 조각 member-sns · member-agree · phone-verify · password-field · find-tabs
+// 입력 칸·패널·버튼 기본은 .board-form, 여기서는 로고·SNS·인증·비밀번호 조건·단계 결과·탈퇴 안내만
+@use '../mixins' as *;
+
+$line: #e5e7eb;
+$muted: #64748b;
+$error: #dc2626;
+$kakao: #fee500; // 카카오 로그인 버튼 가이드 색
+$naver: #03c75a; // 네이버 로그인 버튼 가이드 색
+
+.member-form {
+  // ── 머리: 로고 · 제목 · 설명
+  &__logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--color-primary);
+    text-align: center;
+  }
+  &__title {
+    margin-top: 8px;
+    font-family: var(--font-heading);
+    font-weight: 500;
+    @include fluid-type(1.25rem, 1.5rem);
+    text-align: center;
+    word-break: keep-all;
+  }
+  &__desc {
+    margin-top: 10px;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    color: $muted;
+    word-break: keep-all;
+
+    strong {
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+  }
+  &__list {
+    margin-top: 32px;
+  }
+
+  // 패널 제목 + 아래 강조선 (가입·찾기·재설정·탈퇴)
+  &__heading {
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--color-text-primary);
+    font-family: var(--font-heading);
+    font-weight: 500;
+    @include fluid-type(1.25rem, 1.5rem);
+    & ~ .board-form__list {
+      margin-top: 24px;
+    }
+  }
+  &__group-title {
+    margin-top: 24px;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  &__optional {
+    font-weight: 400;
+    color: $muted;
+  }
+  &__must {
+    color: var(--color-primary);
+  }
+
+  // ← 로그인으로 돌아가기
+  &__back {
+    @include flex(center, flex-start, 4px);
+    width: fit-content;
+    margin-bottom: 16px;
+    font-size: 0.8125rem;
+    color: $muted;
+    @include focus-ring;
+    @include hover {
+      color: var(--color-text-primary);
+    }
+  }
+
+  // ── 간편 로그인 (카카오 · 네이버) + '또는'
+  &__sns {
+    @include flex(stretch, flex-start, 10px, column);
+    margin-top: 24px;
+  }
+  &__group-title + &__sns {
+    margin-top: 12px;
+  }
+  &__sns-button {
+    @include flex(center, center, 8px);
+    position: relative;
+    height: 48px;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: filter 0.2s;
+    @include focus-ring;
+    @include hover {
+      filter: brightness(0.96);
+    }
+
+    &--kakao {
+      background: $kakao;
+      color: rgba(0, 0, 0, 0.85);
+    }
+    &--naver {
+      background: $naver;
+      color: #fff;
+    }
+  }
+  &__sns-icon {
+    @include flex-center;
+    width: 22px;
+    height: 22px;
+    font-size: 1.375rem;
+
+    &--naver {
+      border-radius: 4px;
+      background: $naver;
+      color: #fff;
+      font-size: 0.8125rem;
+      font-weight: 800;
+    }
+    .member-form__sns-button--naver &--naver {
+      background: #fff;
+      color: $naver;
+    }
+    &--kakao-badge {
+      border-radius: 4px;
+      background: $kakao;
+      color: #3c1e1e;
+      font-size: 1rem;
+    }
+  }
+  &__divider {
+    @include flex(center, center, 12px);
+    margin: 28px 0 4px;
+    font-size: 0.8125rem;
+    color: $muted;
+
+    &::before,
+    &::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: $line;
+    }
+  }
+  // 간편 가입 배지 (소셜 가입 추가 정보)
+  &__badge {
+    @include flex-center;
+    width: 56px;
+    height: 56px;
+    margin: 0 auto 16px;
+    border-radius: 50%;
+    background: $kakao;
+    color: #3c1e1e;
+    font-size: 1.75rem;
+
+    &--naver {
+      background: $naver;
+      color: #fff;
+      font-size: 1.25rem;
+      font-weight: 800;
+    }
+  }
+
+  // ── 주 버튼 (패널 폭 가득) — button · a 공용
+  &__submit {
+    @include button-reset;
+    @include flex-center;
+    width: 100%;
+    height: 48px;
+    margin-top: 24px;
+    border-radius: 8px;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    transition: background-color 0.2s;
+    @include focus-ring;
+
+    @include hover {
+      background: var(--color-primary-hover);
+    }
+    &:disabled {
+      background: #94a3b8;
+      cursor: not-allowed;
+    }
+  }
+  // 보조 버튼 (테두리) — button · a 공용
+  &__line-link {
+    @include button-reset;
+    @include flex-center;
+    width: 100%;
+    height: 48px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.9375rem;
+    transition: border-color 0.2s;
+    @include focus-ring;
+
+    @include hover {
+      border-color: var(--color-text-primary);
+    }
+  }
+  &__buttons {
+    @include flex(stretch, flex-start, 10px, column);
+    margin-top: 28px;
+
+    .member-form__submit {
+      margin-top: 0;
+    }
+  }
+
+  // 이메일 찾기 | 비밀번호 찾기
+  &__links {
+    @include flex(center, center);
+    margin-top: 20px;
+    font-size: 0.8125rem;
+    color: $muted;
+
+    a {
+      @include focus-ring;
+      @include hover {
+        color: var(--color-text-primary);
+        text-decoration: underline;
+      }
+    }
+    a + a::before {
+      content: '';
+      display: inline-block;
+      width: 1px;
+      height: 10px;
+      margin: 0 12px;
+      background: #cbd5e1;
+      vertical-align: middle;
+    }
+  }
+  // 아직 회원이 아니신가요? 회원가입
+  &__switch {
+    margin-top: 14px;
+    font-size: 0.875rem;
+    color: $muted;
+    text-align: center;
+
+    a {
+      margin-left: 6px;
+      color: var(--color-primary);
+      font-weight: 600;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      @include focus-ring;
+    }
+  }
+  // 목업 안내 (실제 이식 시 삭제)
+  &__demo {
+    margin-top: 24px;
+    padding: 10px 12px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    color: $muted;
+    text-align: center;
+    word-break: keep-all;
+
+    a {
+      color: var(--color-primary);
+      text-decoration: underline;
+    }
+  }
+
+  // ── 찾기 탭
+  &__tabs {
+    @include flex(stretch, center, 8px);
+    max-width: 600px;
+    margin: 0 auto 40px;
+  }
+  &__tab {
+    @include flex-center;
+    flex: 1;
+    height: 48px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    color: $muted;
+    @include focus-ring;
+
+    &[aria-current='page'] {
+      border-color: var(--color-text-primary);
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+    @include hover {
+      color: var(--color-text-primary);
+    }
+  }
+
+  // ── 입력 + 버튼 (인증번호 받기·확인)
+  &__addon {
+    @include flex(stretch, flex-start, 8px);
+
+    .board-form__input {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+  &__button {
+    @include button-reset;
+    flex-shrink: 0;
+    min-width: 88px;
+    padding: 0 14px;
+    border-radius: 8px;
+    background: var(--color-text-primary);
+    color: #fff;
+    font-size: 0.875rem;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+    @include focus-ring;
+
+    @include hover {
+      background: #000;
+    }
+    &--line {
+      min-height: 48px;
+      border: 1px solid var(--color-text-primary);
+      background: #fff;
+      color: var(--color-text-primary);
+
+      @include hover {
+        background: var(--color-surface);
+      }
+    }
+    &:disabled {
+      border-color: $line;
+      background: #f1f5f9;
+      color: #94a3b8;
+      cursor: not-allowed;
+    }
+  }
+  // 인증번호 칸 + 남은 시간
+  &__timer-field {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+
+    .board-form__input {
+      padding-right: 64px;
+    }
+  }
+  &__timer {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    color: $error;
+    transform: translateY(-50%);
+  }
+  &__result {
+    font-size: 0.8125rem;
+    line-height: 1.5;
+    color: $error;
+    word-break: keep-all;
+
+    &:empty {
+      display: none;
+    }
+    &--ok {
+      color: var(--color-primary);
+    }
+  }
+
+  // ── 비밀번호 + 보기 버튼 · 조건
+  &__password {
+    position: relative;
+
+    .board-form__input {
+      padding-right: 48px;
+    }
+  }
+  &__eye {
+    @include button-reset;
+    @include flex-center;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+    color: $muted;
+    @include focus-ring(var(--color-primary), -4px);
+    @include hover {
+      color: var(--color-text-primary);
+    }
+  }
+  &__rules {
+    @include flex(center, flex-start, 6px 14px);
+    flex-wrap: wrap;
+    font-size: 0.8125rem;
+    color: #94a3b8;
+  }
+  &__rule {
+    @include flex(center, flex-start, 4px);
+    transition: color 0.2s;
+
+    &::before {
+      content: '\eb7b'; // remixicon check-line
+      font-family: 'remixicon';
+      font-size: 1rem;
+    }
+    &--ok {
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+  }
+
+  // ── 약관 동의 묶음
+  &__agree {
+    @include flex(stretch, flex-start, 12px, column);
+    margin: 32px 0 0;
+    padding: 0;
+    border: 0;
+  }
+  &__agree-all {
+    margin-bottom: 4px;
+    padding: 14px 16px;
+    border-radius: 8px;
+    background: var(--color-surface);
+
+    .board-form__check {
+      font-weight: 600;
+    }
+  }
+  &__agree-note {
+    font-size: 0.75rem;
+    line-height: 1.6;
+    color: $muted;
+    word-break: keep-all;
+  }
+
+  // ── 단계 결과 (찾음 · 없음 · 발송 · 완료 · 만료)
+  &__done {
+    text-align: center;
+
+    &:focus {
+      outline: none;
+    }
+    .member-form__desc {
+      margin-top: 12px;
+    }
+  }
+  &__done-icon {
+    display: block;
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--color-primary);
+
+    &--muted {
+      color: #94a3b8;
+    }
+  }
+  &__found {
+    margin-top: 24px;
+    padding: 20px;
+    border-radius: 8px;
+    background: var(--color-surface);
+
+    dt {
+      font-size: 0.8125rem;
+      color: $muted;
+    }
+    dd {
+      margin-top: 6px;
+      font-size: 1.125rem;
+      font-weight: 600;
+    }
+  }
+  &__resend {
+    @include flex(center, flex-start, 10px, column);
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: 1px solid $line;
+    font-size: 0.8125rem;
+    color: $muted;
+
+    .member-form__button {
+      min-width: 140px;
+      min-height: 40px;
+    }
+  }
+  &__notice {
+    @include flex(flex-start, flex-start, 8px);
+    margin-top: 20px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--color-secondary);
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    text-align: left;
+    word-break: keep-all;
+
+    i {
+      font-size: 1.125rem;
+      color: var(--color-primary);
+    }
+  }
+
+  // ── 회원 탈퇴
+  &__warning {
+    margin-top: 24px;
+    padding: 18px 20px;
+    border-radius: 8px;
+    background: #fef2f2;
+    font-size: 0.875rem;
+    line-height: 1.7;
+    word-break: keep-all;
+
+    > p + p,
+    > ul + p {
+      margin-top: 8px;
+    }
+  }
+  &__warning-title {
+    @include flex(center, flex-start, 6px);
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: $error;
+
+    i {
+      font-size: 1.125rem;
+    }
+  }
+  &__bullets {
+    margin-top: 6px;
+    padding-left: 4px;
+
+    li::before {
+      content: '·';
+      margin-right: 6px;
+    }
+  }
+  &__block {
+    margin-top: 16px;
+    padding: 18px 20px;
+    border: 1px solid $error;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    line-height: 1.7;
+
+    .member-form__line-link {
+      height: 40px;
+      margin-top: 12px;
+    }
+  }
+  &__block-title {
+    font-weight: 600;
+    color: $error;
+  }
+  &__reason-etc {
+    height: 110px;
+  }
+  &__danger {
+    background: $error;
+
+    @include hover {
+      background: #b91c1c;
+    }
+  }
+
+  // 패널 안 버튼 줄
+  &__actions {
+    margin-top: 32px;
+  }
+}

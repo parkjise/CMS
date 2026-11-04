@@ -1,0 +1,448 @@
+// ── MYPAGE — 마이페이지 (기획서 16.7) ─────────────────────────────
+// components/sub/mypage.html — 인사 + 탭(내 예약 · 문의 내역 · 알림 설정 · 내 정보)
+// 입력 칸·선택 상자는 .board-form__input / __select 재사용
+@use '../mixins' as *;
+
+$line: #e5e7eb;
+$muted: #64748b;
+$error: #dc2626;
+
+.mypage {
+  padding: 64px 0 100px;
+  @include md {
+    padding: 100px 0 150px;
+  }
+
+  .container {
+    max-width: 960px;
+  }
+
+  // ── 인사 + 로그아웃
+  &__head {
+    @include flex(flex-end, space-between, 16px);
+    flex-wrap: wrap;
+  }
+  &__hello {
+    @include font-serif-ko(500);
+    @include fluid-type(1.375rem, 2rem);
+    word-break: keep-all;
+
+    strong {
+      color: var(--color-primary);
+      font-weight: 700;
+    }
+  }
+  &__since {
+    margin-top: 6px;
+    font-size: 0.875rem;
+    color: $muted;
+  }
+  &__logout {
+    @include flex(center, center, 6px);
+    height: 40px;
+    padding: 0 16px;
+    border: 1px solid $line;
+    border-radius: 999px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s;
+    @include focus-ring;
+    @include hover {
+      border-color: var(--color-text-primary);
+    }
+  }
+
+  // ── 탭 (모바일 2×2 → md 한 줄 밑줄형)
+  &__tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 32px;
+    @include md {
+      display: flex;
+      gap: 0;
+      margin-top: 48px;
+      border-bottom: 1px solid $line;
+    }
+  }
+  &__tab {
+    @include button-reset;
+    height: 44px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    color: $muted;
+    transition: color 0.2s, border-color 0.2s;
+    @include focus-ring(var(--color-primary), -2px);
+    @include md {
+      flex: 1;
+      height: 56px;
+      margin-bottom: -1px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      border-radius: 0;
+      font-size: 1rem;
+    }
+
+    &[aria-selected='true'] {
+      border-color: var(--color-text-primary);
+      color: var(--color-text-primary);
+      font-weight: 600;
+    }
+    @include hover {
+      color: var(--color-text-primary);
+    }
+  }
+
+  // ── 탭 패널
+  &__panel {
+    margin-top: 32px;
+    &:focus-visible {
+      outline: 2px solid var(--color-primary);
+      outline-offset: 8px;
+    }
+  }
+  &__panel-head {
+    @include flex(center, space-between, 12px);
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  &__panel-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    @include md {
+      font-size: 1.25rem;
+    }
+  }
+  &__filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    @include md {
+      width: auto;
+    }
+  }
+  &__select {
+    height: 40px;
+    @include md {
+      width: 150px;
+    }
+  }
+
+  // ── 카드 (예약 · 문의)
+  &__cards {
+    @include flex(stretch, flex-start, 12px, column);
+  }
+  &__card {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'badge   actions'
+      'title   actions'
+      'meta    actions';
+    align-items: center;
+    gap: 6px 16px;
+    padding: 20px;
+    border: 1px solid $line;
+    border-radius: 12px;
+    background: #fff;
+    @include md {
+      padding: 24px 28px;
+    }
+    @include down(md) {
+      grid-template-columns: 1fr;
+      grid-template-areas: 'badge' 'title' 'meta' 'actions';
+    }
+  }
+  &__badge {
+    grid-area: badge;
+    justify-self: start;
+    @include flex(center, flex-start, 6px);
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    &--pending {
+      background: #fef9c3;
+      color: #a16207;
+    }
+    &--confirmed {
+      background: #dcfce7;
+      color: #15803d;
+    }
+    &--completed {
+      background: #dbeafe;
+      color: #1d4ed8;
+    }
+    &--cancelled {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+    &--done {
+      background: var(--color-secondary);
+      color: var(--color-primary-hover);
+    }
+  }
+  &__card-title {
+    grid-area: title;
+    font-size: 1rem;
+    font-weight: 600;
+    @include md {
+      font-size: 1.125rem;
+    }
+  }
+  &__card-meta {
+    grid-area: meta;
+    font-size: 0.875rem;
+    color: $muted;
+  }
+  &__card-actions {
+    grid-area: actions;
+    @include down(md) {
+      margin-top: 8px;
+    }
+  }
+  // 작은 테두리 버튼 (예약 취소 · 상세보기 · 수정 · 연결)
+  &__action {
+    @include button-reset;
+    @include flex-center;
+    flex-shrink: 0;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid $line;
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    transition: border-color 0.2s;
+    @include focus-ring;
+    @include hover {
+      border-color: var(--color-text-primary);
+    }
+  }
+  &__empty {
+    padding: 48px 0;
+    border: 1px dashed $line;
+    border-radius: 12px;
+    font-size: 0.875rem;
+    color: $muted;
+    text-align: center;
+  }
+
+  // 예약 상태 안내
+  &__legend {
+    @include flex(center, flex-start, 8px 20px);
+    flex-wrap: wrap;
+    margin-top: 20px;
+    font-size: 0.8125rem;
+    color: $muted;
+
+    div {
+      @include flex(center, flex-start, 6px);
+    }
+    dt {
+      @include flex(center, flex-start, 6px);
+      font-weight: 600;
+      color: var(--color-text-primary);
+    }
+  }
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+
+    &--pending {
+      background: #eab308;
+    }
+    &--confirmed {
+      background: #22c55e;
+    }
+    &--completed {
+      background: #3b82f6;
+    }
+    &--cancelled {
+      background: #ef4444;
+    }
+  }
+  &__status {
+    margin-top: 16px;
+    font-size: 0.875rem;
+    color: var(--color-primary);
+
+    &:empty {
+      display: none;
+    }
+    &--error {
+      color: $error;
+    }
+  }
+  &__more {
+    max-width: 240px;
+    margin: 32px auto 0;
+  }
+
+  // ── 알림 설정 (스위치)
+  &__settings {
+    border-top: 1px solid var(--color-text-primary);
+  }
+  &__setting {
+    @include flex(center, space-between, 16px);
+    padding: 18px 4px;
+    border-bottom: 1px solid $line;
+  }
+  &__setting-label {
+    @include flex(flex-start, flex-start, 4px, column);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+
+    span {
+      font-size: 0.8125rem;
+      font-weight: 400;
+      color: $muted;
+      word-break: keep-all;
+    }
+  }
+  &__switch {
+    flex-shrink: 0;
+    position: relative;
+    width: 48px;
+    height: 28px;
+    margin: 0;
+    border-radius: 999px;
+    background: #cbd5e1;
+    appearance: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    @include focus-ring;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform 0.2s;
+    }
+    &:checked {
+      background: var(--color-primary);
+      &::after {
+        transform: translateX(20px);
+      }
+    }
+  }
+
+  // ── 내 정보
+  &__info {
+    border-top: 1px solid var(--color-text-primary);
+  }
+  &__info-row {
+    display: grid;
+    grid-template-columns: 88px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    min-height: 64px;
+    padding: 10px 4px;
+    border-bottom: 1px solid $line;
+    font-size: 0.9375rem;
+    @include md {
+      grid-template-columns: 140px 1fr auto;
+    }
+
+    dt {
+      font-weight: 500;
+      color: $muted;
+    }
+    dd {
+      min-width: 0;
+    }
+  }
+  &__info-value {
+    word-break: break-all;
+  }
+  &__info-note {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+  }
+  &__info-input {
+    height: 40px;
+    @include md {
+      max-width: 320px;
+    }
+  }
+
+  &__block {
+    margin-top: 40px;
+  }
+  &__block-head {
+    @include flex(center, space-between, 12px);
+  }
+  &__block-title {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  &__password {
+    margin-top: 16px;
+    padding: 24px 20px;
+    border-radius: 12px;
+    background: var(--color-surface);
+    @include md {
+      padding: 28px;
+    }
+  }
+  &__password-actions {
+    margin-top: 24px;
+  }
+
+  &__social {
+    margin-top: 12px;
+    border-top: 1px solid $line;
+  }
+  &__social-item {
+    @include flex(center, flex-start, 10px);
+    padding: 14px 4px;
+    border-bottom: 1px solid $line;
+    font-size: 0.9375rem;
+
+    .mypage__action {
+      margin-left: auto;
+    }
+  }
+  &__social-state {
+    font-size: 0.8125rem;
+    color: #94a3b8;
+
+    .mypage__social-item--on & {
+      color: var(--color-primary);
+      font-weight: 500;
+    }
+  }
+
+  &__withdraw {
+    margin-top: 48px;
+    text-align: right;
+
+    a {
+      font-size: 0.8125rem;
+      color: #94a3b8;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      @include focus-ring;
+      @include hover {
+        color: $error;
+      }
+    }
+  }
+}

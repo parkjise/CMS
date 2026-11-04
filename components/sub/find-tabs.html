@@ -1,0 +1,8 @@
+<!-- FIND TABS: 이메일 찾기 | 비밀번호 찾기 탭 (회원 공통)
+  사용: <div data-include="components/sub/find-tabs.html" data-current="email"></div>
+  data-current 와 같은 data-key 탭에 aria-current="page" (assets/js/member-form.js)
+-->
+<nav class="member-form__tabs" aria-label="이메일 · 비밀번호 찾기" data-current="{{current}}">
+  <a class="member-form__tab" href="find-email.html" data-key="email">이메일 찾기</a>
+  <a class="member-form__tab" href="find-pw.html" data-key="pw">비밀번호 찾기</a>
+</nav>

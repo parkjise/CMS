@@ -1,6 +1,6 @@
 // ── BANNER SPLIT — 글 | 화면 오른쪽 끝까지 붙는 사진 ───────────────
 // components/sub/banner-split.html
-// lg 이상: 사진이 섹션 오른쪽 55% 를 꽉 채움 / lg 미만: 글 아래 사진
+// lg 이상: 글 50% | 사진 50% (사진은 화면 오른쪽 끝까지 꽉 채움) / lg 미만: 글 아래 사진
 @use '../mixins' as *;
 
 .banner-split {
@@ -21,7 +21,7 @@
 
   &__text {
     @include lg {
-      max-width: 40%;
+      max-width: calc(50% - 80px); // 사진과 80px 간격
     }
   }
 
@@ -32,7 +32,7 @@
       top: 0;
       right: 0;
       bottom: 0;
-      width: 55.5%;
+      width: 50%;
       margin-top: 0;
     }
   }

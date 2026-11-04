@@ -47,6 +47,16 @@ document.addEventListener('includes:loaded', () => {
     )
   }
 
+  const syncVideos = (swiper) => {
+    slider.querySelectorAll('.swiper-slide video').forEach((vid) => {
+      vid.pause()
+    })
+    const activeVideo = swiper.slides[swiper.activeIndex]?.querySelector('video')
+    if (activeVideo && (!window.mainPopupGate || !window.mainPopupGate.isOpen())) {
+      activeVideo.play().catch(() => {})
+    }
+  }
+
   const swiper = new window.Swiper(slider, {
     slidesPerView: 1,
     loop: true,
@@ -72,11 +82,28 @@ document.addEventListener('includes:loaded', () => {
       init(swiper) {
         updateNumbers(swiper)
         resetContent()
-        animateContent(swiper)
+
+        // 팝업이 떠 있는 경우(mainPopupGate): 메인 슬라이더 정지 및 대기 후, 팝업 닫히면 작동
+        if (window.mainPopupGate && window.mainPopupGate.isOpen()) {
+          swiper.autoplay.stop()
+          swiper.slides[swiper.activeIndex]?.querySelector('video')?.pause()
+          if (fill) fill.style.transform = 'scaleX(0)'
+          window.mainPopupGate.then(() => {
+            animateContent(swiper)
+            swiper.autoplay.start()
+            swiper.slides[swiper.activeIndex]?.querySelector('video')?.play().catch(() => {})
+          })
+        } else {
+          animateContent(swiper)
+          swiper.slides[swiper.activeIndex]?.querySelector('video')?.play().catch(() => {})
+        }
       },
       slideChange: updateNumbers,
       slideChangeTransitionStart: resetContent,
-      slideChangeTransitionEnd: animateContent,
+      slideChangeTransitionEnd(swiper) {
+        animateContent(swiper)
+        syncVideos(swiper)
+      },
       autoplayTimeLeft(swiper, timeLeft, remainingRatio) {
         if (!fill) return
         fill.style.transform = `scaleX(${1 - remainingRatio})`

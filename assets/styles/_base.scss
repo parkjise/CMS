@@ -6,6 +6,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&display=swap');
 // font-family: "the-seasons", sans-serif;
 // font-family: 'Cormorant Garamond', serif;
+// ── 커스텀 스크롤바 (참고: champodonamu.com) ─────────────────────
+:root {
+  --scroll-width: 7px;
+}
+
+// Firefox (Chrome 121+는 scrollbar-color 지정 시 webkit 스타일을 무시하므로 분리)
+@supports not selector(::-webkit-scrollbar) {
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: #a9a9a9 transparent;
+  }
+}
+
+// Chrome · Safari · Edge
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: var(--scroll-width);
+  height: var(--scroll-width);
+}
+
+html::-webkit-scrollbar-track,
+body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html::-webkit-scrollbar-thumb,
+body::-webkit-scrollbar-thumb {
+  background: #a9a9a9;
+  border-radius: 10px;
+
+  &:hover {
+    background: #888;
+  }
+}
+
 body {
   font-family: var(--font-body);
   color: var(--color-text-primary);
@@ -50,7 +85,7 @@ section {
     text-align: left;
     margin-bottom: 24px;
   }
-  // 서브 페이지용 — 작은 제목 (괄호 eyebrow + 42px 제목)
+  // 서브 페이지용 — 작은 제목 (eyebrow + 42px 제목)
   &--sub {
     margin-bottom: 40px;
     @include md {
@@ -59,7 +94,6 @@ section {
     .section-head__eyebrow {
       font-size: 0.9375rem;
       font-weight: 400;
-      color: var(--color-primary);
     }
     .section-head__title {
       margin-block: 0.75rem 0;

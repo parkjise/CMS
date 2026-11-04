@@ -4,39 +4,240 @@
 <header class="header" id="header">
   <div class="header__inner">
     <h1 class="header__logo">
-      <a class="header__logo-link" href="_template.html" lang="en">ONDO</a>
+      <a class="header__logo-link" href="_template.html" lang="en">
+        <img
+          class="header__logo-image"
+          src="./assets/images/logo.svg"
+          alt=""
+          width="2496"
+          height="1696"
+        />
+      </a>
     </h1>
 
     <nav class="header__nav" id="header-nav" aria-label="주 메뉴">
       <ul class="header__menu">
         <li class="header__menu-item">
-          <a class="header__menu-link" href="about.html" lang="en">About</a>
+          <a class="header__menu-link" href="about.html">회사소개</a>
+          <ul class="header__sub-menu">
+            <li><a class="header__sub-link" href="about.html">브랜드 소개</a></li>
+            <li><a class="header__sub-link" href="about-history.html">연혁</a></li>
+            <li><a class="header__sub-link" href="about-location.html">오시는 길</a></li>
+          </ul>
         </li>
         <li class="header__menu-item">
-          <a class="header__menu-link" href="business.html" lang="en">Business</a>
+          <a class="header__menu-link" href="business.html">사업영역</a>
+          <ul class="header__sub-menu">
+            <li><a class="header__sub-link" href="business.html">핵심 솔루션</a></li>
+            <li><a class="header__sub-link" href="business.html#tech">보유 기술</a></li>
+            <li><a class="header__sub-link" href="business.html#partners">파트너십</a></li>
+          </ul>
         </li>
         <li class="header__menu-item">
-          <a class="header__menu-link" href="notice.html" lang="en">Notice</a>
+          <a class="header__menu-link" href="notice.html">공지사항</a>
+          <ul class="header__sub-menu">
+            <li><a class="header__sub-link" href="notice.html">새소식</a></li>
+            <li><a class="header__sub-link" href="notice.html">언론보도</a></li>
+            <li><a class="header__sub-link" href="notice.html">채용공고</a></li>
+          </ul>
         </li>
         <li class="header__menu-item">
-          <a class="header__menu-link" href="#contact" lang="en">Contact</a>
+          <a class="header__menu-link" href="consult.html">상담·예약</a>
+          <ul class="header__sub-menu">
+            <li><a class="header__sub-link" href="consult.html">1:1 맞춤 상담</a></li>
+            <li><a class="header__sub-link" href="consult.html#faq">자주 묻는 질문</a></li>
+            <li><a class="header__sub-link" href="#contact">고객센터 안내</a></li>
+          </ul>
         </li>
       </ul>
     </nav>
 
-    <button
-      class="header__menu-toggle"
-      type="button"
-      aria-label="전체 메뉴 열기"
-      aria-controls="header-nav"
-      aria-expanded="false"
-    >
-      <i class="ri-menu-line" aria-hidden="true"></i>
-    </button>
+    <div class="header__actions">
+      <!-- 로그인 (유저 아이콘) -->
+      <a
+        class="header__action-btn header__action-btn--user"
+        href="login.html"
+        aria-label="로그인"
+        title="로그인"
+      >
+        <i class="ri-user-line" aria-hidden="true"></i>
+        <span class="sr-only">로그인</span>
+      </a>
 
-    <ul class="header__account">
-      <li><a class="header__account-link" href="#">로그인</a></li>
-      <li><a class="header__account-link" href="#">회원가입</a></li>
-    </ul>
+      <!-- 다국어 선택 (지구본 아이콘) -->
+      <div class="header__lang" id="header-lang">
+        <button
+          class="header__action-btn header__action-btn--lang"
+          type="button"
+          aria-expanded="false"
+          aria-haspopup="true"
+          aria-label="언어 선택 (Language)"
+          title="언어 선택"
+        >
+          <i class="ri-global-line" aria-hidden="true"></i>
+          <span class="sr-only">언어 선택</span>
+        </button>
+        <ul class="header__lang-dropdown" aria-label="언어 목록">
+          <li class="is-active"><a href="#ko" class="header__lang-link" data-lang="ko">KO</a></li>
+          <li><a href="#en" class="header__lang-link" data-lang="en">EN</a></li>
+          <li><a href="#ch" class="header__lang-link" data-lang="ch">CH</a></li>
+        </ul>
+      </div>
+
+      <!-- 전체메뉴 (햄버거 메뉴 아이콘) -->
+      <button
+        class="header__menu-toggle header__action-btn"
+        type="button"
+        aria-label="전체 메뉴 열기"
+        aria-controls="all-menu"
+        aria-expanded="false"
+        title="전체메뉴"
+      >
+        <i class="ri-menu-line" aria-hidden="true"></i>
+        <span class="sr-only">전체메뉴</span>
+      </button>
+    </div>
   </div>
 </header>
+
+<!-- 전체메뉴 (Hyundai AM Style All Menu Overlay) -->
+<div class="all-menu" id="all-menu" aria-hidden="true">
+  <div class="all-menu__backdrop" data-all-menu-close></div>
+  <div class="all-menu__container">
+    <div class="all-menu__panel" role="dialog" aria-modal="true" aria-labelledby="all-menu-title">
+      <!-- 상단 닫기 바 (우측 정렬 & 메뉴 겹침 방지) -->
+      <div class="all-menu__top">
+        <button
+          class="all-menu__close"
+          type="button"
+          aria-label="전체 메뉴 닫기"
+          data-all-menu-close
+        >
+          <i class="ri-close-line" aria-hidden="true"></i>
+        </button>
+      </div>
+
+      <!-- 스크롤 컨텐츠 영역 -->
+      <div class="all-menu__scroll">
+        <!-- 상단 헤더 / 타이틀 (시각적 히든 & 스크린리더 타이틀) -->
+        <h2 class="sr-only" id="all-menu-title">사이트 전체메뉴</h2>
+
+        <!-- 현대자산운용 스타일 카드 그리드 -->
+        <ul class="all-menu__grid">
+          <!-- 카드 1: 브랜드 하이라이트 카드 (Brand Card) -->
+          <li class="all-menu__card all-menu__card--brand">
+            <div class="all-menu__brand-inner">
+              <a class="all-menu__brand-logo" href="_template.html" aria-label="홈으로 이동">
+                <img src="./assets/images/logo.svg" alt="BAZZAR" />
+              </a>
+              <p class="all-menu__brand-slogan">
+                신뢰와 전문성을 바탕으로<br />
+                최고의 미래 가치를 실현합니다.
+              </p>
+              <a class="all-menu__brand-cta" href="consult.html">
+                <span>1:1 맞춤 상담 신청</span>
+                <i class="ri-arrow-right-line" aria-hidden="true"></i>
+              </a>
+            </div>
+          </li>
+
+          <!-- 카드 2: COMPANY (회사소개) -->
+          <li class="all-menu__card">
+            <div class="all-menu__card-head">
+              <span class="all-menu__card-en">COMPANY</span>
+              <h3 class="all-menu__card-title">
+                <a href="about.html">회사소개</a>
+              </h3>
+            </div>
+            <ul class="all-menu__sub-list">
+              <li><a href="about.html">브랜드 소개</a></li>
+              <li><a href="about-history.html">연혁</a></li>
+              <li><a href="about-location.html">오시는 길</a></li>
+            </ul>
+          </li>
+
+          <!-- 카드 3: BUSINESS (사업영역) -->
+          <li class="all-menu__card">
+            <div class="all-menu__card-head">
+              <span class="all-menu__card-en">BUSINESS</span>
+              <h3 class="all-menu__card-title">
+                <a href="business.html">사업영역</a>
+              </h3>
+            </div>
+            <ul class="all-menu__sub-list">
+              <li><a href="business.html">핵심 솔루션</a></li>
+              <li><a href="business.html#tech">보유 기술</a></li>
+              <li><a href="business.html#partners">파트너십</a></li>
+            </ul>
+          </li>
+
+          <!-- 카드 4: NOTICE (공지사항) -->
+          <li class="all-menu__card">
+            <div class="all-menu__card-head">
+              <span class="all-menu__card-en">NOTICE</span>
+              <h3 class="all-menu__card-title">
+                <a href="notice.html">공지사항</a>
+              </h3>
+            </div>
+            <ul class="all-menu__sub-list">
+              <li><a href="notice.html">새소식</a></li>
+              <li><a href="notice.html">언론보도</a></li>
+              <li><a href="notice.html">채용공고</a></li>
+            </ul>
+          </li>
+
+          <!-- 카드 5: RESERVATION (상담·예약) -->
+          <li class="all-menu__card">
+            <div class="all-menu__card-head">
+              <span class="all-menu__card-en">RESERVATION</span>
+              <h3 class="all-menu__card-title">
+                <a href="consult.html">상담·예약</a>
+              </h3>
+            </div>
+            <ul class="all-menu__sub-list">
+              <li><a href="consult.html">1:1 맞춤 상담</a></li>
+              <li><a href="consult.html#faq">자주 묻는 질문</a></li>
+              <li><a href="#contact">고객센터 안내</a></li>
+            </ul>
+          </li>
+
+          <!-- 카드 6: CUSTOMER CARE (고객지원) -->
+          <li class="all-menu__card all-menu__card--support">
+            <div class="all-menu__card-head">
+              <span class="all-menu__card-en">CUSTOMER CARE</span>
+              <h3 class="all-menu__card-title">
+                <a href="#contact">고객지원</a>
+              </h3>
+            </div>
+            <div class="all-menu__support-content">
+              <div class="all-menu__support-tel">
+                <span class="all-menu__support-label">대표 상담 전화</span>
+                <a class="all-menu__support-phone" href="tel:02-1234-5678">02-1234-5678</a>
+              </div>
+              <p class="all-menu__support-hours">
+                평일 09:00 - 18:00<br />
+                <span>(토·일·공휴일 휴무)</span>
+              </p>
+            </div>
+          </li>
+        </ul>
+
+        <!-- 하단 유틸리티 바 (언어 선택 + 약관/정책 링크) -->
+        <div class="all-menu__bottom">
+          <ul class="all-menu__lang-box">
+            <li class="is-active"><a href="#ko" data-lang="ko">KO</a></li>
+            <li><a href="#en" data-lang="en">EN</a></li>
+            <li><a href="#ch" data-lang="ch">CH</a></li>
+          </ul>
+
+          <ul class="all-menu__link-box">
+            <li class="is-active"><a href="login.html">로그인</a></li>
+            <li><a href="#privacy">개인정보처리방침</a></li>
+            <li><a href="#terms">이용약관</a></li>
+            <li><a href="about-location.html">오시는 길</a></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

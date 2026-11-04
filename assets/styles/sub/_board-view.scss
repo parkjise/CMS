@@ -1,5 +1,6 @@
 // ── BOARD VIEW — 게시판 상세 ─────────────────────────────────────
 // components/sub/board-view.html (공지사항 상세 등)
+// components/sub/consult-view.html (상담 상세 — __meta, __answer 추가 사용)
 @use '../mixins' as *;
 
 $line-strong: #ced7e3;
@@ -58,6 +59,29 @@ $muted: #64748b;
     }
   }
 
+  // 작성자 · 등록일 (상담 상세)
+  &__meta {
+    @include flex(center, flex-start, 16px);
+    flex-shrink: 0;
+    font-size: 0.9375rem;
+    font-weight: 300;
+    color: $muted;
+    @include md {
+      font-size: 1.0625rem;
+    }
+  }
+  &__meta-item {
+    @include flex(center, flex-start, 6px);
+
+    dt {
+      font-weight: 500;
+    }
+    & + & {
+      padding-left: 16px;
+      border-left: 1px solid $line-strong;
+    }
+  }
+
   // 본문 (CMS 에디터 HTML)
   &__content {
     padding: 32px 0 48px;
@@ -95,6 +119,57 @@ $muted: #64748b;
     a {
       color: var(--color-primary);
       text-decoration: underline;
+    }
+  }
+
+  // 답변 (상담 상세) — 문의 본문 아래 회색 박스
+  &__answer {
+    margin-top: 32px;
+    padding: 24px 20px;
+    border-radius: 12px;
+    background: var(--color-surface);
+    @include md {
+      margin-top: 48px;
+      padding: 40px;
+    }
+  }
+  &__answer-head {
+    @include flex(center, space-between, 12px);
+    padding-bottom: 16px;
+    border-bottom: 1px solid $line-strong;
+  }
+  &__answer-title {
+    @include flex(center, flex-start, 10px);
+    font-size: 1.0625rem;
+    font-weight: 600;
+    @include md {
+      font-size: 1.25rem;
+    }
+  }
+  &__answer-mark {
+    @include flex-center;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 0.9375rem;
+    font-weight: 700;
+  }
+  &__answer-date {
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: $muted;
+    @include md {
+      font-size: 1rem;
+    }
+  }
+  // 답변 본문은 박스 안이라 아래 구분선·좌우 여백 없음
+  &__content--answer {
+    padding: 20px 0 0;
+    border-bottom: 0;
+    @include md {
+      padding: 28px 0 0;
     }
   }
 
