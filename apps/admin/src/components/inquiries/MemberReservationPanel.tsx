@@ -1,3 +1,4 @@
+import { useCanEdit } from '@/hooks/useCanEdit'
 import { useState } from 'react'
 import dayjs from 'dayjs'
 import { Button, toast } from '@cms/ui'
@@ -37,6 +38,7 @@ interface MemberReservationPanelProps {
  * 확정 · 취소하면 회원 알림 설정에 따라 문자/메일이 간다.
  */
 export function MemberReservationPanel({ inquiry, onChanged }: MemberReservationPanelProps) {
+  const canEdit = useCanEdit()
   const update = useUpdateMemberReservation()
   const [confirming, setConfirming] = useState<Exclude<MemberReservationStatus, 'PENDING'> | null>(null)
   const { member, reservation } = inquiry
@@ -96,7 +98,8 @@ export function MemberReservationPanel({ inquiry, onChanged }: MemberReservation
             </p>
           )}
 
-          {reservation.next_statuses.length > 0 &&
+          {canEdit &&
+            reservation.next_statuses.length > 0 &&
             (confirming ? (
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs text-slate-600">

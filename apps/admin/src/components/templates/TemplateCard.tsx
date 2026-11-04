@@ -11,6 +11,8 @@ interface TemplateCardProps {
   isCurrent: boolean
   onApply: (template: TemplateItem) => void
   onPreview: (template: TemplateItem) => void
+  /** 보기 전용 계정 — 미리보기만 (T-133) */
+  readOnly?: boolean
 }
 
 export function TemplateCard({
@@ -18,6 +20,7 @@ export function TemplateCard({
   isCurrent,
   onApply,
   onPreview,
+  readOnly = false,
 }: TemplateCardProps) {
   const thumb = resolveClientAssetUrl(template.thumbnail_url)
 
@@ -92,7 +95,7 @@ export function TemplateCard({
           </Button>
           <Button
             className="flex-1"
-            disabled={template.locked || isCurrent}
+            disabled={template.locked || isCurrent || readOnly}
             onClick={() => onApply(template)}
           >
             {isCurrent ? '적용 중' : '적용하기'}

@@ -1,4 +1,4 @@
-import { READ_ONLY_MESSAGE, useCanEdit } from '@/hooks/useCanEdit'
+import { useCanEdit } from '@/hooks/useCanEdit'
 import { useState } from 'react'
 import { RotateCcw } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
@@ -93,19 +93,21 @@ export function TemplatesPage() {
             유지됩니다.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1">
-          <Button
-            variant="secondary"
-            disabled={!hasApplied || rollbackMutation.isPending}
-            onClick={handleRollback}
-          >
-            <RotateCcw className="mr-1 h-4 w-4" />
-            {rollbackMutation.isPending ? '롤백 중…' : '이전 템플릿으로 롤백'}
-          </Button>
-          <span className="text-xs text-slate-500">
-            변경 후 7일 이내 롤백 가능
-          </span>
-        </div>
+        {canEdit && (
+          <div className="flex flex-col items-end gap-1">
+            <Button
+              variant="secondary"
+              disabled={!hasApplied || rollbackMutation.isPending}
+              onClick={handleRollback}
+            >
+              <RotateCcw className="mr-1 h-4 w-4" />
+              {rollbackMutation.isPending ? '롤백 중…' : '이전 템플릿으로 롤백'}
+            </Button>
+            <span className="text-xs text-slate-500">
+              변경 후 7일 이내 롤백 가능
+            </span>
+          </div>
+        )}
       </div>
 
       {!bodyReady ? (
@@ -118,13 +120,15 @@ export function TemplatesPage() {
       ) : (
         <div key="templates-ready" className="space-y-6">
           {/* AI 템플릿 추천 (기획서 13.4, T-070-A) */}
-          <AiRecommendCard
-            enabled={recommendEnabled}
-            templates={allTemplates?.templates ?? []}
-            currentId={currentId}
-            onApply={setPendingApply}
-            onPreview={handlePreview}
-          />
+          {canEdit && (
+            <AiRecommendCard
+              enabled={recommendEnabled}
+              templates={allTemplates?.templates ?? []}
+              currentId={currentId}
+              onApply={setPendingApply}
+              onPreview={handlePreview}
+            />
+          )}
 
           {/* 업종 필터 */}
           <IndustryFilterTabs value={industry} onChange={setIndustry} />
@@ -146,8 +150,9 @@ export function TemplatesPage() {
                   key={template.id}
                   template={template}
                   isCurrent={template.id === currentId}
-                  onApply={canEdit ? setPendingApply : () => toast.error(READ_ONLY_MESSAGE)}
+                  onApply={setPendingApply}
                   onPreview={handlePreview}
+                  readOnly={!canEdit}
                 />
               ))}
             </div>
@@ -160,13 +165,15 @@ export function TemplatesPage() {
       )}
 
       {/* 커스터마이징 패널 (현재 템플릿 변경 시 기본값으로 리셋되도록 key 부여) */}
-      <CustomizePanel
-        key={currentId ?? 'none'}
-        disabled={!hasApplied}
-        isSaving={customizeMutation.isPending}
-        defaults={customizeDefaults}
-        onSave={handleCustomize}
-      />
+      {canEdit && (
+        <CustomizePanel
+          key={currentId ?? 'none'}
+          disabled={!hasApplied}
+          isSaving={customizeMutation.isPending}
+          defaults={customizeDefaults}
+          onSave={handleCustomize}
+        />
+      )}
 
       <ApplyConfirmDialog
         template={pendingApply}
