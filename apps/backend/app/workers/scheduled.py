@@ -29,6 +29,9 @@ ANALYTICS_RETENTION_DAYS: dict[str, int | None] = {
 # 템플릿 변경 이력 보관 기간 (일). 초과분은 하드 삭제.
 TEMPLATE_HISTORY_RETENTION_DAYS = 7
 
+# 문의 접수 IP · 브라우저 정보 보관 기간 (일). 문의 내용과 별개로 먼저 지운다 (T-128).
+INQUIRY_CLIENT_INFO_RETENTION_DAYS = 90
+
 
 # ── reset_monthly_notification_count ───────────────────────────────────────
 
@@ -62,6 +65,44 @@ async def _reset_monthly_notification_count() -> int:
         )
         await db.commit()
         return affected_rows(result)
+
+
+# ── scrub_inquiry_client_info (T-128) ────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.scrub_inquiry_client_info",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def scrub_inquiry_client_info(self) -> int:
+    return asyncio.run(_scrub_inquiry_client_info())
+
+
+async def _scrub_inquiry_client_info() -> int:
+    """보관 기간이 지난 문의의 IP · 브라우저 정보를 지운다. 지운 행 수 반환.
+
+    모든 요금제 · 소프트 삭제된 문의까지 — PREMIUM 문의는 영구 보관이라 따로 지운다.
+    """
+    from app.db.session import AsyncSessionLocal
+
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        result = await db.execute(
+            text(
+                """
+                UPDATE inquiries
+                SET ip_address = NULL, user_agent = NULL
+                WHERE (ip_address IS NOT NULL OR user_agent IS NOT NULL)
+                  AND created_at < NOW() - make_interval(days => :days)
+                """
+            ),
+            {"days": INQUIRY_CLIENT_INFO_RETENTION_DAYS},
+        )
+        await db.commit()
+    return affected_rows(result)
 
 
 # ── cleanup_old_inquiries ──────────────────────────────────────────────────

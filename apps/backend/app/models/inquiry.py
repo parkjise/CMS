@@ -37,6 +37,9 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     is_read: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_notified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     admin_memo: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # 스팸 판단용 — 90일 뒤 지움, 응답 · 내보내기에 넣지 않음 (T-128)
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # ── 온라인 상담 게시판 · 예약 (T-123) ──
     subject: Mapped[str | None] = mapped_column(String(200), nullable=True)

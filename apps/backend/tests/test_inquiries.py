@@ -373,3 +373,83 @@ class TestInquiryPeriodFilter:
         reversed_period = {"from_date": "2026-11-03", "to_date": "2026-11-01"}
         bad = await client.get(url, headers=auth_headers, params=reversed_period)
         assert bad.status_code == 400
+
+
+class TestInquiryClientInfo:
+    """접수 IP · 브라우저 정보 저장 (T-128)."""
+
+    _body = {
+        "name": "홍길동",
+        "phone": "010-1234-5678",
+        "message": "테스트 문의입니다. 답변 부탁드립니다.",
+    }
+
+    @staticmethod
+    async def _row(inquiry_id: str):
+        async with _TestSession() as s:
+            await s.execute(text("SELECT set_config('app.is_super_admin','true',false)"))
+            result = await s.execute(
+                text("SELECT ip_address, user_agent FROM inquiries WHERE id=:id"),
+                {"id": inquiry_id},
+            )
+            return result.one()
+
+    async def _submit(self, client, slug: str, **headers) -> str:
+        resp = await client.post(
+            "/api/public/inquiries",
+            params={"tenant_slug": slug},
+            json=self._body,
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        return resp.json()["data"]["inquiry_id"]
+
+    async def test_saves_real_ip_not_forwarded_for(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client,
+            test_tenant["slug"],
+            **{"X-Real-IP": "203.0.113.7", "X-Forwarded-For": "1.2.3.4"},
+        )
+        row = await self._row(inquiry_id)
+        assert row.ip_address == "203.0.113.7"
+
+    async def test_bad_ip_is_not_saved(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"X-Real-IP": "<script>"}
+        )
+        assert (await self._row(inquiry_id)).ip_address is None
+
+    async def test_long_user_agent_is_cut(self, client, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"User-Agent": "a" * 600}
+        )
+        assert len((await self._row(inquiry_id)).user_agent) == 500
+
+    async def test_board_post_saves_ip(self, client, test_tenant):
+        resp = await client.post(
+            "/api/public/inquiries/board",
+            params={"tenant_slug": test_tenant["slug"]},
+            headers={"X-Real-IP": "203.0.113.8"},
+            json={
+                "name": "홍길동",
+                "phone": "010-1234-5678",
+                "subject": "상담 제목",
+                "message": "상담 내용입니다. 답변 부탁드립니다.",
+                "password": "abcd1234",
+                "is_secret": False,
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        assert (await self._row(resp.json()["data"]["post_id"])).ip_address == "203.0.113.8"
+
+    async def test_not_exposed_in_admin_api(self, client, auth_headers, test_tenant):
+        inquiry_id = await self._submit(
+            client, test_tenant["slug"], **{"X-Real-IP": "203.0.113.9"}
+        )
+        detail = await client.get(f"/api/v1/inquiries/{inquiry_id}", headers=auth_headers)
+        listed = await client.get("/api/v1/inquiries", headers=auth_headers)
+        for resp in (detail, listed):
+            assert resp.status_code == 200
+            assert "203.0.113.9" not in resp.text
+            assert "ip_address" not in resp.text
+            assert "user_agent" not in resp.text

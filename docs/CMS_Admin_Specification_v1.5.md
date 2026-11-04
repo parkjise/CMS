@@ -1168,6 +1168,8 @@ CREATE TABLE inquiries (
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   deleted_at               TIMESTAMPTZ,
   admin_memo               TEXT,
+  ip_address               VARCHAR(45),
+  user_agent               VARCHAR(500),
   is_notified              BOOLEAN NOT NULL DEFAULT false,
   subject                  VARCHAR(200),
   is_board                 BOOLEAN NOT NULL DEFAULT false,
@@ -1397,6 +1399,7 @@ CREATE TABLE member_social_accounts (
 | 문의 데이터 | 30일 후 삭제 | 180일 후 삭제 | 영구 보관 | 배치 job 매일 02:00 실행 |
 | 업로드 파일 | 1GB 한도 | 5GB 한도 | 20GB 한도 | 초과 시 업로드 차단 |
 | 방문 통계 | 3개월 | 12개월 | 36개월 | |
+| 문의 접수 IP · 브라우저 정보 | 90일 후 삭제 | 90일 후 삭제 | 90일 후 삭제 | 스팸 판단용, 배치 job 매일 02:15. 관리자 화면 · 내보내기에 노출하지 않음 (T-128) |
 
 ---
 
@@ -1844,7 +1847,6 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 |---|---|---|---|---|
 | 3 | TENANT_VIEWER 권한 | 7.5 · 6.2 에 역할 정의 | 백엔드에 이 역할을 다루는 코드 없음 | 구현 또는 기획 삭제 |
 | 6 | SEO 칸 | og_title · og_description · canonical_url · robots | robots_txt 만 있음, 나머지 없음 | 구현 또는 기획 삭제 |
-| 7 | 문의 스팸 기록 | ip_address · user_agent 저장 | 저장 안 함 (요청 한도 · reCAPTCHA 만) | 개인정보 고려해 결정 |
 | 8 | DB 제약 · 인덱스 | tenants · users · inquiries CHECK, 문의 상태 · 등록일 인덱스 | 없음 (값 검사는 앱에서) | 운영 전 추가 여부 |
 
 

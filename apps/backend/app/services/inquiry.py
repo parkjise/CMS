@@ -30,6 +30,8 @@ async def create_inquiry(
     data: InquiryCreate,
     member_id: UUID | None = None,
     tenant: Tenant | None = None,
+    ip_address: str | None = None,
+    user_agent: str | None = None,
 ) -> Inquiry:
     """문의 · 예약 접수.
 
@@ -48,6 +50,8 @@ async def create_inquiry(
         reserved_date=data.reserved_date,
         reserved_time=data.reserved_time,
         detail=detail,
+        ip_address=ip_address,
+        user_agent=user_agent,
         status="PENDING",
         is_read=False,
         member_id=member_id,

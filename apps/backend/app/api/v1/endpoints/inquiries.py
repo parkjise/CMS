@@ -8,6 +8,7 @@ from slowapi.util import get_remote_address
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.client_info import client_ip, client_user_agent
 from app.core.config import settings
 from app.core.deps import (
     get_current_user,
@@ -98,7 +99,13 @@ async def submit_inquiry(
     member_id = await member_activity.active_member_id(db, tenant, member_payload)
     try:
         inquiry = await inquiry_service.create_inquiry(
-            db, tenant.id, body, member_id=member_id, tenant=tenant
+            db,
+            tenant.id,
+            body,
+            member_id=member_id,
+            tenant=tenant,
+            ip_address=client_ip(request),
+            user_agent=client_user_agent(request),
         )
     except inquiry_fields.InquiryFieldError as exc:
         raise HTTPException(
@@ -151,7 +158,14 @@ async def create_board_post(
     await _verify_recaptcha(body.recaptcha_token)
     tenant = await _resolve_public_tenant(db, tenant_slug)
     member_id = await member_activity.active_member_id(db, tenant, member_payload)
-    post = await board_service.create_post(db, tenant.id, body, member_id=member_id)
+    post = await board_service.create_post(
+        db,
+        tenant.id,
+        body,
+        member_id=member_id,
+        ip_address=client_ip(request),
+        user_agent=client_user_agent(request),
+    )
     return ApiResponse.ok(
         {"post_id": str(post.id), "message": "상담 글이 등록되었습니다."}
     )
