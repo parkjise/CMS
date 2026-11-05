@@ -271,6 +271,7 @@ def _field_response(field: BoardField) -> FieldResponse:
         options=[FieldOption(**choice) for choice in options.get("choices", [])],
         min=options.get("min"),
         max=options.get("max"),
+        show_in_list=options.get("show_in_list", False),
         display_order=field.display_order,
         deleted_at=field.deleted_at,
     )

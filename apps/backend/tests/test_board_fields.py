@@ -868,3 +868,159 @@ class TestAudit:
             headers=auth_headers,
         )
         assert await self._actions(tenant["id"]) == []
+
+
+class TestContactFields:
+    """연락처 · 이메일 · 링크 칸 (T-147)."""
+
+    @pytest.mark.parametrize(
+        ("field_type", "value", "stored"),
+        [
+            ("PHONE", " 010-1234-5678 ", "010-1234-5678"),
+            ("PHONE", "+82 (2) 123 4567", "+82 (2) 123 4567"),
+            ("EMAIL", "hello@example.com", "hello@example.com"),
+            ("URL", "https://example.com/a?b=1", "https://example.com/a?b=1"),
+            ("URL", "HTTP://EXAMPLE.COM", "HTTP://EXAMPLE.COM"),
+        ],
+    )
+    async def test_accepts(
+        self, client, auth_headers, board, field_type, value, stored
+    ):
+        field = await _field(client, auth_headers, board, field_type=field_type)
+        key = field["field_key"]
+        resp = await _post(client, auth_headers, board, custom_data={key: value})
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["data"]["custom_data"] == {key: stored}
+
+    @pytest.mark.parametrize(
+        ("field_type", "value"),
+        [
+            ("PHONE", "abc"),
+            ("PHONE", "12345"),
+            ("PHONE", "0" * 21),
+            ("PHONE", 1012345678),
+            ("EMAIL", "no-at.example.com"),
+            ("EMAIL", "a b@example.com"),
+            ("EMAIL", "a@" + "b" * 254 + ".com"),
+            ("URL", "javascript:alert(1)"),
+            ("URL", "//example.com"),
+            ("URL", "example.com"),
+            ("URL", "https://exa mple.com"),
+            ("URL", "https://" + "a" * 500),
+        ],
+    )
+    async def test_rejects(self, client, auth_headers, board, field_type, value):
+        field = await _field(client, auth_headers, board, field_type=field_type)
+        key = field["field_key"]
+        resp = await _post(client, auth_headers, board, custom_data={key: value})
+        assert resp.status_code == 400, resp.text
+        assert resp.json()["error"]["field"] == f"custom_data.{key}"
+
+    async def test_bad_default_rejected(self, client, auth_headers, board):
+        resp = await client.post(
+            board["fields"],
+            json={
+                "label": "링크",
+                "field_type": "URL",
+                "default_value": "javascript:alert(1)",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400, resp.text
+
+    async def test_public_value(self, client, auth_headers, tenant, board):
+        field = await _field(client, auth_headers, board, field_type="URL")
+        post = await _publish(
+            client, auth_headers, board, **{field["field_key"]: "https://example.com"}
+        )
+        resp = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts/{post['id']}"
+        )
+        assert resp.json()["data"]["fields"][0]["field_type"] == "URL"
+        assert resp.json()["data"]["fields"][0]["value"] == "https://example.com"
+
+
+class TestDefaultValueEdit:
+    """기본값은 고치고 비울 수 있고, 이미 쓴 글은 바뀌지 않는다 (T-147)."""
+
+    async def test_change_and_clear(self, client, auth_headers, board):
+        field = await _field(client, auth_headers, board, default_value="처음")
+        url = f"{board['fields']}/{field['id']}"
+        key = field["field_key"]
+        old = (await _post(client, auth_headers, board)).json()["data"]
+
+        resp = await client.patch(
+            url, json={"default_value": "바꿈"}, headers=auth_headers
+        )
+        assert resp.json()["data"]["default_value"] == "바꿈"
+        new = (await _post(client, auth_headers, board)).json()["data"]
+        assert new["custom_data"] == {key: "바꿈"}
+        kept = await client.get(f"{board['posts']}/{old['id']}", headers=auth_headers)
+        assert kept.json()["data"]["custom_data"] == {key: "처음"}
+
+        resp = await client.patch(
+            url, json={"default_value": None}, headers=auth_headers
+        )
+        assert resp.json()["data"]["default_value"] is None
+        empty = (await _post(client, auth_headers, board)).json()["data"]
+        assert empty["custom_data"] == {}
+
+
+class TestShowInList:
+    """글 목록에 칸 값 표시 (T-147)."""
+
+    async def test_default_off_and_survives_other_changes(
+        self, client, auth_headers, board
+    ):
+        field = await _field(client, auth_headers, board)
+        assert field["show_in_list"] is False
+        url = f"{board['fields']}/{field['id']}"
+
+        on = await client.patch(url, json={"show_in_list": True}, headers=auth_headers)
+        assert on.json()["data"]["show_in_list"] is True
+        renamed = await client.patch(
+            url, json={"label": "새 이름"}, headers=auth_headers
+        )
+        assert renamed.json()["data"]["show_in_list"] is True
+        off = await client.patch(
+            url, json={"show_in_list": False}, headers=auth_headers
+        )
+        assert off.json()["data"]["show_in_list"] is False
+
+    async def test_kept_when_choices_change(self, client, auth_headers, board):
+        field = await _field(
+            client,
+            auth_headers,
+            board,
+            field_type="SELECT",
+            options=CHOICES,
+            show_in_list=True,
+        )
+        resp = await client.patch(
+            f"{board['fields']}/{field['id']}",
+            json={"options": CHOICES[:1]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["show_in_list"] is True
+
+    async def test_post_list_has_values(self, client, auth_headers, board):
+        field = await _field(client, auth_headers, board)
+        key = field["field_key"]
+        await _post(client, auth_headers, board, custom_data={key: "값"})
+        resp = await client.get(board["posts"], headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["items"][0]["custom_data"] == {key: "값"}
+
+    async def test_setting_not_exposed_publicly(
+        self, client, auth_headers, tenant, board
+    ):
+        hidden = await _field(
+            client, auth_headers, board, is_visible=False, show_in_list=True
+        )
+        await _publish(client, auth_headers, board, **{hidden["field_key"]: "내부 값"})
+        resp = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        assert resp.status_code == 200, resp.text
+        assert "내부 값" not in resp.text

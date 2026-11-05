@@ -27,11 +27,18 @@ STATUS_PUBLISHED = "PUBLISHED"
 TEXT_MAX = 200
 TEXTAREA_MAX = 5000
 IMAGE_URL_MAX = 500
+EMAIL_MAX = 254
+LINK_URL_MAX = 500
+SHOW_IN_LIST_KEY = "show_in_list"
 RATING_MIN = 1
 RATING_MAX = 5
 CHOICE_TYPES = ("SELECT", "MULTI_SELECT")
 AUTO_KEY_PREFIX = "field_"
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_PHONE = re.compile(r"^\+?[0-9][0-9\- ()]{5,18}[0-9]$")
+_EMAIL = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+# 공개 화면에서 링크가 되므로 http(s) 만 받는다 (javascript: 차단)
+_LINK_URL = re.compile(r"^https?://[^\s/]+\S*$", re.IGNORECASE)
 
 # 글의 기본 칸 · 시스템 값과 헷갈리는 이름 (D-07)
 RESERVED_KEYS = frozenset(
@@ -74,6 +81,9 @@ MSG_INVALID_OPTION = "선택할 수 없는 값입니다."
 MSG_INVALID_BOOLEAN = "참 또는 거짓만 입력할 수 있습니다."
 MSG_INVALID_RATING = f"{RATING_MIN}부터 {RATING_MAX} 사이의 정수를 입력해주세요."
 MSG_INVALID_IMAGE = "사진 주소가 올바르지 않습니다."
+MSG_INVALID_PHONE = "올바른 연락처가 아닙니다."
+MSG_INVALID_EMAIL = "올바른 이메일 주소가 아닙니다."
+MSG_INVALID_URL = "http:// 또는 https:// 로 시작하는 주소를 입력해주세요."
 MSG_REQUIRED_IN_BULK = "필수 칸이 비어 있어 공개할 수 없는 글이 있습니다: {title}"
 
 
@@ -176,6 +186,15 @@ def _clean_image(value: Any) -> str:
     return value
 
 
+def _clean_pattern(value: Any, pattern: re.Pattern[str], limit: int, msg: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(msg)
+    text = value.strip()
+    if len(text) > limit or not pattern.match(text):
+        raise ValueError(msg)
+    return text
+
+
 def _clean_boolean(value: Any) -> bool:
     if not isinstance(value, bool):
         raise ValueError(MSG_INVALID_BOOLEAN)
@@ -202,6 +221,12 @@ def clean_value(field_type: str, options: dict[str, Any], value: Any) -> Any:
         return _clean_rating(value)
     if field_type == "IMAGE":
         return _clean_image(value)
+    if field_type == "PHONE":
+        return _clean_pattern(value, _PHONE, 20, MSG_INVALID_PHONE)
+    if field_type == "EMAIL":
+        return _clean_pattern(value, _EMAIL, EMAIL_MAX, MSG_INVALID_EMAIL)
+    if field_type == "URL":
+        return _clean_pattern(value, _LINK_URL, LINK_URL_MAX, MSG_INVALID_URL)
     raise ValueError(MSG_INVALID_OPTION)
 
 
@@ -470,6 +495,8 @@ async def create_field(db: AsyncSession, board: Board, data: FieldCreate) -> Boa
     if data.field_key in used:
         raise _conflict(MSG_KEY_TAKEN, "field_key")
     options = _build_options(data.field_type, data.options, data.min, data.max)
+    if data.show_in_list:
+        options[SHOW_IN_LIST_KEY] = True
     last_order = await db.execute(
         select(func.coalesce(func.max(BoardField.display_order), -1)).where(
             BoardField.board_id == board.id
@@ -522,6 +549,13 @@ async def update_field(
     )
     if field_type == field.field_type and field_type in CHOICE_TYPES:
         await _check_options_kept(db, field, options)
+    show_in_list = (
+        data.show_in_list
+        if data.show_in_list is not None
+        else current.get(SHOW_IN_LIST_KEY)
+    )
+    if show_in_list:
+        options[SHOW_IN_LIST_KEY] = True
     default = data.default_value if "default_value" in sent else field.default_value
     field.default_value = _clean_default(field_type, options, default)
     field.field_type = field_type
