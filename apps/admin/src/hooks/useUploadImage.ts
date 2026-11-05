@@ -13,6 +13,8 @@ export type ImageContext =
   | 'seo'
   /** 로고 · 파비콘 — 섹션 없이 (T-036-A) */
   | 'site'
+  /** 게시글 사진 — 섹션 없이 (T-139) */
+  | 'board'
 
 export interface UploadImageInput {
   file: File

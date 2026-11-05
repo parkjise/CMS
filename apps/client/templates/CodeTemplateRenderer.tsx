@@ -1,7 +1,10 @@
 import { buildCssVarBody } from '@/lib/theme'
+import { NOTICE_BOARD, fetchPublicPosts } from '@/lib/publicPosts'
 import type { PublicSite } from '@/lib/publicSite.types'
 import type { CodeTemplateEntry, MemberRoute } from './shared/contracts'
 import { resolvePageSections, resolveSiteInfo } from './shared/resolveSections'
+
+const LATEST_NOTICE_COUNT = 4
 
 interface Props {
   entry: CodeTemplateEntry
@@ -49,6 +52,12 @@ export async function CodeTemplateRenderer({
     pageKey,
   )
   const siteInfo = useSample ? { ...entry.sample.site } : resolveSiteInfo(entry.sample, site)
+  // 메인 최신 공지 — 샘플 미리보기가 아닌 실제 섹션일 때만 실제 글을 읽는다 (T-139)
+  const latestNotices = sections.some(
+    (s) => s.section.section_type === 'NOTICE_LATEST' && s.editable,
+  )
+    ? await fetchPublicPosts(tenantSlug, NOTICE_BOARD, { size: LATEST_NOTICE_COUNT, order: 'latest' })
+    : null
   const overrideBody = preview ? '' : buildCssVarBody(site.template?.css_variables)
 
   return (
@@ -70,6 +79,7 @@ export async function CodeTemplateRenderer({
         preview={preview}
         menuItems={useSample ? null : site.site_settings?.menu_items}
         previewQuery={previewQuery}
+        latestNotices={latestNotices}
         detailId={detailId}
         query={query}
         member={member}

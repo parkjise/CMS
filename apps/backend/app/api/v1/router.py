@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     announcements,
     auth,
     billing,
+    boards,
     dashboard,
     domain,
     edit,
@@ -49,6 +50,7 @@ api_router.include_router(edit.router, dependencies=_tenant_only)
 api_router.include_router(analytics.router, dependencies=_tenant_only)
 api_router.include_router(upload.router, dependencies=_tenant_only)
 api_router.include_router(gallery.router, dependencies=_tenant_only)
+api_router.include_router(boards.router, dependencies=_tenant_only)
 api_router.include_router(ai.router, dependencies=_tenant_only)
 api_router.include_router(templates.router, dependencies=_tenant_only)
 api_router.include_router(tenant_features.router, dependencies=_tenant_only)

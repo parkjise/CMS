@@ -195,6 +195,22 @@ class TestUploadImage:
         assert resp.status_code == 400
         assert resp.json()["error"]["code"] == "INVALID_IMAGE"
 
+    async def test_upload_rejects_corrupted_png(
+        self, client, auth_headers, test_section, fake_s3
+    ):
+        """손상된 PNG 는 500 이 아니라 잘못된 이미지 (T-139)."""
+        broken = bytearray(_make_png(50, 50))
+        start = broken.index(b"IDAT") + 4
+        broken[start : start + 8] = b"\x00" * 8
+        resp = await client.post(
+            "/api/v1/upload/image",
+            files={"file": ("x.png", bytes(broken), "image/png")},
+            data={"context": "hero", "section_id": test_section["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["code"] == "INVALID_IMAGE"
+
     async def test_upload_unauthenticated(self, client, test_section, fake_s3):
         jpeg = _make_jpeg(400, 300)
         resp = await client.post(

@@ -1,3 +1,5 @@
+import type { PublicPostList } from '@cms/types'
+import { postDate } from '@/lib/publicPosts'
 import { getJson } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { TemplateText } from '../../../shared/TemplateText'
@@ -14,6 +16,8 @@ interface NoticeItem {
 interface Props extends CodeSectionProps {
   /** 공지 목록 페이지 주소 */
   listHref: string
+  /** 실제 최신 글 (T-139) — 공개 글이 있으면 샘플 대신 */
+  latest?: PublicPostList | null
   /** 공지 상세 주소 */
   itemHref?: (id: string) => string
 }
@@ -23,10 +27,12 @@ const toDot = (date: string) => date.replaceAll('-', '.')
 /**
  * 최신 공지 — 목업 sections/notice.html
  * 설정 키: title · description (인라인 편집) · items [{ id, subject, date, url }]
- * 공지 데이터는 당분간 섹션 JSON (오픈 이슈 #27)
+ * items 는 샘플 — 공개 글이 생기면 실제 글을 보여 준다 (게시판 모듈 기획서 2.2)
  */
-export function NoticeLatest({ section, editable, listHref, itemHref }: Props) {
-  const items = getJson<NoticeItem[]>(section.settings, 'items', [])
+export function NoticeLatest({ section, editable, latest, listHref, itemHref }: Props) {
+  const items: NoticeItem[] = latest?.has_posts
+    ? latest.items.map((p) => ({ id: p.id, subject: p.title, date: postDate(p.published_at) }))
+    : getJson<NoticeItem[]>(section.settings, 'items', [])
 
   return (
     <section className="notice" id="notice" aria-labelledby="notice-title">

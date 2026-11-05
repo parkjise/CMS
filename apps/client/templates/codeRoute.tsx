@@ -15,6 +15,7 @@ import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
+import { NOTICE_BOARD, fetchPublicPost } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
 import { countSampleSettings } from '@/lib/sampleCount'
@@ -87,8 +88,13 @@ export async function codeRouteMetadata(
   // 메인은 [tenant_slug] 레이아웃 메타 그대로 + 대표 주소
   if (resolved.pageKey === 'home') return canonicalMeta(resolved.site)
   const path = [resolved.pageKey, resolved.detailId].filter(Boolean).join('/')
+  // 공지 상세는 글 제목으로 (T-139) — 샘플 글이면 없어서 페이지 제목
+  const post =
+    resolved.pageKey === NOTICE_BOARD && resolved.detailId
+      ? await fetchPublicPost(params.tenant_slug, NOTICE_BOARD, resolved.detailId)
+      : null
   return {
-    title: `${resolved.pageTitle} | ${resolved.site.tenant.name}`,
+    title: `${post?.title ?? resolved.pageTitle} | ${resolved.site.tenant.name}`,
     ...(resolved.memberPage ? {} : canonicalMeta(resolved.site, `/${path}`)),
     // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외. 그 밖에는 키를 넣지 않는다 —
     // undefined 도 레이아웃의 검색 노출 설정(T-129)을 덮어써 서브 페이지가 숨겨지지 않는다

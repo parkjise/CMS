@@ -15,6 +15,9 @@ const ContentPage = lazyPage(() => import('@/pages/ContentPage'), 'ContentPage')
 const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
+const BoardsPage = lazyPage(() => import('@/pages/BoardsPage'), 'BoardsPage')
+const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
+const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
 const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
 const TemplatesPage = lazyPage(() => import('@/pages/TemplatesPage'), 'TemplatesPage')
 const BillingPage = lazyPage(() => import('@/pages/BillingPage'), 'BillingPage')
@@ -31,6 +34,9 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
+  [/^\/admin\/boards\/?$/, BoardsPage],
+  [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
+  [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
   [/^\/admin\/seo\/?$/, SeoPage],
   [/^\/admin\/templates\/?$/, TemplatesPage],
   [/^\/admin\/reports\/?$/, ReportsPage],
@@ -90,6 +96,22 @@ export const router = createBrowserRouter([
           {
             path: '/admin/inquiries',
             element: withSuspense(<InquiriesPage />),
+          },
+          {
+            path: '/admin/boards',
+            element: withFeature('BOARD_MANAGER', <BoardsPage />),
+          },
+          {
+            path: '/admin/boards/:boardId/posts',
+            element: withFeature('BOARD_MANAGER', <BoardPostsPage />),
+          },
+          {
+            path: '/admin/boards/:boardId/posts/new',
+            element: withFeature('BOARD_MANAGER', <BoardPostEditPage />),
+          },
+          {
+            path: '/admin/boards/:boardId/posts/:postId/edit',
+            element: withFeature('BOARD_MANAGER', <BoardPostEditPage />),
           },
           {
             path: '/admin/seo',
