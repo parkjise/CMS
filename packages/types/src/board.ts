@@ -28,6 +28,9 @@ export type FieldType =
   | 'BOOLEAN'
   | 'RATING'
   | 'IMAGE'
+  | 'PHONE'
+  | 'EMAIL'
+  | 'URL'
 
 export interface FieldOption {
   value: string
@@ -48,6 +51,8 @@ export interface BoardField {
   options: FieldOption[]
   min: number | null
   max: number | null
+  /** 관리자 글 목록에 값을 보여 줄지 */
+  show_in_list: boolean
   display_order: number
   deleted_at: string | null
   /** 값이 있는 글 수 (휴지통 글 포함) */
@@ -100,6 +105,7 @@ export interface PostListItem {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  custom_data?: Record<string, unknown>
 }
 
 export interface Post extends PostListItem {

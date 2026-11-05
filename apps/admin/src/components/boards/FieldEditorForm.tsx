@@ -1,9 +1,19 @@
 import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 import { Plus, Trash2 } from 'lucide-react'
 import type { BoardField, FieldOption, FieldType } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
+import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { type FieldInput, useCreateField, useUpdateField } from '@/hooks/useBoardFields'
-import { FIELD_TYPES, nextOptionValue, usesChoices } from '@/lib/customFields'
+import {
+  type CustomValues,
+  FIELD_TYPES,
+  initialCustomValues,
+  nextOptionValue,
+  toCustomData,
+  usesChoices,
+  validateCustomValues,
+} from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 interface FieldEditorFormProps {
@@ -14,6 +24,8 @@ interface FieldEditorFormProps {
 }
 
 const KEY_PATTERN = /^[a-z][a-z0-9_]{1,49}$/
+
+const DEFAULT_KEY = 'default_value'
 
 const numberOrNull = (text: string): number | null => (text.trim() === '' ? null : Number(text))
 
@@ -31,7 +43,36 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
   const [options, setOptions] = useState<FieldOption[]>(field?.options ?? [])
   const [min, setMin] = useState(field?.min?.toString() ?? '')
   const [max, setMax] = useState(field?.max?.toString() ?? '')
+  const [showInList, setShowInList] = useState(field?.show_in_list ?? false)
   const [errors, setErrors] = useState<{ label?: string; key?: string; options?: string; range?: string }>({})
+
+  // 기본값 입력칸은 글쓰기 화면과 같은 칸으로 그린다 — 지금 고른 유형 · 선택지 그대로
+  const defaultField: BoardField = {
+    id: 'default-value',
+    board_id: boardId,
+    field_key: DEFAULT_KEY,
+    label: '기본값',
+    field_type: fieldType,
+    is_required: false,
+    is_visible: true,
+    help_text: '새 글을 쓸 때 미리 채워집니다. 이미 쓴 글은 바뀌지 않습니다.',
+    placeholder: '',
+    default_value: field?.default_value ?? null,
+    options,
+    min: numberOrNull(min),
+    max: numberOrNull(max),
+    show_in_list: false,
+    display_order: 0,
+    deleted_at: null,
+    value_count: 0,
+  }
+  const defaultForm = useForm<CustomValues>({ defaultValues: initialCustomValues([defaultField], null) })
+
+  const changeType = (next: FieldType) => {
+    setFieldType(next)
+    // 다른 유형의 값은 쓸 수 없다
+    defaultForm.reset(initialCustomValues([{ ...defaultField, field_type: next, default_value: null }], null))
+  }
 
   const inUse = (field?.value_count ?? 0) > 0
   const saving = createField.isPending || updateField.isPending
@@ -53,7 +94,14 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
       range: low !== null && high !== null && low > high ? '최솟값은 최댓값보다 클 수 없습니다.' : undefined,
     }
     setErrors(next)
-    if (next.label || next.key || next.options || next.range) return
+    const defaultValues = defaultForm.getValues()
+    const defaultError = validateCustomValues([defaultField], defaultValues, {
+      publishing: false,
+      first: false,
+      stored: {},
+    })[DEFAULT_KEY]
+    if (defaultError) defaultForm.setError(DEFAULT_KEY, { message: defaultError })
+    if (next.label || next.key || next.options || next.range || defaultError) return
     const payload: FieldInput = {
       label: label.trim(),
       field_type: fieldType,
@@ -61,6 +109,8 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
       is_visible: visible,
       help_text: helpText.trim(),
       placeholder: placeholder.trim(),
+      default_value: toCustomData([defaultField], defaultValues)[DEFAULT_KEY],
+      show_in_list: showInList,
       ...(usesChoices(fieldType) ? { options: cleaned } : {}),
       ...(fieldType === 'NUMBER' ? { min: low, max: high } : {}),
     }
@@ -94,7 +144,7 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
           className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm disabled:bg-slate-100"
           value={fieldType}
           disabled={inUse}
-          onChange={(e) => setFieldType(e.target.value as FieldType)}
+          onChange={(e) => changeType(e.target.value as FieldType)}
         >
           {FIELD_TYPES.map((type) => (
             <option key={type.value} value={type.value}>
@@ -162,10 +212,23 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
         checked={visible}
         onChange={(e) => setVisible(e.target.checked)}
       />
+      <Toggle
+        label="글 목록에 표시"
+        description="관리자의 글 관리 목록에서 제목 아래에 값을 보여 줍니다."
+        checked={showInList}
+        onChange={(e) => setShowInList(e.target.checked)}
+      />
 
       <details className="text-sm text-slate-600">
         <summary className="cursor-pointer">고급 설정</summary>
         <div className="mt-3 space-y-3">
+          <CustomFieldInputs
+            key={fieldType}
+            fields={[defaultField]}
+            control={defaultForm.control}
+            errors={defaultForm.formState.errors}
+            clearError={(key) => defaultForm.clearErrors(key)}
+          />
           <Input
             label="안내 문구"
             maxLength={200}

@@ -64,6 +64,15 @@ export function fieldValueText({ field_type: type, value }: PublicFieldValue): s
   return Array.isArray(value) ? value.join(', ') : String(value)
 }
 
+/** 연락처 · 이메일 · 링크 칸의 주소 — 값은 서버가 검사했다 */
+export function fieldValueHref({ field_type: type, value }: PublicFieldValue): string | null {
+  const text = String(value)
+  if (type === 'PHONE') return `tel:${text.replace(/[^0-9+]/g, '')}`
+  if (type === 'EMAIL') return `mailto:${text}`
+  if (type === 'URL') return /^https?:\/\//i.test(text) ? text : null
+  return null
+}
+
 /** 공개일 YYYY-MM-DD (한국 시간) */
 export const postDate = (iso: string): string =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date(iso))

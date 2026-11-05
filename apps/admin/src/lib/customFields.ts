@@ -13,6 +13,9 @@ export const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'BOOLEAN', label: '예 / 아니오' },
   { value: 'RATING', label: '별점 (1~5)' },
   { value: 'IMAGE', label: '사진' },
+  { value: 'PHONE', label: '연락처' },
+  { value: 'EMAIL', label: '이메일' },
+  { value: 'URL', label: '링크' },
 ]
 
 export const fieldTypeLabel = (value: string): string =>
@@ -58,6 +61,12 @@ const schemaOf = (field: BoardField): z.ZodType => {
       return z.coerce.number().int().min(1).max(5)
     case 'IMAGE':
       return z.string().regex(/^(https?:\/\/|\/(?!\/))/i, '사진 주소가 올바르지 않습니다.')
+    case 'PHONE':
+      return z.string().regex(/^\s*\+?[0-9][0-9\- ()]{5,18}[0-9]\s*$/, '올바른 연락처가 아닙니다.')
+    case 'EMAIL':
+      return z.string().regex(/^\s*[^@\s]+@[^@\s]+\.[^@\s]+\s*$/, '올바른 이메일 주소가 아닙니다.')
+    case 'URL':
+      return z.string().regex(/^\s*https?:\/\/[^\s/]+\S*\s*$/i, 'http:// 또는 https:// 로 시작하는 주소를 입력해주세요.')
   }
 }
 
@@ -111,6 +120,17 @@ export function initialCustomValues(fields: BoardField[], stored: CustomValues |
       return [field.field_key, '']
     }),
   )
+}
+
+/** 글 목록에 보여 줄 값 글자 */
+export function fieldValueLabel(field: BoardField, value: unknown): string {
+  const nameOf = (v: unknown) => field.options.find((o) => o.value === v)?.label ?? String(v)
+  if (field.field_type === 'BOOLEAN') return value ? '예' : '아니오'
+  if (field.field_type === 'RATING') return `★${Number(value)}`
+  if (field.field_type === 'IMAGE') return '사진 있음'
+  if (field.field_type === 'SELECT') return nameOf(value)
+  if (field.field_type === 'MULTI_SELECT' && Array.isArray(value)) return value.map(nameOf).join(', ')
+  return String(value)
 }
 
 /** 서버 오류의 칸 이름 — custom_data.field_1 → field_1 */

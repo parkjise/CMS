@@ -113,6 +113,9 @@ FieldType = Literal[
     "BOOLEAN",
     "RATING",
     "IMAGE",
+    "PHONE",
+    "EMAIL",
+    "URL",
 ]
 FieldKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{1,49}$")]
 FieldLabel = Annotated[
@@ -152,6 +155,8 @@ class FieldCreate(BaseModel):
     )
     min: float | None = None
     max: float | None = None
+    # 관리자 글 목록에 값을 보여 줄지 (T-147)
+    show_in_list: bool = False
 
     @field_validator("options")
     @classmethod
@@ -175,6 +180,7 @@ class FieldUpdate(BaseModel):
     )
     min: float | None = None
     max: float | None = None
+    show_in_list: bool | None = None
 
     @field_validator("options")
     @classmethod
@@ -200,6 +206,7 @@ class FieldResponse(BaseModel):
     options: list[FieldOption]
     min: float | None
     max: float | None
+    show_in_list: bool = False
     display_order: int
     deleted_at: datetime | None
     # 값이 있는 글 수 (휴지통 글 포함) — 목록에서만, 삭제 · 유형 변경 안내용
@@ -236,11 +243,11 @@ class PostListItem(BaseModel):
     created_at: datetime
     updated_at: datetime
     deleted_at: datetime | None
+    custom_data: dict[str, Any]
 
 
 class PostResponse(PostListItem):
     body: list[BodyNode]
-    custom_data: dict[str, Any]
 
 
 class PostListResponse(BaseModel):

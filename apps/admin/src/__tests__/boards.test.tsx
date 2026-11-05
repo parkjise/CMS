@@ -143,6 +143,30 @@ describe('글 관리', () => {
   const renderPosts = () =>
     renderAt('/admin/boards/b1/posts', <BoardPostsPage />, '/admin/boards/:boardId/posts')
 
+  it('글 목록에 표시로 고른 칸만 값이 나온다 (T-147)', async () => {
+    const custom = { ...board, id: 'b1', system_key: null }
+    const field = (over: object) => ({
+      id: 'f1',
+      field_key: 'grade',
+      label: '등급',
+      field_type: 'SELECT',
+      options: [{ value: 'opt_1', label: '우수' }],
+      show_in_list: true,
+      ...over,
+    })
+    get.mockImplementation((url: string) => {
+      if (url === '/v1/boards') return ok([custom])
+      if (url.endsWith('/fields')) {
+        return ok([field({}), field({ id: 'f2', field_key: 'memo', label: '메모', show_in_list: false })])
+      }
+      return ok(list({ items: [{ ...item, custom_data: { grade: 'opt_1', memo: '숨은 값' } }] }))
+    })
+    renderPosts()
+    expect(await screen.findByText('우수')).toBeInTheDocument()
+    expect(screen.getByText('등급:')).toBeInTheDocument()
+    expect(screen.queryByText('숨은 값')).not.toBeInTheDocument()
+  })
+
   it('글을 비공개로 바꾸고 삭제한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: item } })

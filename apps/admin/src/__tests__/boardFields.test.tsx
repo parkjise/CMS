@@ -6,6 +6,7 @@ import type { Board, BoardField, Post } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import {
   customFieldOfError,
+  fieldValueLabel,
   initialCustomValues,
   nextOptionValue,
   toCustomData,
@@ -60,6 +61,7 @@ const fieldOf = (over: Partial<BoardField> & { id: string; field_key: string }):
   options: [],
   min: null,
   max: null,
+  show_in_list: false,
   display_order: 0,
   deleted_at: null,
   value_count: 0,
@@ -152,6 +154,41 @@ describe('필드 관리', () => {
       ),
     )
     expect(toast.success).toHaveBeenCalled()
+  })
+
+  it('기본값 · 글 목록 표시를 저장하고, 유형을 바꾸면 기본값을 비운다 (T-147)', async () => {
+    mockApi({ fields: [] })
+    post.mockResolvedValue({ data: { data: memo } })
+    renderFields()
+    await userEvent.click(await screen.findByRole('button', { name: '칸 추가' }))
+    await userEvent.type(screen.getByLabelText(/칸 이름/, { selector: 'input[required]' }), '메모')
+    await userEvent.type(screen.getByLabelText('기본값'), '처음 값')
+    await userEvent.selectOptions(screen.getByLabelText('유형'), 'NUMBER')
+    await userEvent.selectOptions(screen.getByLabelText('유형'), 'TEXT')
+    expect(screen.getByLabelText('기본값')).toHaveValue('')
+    await userEvent.type(screen.getByLabelText('기본값'), '둘째 값')
+    await userEvent.click(screen.getByLabelText(/글 목록에 표시/))
+    const form = screen.getByRole('button', { name: '취소' }).parentElement!
+    await userEvent.click(within(form).getByRole('button', { name: '칸 추가' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/v1/boards/b1/fields',
+        expect.objectContaining({ default_value: '둘째 값', show_in_list: true }),
+      ),
+    )
+  })
+
+  it('형식이 틀린 기본값은 저장하지 않는다 (T-147)', async () => {
+    mockApi({ fields: [] })
+    renderFields()
+    await userEvent.click(await screen.findByRole('button', { name: '칸 추가' }))
+    await userEvent.type(screen.getByLabelText(/칸 이름/, { selector: 'input[required]' }), '홈페이지')
+    await userEvent.selectOptions(screen.getByLabelText('유형'), 'URL')
+    await userEvent.type(screen.getByLabelText('기본값'), 'javascript:alert(1)')
+    const form = screen.getByRole('button', { name: '취소' }).parentElement!
+    await userEvent.click(within(form).getByRole('button', { name: '칸 추가' }))
+    expect(await screen.findByText(/http:\/\/ 또는 https:\/\//)).toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
   })
 
   it('이름 · 선택지 없이는 저장하지 않는다', async () => {
@@ -422,5 +459,40 @@ describe('칸 값 규칙', () => {
 
   it('선택지 내부 값은 쓰던 번호를 피한다', () => {
     expect(nextOptionValue(['opt_1', 'opt_3'])).toBe('opt_2')
+  })
+})
+
+describe('연락처 · 이메일 · 링크 값 (T-147)', () => {
+  const contact = (field_type: BoardField['field_type']) => fieldOf({ id: 'c', field_key: 'c', field_type })
+  const check = (field: BoardField, c: unknown) =>
+    validateCustomValues([field], { c }, { publishing: false, first: true, stored: {} }).c
+
+  it.each([
+    ['PHONE', '010-1234-5678'],
+    ['EMAIL', 'a@example.com'],
+    ['URL', 'https://example.com/a'],
+  ] as const)('%s 맞는 값', (type, value) => {
+    expect(check(contact(type), value)).toBeUndefined()
+  })
+
+  it.each([
+    ['PHONE', 'abc'],
+    ['EMAIL', 'no-at'],
+    ['URL', 'javascript:alert(1)'],
+    ['URL', 'example.com'],
+  ] as const)('%s 틀린 값 %s', (type, value) => {
+    expect(check(contact(type), value)).toBeTruthy()
+  })
+
+  it('목록 글자 — 선택지는 이름, 별점, 예/아니오', () => {
+    const select = fieldOf({
+      id: 's',
+      field_key: 's',
+      field_type: 'SELECT',
+      options: [{ value: 'opt_1', label: '내과' }],
+    })
+    expect(fieldValueLabel(select, 'opt_1')).toBe('내과')
+    expect(fieldValueLabel(fieldOf({ id: 'r', field_key: 'r', field_type: 'RATING' }), 4)).toBe('★4')
+    expect(fieldValueLabel(fieldOf({ id: 'b', field_key: 'b', field_type: 'BOOLEAN' }), false)).toBe('아니오')
   })
 })

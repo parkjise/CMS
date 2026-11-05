@@ -1,7 +1,8 @@
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
 import { loadBoardPage } from '@/lib/boardRoute'
-import { fieldValueText, postDate } from '@/lib/publicPosts'
+import { postDate } from '@/lib/publicPosts'
+import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
@@ -88,7 +89,7 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
                     // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 칸 사진
                     <img src={String(field.value)} alt={field.label} loading="lazy" className="h-auto max-w-full rounded-lg" />
                   ) : (
-                    fieldValueText(field)
+                    <FieldValue field={field} />
                   )}
                 </dd>
               </div>

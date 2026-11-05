@@ -5,6 +5,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { useBoardFields } from '@/hooks/useBoardFields'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type PostFilters,
@@ -16,6 +17,7 @@ import {
   useUpdatePost,
 } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
+import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -53,6 +55,10 @@ export function BoardPostsPage() {
       ? `${CLIENT_BASE_URL}/${tenantSlug}/${board.system_key ?? `b/${board.slug}`}/${publishedId}`
       : null
   const postsQuery = usePosts(boardId, filters)
+  // 기본 게시판에는 칸이 없다
+  const listFields = (useBoardFields(boardId, { enabled: Boolean(board && !board.system_key) }).data ?? []).filter(
+    (field) => field.show_in_list,
+  )
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
   const restorePost = useRestorePost(boardId)
@@ -221,6 +227,20 @@ export function BoardPostsPage() {
                     {dayjs(post.published_at ?? post.created_at).format('YYYY.MM.DD')}
                   </time>
                 </div>
+                {listFields.some((field) => !isEmptyValue(post.custom_data?.[field.field_key])) && (
+                  <dl className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-500">
+                    {listFields
+                      .filter((field) => !isEmptyValue(post.custom_data?.[field.field_key]))
+                      .map((field) => (
+                        <div key={field.id} className="flex min-w-0 gap-1">
+                          <dt className="shrink-0">{field.label}:</dt>
+                          <dd className="truncate text-slate-700">
+                            {fieldValueLabel(field, post.custom_data?.[field.field_key])}
+                          </dd>
+                        </div>
+                      ))}
+                  </dl>
+                )}
               </div>
 
               {canEdit && post.deleted_at && (

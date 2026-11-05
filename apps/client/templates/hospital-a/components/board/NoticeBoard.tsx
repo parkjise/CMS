@@ -1,5 +1,5 @@
 import type { BodyBlock, BodyNode, PublicFieldValue } from '@cms/types'
-import { fieldValueText } from '@/lib/publicPosts'
+import { FieldValue } from '@/components/board/FieldValue'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { BoardBody } from './BoardBody'
@@ -88,7 +88,7 @@ export function NoticeDetailView({
                       // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 칸 사진
                       <img src={String(field.value)} alt={field.label} loading="lazy" />
                     ) : (
-                      fieldValueText(field)
+                      <FieldValue field={field} />
                     )}
                   </dd>
                 </div>
