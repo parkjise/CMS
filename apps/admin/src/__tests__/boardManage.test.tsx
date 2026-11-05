@@ -1,25 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import type { Board, BoardLimits } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { boardSlugError } from '@/lib/boardLabels'
+import { BoardConnectionPage } from '@/pages/BoardConnectionPage'
 import { BoardNewPage } from '@/pages/BoardNewPage'
 import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { BoardTrashPage } from '@/pages/BoardTrashPage'
 import { BoardsPage } from '@/pages/BoardsPage'
 import { useAuthStore } from '@/stores/authStore'
 
-const { get, post, patch, del, toast } = vi.hoisted(() => ({
+const { get, post, patch, put, del, toast } = vi.hoisted(() => ({
   get: vi.fn(),
   post: vi.fn(),
   patch: vi.fn(),
+  put: vi.fn(),
   del: vi.fn(),
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
-vi.mock('@/lib/api', () => ({ api: { get, post, patch, delete: del } }))
+vi.mock('@/lib/api', () => ({ api: { get, post, patch, put, delete: del } }))
 vi.mock('@cms/ui', async (original) => ({
   ...(await original<typeof import('@cms/ui')>()),
   toast,
@@ -246,49 +248,46 @@ describe('게시판 추가 마법사', () => {
   })
 })
 
-describe('게시판 설정', () => {
+describe('기본 정보 탭', () => {
   const renderSettings = (id = 'b1') =>
     renderAt(`/admin/boards/${id}/settings`, <BoardSettingsPage />, '/admin/boards/:boardId/settings')
 
-  it('값을 고쳐 저장한다', async () => {
+  it('이름 · 설명을 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })
     renderSettings()
     const name = await screen.findByLabelText(/게시판 이름/)
     await userEvent.clear(name)
     await userEvent.type(name, '새 이름')
-    await userEvent.click(screen.getByLabelText(/게시판 사용/))
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
-        name: '새 이름',
-        description: '',
-        slug: 'board-1',
-        board_type: 'LIST',
-        status: 'INACTIVE',
-      }),
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', { name: '새 이름', description: '' }),
     )
   })
 
-  it('글이 있는 게시판의 유형을 바꾸면 경고', async () => {
+  it('탭 — 새 게시판은 필드 관리까지, 현재 탭 표시', async () => {
     mockApi({})
     renderSettings()
-    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
-    expect(screen.getByText(/빈 칸으로 보일 수 있습니다/)).toBeInTheDocument()
+    const tabs = await screen.findByRole('navigation', { name: '게시판 상세' })
+    await screen.findByLabelText(/게시판 이름/)
+    expect(within(tabs).getAllByRole('link').map((a) => a.textContent)).toEqual([
+      '글 관리',
+      '기본 정보',
+      '홈페이지 연결',
+      '필드 관리',
+    ])
+    expect(within(tabs).getByRole('link', { name: '기본 정보' })).toHaveAttribute('aria-current', 'page')
+    expect(within(tabs).getByRole('link', { name: '필드 관리' })).toHaveAttribute(
+      'href',
+      '/admin/boards/b1/fields',
+    )
   })
 
-  it('글이 없으면 유형 경고가 없다', async () => {
-    mockApi({ boards: [{ ...board, post_count: 0 }] })
-    renderSettings()
-    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
-    expect(screen.queryByText(/빈 칸으로 보일 수 있습니다/)).not.toBeInTheDocument()
-  })
-
-  it('기본 게시판은 주소 · 유형 잠금, 삭제 버튼 없음', async () => {
+  it('기본 게시판은 필드 관리 탭 · 삭제 버튼 없음', async () => {
     mockApi({ boards: [notice] })
     renderSettings('n1')
-    expect(await screen.findByLabelText('주소 이름')).toBeDisabled()
-    expect(screen.getByLabelText('유형')).toBeDisabled()
+    await screen.findByLabelText(/게시판 이름/)
+    expect(screen.queryByRole('link', { name: '필드 관리' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '휴지통으로' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '복제' })).toBeInTheDocument()
   })
@@ -323,15 +322,6 @@ describe('게시판 설정', () => {
     confirm.mockRestore()
   })
 
-  it('주소를 바꾸면 이전 주소가 열리지 않는다고 알린다', async () => {
-    mockApi({})
-    renderSettings()
-    const slug = await screen.findByLabelText('주소 이름')
-    expect(screen.queryByText(/이전 주소는/)).not.toBeInTheDocument()
-    await userEvent.type(slug, '-2')
-    expect(screen.getByText(/이전 주소는 더 이상 열리지 않습니다/)).toBeInTheDocument()
-  })
-
   it('저장 실패를 알린다', async () => {
     mockApi({})
     patch.mockRejectedValue(new Error('x'))
@@ -355,6 +345,107 @@ describe('게시판 설정', () => {
     mockApi({ boards: [] })
     renderSettings('nope')
     expect(await screen.findByText('게시판을 찾을 수 없습니다.')).toBeInTheDocument()
+  })
+})
+
+describe('홈페이지 연결 탭', () => {
+  const renderConnection = (id = 'b1') =>
+    renderAt(`/admin/boards/${id}/connection`, <BoardConnectionPage />, '/admin/boards/:boardId/connection')
+
+  const withMenu = (visible: boolean) => {
+    mockApi({})
+    const base = get.getMockImplementation()!
+    get.mockImplementation((url: string, config?: { params?: { trash?: boolean } }) =>
+      url === '/v1/site-settings/menu'
+        ? ok({
+            mode: 'code',
+            reorderable: true,
+            items: [
+              { key: 'about', default_label: '소개', label: '회사', visible: true },
+              { key: 'board:b1', default_label: '병원 소식', label: null, visible },
+            ],
+          })
+        : base(url, config),
+    )
+  }
+
+  it('유형 · 주소 · 사용 여부를 저장한다', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderConnection()
+    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
+    await userEvent.click(screen.getByLabelText(/게시판 사용/))
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
+        slug: 'board-1',
+        board_type: 'GALLERY',
+        status: 'INACTIVE',
+      }),
+    )
+  })
+
+  it('글이 있는 게시판의 유형을 바꾸면 경고', async () => {
+    mockApi({})
+    renderConnection()
+    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
+    expect(screen.getByText(/빈 칸으로 보일 수 있습니다/)).toBeInTheDocument()
+  })
+
+  it('글이 없으면 유형 경고가 없다', async () => {
+    mockApi({ boards: [{ ...board, post_count: 0 }] })
+    renderConnection()
+    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
+    expect(screen.queryByText(/빈 칸으로 보일 수 있습니다/)).not.toBeInTheDocument()
+  })
+
+  it('기본 게시판은 주소 · 유형 잠금', async () => {
+    mockApi({ boards: [notice] })
+    renderConnection('n1')
+    expect(await screen.findByLabelText('주소 이름')).toBeDisabled()
+    expect(screen.getByLabelText('유형')).toBeDisabled()
+  })
+
+  it('주소를 바꾸면 이전 주소가 열리지 않는다고 알리고, 잘못된 주소는 막는다', async () => {
+    mockApi({})
+    renderConnection()
+    const slug = await screen.findByLabelText('주소 이름')
+    expect(screen.queryByText(/이전 주소는/)).not.toBeInTheDocument()
+    await userEvent.type(slug, '-2')
+    expect(screen.getByText(/이전 주소는 더 이상 열리지 않습니다/)).toBeInTheDocument()
+    await userEvent.type(slug, '한글')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    expect(await screen.findByText(/영문 소문자/)).toBeInTheDocument()
+    expect(patch).not.toHaveBeenCalled()
+  })
+
+  it('상단 메뉴 표시를 끄면 다른 메뉴 설정은 그대로 저장', async () => {
+    withMenu(true)
+    put.mockResolvedValue({ data: { data: { mode: 'code', reorderable: true, items: [] } } })
+    renderConnection()
+    await userEvent.click(await screen.findByLabelText(/상단 메뉴에 표시/))
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith('/v1/site-settings/menu', {
+        items: [
+          { key: 'about', label: '회사', visible: true },
+          { key: 'board:b1', label: null, visible: false },
+        ],
+      }),
+    )
+  })
+
+  it('메뉴 후보가 아니면(사용 안 함) 켜면 고를 수 있다고 안내', async () => {
+    mockApi({ boards: [{ ...board, status: 'INACTIVE' }] })
+    renderConnection()
+    expect(await screen.findByText(/사용으로 바꾸면 상단 메뉴 표시를/)).toBeInTheDocument()
+  })
+
+  it('보기 전용 계정은 저장 버튼이 없다', async () => {
+    setRole('TENANT_VIEWER')
+    mockApi({})
+    renderConnection()
+    expect(await screen.findByLabelText('유형')).toBeDisabled()
+    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
   })
 })
 

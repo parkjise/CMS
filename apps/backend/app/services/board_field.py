@@ -370,6 +370,26 @@ async def _has_values(db: AsyncSession, board_id: UUID, key: str) -> bool:
     return result.first() is not None
 
 
+async def value_counts(db: AsyncSession, board_id: UUID) -> dict[str, int]:
+    """칸마다 값이 있는 글 수 — 휴지통 글도 센다."""
+    fields = await db.execute(
+        select(BoardField.field_key).where(BoardField.board_id == board_id)
+    )
+    keys = list(fields.scalars().all())
+    if not keys:
+        return {}
+    result = await db.execute(
+        select(
+            *(
+                func.count().filter(BoardPost.custom_data.has_key(key)).label(key)
+                for key in keys
+            )
+        ).where(BoardPost.board_id == board_id)
+    )
+    row = result.one()
+    return {key: int(row[i]) for i, key in enumerate(keys)}
+
+
 async def _option_in_use(
     db: AsyncSession, board_id: UUID, field: BoardField, value: str
 ) -> bool:

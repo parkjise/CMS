@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Pin, Plus } from 'lucide-react'
 import { Link, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
+import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type PostFilters,
@@ -86,23 +87,20 @@ export function BoardPostsPage() {
 
   return (
     <div className="space-y-5 p-6 md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <Link to="/admin/boards" className="text-sm text-slate-500 hover:text-slate-700">
-            ← 게시판 관리
-          </Link>
-          <h1 className="mt-1 text-2xl font-bold text-slate-900">{board?.name ?? '게시판'}</h1>
-        </div>
-        {canEdit && (
-          <Link
-            to={`/admin/boards/${boardId}/posts/new`}
-            className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            글쓰기
-          </Link>
-        )}
-      </div>
+      <BoardDetailHeader
+        boardId={boardId}
+        actions={
+          canEdit && (
+            <Link
+              to={`/admin/boards/${boardId}/posts/new`}
+              className="inline-flex h-10 items-center gap-2 rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              글쓰기
+            </Link>
+          )
+        }
+      />
 
       {board?.has_samples && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">

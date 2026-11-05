@@ -8,6 +8,43 @@ export type BodyBlock =
   | { type: 'ul'; items: string[] }
   | { type: 'image'; src: string; alt: string }
 
+/** 게시판 칸 타입 (T-142-A) */
+export type FieldType =
+  | 'TEXT'
+  | 'TEXTAREA'
+  | 'NUMBER'
+  | 'DATE'
+  | 'SELECT'
+  | 'MULTI_SELECT'
+  | 'BOOLEAN'
+  | 'RATING'
+  | 'IMAGE'
+
+export interface FieldOption {
+  value: string
+  label: string
+}
+
+export interface BoardField {
+  id: string
+  board_id: string
+  field_key: string
+  label: string
+  field_type: FieldType
+  is_required: boolean
+  is_visible: boolean
+  help_text: string
+  placeholder: string
+  default_value: unknown
+  options: FieldOption[]
+  min: number | null
+  max: number | null
+  display_order: number
+  deleted_at: string | null
+  /** 값이 있는 글 수 (휴지통 글 포함) */
+  value_count: number
+}
+
 export type BoardType = 'LIST' | 'GALLERY' | 'FAQ'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 
