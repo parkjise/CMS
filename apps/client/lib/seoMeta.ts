@@ -1,3 +1,4 @@
+import type { PublicBoard } from '@cms/types'
 import type { Metadata } from 'next'
 import type { PublicSeoSettings, PublicSite } from './publicSite.types'
 
@@ -19,4 +20,20 @@ export function canonicalMeta(site: PublicSite, path = ''): Pick<Metadata, 'alte
   const custom = site.tenant.custom_domain ? `https://${site.tenant.custom_domain}` : null
   const base = (site.seo_settings?.canonical_url ?? custom)?.replace(/\/+$/, '')
   return base ? { alternates: { canonical: `${base}${path}` } } : {}
+}
+
+/**
+ * 새 게시판 화면 메타 (T-146). 검색 제목 · 설명은 목록 화면에만 — 글 화면은 글 제목.
+ * 검색 노출을 끄면 글 화면까지 뺀다. 켜져 있으면 robots 키를 넣지 않아 레이아웃 설정(T-129)을 따른다.
+ */
+export function boardSeoMeta(
+  board: PublicBoard,
+  tenantName: string,
+  postTitle?: string,
+): Pick<Metadata, 'title' | 'description' | 'robots'> {
+  return {
+    title: `${postTitle ?? (board.seo_title || board.name)} | ${tenantName}`,
+    ...(!postTitle && board.seo_description ? { description: board.seo_description } : {}),
+    ...(board.seo_index === false ? { robots: { index: false, follow: false } } : {}),
+  }
 }
