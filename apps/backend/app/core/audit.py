@@ -15,9 +15,11 @@ async def log_action(
     before: dict | None = None,
     after: dict | None = None,
     ip_address: str | None = None,
+    tenant_id: UUID | None = None,
 ) -> None:
     db.add(
         AuditLog(
+            tenant_id=tenant_id,
             actor_id=actor.id,
             actor_role=actor.role,
             action=action,

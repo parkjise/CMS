@@ -32,8 +32,8 @@
 | **Phase 15: 방문자 인증** | **11** | **11** | **100%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **18** | **18** | **100%** |
 | **Phase 17: 기획서 대조 후속** | **15** | **15** | **100%** |
-| **Phase 18: 게시판 관리 모듈** | **7** | **3** | **43%** |
-| **합계** | **185** | **181** | **98%** |
+| **Phase 18: 게시판 관리 모듈** | **7** | **4** | **57%** |
+| **합계** | **185** | **182** | **98%** |
 
 ---
 
@@ -3085,9 +3085,9 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 |---|---|---|---|---|
 | 1 | T-139 | 공지 실사용 | — | 완료 (PR #79) |
 | 2 | T-140-A | 게시판 생성 · 설정 · 휴지통 | T-139 | 완료 (PR #80) |
-| 3 | T-140-B | 코드형 템플릿의 새 게시판 화면 · 메뉴 | T-140-A | 구현 완료 · PR 대기 |
-| 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 다음 |
-| 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 대기 |
+| 3 | T-140-B | 코드형 템플릿의 새 게시판 화면 · 메뉴 | T-140-A | 완료 (PR #81) |
+| 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 구현 완료 · PR 대기 |
+| 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 다음 |
 | 6 | T-142-A | 필드 정의 · 값 검증 (백엔드) | T-140-A | 대기 |
 | 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 (화면) | T-142-A | 대기 |
 
@@ -3100,22 +3100,23 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 기능 플래그 `BOARD_MANAGER` 를 꺼도 공개 홈페이지는 그대로다.
 - 슬러그는 비우면 `board-1` 처럼 자동(휴지통 슬러그도 재사용 안 함), 복원 시 충돌하면 뒤에 번호를 붙인다. 복제는 설정만, 글은 복제하지 않는다. 유형은 글이 있어도 바꿀 수 있고 화면이 경고한다. 공지 게시판을 비활성화하면 샘플도 비운다 (2026-11-05 결정).
 - 새 게시판 주소는 `/{slug}/b/{게시판}[/{글}]`, 메뉴 저장 키는 `board:{id}`. 만들 때 메뉴 기본 켬, 복제본은 메뉴에 넣지 않음. 주소를 바꾼 뒤 옛 주소 · `/b/notice` 는 404. 샘플 미리보기에는 새 게시판을 넣지 않음 (2026-11-05 결정).
+- 일괄 처리는 전부 처리 또는 전부 취소, 한 번에 100개까지. 감사 로그에는 게시판 변경 · 글 휴지통 · 복원 · 일괄 처리만 남기고 본문 · IP 는 저장하지 않는다. 보는 곳은 슈퍼 어드민뿐. 사이트맵은 메뉴에서 숨긴 곳을 뺀다 (2026-11-05 결정).
 - 일정상 오픈 전(목표 2027-04 말)이라 기존 공지 이전 도구를 만들지 않는다. **실제 고객이 생긴 뒤에는 이 전제가 깨지므로 다시 확인한다.**
 
 **사용자에게 아직 물어야 하는 것:**
 - 휴지통 보관 기간 · 자동 파기 (D-06) — 해지 데이터 파기(상위 기획서 10.2 #5)와 함께 결정. 정해지기 전에는 자동 파기를 만들지 않는다.
 - 방문자 글쓰기를 열기 전 법률 확인 — 병원 후기(의료법 제56조), 개인정보 고지, 게시 중단 절차 (기획서 11.3).
 
-**코드 지도 (T-140-B 기준):**
+**코드 지도 (T-140-C 기준):**
 
 | 영역 | 파일 |
 |---|---|
-| DB | `apps/backend/alembic/versions/0038_add_boards.py`, `app/models/board.py` |
+| DB | `apps/backend/alembic/versions/0038_add_boards.py` · `0039_audit_logs_tenant.py`, `app/models/board.py` |
 | 백엔드 | `app/schemas/board.py`, `app/services/board.py`, `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
-| 관리자 | `apps/admin/src/pages/Board*.tsx`, `components/boards/BodyBlockEditor.tsx`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
-| 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`) |
+| 관리자 | `apps/admin/src/pages/Board*.tsx` · `PostsOverviewPage.tsx`, `components/boards/BodyBlockEditor.tsx`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
+| 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`), `app/[tenant_slug]/sitemap.xml/route.ts` |
 | 공통 타입 | `packages/types/src/board.ts` |
-| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` |
+| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` |
 
 **자주 빠지는 함정 (T-139 에서 실제로 겪음):**
 - **타입 검사:** admin · superadmin 에서 `tsc --noEmit` 은 아무것도 검사하지 않고 통과한다 (`tsconfig.json` 이 `files: []`). 반드시 `pnpm type-check` 를 쓴다.
@@ -3127,6 +3128,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **캐시:** 글 · 게시판을 바꾸면 `site_cache.purge_site` 를 호출한다. 공개 글 조회는 `site:{slug}` 태그를 쓴다.
 - **로그인:** 관리자 로그인에는 사이트 슬러그 칸도 필요하다.
 - **게시판 시험 데이터:** 시험 계정은 STANDARD 라 새 게시판 5개에서 막힌다. 자동 주소는 `board-1` 이다. 시험 뒤 `boards` · `board_posts` · `site_settings.menu_items` 를 되돌리고 메뉴 저장 API 로 캐시를 비운다.
+- **감사 로그 RLS:** `audit_logs` 는 정책이 4개로 나뉜다 (읽기 · 쓰기 · 수정 · 삭제). 사업체는 자기 것만 읽고 지울 수 없다. 사업체 안의 일은 `log_action(..., tenant_id=...)` 로 남긴다.
 - **코드형 템플릿을 늘릴 때:** 메뉴 후보는 코드형이면 모두 게시판을 더한다. 새 템플릿도 `board` 화면을 그리지 않으면 메뉴 링크가 빈 화면이 된다.
 
 **작업 규칙:**
@@ -3181,19 +3183,19 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **완료 조건:** 새 게시판이 메뉴로 열리고 목록 · 상세가 보인다 (AC-08 · AC-11 · AC-14) ✅
 - **범위 밖:** 테마형 (T-141), 메인 화면 최신 글 배치 · 사이트맵 (T-140-C), 게시판 전용 공개 조회 API (기획서 9.2 — 사이트 응답으로 충분해 쓰는 곳이 생길 때)
 
-### T-140-C: 글 통합 관리 · 사이트맵 · 감사 로그 (2단계)
+### T-140-C: 글 통합 관리 · 사이트맵 · 감사 로그 (2단계) ✅
 - **담당:** 풀스택
 - **선행:** T-140-B
 - **참조:** 기획서 BM-05, 8.2(감사 로그), 11.4, D-09
-- **코드 시작점:** `apps/admin/src/pages/BoardPostsPage.tsx`, `apps/client/app/[tenant_slug]/sitemap.xml/route.ts`(지금은 메인 주소 하나), `apps/backend/app/core/audit.py`
+- **코드 시작점:** `apps/admin/src/pages/PostsOverviewPage.tsx`, `apps/client/app/[tenant_slug]/sitemap.xml/route.ts`, `apps/backend/app/core/audit.py`
 - **작업 내용:**
-  - [ ] `/admin/posts`: 전체 게시판 글 목록 · 필터 · 일괄 공개 / 비공개 / 휴지통
-  - [ ] 사이트맵: 공개 게시판 · 글 주소 추가, 고객 도메인 주소 유지
-  - [ ] 글 상세 검색 노출 정리 (비공개는 noindex — D-09)
-  - [ ] `audit_logs` 에 `tenant_id` 추가, 게시판 설정 변경 · 글 강제 삭제 · 복원 기록. 본문 · 비밀번호는 저장하지 않음
-- **테스트:** 일괄 처리의 다른 사업체 차단 / 사이트맵에 비공개 · 삭제 글 없음 / 감사 로그 기록 · 민감 정보 없음
-- **완료 조건:** 여러 글을 한 번에 처리하고, 공개 글만 사이트맵에 나온다
-- **범위 밖:** 다른 게시판으로 글 이동 (T-142 뒤 후속 후보)
+  - [x] `/admin/posts`: 전체 게시판 글 목록 · 게시판 · 상태 · 제목 필터 · 휴지통 보기 · 일괄 공개 / 비공개 / 휴지통 / 복원 (`GET /api/v1/posts`, `POST /api/v1/posts/bulk`)
+  - [x] 사이트맵: 템플릿 페이지 · 공개 게시판 · 글 주소 추가, 실제 수정일, 고객 도메인 주소 유지, 메뉴에서 숨긴 곳 제외, 글 최대 5,000개
+  - [x] 글 상세 검색 노출: 비공개 글은 이미 공개 주소가 404 — 테스트로 확인 (D-09)
+  - [x] `audit_logs` 에 `tenant_id` · RLS (마이그레이션 0039), 게시판 생성 · 설정 변경 · 복제 · 휴지통 · 복원, 글 휴지통 · 복원, 일괄 처리 기록. 본문 · IP 는 저장하지 않음. 슈퍼 어드민 사업체 이력에 표시
+- **테스트:** backend 34 / admin 10 / client 8 / 실제 브라우저 · 실제 서버: 필터 · 일괄 공개 · 휴지통 · 복원 · 다른 글이 섞인 요청 전체 취소 · 공개 화면 반영 · 사이트맵 · 감사 로그 · 슈퍼 어드민 이력. 공지 글의 샘플 비우기 · 고객 도메인 사이트맵은 단위 테스트만
+- **완료 조건:** 여러 글을 한 번에 처리하고, 공개 글만 사이트맵에 나온다 ✅
+- **범위 밖:** 다른 게시판으로 글 이동 (T-142 뒤 후속 후보), 내용 · 작성자 검색 · 작성일 필터, 고객용 감사 로그 화면 (후속 후보). 글 강제 삭제는 기능 자체가 없어 D-06 결정 뒤 함께
 
 ### T-141: 테마형 템플릿 게시판 화면 (3단계)
 - **담당:** 풀스택
@@ -3235,6 +3237,8 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **범위 밖:** 병원 업종의 고객 후기 프리셋 (법률 확인 전 금지)
 
 ### 후속 후보 (번호 없음 — 시작할 때 사용자와 정하고 번호를 붙인다)
+- 전체 글의 내용 · 작성자 검색, 작성일 필터 (BM-05 — 본문 JSON 검색 · 개인정보 검토 필요)
+- 고객용 감사 로그 화면
 - 게시판 화면에 이름이 히어로와 목록 제목으로 두 번 나옴 — 제목을 빼거나 설명으로 대체 검토 (T-140-B)
 - 휴대폰 폭에서 상호가 길면 헤더의 로그인 · 회원가입 글자가 두 줄로 꺾임 — 메뉴와 무관한 기존 동작 (T-140-B 때 발견)
 - 방문자 글쓰기 · 비회원 수정 (먼저 기획서 11.3 법률 확인, D-08)

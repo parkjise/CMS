@@ -5,7 +5,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
-from sqlalchemy import ColumnElement, func, select
+from sqlalchemy import ColumnElement, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -463,21 +463,21 @@ async def list_audit_logs(
     page: int = 1,
     limit: int = 20,
 ) -> tuple[list[AuditLog], int]:
-    """해당 테넌트를 대상으로 한 감사 로그 (기능/플랜 변경 등). 최신순."""
+    """해당 테넌트의 감사 로그 — 운영사 조치(대상) + 사업체 안의 기록. 최신순."""
     await _get_tenant(db, tenant_id)
-    target = str(tenant_id)
+    about_tenant = or_(
+        AuditLog.target_id == str(tenant_id), AuditLog.tenant_id == tenant_id
+    )
     total = int(
         (
             await db.execute(
-                select(func.count())
-                .select_from(AuditLog)
-                .where(AuditLog.target_id == target)
+                select(func.count()).select_from(AuditLog).where(about_tenant)
             )
         ).scalar_one()
     )
     rows = await db.execute(
         select(AuditLog)
-        .where(AuditLog.target_id == target)
+        .where(about_tenant)
         .order_by(AuditLog.created_at.desc())
         .offset((page - 1) * limit)
         .limit(limit)

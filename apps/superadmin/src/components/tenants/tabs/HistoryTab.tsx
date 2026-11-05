@@ -12,6 +12,17 @@ const ACTION_LABELS: Record<string, string> = {
   TENANT_PASSWORD_RESET: '비밀번호 초기화',
   FEATURE_TOGGLED: '기능 토글',
   IMPERSONATE_START: '대리 접속',
+  BOARD_CREATED: '게시판 추가',
+  BOARD_UPDATED: '게시판 설정 변경',
+  BOARD_DUPLICATED: '게시판 복제',
+  BOARD_DELETED: '게시판 휴지통',
+  BOARD_RESTORED: '게시판 복원',
+  POST_DELETED: '글 휴지통',
+  POST_RESTORED: '글 복원',
+  POST_BULK_PUBLISH: '글 일괄 공개',
+  POST_BULK_PRIVATE: '글 일괄 비공개',
+  POST_BULK_TRASH: '글 일괄 휴지통',
+  POST_BULK_RESTORE: '글 일괄 복원',
 }
 
 export function HistoryTab({ tenantId }: Props) {

@@ -22,7 +22,7 @@ export const STATUS_LABELS: Record<PostStatus, string> = {
   PRIVATE: '비공개',
 }
 
-const STATUS_STYLES: Record<PostStatus, string> = {
+export const STATUS_STYLES: Record<PostStatus, string> = {
   DRAFT: 'bg-amber-50 text-amber-700',
   PUBLISHED: 'bg-emerald-50 text-emerald-700',
   PRIVATE: 'bg-slate-100 text-slate-600',

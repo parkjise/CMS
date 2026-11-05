@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import log_action
 from app.core.deps import (
     get_current_user,
     get_db,
@@ -21,15 +22,20 @@ from app.schemas.board import (
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
+    PostBulkRequest,
+    PostBulkResponse,
     PostCreate,
     PostListItem,
     PostListResponse,
+    PostOverviewItem,
+    PostOverviewListResponse,
     PostResponse,
     PostStatus,
     PostUpdate,
     PublicPostDetail,
     PublicPostItem,
     PublicPostListResponse,
+    PublicSitemapPost,
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
@@ -43,11 +49,59 @@ router = APIRouter(
     tags=["boards"],
     dependencies=[Depends(require_feature("BOARD_MANAGER"))],
 )
+posts_router = APIRouter(
+    prefix="/posts",
+    tags=["boards"],
+    dependencies=[Depends(require_feature("BOARD_MANAGER"))],
+)
 public_router = APIRouter(tags=["public"])
 
 
 def _not_found(message: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message)
+
+
+def _board_audit(board: Board) -> dict:
+    """감사 로그에 남기는 게시판 값 — 본문 · 개인정보 없이."""
+    return {
+        "name": board.name,
+        "slug": board.slug,
+        "board_type": board.board_type,
+        "status": board.status,
+    }
+
+
+async def _audit_board(
+    db: AsyncSession,
+    user: User,
+    action: str,
+    board: Board,
+    before: dict | None = None,
+) -> None:
+    await log_action(
+        db,
+        user,
+        action,
+        "board",
+        board.id,
+        before=before,
+        after=_board_audit(board),
+        tenant_id=board.tenant_id,
+    )
+
+
+async def _audit_post(
+    db: AsyncSession, user: User, action: str, post: BoardPost
+) -> None:
+    await log_action(
+        db,
+        user,
+        action,
+        "board_post",
+        post.id,
+        after={"title": post.title, "status": post.status},
+        tenant_id=post.tenant_id,
+    )
 
 
 async def _board_or_404(
@@ -90,11 +144,14 @@ async def create_board(
     data: BoardCreate,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
 ):
     board = await board_service.create_board(db, tenant_id, data)
     if not data.in_menu:
         await site_settings_service.hide_board_from_menu(db, board)
-    return ApiResponse.ok(await board_service.board_response(db, board))
+    response = await board_service.board_response(db, board)
+    await _audit_board(db, current_user, "BOARD_CREATED", board)
+    return ApiResponse.ok(response)
 
 
 @router.get("/limits", response_model=ApiResponse[BoardLimitsResponse])
@@ -127,9 +184,13 @@ async def update_board(
     data: BoardUpdate,
     board: Board = Depends(_board_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
+    before = _board_audit(board)
     updated = await board_service.update_board(db, board, data)
-    return ApiResponse.ok(await board_service.board_response(db, updated))
+    response = await board_service.board_response(db, updated)
+    await _audit_board(db, current_user, "BOARD_UPDATED", updated, before=before)
+    return ApiResponse.ok(response)
 
 
 @router.post(
@@ -140,19 +201,24 @@ async def update_board(
 async def duplicate_board(
     board: Board = Depends(_board_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
     copy = await board_service.duplicate_board(db, board)
     # 같은 이름이 메뉴에 두 번 나오지 않게 — 이름을 고치고 직접 켠다
     await site_settings_service.hide_board_from_menu(db, copy)
-    return ApiResponse.ok(await board_service.board_response(db, copy))
+    response = await board_service.board_response(db, copy)
+    await _audit_board(db, current_user, "BOARD_DUPLICATED", copy)
+    return ApiResponse.ok(response)
 
 
 @router.delete("/{board_id}", response_model=ApiResponse[dict])
 async def delete_board(
     board: Board = Depends(_board_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
     await board_service.delete_board(db, board)
+    await _audit_board(db, current_user, "BOARD_DELETED", board)
     return ApiResponse.ok({"deleted": True})
 
 
@@ -161,17 +227,18 @@ async def restore_board(
     board_id: UUID,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
 ):
     board = await board_service.get_trashed_board(db, tenant_id, board_id)
     if board is None:
         raise _not_found(MSG_BOARD_NOT_FOUND)
     restored, changed = await board_service.restore_board(db, board)
-    return ApiResponse.ok(
-        BoardRestoreResponse(
-            board=BoardResponse(**await board_service.board_response(db, restored)),
-            slug_changed=changed,
-        )
+    response = BoardRestoreResponse(
+        board=BoardResponse(**await board_service.board_response(db, restored)),
+        slug_changed=changed,
     )
+    await _audit_board(db, current_user, "BOARD_RESTORED", restored)
+    return ApiResponse.ok(response)
 
 
 @router.get("/{board_id}/posts", response_model=ApiResponse[PostListResponse])
@@ -242,8 +309,10 @@ async def update_post(
 async def delete_post(
     post: BoardPost = Depends(_post_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
     await board_service.delete_post(db, post)
+    await _audit_post(db, current_user, "POST_DELETED", post)
     return ApiResponse.ok({"deleted": True})
 
 
@@ -253,12 +322,87 @@ async def delete_post(
 async def restore_post(
     post: BoardPost = Depends(_post_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
     restored = await board_service.restore_post(db, post)
-    return ApiResponse.ok(PostResponse.model_validate(restored))
+    response = PostResponse.model_validate(restored)
+    await _audit_post(db, current_user, "POST_RESTORED", restored)
+    return ApiResponse.ok(response)
 
 
 # ── 공개 (홈페이지) — 공개 글만. 기능을 꺼도 공개 홈페이지는 그대로 (T-138 원칙) ─────
+
+
+# ── 전체 글 (BM-05, T-140-C) ─────────────────────────────────────────────
+
+
+@posts_router.get("", response_model=ApiResponse[PostOverviewListResponse])
+async def list_all_posts(
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    board_id: UUID | None = None,
+    post_status: PostStatus | None = Query(default=None, alias="status"),
+    q: str | None = Query(default=None, max_length=100),
+    trash: bool = False,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    rows, total = await board_service.list_all_posts(
+        db,
+        tenant_id,
+        page=page,
+        size=size,
+        board_id=board_id,
+        status=post_status,
+        q=q,
+        trash=trash,
+    )
+    return ApiResponse.ok(
+        PostOverviewListResponse(
+            total=total,
+            page=page,
+            size=size,
+            items=[
+                PostOverviewItem(
+                    **PostListItem.model_validate(post).model_dump(),
+                    board_name=name,
+                )
+                for post, name in rows
+            ],
+        )
+    )
+
+
+@posts_router.post("/bulk", response_model=ApiResponse[PostBulkResponse])
+async def bulk_update_posts(
+    data: PostBulkRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    ids = await board_service.bulk_update_posts(
+        db, tenant_id, data.post_ids, data.action
+    )
+    await log_action(
+        db,
+        current_user,
+        f"POST_BULK_{data.action}",
+        "board_post",
+        after={"post_ids": [str(i) for i in ids]},
+        tenant_id=tenant_id,
+    )
+    return ApiResponse.ok(PostBulkResponse(updated=len(ids)))
+
+
+@public_router.get(
+    "/site/{tenant_slug}/sitemap-posts",
+    response_model=ApiResponse[list[PublicSitemapPost]],
+)
+async def list_sitemap_posts(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    posts = await board_service.list_sitemap_posts(db, tenant_slug)
+    if posts is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    return ApiResponse.ok([PublicSitemapPost(**post) for post in posts])
 
 
 @public_router.get(

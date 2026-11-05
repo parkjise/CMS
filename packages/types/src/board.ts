@@ -50,6 +50,20 @@ export interface Post extends PostListItem {
   body: BodyBlock[]
 }
 
+/** 전체 글 목록 한 줄 (BM-05, T-140-C) */
+export interface PostOverviewItem extends PostListItem {
+  board_name: string
+}
+
+export interface PostOverviewList {
+  total: number
+  page: number
+  size: number
+  items: PostOverviewItem[]
+}
+
+export type PostBulkAction = 'PUBLISH' | 'PRIVATE' | 'TRASH' | 'RESTORE'
+
 export interface PostList {
   total: number
   page: number
@@ -84,6 +98,14 @@ export interface PublicPostList {
   /** 검색과 관계없이 공개 글이 있는지 — 없으면 화면이 샘플을 보여 준다 */
   has_posts: boolean
   items: PublicPostItem[]
+}
+
+/** 사이트맵 한 줄 (T-140-C) */
+export interface PublicSitemapPost {
+  board_slug: string
+  is_system: boolean
+  id: string
+  updated_at: string
 }
 
 export interface PublicPost extends Omit<PublicPostItem, 'body'> {

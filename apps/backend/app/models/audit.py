@@ -1,7 +1,7 @@
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import DateTime, Index, String, Text
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -14,6 +14,13 @@ class AuditLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    # 사업체 안에서 일어난 일 (T-140-C) — 운영사 공통 기록은 비어 있다
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("tenants.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     actor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
     actor_role: Mapped[str] = mapped_column(String(50), nullable=False)
