@@ -37,24 +37,23 @@ function buildSitemap(urls: Array<{ loc: string; lastmod: string }>): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${items}\n</urlset>\n`
 }
 
-/** 메인 뒤에 붙는 주소 (T-140-C) — 코드형 템플릿만. 테마형은 한 페이지뿐이고 게시판은 T-141 */
+/** 메인 뒤에 붙는 주소 (T-140-C) — 테마형은 페이지 · 공지 없이 새 게시판만 (T-141) */
 function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
   const key = codeTemplateKey(site.template?.renderer === 'code' ? site.template.code : null)
   const manifest = CODE_TEMPLATE_MANIFESTS.find((m) => m.key === key)
-  if (!manifest) return []
   // 메뉴에서 숨긴 곳은 아직 준비 중일 수 있어 알리지 않는다. 주소로는 그대로 열린다
   const hidden = new Set(
     (site.site_settings?.menu_items ?? []).filter((item) => item.visible === false).map((item) => item.key),
   )
   const now = new Date().toISOString()
-  const pages = manifest.pages
+  const pages = (manifest?.pages ?? [])
     .filter((page) => page.key !== 'home' && !hidden.has(page.key))
     .map((page) => ({ path: `/${page.key}`, lastmod: now }))
   const boards = (site.boards ?? []).filter((board) => !hidden.has(`board:${board.id}`))
   const newest = new Map<string, string>()
   const postUrls = posts.flatMap((post) => {
     const base = post.is_system
-      ? post.board_slug === NOTICE_BOARD && !hidden.has(NOTICE_BOARD)
+      ? manifest && post.board_slug === NOTICE_BOARD && !hidden.has(NOTICE_BOARD)
         ? `/${NOTICE_BOARD}`
         : null
       : boards.some((board) => board.slug === post.board_slug)

@@ -17,6 +17,3 @@ export const boardSlugError = (slug: string): string | undefined =>
   slug.length >= 2 && BOARD_SLUG_PATTERN.test(slug)
     ? undefined
     : '영문 소문자 · 숫자 · 하이픈으로 2자 이상 입력해주세요.'
-
-/** 코드형 템플릿은 메뉴로 표시한다 (T-140-B). 테마형은 T-141 전까지 이 안내 */
-export const NOT_SHOWN_YET = '지금 쓰는 템플릿에서는 새 게시판이 아직 홈페이지에 표시되지 않습니다. 홈페이지 연결은 곧 제공됩니다.'
