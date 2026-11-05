@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { NavLink, useLocation } from 'react-router'
 import { ExternalLink, Layers, LogOut } from 'lucide-react'
-import { ADMIN_NAVIGATION } from './navigation'
+import { ADMIN_NAVIGATION, isChildActive } from './navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavVisibility } from '@/lib/navItems'
 
@@ -150,8 +150,8 @@ export function CollapsedSidebar() {
                         key={to}
                         to={to}
                         onClick={close}
-                        className={({ isActive }) =>
-                          `block rounded-lg px-3 py-2.5 text-sm ${isActive ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`
+                        className={() =>
+                          `block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`
                         }
                       >
                         {label}

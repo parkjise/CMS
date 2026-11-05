@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  BoardSortOrder,
   Board,
   BoardLimits,
   BoardStatus,
@@ -54,6 +55,11 @@ export interface BoardInput {
   slug?: string
   board_type?: BoardType
   status?: BoardStatus
+  sort_order?: BoardSortOrder
+  page_size?: number | null
+  seo_title?: string
+  seo_description?: string
+  seo_index?: boolean
   /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
   in_menu?: boolean
 }
