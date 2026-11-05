@@ -16,6 +16,9 @@ const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'S
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
 const BoardsPage = lazyPage(() => import('@/pages/BoardsPage'), 'BoardsPage')
+const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
+const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
+const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'BoardSettingsPage')
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
 const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
@@ -35,6 +38,9 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
   [/^\/admin\/boards\/?$/, BoardsPage],
+  [/^\/admin\/boards\/new\/?$/, BoardNewPage],
+  [/^\/admin\/boards\/trash\/?$/, BoardTrashPage],
+  [/^\/admin\/boards\/[^/]+\/settings\/?$/, BoardSettingsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
   [/^\/admin\/seo\/?$/, SeoPage],
@@ -100,6 +106,18 @@ export const router = createBrowserRouter([
           {
             path: '/admin/boards',
             element: withFeature('BOARD_MANAGER', <BoardsPage />),
+          },
+          {
+            path: '/admin/boards/new',
+            element: withFeature('BOARD_MANAGER', <BoardNewPage />),
+          },
+          {
+            path: '/admin/boards/trash',
+            element: withFeature('BOARD_MANAGER', <BoardTrashPage />),
+          },
+          {
+            path: '/admin/boards/:boardId/settings',
+            element: withFeature('BOARD_MANAGER', <BoardSettingsPage />),
           },
           {
             path: '/admin/boards/:boardId/posts',

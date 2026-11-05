@@ -7,8 +7,10 @@
 from datetime import UTC, datetime
 from uuid import UUID
 
+from fastapi import HTTPException, status
 from sqlalchemy import ColumnElement, UnaryExpression, func, or_, select
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -16,13 +18,40 @@ from app.db.session import set_rls_context, set_super_admin_context
 from app.models.board import Board, BoardPost
 from app.models.section import Section, SectionSetting
 from app.models.tenant import Tenant
-from app.schemas.board import PostCreate, PostUpdate
+from app.schemas.board import (
+    SLUG_MAX_LENGTH,
+    BoardCreate,
+    BoardUpdate,
+    PostCreate,
+    PostUpdate,
+)
 from app.services import site_cache
 
 NOTICE_KEY = "notice"
 STATUS_PUBLISHED = "PUBLISHED"
 SAMPLE_ITEMS_KEY = "items"
 EMPTY_ITEMS = "[]"
+DESCRIPTION_KEY = "description"
+AUTO_SLUG_PREFIX = "board"
+
+# 기본 게시판을 뺀 추가 게시판 수 (기획서 4장 · D-01). None 은 제한 없음
+BOARD_LIMITS: dict[str, int | None] = {
+    "FREE": 0,
+    "BASIC": 0,
+    "STANDARD": 5,
+    "PREMIUM": None,
+}
+# /{slug}/b/{게시판} 아래 주소 · 관리자 주소와 헷갈리는 이름 · 기본 게시판 키
+RESERVED_BOARD_SLUGS = frozenset(
+    {"notice", "consult", "reservation", "new", "trash", "write", "settings", "posts"}
+)
+
+MSG_BOARD_PLAN_BLOCKED = "게시판 추가는 STANDARD 요금제부터 쓸 수 있습니다."
+MSG_SLUG_RESERVED = "쓸 수 없는 주소입니다. 다른 주소를 입력해 주세요."
+MSG_SLUG_TAKEN = "이미 쓰고 있는 주소입니다."
+MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다."
+MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
+MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 
 
 def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
@@ -137,34 +166,57 @@ async def _ensure_system_boards(db: AsyncSession, tenant_id: UUID) -> None:
     await db.commit()
 
 
-async def list_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
-    await _ensure_system_boards(db, tenant_id)
-    counts = (
-        select(BoardPost.board_id, func.count().label("post_count"))
-        .where(BoardPost.tenant_id == tenant_id, BoardPost.deleted_at.is_(None))
-        .group_by(BoardPost.board_id)
-        .subquery()
-    )
+async def _post_counts(db: AsyncSession, board_ids: list[UUID]) -> dict[UUID, int]:
+    if not board_ids:
+        return {}
     rows = await db.execute(
-        select(Board, func.coalesce(counts.c.post_count, 0))
-        .outerjoin(counts, counts.c.board_id == Board.id)
-        .where(Board.tenant_id == tenant_id, Board.deleted_at.is_(None))
+        select(BoardPost.board_id, func.count())
+        .where(BoardPost.board_id.in_(board_ids), BoardPost.deleted_at.is_(None))
+        .group_by(BoardPost.board_id)
+    )
+    return {board_id: count for board_id, count in rows.all()}
+
+
+def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
+    return {
+        "id": board.id,
+        "name": board.name,
+        "slug": board.slug,
+        "description": (board.settings or {}).get(DESCRIPTION_KEY, ""),
+        "board_type": board.board_type,
+        "status": board.status,
+        "system_key": board.system_key,
+        "post_count": post_count,
+        "has_samples": has_samples and board.system_key == NOTICE_KEY,
+        "deleted_at": board.deleted_at,
+    }
+
+
+async def board_response(db: AsyncSession, board: Board) -> dict:
+    counts = await _post_counts(db, [board.id])
+    has_samples = board.system_key == NOTICE_KEY and await _has_samples(
+        db, board.tenant_id
+    )
+    return _board_response(board, counts.get(board.id, 0), has_samples)
+
+
+async def list_boards(
+    db: AsyncSession, tenant_id: UUID, *, trash: bool = False
+) -> list[dict]:
+    if not trash:
+        await _ensure_system_boards(db, tenant_id)
+    result = await db.execute(
+        select(Board)
+        .where(
+            Board.tenant_id == tenant_id,
+            Board.deleted_at.is_not(None) if trash else Board.deleted_at.is_(None),
+        )
         .order_by(Board.created_at)
     )
-    has_samples = await _has_samples(db, tenant_id)
-    return [
-        {
-            "id": board.id,
-            "name": board.name,
-            "slug": board.slug,
-            "board_type": board.board_type,
-            "status": board.status,
-            "system_key": board.system_key,
-            "post_count": count,
-            "has_samples": has_samples and board.system_key == NOTICE_KEY,
-        }
-        for board, count in rows.all()
-    ]
+    boards = list(result.scalars().all())
+    counts = await _post_counts(db, [b.id for b in boards])
+    has_samples = not trash and await _has_samples(db, tenant_id)
+    return [_board_response(b, counts.get(b.id, 0), has_samples) for b in boards]
 
 
 async def get_board(db: AsyncSession, tenant_id: UUID, board_id: UUID) -> Board | None:
@@ -176,6 +228,222 @@ async def get_board(db: AsyncSession, tenant_id: UUID, board_id: UUID) -> Board 
         )
     )
     return result.scalar_one_or_none()
+
+
+async def get_trashed_board(
+    db: AsyncSession, tenant_id: UUID, board_id: UUID
+) -> Board | None:
+    result = await db.execute(
+        select(Board).where(
+            Board.id == board_id,
+            Board.tenant_id == tenant_id,
+            Board.deleted_at.is_not(None),
+        )
+    )
+    return result.scalar_one_or_none()
+
+
+# ── 게시판 생성 · 설정 (T-140-A, 기획서 4장 · 5.1 · 5.4) ─────────────────────
+
+
+async def get_limits(db: AsyncSession, tenant_id: UUID) -> dict:
+    """기본 게시판과 휴지통은 세지 않는다. 모르는 요금제는 추가 불가."""
+    plan = (
+        await db.execute(select(Tenant.plan_type).where(Tenant.id == tenant_id))
+    ).scalar_one_or_none() or ""
+    limit = BOARD_LIMITS.get(plan.upper(), 0)
+    used = (
+        await db.execute(
+            select(func.count())
+            .select_from(Board)
+            .where(
+                Board.tenant_id == tenant_id,
+                Board.deleted_at.is_(None),
+                Board.system_key.is_(None),
+            )
+        )
+    ).scalar_one()
+    can_create = limit is None or used < limit
+    reason = None
+    if not can_create:
+        reason = (
+            MSG_BOARD_PLAN_BLOCKED
+            if limit == 0
+            else f"현재 요금제는 게시판을 {limit}개까지 추가할 수 있습니다."
+        )
+    return {
+        "plan": plan,
+        "limit": limit,
+        "used": used,
+        "can_create": can_create,
+        "reason": reason,
+    }
+
+
+async def _ensure_can_create(db: AsyncSession, tenant_id: UUID) -> None:
+    """만들 때만 검사 — 요금제를 내려도 있던 게시판 · 글은 그대로 쓴다."""
+    limits = await get_limits(db, tenant_id)
+    if not limits["can_create"]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "PLAN_LIMIT_EXCEEDED", "message": limits["reason"]},
+        )
+
+
+async def _slug_taken(
+    db: AsyncSession, tenant_id: UUID, slug: str, *, exclude: UUID | None = None
+) -> bool:
+    conditions = [
+        Board.tenant_id == tenant_id,
+        Board.slug == slug,
+        Board.deleted_at.is_(None),
+    ]
+    if exclude is not None:
+        conditions.append(Board.id != exclude)
+    found = await db.execute(select(Board.id).where(*conditions).limit(1))
+    return found.first() is not None
+
+
+async def _used_slugs(db: AsyncSession, tenant_id: UUID) -> set[str]:
+    """휴지통 슬러그도 포함 — 나중에 복원할 때 주소가 바뀌지 않게."""
+    rows = await db.execute(select(Board.slug).where(Board.tenant_id == tenant_id))
+    return set(rows.scalars().all())
+
+
+async def _next_auto_slug(db: AsyncSession, tenant_id: UUID) -> str:
+    used = await _used_slugs(db, tenant_id)
+    number = 1
+    while f"{AUTO_SLUG_PREFIX}-{number}" in used:
+        number += 1
+    return f"{AUTO_SLUG_PREFIX}-{number}"
+
+
+def _check_slug(slug: str) -> None:
+    if slug in RESERVED_BOARD_SLUGS:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_RESERVED
+        )
+
+
+async def _commit_board(db: AsyncSession) -> None:
+    """같은 슬러그가 동시에 들어오면 인덱스가 막는다."""
+    try:
+        await db.commit()
+    except IntegrityError as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
+        ) from e
+
+
+async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> Board:
+    await _ensure_can_create(db, tenant_id)
+    if data.slug:
+        _check_slug(data.slug)
+        if await _slug_taken(db, tenant_id, data.slug):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
+            )
+    board = Board(
+        tenant_id=tenant_id,
+        name=data.name,
+        slug=data.slug or await _next_auto_slug(db, tenant_id),
+        board_type=data.board_type,
+        status=data.status,
+        settings={DESCRIPTION_KEY: data.description},
+    )
+    db.add(board)
+    await _commit_board(db)
+    await db.refresh(board)
+    await site_cache.purge_site(db, tenant_id)
+    return board
+
+
+async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
+    is_system = board.system_key is not None
+    if is_system and data.slug is not None and data.slug != board.slug:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_SLUG_LOCKED
+        )
+    if (
+        is_system
+        and data.board_type is not None
+        and data.board_type != board.board_type
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_TYPE_LOCKED
+        )
+    if data.slug is not None and data.slug != board.slug:
+        _check_slug(data.slug)
+        if await _slug_taken(db, board.tenant_id, data.slug, exclude=board.id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
+            )
+        board.slug = data.slug
+    if data.name is not None:
+        board.name = data.name
+    if data.board_type is not None:
+        board.board_type = data.board_type
+    if data.description is not None:
+        board.settings = {**(board.settings or {}), DESCRIPTION_KEY: data.description}
+    if data.status is not None:
+        board.status = data.status
+        # 비활성이면 공개 글을 읽지 못해 화면이 샘플로 돌아가므로 함께 비운다
+        if data.status == "INACTIVE" and board.system_key == NOTICE_KEY:
+            await _clear_samples(db, board.tenant_id)
+    await _commit_board(db)
+    await db.refresh(board)
+    await site_cache.purge_site(db, board.tenant_id)
+    return board
+
+
+async def duplicate_board(db: AsyncSession, board: Board) -> Board:
+    """설정만 복제하고 글은 복제하지 않는다 (D-02). 복제본은 기본 게시판이 아니다."""
+    await _ensure_can_create(db, board.tenant_id)
+    copy = Board(
+        tenant_id=board.tenant_id,
+        name=f"{board.name} 복사본"[:100],
+        slug=await _next_auto_slug(db, board.tenant_id),
+        board_type=board.board_type,
+        status=board.status,
+        settings=dict(board.settings or {}),
+    )
+    db.add(copy)
+    await _commit_board(db)
+    await db.refresh(copy)
+    await site_cache.purge_site(db, board.tenant_id)
+    return copy
+
+
+async def delete_board(db: AsyncSession, board: Board) -> None:
+    if board.system_key is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_DELETE_LOCKED
+        )
+    board.deleted_at = datetime.now(UTC)
+    await db.commit()
+    await site_cache.purge_site(db, board.tenant_id)
+
+
+async def restore_board(db: AsyncSession, board: Board) -> tuple[Board, bool]:
+    """슬러그가 그사이 쓰였으면 번호를 붙여 복원한다 — 고객이 막히지 않게."""
+    await _ensure_can_create(db, board.tenant_id)
+    slug = board.slug
+    number = 2
+    while await _slug_taken(db, board.tenant_id, slug, exclude=board.id):
+        suffix = f"-{number}"
+        slug = f"{board.slug[: SLUG_MAX_LENGTH - len(suffix)]}{suffix}"
+        number += 1
+    changed = slug != board.slug
+    board.slug = slug
+    board.deleted_at = None
+    await _commit_board(db)
+    await db.refresh(board)
+    await site_cache.purge_site(db, board.tenant_id)
+    return board, changed
+
+
+# ── 게시글 ────────────────────────────────────────────────────────────────
 
 
 async def list_posts(
@@ -231,7 +499,10 @@ async def get_post(
 async def _after_write(db: AsyncSession, post: BoardPost) -> None:
     if post.status == STATUS_PUBLISHED and post.deleted_at is None:
         post.published_at = post.published_at or datetime.now(UTC)
-        await _clear_samples(db, post.tenant_id)
+        # 샘플은 공지 것뿐 — 다른 게시판 글로 공지 샘플이 사라지면 안 된다
+        board = await db.get(Board, post.board_id)
+        if board is not None and board.system_key == NOTICE_KEY:
+            await _clear_samples(db, post.tenant_id)
     await db.commit()
     await db.refresh(post)
     await site_cache.purge_site(db, post.tenant_id)

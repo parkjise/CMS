@@ -16,7 +16,11 @@ from app.core.deps import (
 from app.models.board import Board, BoardPost
 from app.models.user import User
 from app.schemas.board import (
+    BoardCreate,
+    BoardLimitsResponse,
     BoardResponse,
+    BoardRestoreResponse,
+    BoardUpdate,
     PostCreate,
     PostListItem,
     PostListResponse,
@@ -69,10 +73,33 @@ async def _post_or_404(
 
 @router.get("", response_model=ApiResponse[list[BoardResponse]])
 async def list_boards(
+    trash: bool = False,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    return ApiResponse.ok(await board_service.list_boards(db, tenant_id))
+    return ApiResponse.ok(await board_service.list_boards(db, tenant_id, trash=trash))
+
+
+@router.post(
+    "",
+    response_model=ApiResponse[BoardResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_board(
+    data: BoardCreate,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    board = await board_service.create_board(db, tenant_id, data)
+    return ApiResponse.ok(await board_service.board_response(db, board))
+
+
+@router.get("/limits", response_model=ApiResponse[BoardLimitsResponse])
+async def get_limits(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    return ApiResponse.ok(await board_service.get_limits(db, tenant_id))
 
 
 @router.post("/clear-samples", response_model=ApiResponse[dict])
@@ -82,6 +109,64 @@ async def clear_samples(
 ):
     await board_service.clear_samples(db, tenant_id)
     return ApiResponse.ok({"cleared": True})
+
+
+@router.get("/{board_id}", response_model=ApiResponse[BoardResponse])
+async def get_board(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    return ApiResponse.ok(await board_service.board_response(db, board))
+
+
+@router.patch("/{board_id}", response_model=ApiResponse[BoardResponse])
+async def update_board(
+    data: BoardUpdate,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    updated = await board_service.update_board(db, board, data)
+    return ApiResponse.ok(await board_service.board_response(db, updated))
+
+
+@router.post(
+    "/{board_id}/duplicate",
+    response_model=ApiResponse[BoardResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def duplicate_board(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    copy = await board_service.duplicate_board(db, board)
+    return ApiResponse.ok(await board_service.board_response(db, copy))
+
+
+@router.delete("/{board_id}", response_model=ApiResponse[dict])
+async def delete_board(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    await board_service.delete_board(db, board)
+    return ApiResponse.ok({"deleted": True})
+
+
+@router.post("/{board_id}/restore", response_model=ApiResponse[BoardRestoreResponse])
+async def restore_board(
+    board_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    board = await board_service.get_trashed_board(db, tenant_id, board_id)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    restored, changed = await board_service.restore_board(db, board)
+    return ApiResponse.ok(
+        BoardRestoreResponse(
+            board=BoardResponse(**await board_service.board_response(db, restored)),
+            slug_changed=changed,
+        )
+    )
 
 
 @router.get("/{board_id}/posts", response_model=ApiResponse[PostListResponse])

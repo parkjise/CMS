@@ -15,6 +15,19 @@ MSG_INVALID_IMAGE_URL = "사진 주소가 올바르지 않습니다."
 # http(s) 또는 사이트 안 경로만 — javascript: · data: · //다른사이트 차단
 _SAFE_IMAGE_URL = re.compile(r"^(https?://|/(?!/))", re.IGNORECASE)
 
+SLUG_MAX_LENGTH = 60
+BoardType = Literal["LIST", "GALLERY", "FAQ"]
+BoardStatus = Literal["ACTIVE", "INACTIVE"]
+BoardName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
+]
+# 영문 소문자 · 숫자 · 하이픈 — 홈페이지 주소에 들어간다
+BoardSlug = Annotated[
+    str,
+    StringConstraints(
+        min_length=2, max_length=SLUG_MAX_LENGTH, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$"
+    ),
+]
 PostTitle = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
 ]
@@ -55,16 +68,50 @@ BodyBlock = Annotated[
 PostBody = Annotated[list[BodyBlock], Field(max_length=MAX_BLOCKS)]
 
 
+class BoardCreate(BaseModel):
+    name: BoardName
+    # 비우면 서버가 board-1 처럼 만든다 — 한글 이름은 주소로 쓰기 어렵다
+    slug: BoardSlug | None = None
+    description: str = Field(default="", max_length=200)
+    board_type: BoardType = "LIST"
+    status: BoardStatus = "ACTIVE"
+
+
+class BoardUpdate(BaseModel):
+    name: BoardName | None = None
+    slug: BoardSlug | None = None
+    description: str | None = Field(default=None, max_length=200)
+    board_type: BoardType | None = None
+    status: BoardStatus | None = None
+
+
 class BoardResponse(BaseModel):
     id: UUID
     name: str
     slug: str
+    description: str
     board_type: str
     status: str
     system_key: str | None
     post_count: int
     # 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지
     has_samples: bool
+    deleted_at: datetime | None
+
+
+class BoardRestoreResponse(BaseModel):
+    board: BoardResponse
+    # 원래 주소를 다른 게시판이 쓰고 있어 번호를 붙였는지
+    slug_changed: bool
+
+
+class BoardLimitsResponse(BaseModel):
+    plan: str
+    # None 은 제한 없음
+    limit: int | None
+    used: int
+    can_create: bool
+    reason: str | None
 
 
 class PostCreate(BaseModel):

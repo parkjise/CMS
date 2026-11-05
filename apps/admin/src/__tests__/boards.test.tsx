@@ -28,11 +28,13 @@ const board: Board = {
   id: 'b1',
   name: '공지사항',
   slug: 'notice',
+  description: '',
   board_type: 'LIST',
   status: 'ACTIVE',
   system_key: 'notice',
   post_count: 2,
   has_samples: false,
+  deleted_at: null,
 }
 
 const item = {
@@ -60,6 +62,9 @@ const ok = (data: unknown) => Promise.resolve({ data: { data } })
 const mockApi = ({ boards = [board], posts = list(), detail }: { boards?: Board[]; posts?: PostList; detail?: Post }) => {
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok(boards)
+    if (url === '/v1/boards/limits') {
+      return ok({ plan: 'BASIC', limit: 0, used: 0, can_create: false, reason: '한도' })
+    }
     if (url.endsWith('/posts')) return ok(posts)
     return ok(detail)
   })
@@ -130,7 +135,7 @@ describe('게시판 목록', () => {
   it('글 수를 보여 주고 글 관리로 연결한다', async () => {
     mockApi({})
     renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
-    const link = await screen.findByRole('link', { name: /공지사항/ })
+    const link = await screen.findByRole('link', { name: /공지사항.*글 2개/ })
     expect(link).toHaveAttribute('href', '/admin/boards/b1/posts')
     expect(link).toHaveTextContent('글 2개')
   })
@@ -138,7 +143,7 @@ describe('게시판 목록', () => {
   it('게시판이 없는 템플릿은 안내한다', async () => {
     mockApi({ boards: [] })
     renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
-    expect(await screen.findByText('지금 쓰는 템플릿에는 아직 게시판이 없습니다.')).toBeInTheDocument()
+    expect(await screen.findByText('아직 게시판이 없습니다.')).toBeInTheDocument()
   })
 
   it('불러오기 실패를 알린다', async () => {
