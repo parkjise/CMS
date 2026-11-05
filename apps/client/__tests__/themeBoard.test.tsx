@@ -111,6 +111,71 @@ describe('테마형 게시판 목록 (T-141)', () => {
     expect(container.querySelector('[data-empty-thumb]')).toBeInTheDocument()
   })
 
+  describe('게시판 디자인 (T-148)', () => {
+    const design = {
+      columns: 4,
+      image_ratio: '1:1',
+      show_date: false,
+      show_image: false,
+      show_summary: false,
+      faq_single_open: true,
+      faq_first_open: true,
+    } as const
+    const card = {
+      ...post,
+      thumbnail: 'http://x/a.webp',
+      summary: '요약 글자',
+      card_fields: [{ key: 'd', label: '부서', field_type: 'TEXT', value: '개발팀' }],
+    }
+
+    it('카드형: 12개씩, 사진 · 요약 · 칸 값 · 날짜', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([boardOf('CARD')]))
+      fetchPublicPosts.mockResolvedValue(listOf([card]))
+      const { container } = await renderPage(['news'])
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 12, q: undefined })
+      expect(container.querySelector('ul.md\\:grid-cols-3')).not.toBeNull()
+      expect(container.querySelector('img')).toHaveClass('aspect-[4/3]')
+      expect(screen.getByText('요약 글자')).toBeInTheDocument()
+      expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
+      expect(container.querySelector('main time, section time')).not.toBeNull()
+    })
+
+    it('카드형: 끈 항목은 나오지 않는다', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('CARD'), design }]))
+      fetchPublicPosts.mockResolvedValue(listOf([card]))
+      const { container } = await renderPage(['news'])
+      expect(container.querySelector('ul.md\\:grid-cols-4')).not.toBeNull()
+      expect(container.querySelector('section img')).toBeNull()
+      expect(screen.queryByText('요약 글자')).toBeNull()
+      expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
+    })
+
+    it('갤러리형: 줄 개수 · 비율 · 날짜', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('GALLERY'), design }]))
+      fetchPublicPosts.mockResolvedValue(listOf([{ ...post, thumbnail: 'http://x/a.webp' }]))
+      const { container } = await renderPage(['news'])
+      expect(container.querySelector('ul.md\\:grid-cols-4')).not.toBeNull()
+      expect(container.querySelector('section img')).toHaveClass('aspect-square')
+      expect(container.querySelector('section ul time')).toBeNull()
+    })
+
+    it('FAQ형: 하나만 펼치기 · 첫 질문 펼침', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('FAQ'), design }]))
+      fetchPublicPosts.mockResolvedValue(listOf([{ ...post, body: [] }]))
+      const { container } = await renderPage(['news'])
+      const item = container.querySelector('details') as HTMLDetailsElement
+      expect(item).toHaveAttribute('name', 'faq-news')
+      expect(item.open).toBe(true)
+    })
+
+    it('목록형: 날짜를 끌 수 있다', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('LIST'), design }]))
+      fetchPublicPosts.mockResolvedValue(listOf([post]))
+      const { container } = await renderPage(['news'])
+      expect(container.querySelector('section ul time')).toBeNull()
+    })
+  })
+
   it('FAQ형: 20개씩, 질문 펼침 · 스크립트 글자는 글자로', async () => {
     fetchPublicSite.mockResolvedValue(siteWith([boardOf('FAQ')]))
     fetchPublicPosts.mockResolvedValue(

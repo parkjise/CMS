@@ -1,7 +1,7 @@
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
-import { loadBoardPage } from '@/lib/boardRoute'
-import { postDate } from '@/lib/publicPosts'
+import { boardDesign, loadBoardPage } from '@/lib/boardRoute'
+import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeWriteLink } from './ThemeWriteLink'
@@ -121,6 +121,10 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
   )
 }
 
+// 게시판 디자인 (T-148) — Tailwind 가 찾을 수 있게 전체 클래스로 적는다
+const COLUMN_CLASS = { 2: 'md:grid-cols-2', 3: 'md:grid-cols-3', 4: 'md:grid-cols-4' }
+const RATIO_CLASS = { '1:1': 'aspect-square', '4:3': 'aspect-[4/3]', '16:9': 'aspect-video' }
+
 interface ListProps {
   board: PublicBoard
   tenantSlug: string
@@ -135,6 +139,8 @@ interface ListProps {
 export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, searchAction }: ListProps) {
   const list = await loadBoardPage(tenantSlug, board, { page, q })
   const { posts, keyword } = list
+  const design = boardDesign(board)
+  const ratio = RATIO_CLASS[design.image_ratio]
   return (
     <section className="mx-auto max-w-5xl px-6 py-12 md:py-16">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -171,29 +177,68 @@ export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, sear
           {keyword ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
         </p>
       ) : board.board_type === 'GALLERY' ? (
-        <ul className="mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-6">
+        <ul className={`mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-6 ${COLUMN_CLASS[design.columns]}`}>
           {posts.map((post) => (
             <li key={post.id}>
               <a href={hrefFor({ id: post.id })} className="group block">
                 {post.thumbnail ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
-                  <img src={post.thumbnail} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-lg object-cover" />
+                  <img src={post.thumbnail} alt="" loading="lazy" className={`${ratio} w-full rounded-lg object-cover`} />
                 ) : (
                   // 사진 없는 글 (D-03)
-                  <span data-empty-thumb className="block aspect-[4/3] w-full rounded-lg bg-[var(--color-surface)]" aria-hidden />
+                  <span data-empty-thumb className={`block ${ratio} w-full rounded-lg bg-[var(--color-surface)]`} aria-hidden />
                 )}
                 <span className={`mt-3 block font-semibold group-hover:underline ${primary}`}>{post.title}</span>
-                <time className={`mt-1 block text-sm ${muted}`} dateTime={postDate(post.published_at)}>
-                  {dotted(post.published_at)}
-                </time>
+                {design.show_date && (
+                  <time className={`mt-1 block text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                    {dotted(post.published_at)}
+                  </time>
+                )}
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : board.board_type === 'CARD' ? (
+        <ul className={`mt-6 grid grid-cols-1 gap-5 md:gap-7 ${COLUMN_CLASS[design.columns]}`}>
+          {posts.map((post) => (
+            <li key={post.id} className="min-w-0">
+              <a href={hrefFor({ id: post.id })} className={`group flex h-full flex-col overflow-hidden rounded-xl border ${line}`}>
+                {design.show_image && post.thumbnail && (
+                  // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
+                  <img src={post.thumbnail} alt="" loading="lazy" className={`${ratio} w-full object-cover`} />
+                )}
+                <span className="flex flex-1 flex-col gap-2 p-5">
+                  {post.is_pinned && (
+                    <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">공지</span>
+                  )}
+                  <span className={`font-semibold group-hover:underline ${primary}`}>{post.title}</span>
+                  {design.show_summary && post.summary && (
+                    <span className={`line-clamp-3 text-sm ${muted}`}>{post.summary}</span>
+                  )}
+                  {post.card_fields?.map((field) => (
+                    <span key={field.key} className={`break-words text-sm ${muted}`}>
+                      {field.label}: {field.field_type === 'IMAGE' ? '사진' : fieldValueText(field)}
+                    </span>
+                  ))}
+                  {design.show_date && (
+                    <time className={`mt-auto pt-1 text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                      {dotted(post.published_at)}
+                    </time>
+                  )}
+                </span>
               </a>
             </li>
           ))}
         </ul>
       ) : board.board_type === 'FAQ' ? (
         <div className={`mt-6 border-t ${line}`}>
-          {posts.map((post) => (
-            <details key={post.id} className={`group border-b ${line}`}>
+          {posts.map((post, index) => (
+            <details
+              key={post.id}
+              className={`group border-b ${line}`}
+              name={design.faq_single_open ? `faq-${board.slug}` : undefined}
+              open={design.faq_first_open && index === 0}
+            >
               <summary className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}>
                 {post.title}
                 <ChevronDown className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`} aria-hidden />
@@ -218,9 +263,11 @@ export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, sear
                   )}
                   {post.title}
                 </span>
-                <time className={`text-sm ${muted}`} dateTime={postDate(post.published_at)}>
-                  {dotted(post.published_at)}
-                </time>
+                {design.show_date && (
+                  <time className={`text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                    {dotted(post.published_at)}
+                  </time>
+                )}
               </a>
             </li>
           ))}

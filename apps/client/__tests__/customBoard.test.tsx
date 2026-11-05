@@ -196,6 +196,73 @@ describe('상세', () => {
     expect(list.getByText('javascript:alert(1)')).toBeInTheDocument()
   })
 
+  describe('게시판 디자인 (T-148)', () => {
+    const design = {
+      columns: 4,
+      image_ratio: '16:9',
+      show_date: false,
+      show_image: false,
+      show_summary: false,
+      faq_single_open: true,
+      faq_first_open: true,
+    } as const
+    const post = {
+      id: 'p1',
+      title: '채용',
+      is_pinned: false,
+      published_at: '2026-11-01T00:00:00Z',
+      thumbnail: 'http://x/a.webp',
+      summary: '요약 글자',
+      card_fields: [{ key: 'd', label: '부서', field_type: 'TEXT', value: '개발팀' }],
+      body: [],
+    }
+    const listOf = () =>
+      vi.mocked(fetchPublicPosts).mockResolvedValue({ total: 1, page: 1, size: 12, has_posts: true, items: [post] } as never)
+
+    it('카드형 — 사진 · 요약 · 칸 값 · 날짜', async () => {
+      listOf()
+      const { container } = render(await CustomBoard(props('CARD')))
+      expect(container.querySelector('.board-card--cols-3.board-card--ratio-4-3')).not.toBeNull()
+      expect(container.querySelector('img.board-card__image')).toHaveAttribute('src', 'http://x/a.webp')
+      expect(screen.getByText('요약 글자')).toBeInTheDocument()
+      expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
+      expect(container.querySelector('time')).not.toBeNull()
+      // 카드 전체가 링크라 칸 값에 링크를 또 넣지 않는다
+      expect(container.querySelectorAll('.board-card__link a')).toHaveLength(0)
+    })
+
+    it('카드형 — 끈 항목은 나오지 않는다', async () => {
+      listOf()
+      const { container } = render(await CustomBoard(props('CARD', { board: { ...boardOf('CARD'), design } })))
+      expect(container.querySelector('.board-card--cols-4.board-card--ratio-16-9')).not.toBeNull()
+      expect(container.querySelector('img')).toBeNull()
+      expect(screen.queryByText('요약 글자')).toBeNull()
+      expect(container.querySelector('time')).toBeNull()
+      expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
+    })
+
+    it('갤러리형 — 줄 개수 · 비율 · 날짜', async () => {
+      listOf()
+      const { container } = render(await CustomBoard(props('GALLERY', { board: { ...boardOf('GALLERY'), design } })))
+      expect(container.querySelector('.board-gallery--cols-4.board-gallery--ratio-16-9')).not.toBeNull()
+      expect(container.querySelector('time')).toBeNull()
+    })
+
+    it('FAQ형 — 하나만 펼치기 · 첫 질문 펼침', async () => {
+      listOf()
+      const { container } = render(await CustomBoard(props('FAQ', { board: { ...boardOf('FAQ'), design } })))
+      const item = container.querySelector('details') as HTMLDetailsElement
+      expect(item).toHaveAttribute('name', 'faq-news')
+      expect(item.open).toBe(true)
+    })
+
+    it('목록형 — 날짜를 끌 수 있다', async () => {
+      listOf()
+      const { container } = render(await CustomBoard(props('LIST', { board: { ...boardOf('LIST'), design } })))
+      expect(container.querySelector('.board-list__date')).toBeNull()
+    })
+  })
+
   it('칸이 없으면 목록을 그리지 않는다', async () => {
     fetchPublicPost.mockResolvedValue(detail)
     const { container } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
