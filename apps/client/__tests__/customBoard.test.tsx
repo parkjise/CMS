@@ -176,6 +176,26 @@ describe('상세', () => {
     expect(list.querySelector('script')).toBeNull()
   })
 
+  it('연락처 · 이메일 · 링크는 누를 수 있고, http 가 아닌 주소는 링크로 만들지 않는다 (T-147)', async () => {
+    fetchPublicPost.mockResolvedValue({
+      ...detail,
+      fields: [
+        { key: 'p', label: '연락처', field_type: 'PHONE', value: '010-1234 5678' },
+        { key: 'e', label: '메일', field_type: 'EMAIL', value: 'a@example.com' },
+        { key: 'u', label: '주소', field_type: 'URL', value: 'https://example.com' },
+        { key: 'x', label: '위험', field_type: 'URL', value: 'javascript:alert(1)' },
+      ],
+    })
+    const { container } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
+    const list = within(container.querySelector('dl.board-view__fields') as HTMLElement)
+    expect(list.getByRole('link', { name: '010-1234 5678' })).toHaveAttribute('href', 'tel:01012345678')
+    expect(list.getByRole('link', { name: 'a@example.com' })).toHaveAttribute('href', 'mailto:a@example.com')
+    const site = list.getByRole('link', { name: 'https://example.com' })
+    expect(site).toHaveAttribute('rel', 'noopener noreferrer nofollow')
+    expect(list.queryByRole('link', { name: /javascript/ })).toBeNull()
+    expect(list.getByText('javascript:alert(1)')).toBeInTheDocument()
+  })
+
   it('칸이 없으면 목록을 그리지 않는다', async () => {
     fetchPublicPost.mockResolvedValue(detail)
     const { container } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
