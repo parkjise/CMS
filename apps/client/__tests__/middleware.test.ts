@@ -215,6 +215,49 @@ describe('middleware — 고객 도메인 (T-137)', () => {
     )
   })
 
+  describe('게시판 주소 (AC-19, T-144)', () => {
+    it('코드형 — 목록 · 글 상세 · 공지가 템플릿 라우트로', async () => {
+      mockSite('clinic', 'TPL_HOSPITAL_A')
+      expect(rewriteOf(await runHost('/b/news?p=2'))).toBe(
+        'http://localhost:3000/tpl-hospital-a/clinic/b/news?p=2',
+      )
+      expect(rewriteOf(await runHost('/b/news/post-1'))).toBe(
+        'http://localhost:3000/tpl-hospital-a/clinic/b/news/post-1',
+      )
+      expect(rewriteOf(await runHost('/notice/post-1'))).toBe(
+        'http://localhost:3000/tpl-hospital-a/clinic/notice/post-1',
+      )
+    })
+
+    it('테마형 — 있는 게시판은 slug 를 붙여 내부 전환', async () => {
+      mockSite('clinic')
+      expect(rewriteOf(await runHost('/b/news'))).toBe('http://localhost:3000/clinic/b/news')
+      expect(rewriteOf(await runHost('/b/news/post-1'))).toBe(
+        'http://localhost:3000/clinic/b/news/post-1',
+      )
+    })
+
+    it('테마형 — 없는 게시판은 공통 404 로', async () => {
+      fetchMock.mockImplementation((url: string) =>
+        Promise.resolve(
+          url.includes('/public/domain/')
+            ? domainResponse('clinic')
+            : url.includes('/boards/')
+              ? new Response('{}', { status: 404 })
+              : templateResponse(null),
+        ),
+      )
+      expect(rewriteOf(await runHost('/b/nope'))).toBe('http://localhost:3000/clinic/b')
+    })
+
+    it('slug 가 붙은 게시판 링크는 301 로 정식 주소에', async () => {
+      mockSite('clinic')
+      const res = await runHost('/clinic/b/news/post-1', 'www.oo.com', { 'x-forwarded-proto': 'https' })
+      expect(res.status).toBe(301)
+      expect(res.headers.get('location')).toBe('https://www.oo.com/b/news/post-1')
+    })
+  })
+
   it('확인한 도메인을 헤더로 넘기고, 방문자가 보낸 값은 버린다', async () => {
     mockSite('clinic')
     const res = await runHost('/about', 'WWW.OO.com:443', { 'x-site-custom-host': 'evil.com' })

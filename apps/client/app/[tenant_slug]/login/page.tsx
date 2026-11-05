@@ -4,7 +4,7 @@ import { use, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { LoginForm } from '@/components/auth/LoginForm'
-import { useClientAuthStore } from '@/lib/authStore'
+import { isOtherTenant, useClientAuthStore } from '@/lib/authStore'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
@@ -14,10 +14,12 @@ export default function TenantLoginPage({ params }: Props) {
   const { tenant_slug } = use(params)
   const router = useRouter()
   const isLoggedIn = useClientAuthStore((s) => s.isLoggedIn)
+  // 다른 사업체 계정이면 이 사업체 계정으로 다시 로그인할 수 있게 화면에 둔다 (T-144)
+  const otherTenant = useClientAuthStore(isOtherTenant)
 
   useEffect(() => {
-    if (isLoggedIn) router.replace(`/${tenant_slug}`)
-  }, [isLoggedIn, tenant_slug, router])
+    if (isLoggedIn && !otherTenant) router.replace(`/${tenant_slug}`)
+  }, [isLoggedIn, otherTenant, tenant_slug, router])
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[var(--color-surface)] px-4">

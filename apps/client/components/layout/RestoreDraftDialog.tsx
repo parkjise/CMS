@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useClientAuthStore } from '@/lib/authStore'
+import { canEditSite, useClientAuthStore } from '@/lib/authStore'
 import { useEditStore } from '@/lib/editStore'
 
 /**
@@ -35,6 +35,8 @@ export function RestoreDraftDialog() {
       discardAll()
       return
     }
+    // 다른 사업체 홈페이지에서는 묻지 않는다 — 자기 사이트의 초안이라 지우지도 않는다 (T-144)
+    if (!canEditSite(useClientAuthStore.getState())) return
     setOpen(true)
   }, [isInitialized, isLoggedIn, discardAll])
 
