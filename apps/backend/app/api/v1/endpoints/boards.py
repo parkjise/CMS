@@ -14,7 +14,7 @@ from app.core.deps import (
     get_tenant_id,
     require_feature,
 )
-from app.models.board import Board, BoardPost
+from app.models.board import Board, BoardField, BoardPost
 from app.models.user import User
 from app.schemas.board import (
     BoardCreate,
@@ -22,6 +22,11 @@ from app.schemas.board import (
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
+    FieldCreate,
+    FieldOption,
+    FieldOrderRequest,
+    FieldResponse,
+    FieldUpdate,
     PostBulkRequest,
     PostBulkResponse,
     PostCreate,
@@ -39,10 +44,12 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
+from app.services import board_field as field_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
 MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
+MSG_FIELD_NOT_FOUND = "칸을 찾을 수 없습니다."
 
 router = APIRouter(
     prefix="/boards",
@@ -238,6 +245,161 @@ async def restore_board(
         slug_changed=changed,
     )
     await _audit_board(db, current_user, "BOARD_RESTORED", restored)
+    return ApiResponse.ok(response)
+
+
+# ── 필드 (T-142-A) ───────────────────────────────────────────────────────
+
+
+def _field_response(field: BoardField) -> FieldResponse:
+    options = field.field_options or {}
+    return FieldResponse(
+        id=field.id,
+        board_id=field.board_id,
+        field_key=field.field_key,
+        label=field.label,
+        field_type=field.field_type,
+        is_required=field.is_required,
+        is_visible=field.is_visible,
+        help_text=field.help_text,
+        placeholder=field.placeholder,
+        default_value=field.default_value,
+        options=[FieldOption(**choice) for choice in options.get("choices", [])],
+        min=options.get("min"),
+        max=options.get("max"),
+        display_order=field.display_order,
+        deleted_at=field.deleted_at,
+    )
+
+
+async def _audit_field(
+    db: AsyncSession,
+    user: User,
+    action: str,
+    field: BoardField,
+    before: dict | None = None,
+) -> None:
+    await log_action(
+        db,
+        user,
+        action,
+        "board_field",
+        field.id,
+        before=before,
+        after=_field_audit(field),
+        tenant_id=field.tenant_id,
+    )
+
+
+def _field_audit(field: BoardField) -> dict:
+    """감사 로그 값 — 칸 설정만, 글의 값은 넣지 않는다."""
+    return {
+        "board_id": str(field.board_id),
+        "field_key": field.field_key,
+        "label": field.label,
+        "field_type": field.field_type,
+        "is_required": field.is_required,
+        "is_visible": field.is_visible,
+    }
+
+
+async def _field_or_404(
+    field_id: UUID,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+) -> BoardField:
+    field = await field_service.get_field(db, board.id, field_id)
+    if field is None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    return field
+
+
+@router.get("/{board_id}/fields", response_model=ApiResponse[list[FieldResponse]])
+async def list_fields(
+    trash: bool = False,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    fields = await field_service.list_fields(db, board.id, deleted=trash)
+    return ApiResponse.ok([_field_response(f) for f in fields])
+
+
+@router.post(
+    "/{board_id}/fields",
+    response_model=ApiResponse[FieldResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_field(
+    data: FieldCreate,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    field = await field_service.create_field(db, board, data)
+    response = _field_response(field)
+    await _audit_field(db, current_user, "BOARD_FIELD_CREATED", field)
+    return ApiResponse.ok(response)
+
+
+@router.patch(
+    "/{board_id}/fields/order", response_model=ApiResponse[list[FieldResponse]]
+)
+async def reorder_fields(
+    data: FieldOrderRequest,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    fields = await field_service.reorder_fields(db, board, data.field_ids)
+    return ApiResponse.ok([_field_response(f) for f in fields])
+
+
+@router.patch(
+    "/{board_id}/fields/{field_id}", response_model=ApiResponse[FieldResponse]
+)
+async def update_field(
+    data: FieldUpdate,
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    if field.deleted_at is not None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    before = _field_audit(field)
+    updated = await field_service.update_field(db, board, field, data)
+    response = _field_response(updated)
+    await _audit_field(db, current_user, "BOARD_FIELD_UPDATED", updated, before=before)
+    return ApiResponse.ok(response)
+
+
+@router.delete("/{board_id}/fields/{field_id}", response_model=ApiResponse[dict])
+async def delete_field(
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    if field.deleted_at is not None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    await field_service.delete_field(db, board, field)
+    await _audit_field(db, current_user, "BOARD_FIELD_DELETED", field)
+    return ApiResponse.ok({"deleted": True})
+
+
+@router.post(
+    "/{board_id}/fields/{field_id}/restore", response_model=ApiResponse[FieldResponse]
+)
+async def restore_field(
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    if field.deleted_at is None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    restored = await field_service.restore_field(db, board, field)
+    response = _field_response(restored)
+    await _audit_field(db, current_user, "BOARD_FIELD_RESTORED", restored)
     return ApiResponse.ok(response)
 
 

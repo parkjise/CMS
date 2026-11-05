@@ -48,6 +48,8 @@ export interface PostListItem {
 
 export interface Post extends PostListItem {
   body: BodyBlock[]
+  /** 필드 값 {field_key: 값} (T-142-A) */
+  custom_data: Record<string, unknown>
 }
 
 /** 전체 글 목록 한 줄 (BM-05, T-140-C) */
