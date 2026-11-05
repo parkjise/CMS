@@ -16,13 +16,16 @@ export function BoardsPage() {
   const limits = limitsQuery.data
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  // 홈페이지 공지 페이지의 [글쓰기] → ?write=notice
+  // 홈페이지의 [글쓰기] → ?write=notice, 글 상세의 [수정] → ?write=notice&post={글 id}
   const writeKey = searchParams.get('write')
+  const postKey = searchParams.get('post')
 
   useEffect(() => {
     const target = boards?.find((b) => b.slug === writeKey)
-    if (target) navigate(`/admin/boards/${target.id}/posts/new`, { replace: true })
-  }, [boards, writeKey, navigate])
+    if (!target) return
+    const screen = postKey ? `${encodeURIComponent(postKey)}/edit` : 'new'
+    navigate(`/admin/boards/${target.id}/posts/${screen}`, { replace: true })
+  }, [boards, writeKey, postKey, navigate])
 
   return (
     <div className="space-y-5 p-6 md:p-8">

@@ -1,7 +1,7 @@
 import type { BodyBlock, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
 import { loadBoardPage } from '@/lib/boardRoute'
-import { postDate } from '@/lib/publicPosts'
+import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { RichLine } from '@/templates/shared/RichLine'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
@@ -93,7 +93,27 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
       <time className={`mt-2 block text-sm ${muted}`} dateTime={postDate(post.published_at)}>
         {dotted(post.published_at)}
       </time>
+      <div className="mt-3 flex justify-end empty:hidden">
+        <ThemeWriteLink board={board.slug} post={post.id} />
+      </div>
       <div className={`mt-6 border-t pt-6 ${line}`}>
+        {post.fields && post.fields.length > 0 && (
+          <dl className={`mb-6 divide-y border-b ${line} divide-[color:var(--color-border)]`}>
+            {post.fields.map((field) => (
+              <div key={field.key} className="grid grid-cols-[6rem_1fr] gap-3 py-2.5 md:grid-cols-[10rem_1fr]">
+                <dt className={`text-sm font-medium ${muted}`}>{field.label}</dt>
+                <dd className={`min-w-0 whitespace-pre-line break-words text-sm ${primary}`}>
+                  {field.field_type === 'IMAGE' ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 칸 사진
+                    <img src={String(field.value)} alt={field.label} loading="lazy" className="h-auto max-w-full rounded-lg" />
+                  ) : (
+                    fieldValueText(field)
+                  )}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        )}
         <Body blocks={post.body} />
       </div>
       <nav className={`mt-10 flex items-center justify-between border-t pt-6 ${line}`} aria-label="게시글 이동">

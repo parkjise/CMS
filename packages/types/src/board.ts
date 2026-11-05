@@ -147,8 +147,17 @@ export interface PublicSitemapPost {
   updated_at: string
 }
 
+/** 글 상세에 보여 줄 칸 — 선택지는 이름으로, 숨긴 칸 · 빈 칸은 없음 (T-142-B-2) */
+export interface PublicFieldValue {
+  key: string
+  label: string
+  field_type: FieldType
+  value: string | number | boolean | string[]
+}
+
 export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   body: BodyBlock[]
+  fields?: PublicFieldValue[]
   prev_id: string | null
   next_id: string | null
 }

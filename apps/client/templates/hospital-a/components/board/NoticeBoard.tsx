@@ -1,10 +1,12 @@
-import type { BodyBlock } from '@cms/types'
+import type { BodyBlock, PublicFieldValue } from '@cms/types'
+import { fieldValueText } from '@/lib/publicPosts'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { BoardBody } from './BoardBody'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { BoardViewNav } from './BoardViewNav'
+import { NoticeWriteLink } from './NoticeWriteLink'
 import { dotDate } from './format'
 
 export interface NoticeItem {
@@ -44,6 +46,10 @@ interface NoticeDetailViewProps {
   listHref: string
   /** 제목 앞 표시 — 새 게시판이면 게시판 이름 */
   badge?: string
+  /** 표시할 칸 (T-142-B-2) */
+  fields?: PublicFieldValue[]
+  /** 실제 글이면 관리자에게 [수정] — 샘플 글에는 없음 */
+  edit?: { board: string; post: string }
 }
 
 /** 게시글 상세 — 목업 sub/board-view.html */
@@ -55,6 +61,8 @@ export function NoticeDetailView({
   nextHref,
   listHref,
   badge = '공지사항',
+  fields = [],
+  edit,
 }: NoticeDetailViewProps) {
   return (
     <section className="board-view" aria-labelledby="board-view-title">
@@ -69,6 +77,24 @@ export function NoticeDetailView({
               {dotDate(date)}
             </time>
           </header>
+          {edit && <NoticeWriteLink board={edit.board} post={edit.post} />}
+          {fields.length > 0 && (
+            <dl className="board-view__fields">
+              {fields.map((field) => (
+                <div className="board-view__field" key={field.key}>
+                  <dt className="board-view__field-label">{field.label}</dt>
+                  <dd className="board-view__field-value">
+                    {field.field_type === 'IMAGE' ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 칸 사진
+                      <img src={String(field.value)} alt={field.label} loading="lazy" />
+                    ) : (
+                      fieldValueText(field)
+                    )}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
           <BoardBody blocks={body} />
         </article>
         <BoardViewNav prevHref={prevHref} nextHref={nextHref} listHref={listHref} />

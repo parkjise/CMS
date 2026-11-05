@@ -166,6 +166,27 @@ describe('테마형 게시판 상세 · 주소', () => {
     expect(screen.queryByRole('link', { name: '다음 게시글' })).not.toBeInTheDocument()
   })
 
+  it('칸 값을 본문 위에 — 사진 · 별점 · 스크립트는 글자로', async () => {
+    fetchPublicPost.mockResolvedValue({
+      ...post,
+      body: [{ type: 'p', text: '본문' }],
+      prev_id: null,
+      next_id: null,
+      fields: [
+        { key: 'r', label: '별점', field_type: 'RATING', value: 5 },
+        { key: 'i', label: '사진', field_type: 'IMAGE', value: 'http://x/a.webp' },
+        { key: 't', label: '메모', field_type: 'TEXT', value: '<script>x</script>' },
+      ],
+    })
+    const { container } = await renderPage(['news', 'p1'])
+    const list = container.querySelector('dl') as HTMLElement
+    expect(within(list).getByText('★★★★★')).toBeInTheDocument()
+    expect(within(list).getByRole('img', { name: '사진' })).toHaveAttribute('src', 'http://x/a.webp')
+    expect(within(list).getByText('<script>x</script>')).toBeInTheDocument()
+    expect(list.querySelector('script')).toBeNull()
+    expect(list.compareDocumentPosition(screen.getByText('본문')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('메타: 게시판 · 글 제목과 대표 주소', async () => {
     const list = await generateMetadata(props(['news']))
     expect(list.title).toBe('병원 소식 | 데모')

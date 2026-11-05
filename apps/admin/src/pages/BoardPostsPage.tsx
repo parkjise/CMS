@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { ChevronLeft, ChevronRight, Pin, Plus } from 'lucide-react'
-import { Link, useParams } from 'react-router'
+import { ChevronLeft, ChevronRight, ExternalLink, Pin, Plus } from 'lucide-react'
+import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
@@ -15,7 +15,11 @@ import {
   useRestorePost,
   useUpdatePost,
 } from '@/hooks/useBoards'
+import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { useAuthStore } from '@/stores/authStore'
+
+const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
 export const STATUS_LABELS: Record<PostStatus, string> = {
   DRAFT: '임시저장',
@@ -40,6 +44,14 @@ export function BoardPostsPage() {
 
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
+  const tenantSlug = useAuthStore((st) => st.tenantSlug)
+  const isTheme = useSiteMenu().data?.mode === 'theme'
+  const publishedId = (useLocation().state as { publishedId?: string } | null)?.publishedId
+  // 테마형에는 공지 페이지가 없고, 사용 안 함 게시판은 열리지 않아 링크를 두지 않는다
+  const publishedUrl =
+    publishedId && board && tenantSlug && board.status === 'ACTIVE' && !(board.system_key && isTheme)
+      ? `${CLIENT_BASE_URL}/${tenantSlug}/${board.system_key ?? `b/${board.slug}`}/${publishedId}`
+      : null
   const postsQuery = usePosts(boardId, filters)
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
@@ -101,6 +113,16 @@ export function BoardPostsPage() {
           )
         }
       />
+
+      {publishedUrl && (
+        <p className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+          글을 공개했습니다.
+          <a href={publishedUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium underline">
+            <ExternalLink className="h-4 w-4" aria-hidden />
+            홈페이지에서 보기
+          </a>
+        </p>
+      )}
 
       {board?.has_samples && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">

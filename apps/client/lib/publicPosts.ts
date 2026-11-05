@@ -2,7 +2,7 @@
  * 게시판 글 공개 API (T-139) — /api/public/site/{slug}/boards/{board}/posts
  * 서버 컴포넌트에서 읽는다. 사이트와 같은 캐시 태그라 글을 저장하면 바로 비워진다.
  */
-import type { PublicPost, PublicPostList, PublicSitemapPost } from '@cms/types'
+import type { PublicFieldValue, PublicPost, PublicPostList, PublicSitemapPost } from '@cms/types'
 import { serverApiBase } from './apiBase'
 
 const REVALIDATE_SECONDS = 60
@@ -53,6 +53,13 @@ export function fetchPublicPost(
 /** 사이트맵에 넣을 공개 글 (T-140-C) */
 export function fetchSitemapPosts(tenantSlug: string): Promise<PublicSitemapPost[] | null> {
   return getJson<PublicSitemapPost[]>(tenantSlug, `/public/site/${encodeURIComponent(tenantSlug)}/sitemap-posts`)
+}
+
+/** 칸 값 표시 — 사진은 화면마다 이미지로 그린다 */
+export function fieldValueText({ field_type: type, value }: PublicFieldValue): string {
+  if (type === 'BOOLEAN') return value ? '예' : '아니오'
+  if (type === 'RATING') return `${'★'.repeat(Number(value))}${'☆'.repeat(5 - Number(value))}`
+  return Array.isArray(value) ? value.join(', ') : String(value)
 }
 
 /** 공개일 YYYY-MM-DD (한국 시간) */

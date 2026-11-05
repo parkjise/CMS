@@ -464,15 +464,6 @@ class TestValues:
         assert data["title"] == "글"
         assert data["custom_data"] == {field["field_key"]: 3}
 
-    async def test_custom_data_not_public(self, client, auth_headers, tenant, board):
-        field = await _field(client, auth_headers, board)
-        post = await _publish(client, auth_headers, board, **{field["field_key"]: "값"})
-        base = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
-        for url in (base, f"{base}/{post['id']}"):
-            resp = await client.get(url)
-            assert resp.status_code == 200
-            assert "값" not in resp.text
-
 
 class TestRequired:
     async def _required(self, client, headers, board) -> str:
@@ -711,6 +702,101 @@ class TestValueCount:
         await _field(client, auth_headers, board)
         data = (await client.get(board["fields"], headers=auth_headers)).json()["data"]
         assert data[0]["value_count"] == 0
+
+
+class TestPublicFields:
+    def _url(self, tenant: dict, board: dict, post_id: str = "") -> str:
+        base = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        return f"{base}/{post_id}" if post_id else base
+
+    async def test_detail_shows_values_in_order_with_labels(
+        self, client, auth_headers, tenant, board
+    ):
+        rating = await _field(
+            client, auth_headers, board, label="별점", field_type="RATING"
+        )
+        kind = await _field(
+            client,
+            auth_headers,
+            board,
+            label="과목",
+            field_type="SELECT",
+            options=CHOICES,
+        )
+        tags = await _field(
+            client,
+            auth_headers,
+            board,
+            label="태그",
+            field_type="MULTI_SELECT",
+            options=CHOICES,
+        )
+        post = await _publish(
+            client,
+            auth_headers,
+            board,
+            **{
+                rating["field_key"]: 5,
+                kind["field_key"]: "a",
+                tags["field_key"]: ["a", "b"],
+            },
+        )
+
+        data = (await client.get(self._url(tenant, board, post["id"]))).json()["data"]
+
+        assert [(f["label"], f["field_type"], f["value"]) for f in data["fields"]] == [
+            ("별점", "RATING", 5),
+            ("과목", "SELECT", "가"),
+            ("태그", "MULTI_SELECT", ["가", "나"]),
+        ]
+        assert "custom_data" not in data
+
+    async def test_hidden_deleted_and_empty_excluded(
+        self, client, auth_headers, tenant, board
+    ):
+        shown = await _field(client, auth_headers, board, label="보임")
+        hidden = await _field(client, auth_headers, board, is_visible=False)
+        gone = await _field(client, auth_headers, board)
+        await _field(client, auth_headers, board, label="빈 칸")
+        post = await _publish(
+            client,
+            auth_headers,
+            board,
+            **{
+                shown["field_key"]: "공개 값",
+                hidden["field_key"]: "내부 메모",
+                gone["field_key"]: "지운 칸 값",
+            },
+        )
+        await client.delete(f"{board['fields']}/{gone['id']}", headers=auth_headers)
+
+        resp = await client.get(self._url(tenant, board, post["id"]))
+
+        assert [f["label"] for f in resp.json()["data"]["fields"]] == ["보임"]
+        assert "내부 메모" not in resp.text
+        assert "지운 칸 값" not in resp.text
+
+    async def test_false_is_shown(self, client, auth_headers, tenant, board):
+        field = await _field(client, auth_headers, board, field_type="BOOLEAN")
+        post = await _publish(
+            client, auth_headers, board, **{field["field_key"]: False}
+        )
+        data = (await client.get(self._url(tenant, board, post["id"]))).json()["data"]
+        assert data["fields"][0]["value"] is False
+
+    async def test_list_has_no_values(self, client, auth_headers, tenant, board):
+        field = await _field(client, auth_headers, board)
+        await _publish(
+            client, auth_headers, board, **{field["field_key"]: "목록에 없음"}
+        )
+        resp = await client.get(self._url(tenant, board))
+        assert resp.status_code == 200
+        assert "목록에 없음" not in resp.text
+
+    async def test_no_fields(self, client, auth_headers, tenant, board):
+        post = await _publish(client, auth_headers, board)
+        data = (await client.get(self._url(tenant, board, post["id"]))).json()["data"]
+        assert data["fields"] == []
 
 
 class TestDuplicate:

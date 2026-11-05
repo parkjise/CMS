@@ -38,6 +38,8 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
         subject={post.title}
         date={postDate(post.published_at)}
         body={post.body}
+        fields={post.fields}
+        edit={{ board: board.slug, post: post.id }}
         prevHref={post.prev_id ? hrefFor({ id: post.prev_id }) : null}
         nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}
         listHref={hrefFor()}
