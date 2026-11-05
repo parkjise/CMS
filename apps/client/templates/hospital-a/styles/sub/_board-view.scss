@@ -82,6 +82,41 @@ $muted: #64748b;
     }
   }
 
+  // 칸 값 — 이름 | 값 (T-142-B-2)
+  &__fields {
+    padding-top: 24px;
+    @include md {
+      padding: 32px 40px 0;
+    }
+  }
+  &__field {
+    display: grid;
+    grid-template-columns: 96px 1fr;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #eee;
+    @include md {
+      grid-template-columns: 160px 1fr;
+    }
+  }
+  &__field-label {
+    font-weight: 500;
+    color: $muted;
+    word-break: keep-all;
+  }
+  &__field-value {
+    min-width: 0;
+    white-space: pre-line;
+    word-break: break-word;
+
+    img {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+    }
+  }
+
   // 본문 (CMS 에디터 HTML)
   &__content {
     padding: 32px 0 48px;

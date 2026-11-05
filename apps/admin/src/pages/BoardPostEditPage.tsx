@@ -76,10 +76,14 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
     }
     try {
-      if (post) await updatePost.mutateAsync({ id: post.id, payload })
-      else await createPost.mutateAsync(payload)
+      const saved = post
+        ? await updatePost.mutateAsync({ id: post.id, payload })
+        : await createPost.mutateAsync(payload)
       toast.success(next === 'PUBLISHED' ? '홈페이지에 공개했습니다.' : '저장했습니다.')
-      navigate(`/admin/boards/${boardId}/posts`)
+      // 공개했으면 글 목록에서 "홈페이지에서 보기"를 보여 준다
+      navigate(`/admin/boards/${boardId}/posts`, {
+        state: next === 'PUBLISHED' ? { publishedId: saved.id } : undefined,
+      })
     } catch (error) {
       const message = pickErrorMessage(error, '저장하지 못했습니다.')
       const key = customFieldOfError(error)

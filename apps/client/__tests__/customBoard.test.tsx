@@ -155,6 +155,49 @@ describe('상세', () => {
     expect(screen.getByRole('link', { name: '목록보기' })).toHaveAttribute('href', '/demo/b/news')
   })
 
+  it('칸 값 — 이름 · 별점 · 예/아니오 · 사진, 스크립트는 글자로', async () => {
+    fetchPublicPost.mockResolvedValue({
+      ...detail,
+      fields: [
+        { key: 'r', label: '별점', field_type: 'RATING', value: 4 },
+        { key: 'b', label: '재방문', field_type: 'BOOLEAN', value: false },
+        { key: 'm', label: '과목', field_type: 'MULTI_SELECT', value: ['내과', '외과'] },
+        { key: 'i', label: '사진', field_type: 'IMAGE', value: 'http://x/a.webp' },
+        { key: 't', label: '메모', field_type: 'TEXTAREA', value: '<script>x</script>' },
+      ],
+    })
+    const { container } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
+    const list = container.querySelector('dl.board-view__fields') as HTMLElement
+    expect(within(list).getByText('★★★★☆')).toBeInTheDocument()
+    expect(within(list).getByText('아니오')).toBeInTheDocument()
+    expect(within(list).getByText('내과, 외과')).toBeInTheDocument()
+    expect(within(list).getByRole('img', { name: '사진' })).toHaveAttribute('src', 'http://x/a.webp')
+    expect(within(list).getByText('<script>x</script>')).toBeInTheDocument()
+    expect(list.querySelector('script')).toBeNull()
+  })
+
+  it('칸이 없으면 목록을 그리지 않는다', async () => {
+    fetchPublicPost.mockResolvedValue(detail)
+    const { container } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
+    expect(container.querySelector('dl')).toBeNull()
+  })
+
+  it('관리자에게만 [수정] — 그 글로', async () => {
+    fetchPublicPost.mockResolvedValue(detail)
+    const { unmount } = render(await CustomBoard(props('LIST', { detailId: 'p1' })))
+    expect(screen.queryByRole('link', { name: '수정' })).not.toBeInTheDocument()
+    unmount()
+    useClientAuthStore.setState({
+      user: { role: 'TENANT_ADMIN' },
+      isLoggedIn: true,
+      flags: { BOARD_MANAGER: true },
+    } as never)
+    render(await CustomBoard(props('LIST', { detailId: 'p1' })))
+    expect(screen.getByRole('link', { name: '수정' }).getAttribute('href')).toMatch(
+      /\/admin\/boards\?write=news&post=p1$/,
+    )
+  })
+
   it('글이 없으면 안내', async () => {
     fetchPublicPost.mockResolvedValue(null)
     render(await CustomBoard(props('LIST', { detailId: 'gone' })))

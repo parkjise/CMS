@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { MemoryRouter, Route, Routes, useParams } from 'react-router'
 import type { Board, Post, PostList } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { type DraftBlock, BodyBlockEditor, fromDraft, toDraft } from '@/components/boards/BodyBlockEditor'
@@ -90,6 +90,11 @@ beforeEach(() => {
   vi.clearAllMocks()
   setRole('TENANT_ADMIN')
 })
+
+const EditTarget = () => {
+  const { postId } = useParams()
+  return <p>수정 화면: {postId}</p>
+}
 
 describe('본문 블록 값', () => {
   it('저장할 때 빈 문단 · 빈 줄 · 사진 없는 칸을 뺀다', () => {
@@ -237,6 +242,55 @@ describe('글 관리', () => {
       expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
     }
     expect(screen.queryByRole('link', { name: '글쓰기' })).not.toBeInTheDocument()
+  })
+})
+
+describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
+  it('글 상세의 [수정] → 그 글 수정 화면으로', async () => {
+    mockApi({})
+    renderWithQuery(
+      <MemoryRouter initialEntries={['/admin/boards?write=notice&post=p9']}>
+        <Routes>
+          <Route path="/admin/boards" element={<BoardsPage />} />
+          <Route path="/admin/boards/:boardId/posts/:postId/edit" element={<EditTarget />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(await screen.findByText('수정 화면: p9')).toBeInTheDocument()
+  })
+
+  const renderPublished = (state: unknown, boards?: Board[]) => {
+    mockApi({ boards })
+    useAuthStore.setState({ tenantSlug: 'demo' } as never)
+    renderWithQuery(
+      <MemoryRouter initialEntries={[{ pathname: '/admin/boards/b1/posts', state }]}>
+        <Routes>
+          <Route path="/admin/boards/:boardId/posts" element={<BoardPostsPage />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('공개하고 돌아오면 홈페이지에서 보기 — 공지 주소', async () => {
+    renderPublished({ publishedId: 'p9' })
+    expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/demo/notice/p9',
+    )
+  })
+
+  it('새 게시판은 /b/ 주소', async () => {
+    renderPublished({ publishedId: 'p9' }, [{ ...board, system_key: null, slug: 'news' }])
+    expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/demo/b/news/p9',
+    )
+  })
+
+  it('그냥 들어오면 없다', async () => {
+    renderPublished(null)
+    await screen.findByText('휴진 안내')
+    expect(screen.queryByRole('link', { name: '홈페이지에서 보기' })).not.toBeInTheDocument()
   })
 })
 

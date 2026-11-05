@@ -270,6 +270,42 @@ async def resolve_custom_data(
     return merged
 
 
+def _public_value(field: BoardField, value: Any) -> Any:
+    """내부 선택지 값 → 이름. 정의에서 사라진 선택지는 보여 주지 않는다."""
+    labels = {
+        choice["value"]: choice["label"]
+        for choice in (field.field_options or {}).get("choices", [])
+    }
+    if field.field_type == "SELECT":
+        return labels.get(value)
+    if field.field_type == "MULTI_SELECT" and isinstance(value, list):
+        return [labels[v] for v in value if v in labels]
+    return value
+
+
+async def public_fields(db: AsyncSession, post: BoardPost) -> list[dict[str, Any]]:
+    """글 상세에 보여 줄 칸 — 숨긴 칸 · 삭제한 칸 · 빈 칸은 나가지 않는다."""
+    values = post.custom_data or {}
+    if not values:
+        return []
+    shown = []
+    for field in await list_fields(db, post.board_id):
+        if not field.is_visible or field.field_key not in values:
+            continue
+        value = _public_value(field, values[field.field_key])
+        if _is_empty(value):
+            continue
+        shown.append(
+            {
+                "key": field.field_key,
+                "label": field.label,
+                "field_type": field.field_type,
+                "value": value,
+            }
+        )
+    return shown
+
+
 async def ensure_publishable(
     db: AsyncSession, rows: list[tuple[BoardPost, Board]]
 ) -> None:

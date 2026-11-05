@@ -331,7 +331,18 @@ class PublicPostListResponse(BaseModel):
     items: list[PublicPostItem]
 
 
+class PublicFieldValue(BaseModel):
+    """글 상세에 보여 줄 칸 (T-142-B-2) — 선택지는 고객이 정한 이름으로."""
+
+    key: str
+    label: str
+    field_type: str
+    value: Any
+
+
 class PublicPostDetail(PublicPostItem):
     body: list[BodyBlock]
+    # 홈페이지에 표시하는 칸 중 값이 있는 것만, 정한 순서대로
+    fields: list[PublicFieldValue] = []
     prev_id: UUID | None
     next_id: UUID | None
