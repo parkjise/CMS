@@ -3287,12 +3287,13 @@ POST   /api/super/v1/announcements/{id}/send    즉시 발송 (예약 발송 포
 
 ### 14.7 추가 DB 테이블
 
-#### audit_logs (슈퍼 어드민 행위 감사 로그)
+#### audit_logs (슈퍼 어드민 행위 감사 로그 — T-140-C 부터 `tenant_id` · RLS, 사업체 안의 게시판 기록도 함께. 게시판 모듈 기획서 11.4)
 
 ```sql
 -- 실제 스키마 기준 (2026-11-04 대조)
 CREATE TABLE audit_logs (
   id                       UUID NOT NULL,
+  tenant_id                UUID REFERENCES tenants(id) ON DELETE SET NULL,  -- T-140-C, 운영사 공통 기록은 비움
   actor_id                 UUID NOT NULL,
   actor_role               VARCHAR(50) NOT NULL,
   action                   VARCHAR(100) NOT NULL,
@@ -3749,7 +3750,7 @@ server {{
 - 미들웨어가 `/about` 을 `/{slug}/about` 으로 내부 전환하고 `x-site-custom-host` 를 넘긴다(방문자가 보낸 값은 버림). `/{slug}/...` 로 들어오면 slug 없는 주소로 301.
 - 링크: 메뉴 · 본문(`pageHref`) · 로그인 후 이동은 slug 없이. 회원 화면 안의 일부 링크는 slug 를 달고 301 로 한 번 거친다 (화면에는 같은 결과).
 - 브라우저 API 는 고객 도메인에서 같은 주소의 `/api` (CORS 불필요, 쿠키는 그 도메인). Nginx 경로는 T-137-B.
-- 대표 주소: 직접 정한 값 → 연결한 도메인. `/robots.txt` 는 관리자 저장값, 비면 전체 허용 + 그 도메인 사이트맵. `/sitemap.xml` 도 그 도메인 주소.
+- 대표 주소: 직접 정한 값 → 연결한 도메인. `/robots.txt` 는 관리자 저장값, 비면 전체 허용 + 그 도메인 사이트맵. `/sitemap.xml` 도 그 도메인 주소. 코드형 템플릿은 페이지 · 공개 게시판 · 글 주소까지 넣고, 메뉴에서 숨긴 곳은 뺀다 (T-140-C).
 - 편집 모드: 로그인 쿠키가 메인 도메인 범위라 고객 도메인의 [관리자 로그인]은 기본 주소로 이동 (사용자 결정).
 - 소셜 로그인: 콜백은 메인 하나. 고객 도메인에서 시작하면 state 에 그 도메인을 저장(요청 Host 가 사업체 연결 도메인일 때만)하고, 콜백에서 세션 대신 일회용 코드(60초, 1회용)를 만들어 `/member/handoff` 로 넘긴 뒤 `POST /auth/social/exchange` 로 그 도메인에 세션을 만든다. 신규 가입 · 계정 연결도 같다.
 

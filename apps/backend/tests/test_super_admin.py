@@ -7,7 +7,7 @@ from sqlalchemy import select, text
 
 from app.core.audit import log_action
 from app.core.security import create_access_token
-from app.db.session import AsyncSessionLocal
+from app.db.session import AsyncSessionLocal, set_super_admin_context
 from app.models.audit import AuditLog
 from app.models.user import User
 from tests.conftest import _TestSession
@@ -86,9 +86,7 @@ class TestAuditLog:
         actor.role = "SUPER_ADMIN"
 
         async with AsyncSessionLocal() as db:
-            await db.execute(
-                text("SELECT set_config('app.is_super_admin', 'true', true)")
-            )
+            await set_super_admin_context(db)
             await log_action(
                 db,
                 actor,

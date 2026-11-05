@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Plus, Settings, Trash2 } from 'lucide-react'
+import { FileText, Plus, Settings, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards } from '@/hooks/useBoards'
@@ -34,6 +34,13 @@ export function BoardsPage() {
           <p className="mt-1 text-sm text-slate-500">홈페이지에 보이는 게시판의 글을 관리하세요.</p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/admin/posts"
+            className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm text-slate-600 hover:bg-slate-100"
+          >
+            <FileText className="h-4 w-4" aria-hidden />
+            전체 글
+          </Link>
           <Link
             to="/admin/boards/trash"
             className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm text-slate-600 hover:bg-slate-100"

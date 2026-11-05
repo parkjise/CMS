@@ -155,6 +155,40 @@ class PostListResponse(BaseModel):
     items: list[PostListItem]
 
 
+class PostOverviewItem(PostListItem):
+    """전체 글 목록 한 줄 (BM-05, T-140-C)."""
+
+    board_name: str
+
+
+class PostOverviewListResponse(BaseModel):
+    total: int
+    page: int
+    size: int
+    items: list[PostOverviewItem]
+
+
+PostBulkAction = Literal["PUBLISH", "PRIVATE", "TRASH", "RESTORE"]
+
+
+class PostBulkRequest(BaseModel):
+    post_ids: list[UUID] = Field(min_length=1, max_length=100)
+    action: PostBulkAction
+
+
+class PostBulkResponse(BaseModel):
+    updated: int
+
+
+class PublicSitemapPost(BaseModel):
+    """사이트맵 한 줄 (T-140-C) — 공개 글 주소를 만드는 값만."""
+
+    board_slug: str
+    is_system: bool
+    id: UUID
+    updated_at: datetime
+
+
 class PublicBoardResponse(BaseModel):
     """홈페이지 메뉴 · 게시판 화면 (T-140-B) — 사용 중인 새 게시판만."""
 

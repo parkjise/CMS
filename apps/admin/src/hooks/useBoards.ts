@@ -6,7 +6,9 @@ import type {
   BoardType,
   BodyBlock,
   Post,
+  PostBulkAction,
   PostList,
+  PostOverviewList,
   PostStatus,
 } from '@cms/types'
 import { api } from '@/lib/api'
@@ -27,6 +29,10 @@ export interface PostInput {
   body?: BodyBlock[]
   status?: PostStatus
   is_pinned?: boolean
+}
+
+export interface PostOverviewFilters extends PostFilters {
+  board_id?: string
 }
 
 const BOARDS_KEY = ['boards'] as const
@@ -82,6 +88,29 @@ export function usePosts(boardId: string, filters: PostFilters) {
       return data.data
     },
     placeholderData: keepPreviousData,
+  })
+}
+
+/** 전체 글 (BM-05, T-140-C) — 게시판을 건드리는 키 아래 두어 글이 바뀌면 함께 새로 읽는다 */
+export function usePostOverview(filters: PostOverviewFilters) {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'overview', filters],
+    queryFn: async (): Promise<PostOverviewList> => {
+      const { data } = await api.get('/v1/posts', { params: { size: 20, ...filters } })
+      return data.data
+    },
+    placeholderData: keepPreviousData,
+  })
+}
+
+export function useBulkPosts() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (payload: { post_ids: string[]; action: PostBulkAction }): Promise<number> => {
+      const { data } = await api.post('/v1/posts/bulk', payload)
+      return data.data.updated
+    },
+    onSuccess: invalidate,
   })
 }
 

@@ -22,6 +22,7 @@ from app.schemas.board import (
     SLUG_MAX_LENGTH,
     BoardCreate,
     BoardUpdate,
+    PostBulkAction,
     PostCreate,
     PostUpdate,
 )
@@ -29,8 +30,11 @@ from app.services import site_cache
 
 NOTICE_KEY = "notice"
 STATUS_PUBLISHED = "PUBLISHED"
+STATUS_PRIVATE = "PRIVATE"
 SAMPLE_ITEMS_KEY = "items"
 EMPTY_ITEMS = "[]"
+MSG_BULK_MISMATCH = "처리할 수 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
+SITEMAP_POST_LIMIT = 5000
 DESCRIPTION_KEY = "description"
 AUTO_SLUG_PREFIX = "board"
 
@@ -553,13 +557,106 @@ async def restore_post(db: AsyncSession, post: BoardPost) -> BoardPost:
     return post
 
 
+# ── 전체 글 (BM-05, T-140-C) ─────────────────────────────────────────────
+
+
+async def list_all_posts(
+    db: AsyncSession,
+    tenant_id: UUID,
+    *,
+    page: int,
+    size: int,
+    board_id: UUID | None = None,
+    status: str | None = None,
+    q: str | None = None,
+    trash: bool = False,
+) -> tuple[list[tuple[BoardPost, str]], int]:
+    """여러 게시판의 글. 휴지통에 있는 게시판의 글은 나오지 않는다."""
+    conditions: list[ColumnElement[bool]] = [
+        BoardPost.tenant_id == tenant_id,
+        Board.deleted_at.is_(None),
+        BoardPost.deleted_at.is_not(None) if trash else BoardPost.deleted_at.is_(None),
+    ]
+    if board_id:
+        conditions.append(BoardPost.board_id == board_id)
+    if status:
+        conditions.append(BoardPost.status == status)
+    if q:
+        conditions.append(_title_contains(BoardPost.title, q))
+    joined = select(BoardPost, Board.name).join(Board, Board.id == BoardPost.board_id)
+    total = (
+        await db.execute(
+            select(func.count())
+            .select_from(BoardPost)
+            .join(Board, Board.id == BoardPost.board_id)
+            .where(*conditions)
+        )
+    ).scalar_one()
+    result = await db.execute(
+        joined.where(*conditions)
+        .order_by(
+            func.coalesce(BoardPost.published_at, BoardPost.created_at).desc(),
+            BoardPost.id.desc(),
+        )
+        .offset((page - 1) * size)
+        .limit(size)
+    )
+    return [(post, name) for post, name in result.all()], total
+
+
+async def bulk_update_posts(
+    db: AsyncSession, tenant_id: UUID, post_ids: list[UUID], action: PostBulkAction
+) -> list[UUID]:
+    """전부 처리하거나 전부 취소한다 — 처리할 수 없는 글이 섞이면 그대로 둔다."""
+    ids = set(post_ids)
+    in_trash = action == "RESTORE"
+    result = await db.execute(
+        select(BoardPost, Board)
+        .join(Board, Board.id == BoardPost.board_id)
+        .where(
+            BoardPost.tenant_id == tenant_id,
+            BoardPost.id.in_(ids),
+            Board.deleted_at.is_(None),
+            BoardPost.deleted_at.is_not(None)
+            if in_trash
+            else BoardPost.deleted_at.is_(None),
+        )
+    )
+    rows = result.all()
+    if len(rows) != len(ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=MSG_BULK_MISMATCH
+        )
+    now = datetime.now(UTC)
+    for post, _board in rows:
+        if action == "TRASH":
+            post.deleted_at = now
+        elif action == "RESTORE":
+            post.deleted_at = None
+        elif action == "PRIVATE":
+            post.status = STATUS_PRIVATE
+        else:
+            post.status = STATUS_PUBLISHED
+    # 낱개 저장(_after_write)과 같은 규칙 — 공개 글의 공개일, 공지 글이면 샘플 비우기
+    public = [
+        (post, board)
+        for post, board in rows
+        if post.status == STATUS_PUBLISHED and post.deleted_at is None
+    ]
+    for post, _board in public:
+        post.published_at = post.published_at or now
+    if any(board.system_key == NOTICE_KEY for _post, board in public):
+        await _clear_samples(db, tenant_id)
+    await db.commit()
+    await site_cache.purge_site(db, tenant_id)
+    return [post.id for post, _board in rows]
+
+
 # ── 공개 ──────────────────────────────────────────────────────────────────
 
 
-async def open_public_board(
-    db: AsyncSession, tenant_slug: str, board_slug: str
-) -> Board | None:
-    """주소의 사업체 · 게시판을 찾고 그 사업체로 RLS 를 건다. 없거나 중단이면 None."""
+async def _open_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant | None:
+    """주소의 사업체를 찾고 그 사업체로 RLS 를 건다. 없거나 중단이면 None."""
     await set_super_admin_context(db)
     tenant = (
         await db.execute(
@@ -570,9 +667,18 @@ async def open_public_board(
             )
         )
     ).scalar_one_or_none()
+    if tenant is not None:
+        await set_rls_context(db, tenant.id)
+    return tenant
+
+
+async def open_public_board(
+    db: AsyncSession, tenant_slug: str, board_slug: str
+) -> Board | None:
+    """주소의 사업체 · 게시판을 찾는다. 없거나 중단이면 None."""
+    tenant = await _open_public_tenant(db, tenant_slug)
     if tenant is None:
         return None
-    await set_rls_context(db, tenant.id)
     result = await db.execute(
         select(Board).where(
             Board.tenant_id == tenant.id,
@@ -605,6 +711,35 @@ async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
             "board_type": board.board_type,
         }
         for board in result.scalars()
+    ]
+
+
+async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] | None:
+    """사이트맵용 공개 글, 최근 수정 순. 사업체가 없으면 None."""
+    tenant = await _open_public_tenant(db, tenant_slug)
+    if tenant is None:
+        return None
+    result = await db.execute(
+        select(BoardPost.id, BoardPost.updated_at, Board.slug, Board.system_key)
+        .join(Board, Board.id == BoardPost.board_id)
+        .where(
+            BoardPost.tenant_id == tenant.id,
+            BoardPost.status == STATUS_PUBLISHED,
+            BoardPost.deleted_at.is_(None),
+            Board.status == "ACTIVE",
+            Board.deleted_at.is_(None),
+        )
+        .order_by(BoardPost.updated_at.desc(), BoardPost.id.desc())
+        .limit(SITEMAP_POST_LIMIT)
+    )
+    return [
+        {
+            "id": row.id,
+            "updated_at": row.updated_at,
+            "board_slug": row.slug,
+            "is_system": row.system_key is not None,
+        }
+        for row in result
     ]
 
 

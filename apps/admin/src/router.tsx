@@ -16,6 +16,7 @@ const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'S
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
 const BoardsPage = lazyPage(() => import('@/pages/BoardsPage'), 'BoardsPage')
+const PostsOverviewPage = lazyPage(() => import('@/pages/PostsOverviewPage'), 'PostsOverviewPage')
 const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
 const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
 const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'BoardSettingsPage')
@@ -38,6 +39,7 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
   [/^\/admin\/boards\/?$/, BoardsPage],
+  [/^\/admin\/posts\/?$/, PostsOverviewPage],
   [/^\/admin\/boards\/new\/?$/, BoardNewPage],
   [/^\/admin\/boards\/trash\/?$/, BoardTrashPage],
   [/^\/admin\/boards\/[^/]+\/settings\/?$/, BoardSettingsPage],
@@ -106,6 +108,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/boards',
             element: withFeature('BOARD_MANAGER', <BoardsPage />),
+          },
+          {
+            path: '/admin/posts',
+            element: withFeature('BOARD_MANAGER', <PostsOverviewPage />),
           },
           {
             path: '/admin/boards/new',
