@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* 공통 컴포넌트의 클래스도 생성 — 없으면 Toggle 트랙 폭이 0 (T-139) */
+@source "../../../packages/ui/src";
 
 /* CMS 디자인 토큰 */
 @layer base {

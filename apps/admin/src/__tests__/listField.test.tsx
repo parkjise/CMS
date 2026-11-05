@@ -130,16 +130,18 @@ describe('GenericForm 목록 칸', () => {
     )
   })
 
-  it('게시판 샘플 글은 목록 편집기로 보이지 않는다', () => {
+  it('게시판 샘플 글은 편집 칸으로 보이지 않고 게시판 관리로 안내한다 (T-139)', () => {
     renderWithQuery(
       <GenericForm
-        section={section('BOARD', { items: JSON.stringify([{ subject: '공지' }]) })}
+        section={section('BOARD', { board: 'notice', title: '제목', items: JSON.stringify([{ subject: '공지' }]) })}
         isSaving={false}
         onSubmit={vi.fn()}
       />,
     )
     expect(screen.queryByRole('button', { name: '항목 추가' })).not.toBeInTheDocument()
-    expect(screen.getByLabelText('항목')).toHaveValue(JSON.stringify([{ subject: '공지' }]))
+    expect(screen.queryByLabelText('항목')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '게시판 관리' })).toHaveAttribute('href', '/admin/boards')
+    expect(screen.getByLabelText('제목')).toHaveValue('제목')
   })
 
   it('사진 하나인 칸은 주소 입력 대신 업로드 칸 (T-125-B)', () => {

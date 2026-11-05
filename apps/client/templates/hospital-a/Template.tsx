@@ -38,6 +38,7 @@ import { SubNav, type SubNavTab } from './components/sub/SubNav'
 import { ValueCircles } from './components/sub/ValueCircles'
 import { ConsultBoard } from './components/board/ConsultBoard'
 import { NoticeBoard } from './components/board/NoticeBoard'
+import { NoticeBoardLive } from './components/board/NoticeBoardLive'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
 import { memberEnabled } from '@/lib/publicSite.types'
@@ -96,6 +97,7 @@ export default function HospitalATemplate({
   member,
   menuItems,
   onCustomDomain,
+  latestNotices,
 }: CodeTemplateProps) {
   const noSlug = Boolean(onCustomDomain) && !previewQuery
   const siteBase = noSlug ? '' : `/${tenantSlug}`
@@ -175,9 +177,11 @@ export default function HospitalATemplate({
 
   const renderBoard = (props: CodeSectionProps): ReactNode => {
     switch (getString(props.section.settings, 'board')) {
-      case 'notice':
+      case 'notice': {
+        // 샘플 미리보기(편집 불가 섹션)는 샘플 그대로, 실제 섹션은 게시글 (T-139)
+        const Notice = props.editable ? NoticeBoardLive : NoticeBoard
         return (
-          <NoticeBoard
+          <Notice
             {...props}
             detailId={detailId}
             q={query?.q}
@@ -186,6 +190,7 @@ export default function HospitalATemplate({
             searchTarget={searchTarget}
           />
         )
+      }
       case 'consult':
         return (
           <ConsultBoard
@@ -224,6 +229,7 @@ export default function HospitalATemplate({
         return (
           <NoticeLatest
             {...props}
+            latest={latestNotices}
             listHref={hrefFor('notice')}
             itemHref={(id) => pageHref(tenantSlug, 'notice', previewQuery, { id, noSlug })}
           />

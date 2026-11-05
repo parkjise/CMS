@@ -10,6 +10,7 @@ import {
   MessageSquare,
   Search,
   Share2,
+  ClipboardList,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavVisibility } from '@/lib/navItems'
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: '대시보드' },
   { to: '/admin/content', icon: FileText, label: '콘텐츠' },
   { to: '/admin/sns', icon: Share2, label: 'SNS' },
+  { to: '/admin/boards', icon: ClipboardList, label: '게시판' },
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의' },
   { to: '/admin/seo', icon: Search, label: 'SEO' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },

@@ -47,7 +47,8 @@ def validate_image(file_bytes: bytes) -> str:
         with Image.open(io.BytesIO(file_bytes)) as img:
             fmt = img.format or ""
             img.verify()
-    except (UnidentifiedImageError, OSError) as e:
+    # 손상된 PNG 는 verify() 가 SyntaxError — 500 이 아니라 잘못된 파일로 (T-139)
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError) as e:
         raise ImageValidationError("INVALID_IMAGE") from e
 
     if fmt not in _ACCEPTED_PIL_FORMATS:

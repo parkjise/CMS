@@ -6,6 +6,7 @@ import { useFeatureStore } from '@/stores/featureStore'
  */
 export const NAV_FEATURE_MAP: Record<string, string> = {
   '/admin/content': 'SECTION_EDITOR',
+  '/admin/boards': 'BOARD_MANAGER',
   '/admin/seo': 'SEO_WIZARD',
   '/admin/templates': 'TEMPLATE_SELECT',
   '/admin/analytics': 'NAVER_ANALYTICS',

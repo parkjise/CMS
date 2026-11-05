@@ -11,6 +11,8 @@ import { fieldLabel } from '@/lib/fieldLabels'
 
 // 게시판 샘플 글은 목록 편집기로 보여 주지 않는다 (실제 글은 문의 · 게시판 관리에서)
 const RAW_LIST_TYPES = new Set(['BOARD', 'NOTICE_LATEST'])
+// 게시판 섹션에서 고객이 고칠 칸이 아닌 것 — 샘플 글 · 게시판 종류 (T-139)
+const HIDDEN_BOARD_KEYS = new Set(['items', 'sample_posts', 'board'])
 // 항목마다 늘 보여 줄 칸 — 슬라이드별 휴대폰용 사진 (T-037-E).
 // 목록이 비어 있어도 새 슬라이드가 같은 칸으로 만들어지게 전체 칸을 적는다
 const EXTRA_ITEM_KEYS: Record<string, string[]> = {
@@ -21,16 +23,21 @@ const EXTRA_ITEM_KEYS: Record<string, string[]> = {
  * 매핑되지 않은 섹션 타입을 위한 fallback. 기존 settings를 그대로 편집.
  */
 export function GenericForm({ section, isSaving, onSubmit }: SectionFormProps) {
+  const isBoardSection = RAW_LIST_TYPES.has(section.section_type)
   const initial: Record<string, string> = Object.fromEntries(
-    section.settings.map((s) => [s.field_key, getSetting(section.settings, s.field_key)])
+    section.settings
+      .filter((s) => !(isBoardSection && HIDDEN_BOARD_KEYS.has(s.field_key)))
+      .map((s) => [s.field_key, getSetting(section.settings, s.field_key)])
   )
+  const isNotice =
+    section.section_type === 'NOTICE_LATEST' || getSetting(section.settings, 'board') === 'notice'
   const [values, setValues] = useState(initial)
 
   // 목록 칸은 처음 값 기준으로 정한다 — 편집 중 잠깐 빈 목록이 돼도 편집기가 유지되게
   const [listKeys] = useState(
     () =>
       new Set(
-        RAW_LIST_TYPES.has(section.section_type)
+        isBoardSection
           ? []
           : Object.entries(initial)
               .filter(([, v]) => parseList(v) !== null)
@@ -67,6 +74,15 @@ export function GenericForm({ section, isSaving, onSubmit }: SectionFormProps) {
         handleSave()
       }}
     >
+      {isNotice && (
+        <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
+          공지 글은{' '}
+          <a href="/admin/boards" className="font-medium text-blue-600 underline">
+            게시판 관리
+          </a>
+          에서 씁니다.
+        </p>
+      )}
       {Object.entries(values).map(([key, value]) =>
         listKeys.has(key) ? (
           <ListField

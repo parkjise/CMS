@@ -12,6 +12,7 @@ import {
   Search,
   Share2,
   X,
+  ClipboardList,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavVisibility } from '@/lib/navItems'
@@ -26,6 +27,7 @@ const PRIMARY = [
 ] as const
 
 const OVERFLOW = [
+  { to: '/admin/boards', icon: ClipboardList, label: '게시판 관리' },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
   { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },

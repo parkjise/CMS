@@ -1,0 +1,231 @@
+"""게시판 관리 API (T-139, 게시판 모듈 기획서 9장)."""
+
+from typing import Literal
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.deps import (
+    get_current_user,
+    get_db,
+    get_db_with_rls,
+    get_tenant_id,
+    require_feature,
+)
+from app.models.board import Board, BoardPost
+from app.models.user import User
+from app.schemas.board import (
+    BoardResponse,
+    PostCreate,
+    PostListItem,
+    PostListResponse,
+    PostResponse,
+    PostStatus,
+    PostUpdate,
+    PublicPostDetail,
+    PublicPostItem,
+    PublicPostListResponse,
+)
+from app.schemas.common import ApiResponse
+from app.services import board as board_service
+
+MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
+MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
+
+router = APIRouter(
+    prefix="/boards",
+    tags=["boards"],
+    dependencies=[Depends(require_feature("BOARD_MANAGER"))],
+)
+public_router = APIRouter(tags=["public"])
+
+
+def _not_found(message: str) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message)
+
+
+async def _board_or_404(
+    board_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+) -> Board:
+    board = await board_service.get_board(db, tenant_id, board_id)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    return board
+
+
+async def _post_or_404(
+    post_id: UUID,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+) -> BoardPost:
+    post = await board_service.get_post(db, board.tenant_id, board.id, post_id)
+    if post is None:
+        raise _not_found(MSG_POST_NOT_FOUND)
+    return post
+
+
+@router.get("", response_model=ApiResponse[list[BoardResponse]])
+async def list_boards(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    return ApiResponse.ok(await board_service.list_boards(db, tenant_id))
+
+
+@router.post("/clear-samples", response_model=ApiResponse[dict])
+async def clear_samples(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    await board_service.clear_samples(db, tenant_id)
+    return ApiResponse.ok({"cleared": True})
+
+
+@router.get("/{board_id}/posts", response_model=ApiResponse[PostListResponse])
+async def list_posts(
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    post_status: PostStatus | None = Query(default=None, alias="status"),
+    q: str | None = Query(default=None, max_length=100),
+    trash: bool = False,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    posts, total = await board_service.list_posts(
+        db,
+        board.tenant_id,
+        board.id,
+        page=page,
+        size=size,
+        status=post_status,
+        q=q,
+        trash=trash,
+    )
+    return ApiResponse.ok(
+        PostListResponse(
+            total=total,
+            page=page,
+            size=size,
+            items=[PostListItem.model_validate(p) for p in posts],
+        )
+    )
+
+
+@router.post(
+    "/{board_id}/posts",
+    response_model=ApiResponse[PostResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_post(
+    data: PostCreate,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    post = await board_service.create_post(
+        db, board.tenant_id, board.id, current_user.id, data
+    )
+    return ApiResponse.ok(PostResponse.model_validate(post))
+
+
+@router.get("/{board_id}/posts/{post_id}", response_model=ApiResponse[PostResponse])
+async def get_post(post: BoardPost = Depends(_post_or_404)):
+    return ApiResponse.ok(PostResponse.model_validate(post))
+
+
+@router.patch("/{board_id}/posts/{post_id}", response_model=ApiResponse[PostResponse])
+async def update_post(
+    data: PostUpdate,
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    if post.deleted_at is not None:
+        raise _not_found(MSG_POST_NOT_FOUND)
+    updated = await board_service.update_post(db, post, data)
+    return ApiResponse.ok(PostResponse.model_validate(updated))
+
+
+@router.delete("/{board_id}/posts/{post_id}", response_model=ApiResponse[dict])
+async def delete_post(
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    await board_service.delete_post(db, post)
+    return ApiResponse.ok({"deleted": True})
+
+
+@router.post(
+    "/{board_id}/posts/{post_id}/restore", response_model=ApiResponse[PostResponse]
+)
+async def restore_post(
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    restored = await board_service.restore_post(db, post)
+    return ApiResponse.ok(PostResponse.model_validate(restored))
+
+
+# ── 공개 (홈페이지) — 공개 글만. 기능을 꺼도 공개 홈페이지는 그대로 (T-138 원칙) ─────
+
+
+@public_router.get(
+    "/site/{tenant_slug}/boards/{board_slug}/posts",
+    response_model=ApiResponse[PublicPostListResponse],
+)
+async def list_public_posts(
+    tenant_slug: str,
+    board_slug: str,
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=10, ge=1, le=50),
+    q: str | None = Query(default=None, max_length=100),
+    order: Literal["default", "latest"] = "default",
+    db: AsyncSession = Depends(get_db),
+):
+    board = await board_service.open_public_board(db, tenant_slug, board_slug)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    posts, total, has_posts = await board_service.list_public_posts(
+        db, board, page=page, size=size, q=q, latest=order == "latest"
+    )
+    return ApiResponse.ok(
+        PublicPostListResponse(
+            total=total,
+            page=page,
+            size=size,
+            has_posts=has_posts,
+            items=[PublicPostItem.model_validate(p) for p in posts],
+        )
+    )
+
+
+@public_router.get(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}",
+    response_model=ApiResponse[PublicPostDetail],
+)
+async def get_public_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    board = await board_service.open_public_board(db, tenant_slug, board_slug)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    found = await board_service.get_public_post(db, board, post_id)
+    if found is None:
+        raise _not_found(MSG_POST_NOT_FOUND)
+    post, prev_id, next_id = found
+    return ApiResponse.ok(
+        PublicPostDetail(
+            id=post.id,
+            title=post.title,
+            is_pinned=post.is_pinned,
+            published_at=post.published_at,  # type: ignore[arg-type]
+            body=post.body,  # type: ignore[arg-type]
+            prev_id=prev_id,
+            next_id=next_id,
+        )
+    )

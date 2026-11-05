@@ -8,6 +8,7 @@ import type { ComponentType } from 'react'
 import type { SectionType, TemplateManifest } from '@cms/types'
 import type { PublicSection, PublicSite } from '@/lib/publicSite.types'
 import type { MemberPageKey } from '../memberPages'
+import type { PublicPostList } from '@cms/types'
 import type { MenuOverride } from '@/lib/menuSettings'
 
 /** 템플릿 섹션 컴포넌트가 받는 props */
@@ -39,6 +40,8 @@ export interface CodeTemplateProps {
    * /{slug}/preview?{query}&page={key} 로 만들어 미리보기 안에서 이동한다
    */
   previewQuery?: string
+  /** 메인 최신 공지의 실제 글 (T-139) — 없으면 섹션의 샘플 글 */
+  latestNotices?: PublicPostList | null
   /** 게시판 상세·글쓰기 ('{글 id}' | 'write') — /{slug}/{page}/{id} */
   detailId?: string
   /** 목록 검색어(q) · 페이지(p) */
