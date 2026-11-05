@@ -66,18 +66,18 @@ async def _menu_candidates(
 ) -> tuple[str, list[tuple[str, str]]]:
     """지금 템플릿의 기본 메뉴 [(key, 이름)].
 
-    코드형은 템플릿 페이지(menu.json) + 사용 중인 새 게시판, 테마형은 노출 중인 홈 섹션.
+    코드형은 템플릿 페이지(menu.json), 테마형은 노출 중인 홈 섹션. 뒤에 새 게시판.
     """
+    boards = [
+        (board_menu_key(b["id"]), b["name"])
+        for b in await board_service.list_public_boards(db, tenant_id)
+    ]
     override = await template_service.get_current_override(db, tenant_id)
     template = await db.get(Template, override.template_id) if override else None
     if template and template.renderer == "code" and template.code:
         pages = load_menu(template.code)
         if pages:
-            boards = await board_service.list_public_boards(db, tenant_id)
-            return "code", [
-                *((p["key"], p["title"]) for p in pages),
-                *((board_menu_key(b["id"]), b["name"]) for b in boards),
-            ]
+            return "code", [*((p["key"], p["title"]) for p in pages), *boards]
     result = await db.execute(
         select(Section)
         .where(
@@ -89,7 +89,7 @@ async def _menu_candidates(
         )
         .order_by(Section.display_order)
     )
-    return "theme", [(str(sec.id), sec.label) for sec in result.scalars()]
+    return "theme", [*((str(sec.id), sec.label) for sec in result.scalars()), *boards]
 
 
 def _merge(
@@ -160,7 +160,7 @@ async def update_menu(
 async def hide_board_from_menu(db: AsyncSession, board: Board) -> None:
     """메뉴에서 숨긴다. 지금 메뉴를 통째로 저장해 다른 메뉴의 기본 순서를 유지한다.
 
-    후보가 아니면(테마형 · 사용 안 함) 할 일이 없다.
+    후보가 아니면(사용 안 함) 할 일이 없다.
     """
     key = board_menu_key(board.id)
     menu = await get_menu(db, board.tenant_id)

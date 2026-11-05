@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
-import { NOT_SHOWN_YET, boardTypeLabel } from '@/lib/boardLabels'
+import { boardTypeLabel } from '@/lib/boardLabels'
 
 /** 게시판 목록 (BM-01, 게시판 모듈 기획서 4장) */
 export function BoardsPage() {
@@ -23,8 +23,6 @@ export function BoardsPage() {
     const target = boards?.find((b) => b.slug === writeKey)
     if (target) navigate(`/admin/boards/${target.id}/posts/new`, { replace: true })
   }, [boards, writeKey, navigate])
-
-  const hasCustomBoard = boards?.some((b) => b.system_key === null)
 
   return (
     <div className="space-y-5 p-6 md:p-8">
@@ -68,9 +66,6 @@ export function BoardsPage() {
           </Link>
         </p>
       )}
-      {hasCustomBoard && isTheme && (
-        <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{NOT_SHOWN_YET}</p>
-      )}
 
       {boardsQuery.isLoading && (
         <div className="h-20 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
@@ -95,6 +90,11 @@ export function BoardsPage() {
                 <span className="min-w-0">
                   <span className="font-medium text-slate-900">{board.name}</span>
                   <span className="ml-2 text-xs text-slate-500">{boardTypeLabel(board.board_type)}</span>
+                  {isTheme && board.system_key !== null && (
+                    <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
+                      지금 템플릿에는 표시되지 않습니다
+                    </span>
+                  )}
                   {board.status === 'INACTIVE' && (
                     <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">사용 안 함</span>
                   )}

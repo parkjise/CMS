@@ -1,10 +1,11 @@
-import type { BoardType, PublicBoard } from '@cms/types'
-import { fetchPublicPost, fetchPublicPosts, postDate } from '@/lib/publicPosts'
+import type { PublicBoard } from '@cms/types'
+import { loadBoardPage } from '@/lib/boardRoute'
+import { fetchPublicPost, postDate } from '@/lib/publicPosts'
 import { BoardBody } from './BoardBody'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { dotDate } from './format'
-import { NOTICE_PAGE_SIZE, NoticeDetailView, NoticeListView } from './NoticeBoard'
+import { NoticeDetailView, NoticeListView } from './NoticeBoard'
 
 interface CustomBoardProps {
   board: PublicBoard
@@ -16,7 +17,6 @@ interface CustomBoardProps {
   searchTarget: SearchTarget
 }
 
-const PAGE_SIZE: Record<BoardType, number> = { LIST: NOTICE_PAGE_SIZE, GALLERY: 12, FAQ: 20 }
 const EMPTY_TEXT = '등록된 글이 없습니다.'
 
 /** 고객이 추가한 게시판 — 유형별 목록 + 공통 상세 (게시판 모듈 기획서 5.3 · 7장, T-140-B) */
@@ -45,16 +45,7 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
     )
   }
 
-  const size = PAGE_SIZE[board.board_type]
-  const keyword = (q ?? '').trim()
-  const load = (p: number) => fetchPublicPosts(tenantSlug, board.slug, { page: p, size, q: keyword || undefined })
-  let list = await load(page)
-  const total = list?.total ?? 0
-  const totalPages = Math.max(1, Math.ceil(total / size))
-  // 지난 주소의 페이지가 사라졌으면 마지막 페이지로
-  if (page > totalPages) list = (await load(totalPages)) ?? list
-  const current = Math.min(page, totalPages)
-  const posts = list?.items ?? []
+  const { posts, total, page: current, totalPages, keyword } = await loadBoardPage(tenantSlug, board, { page, q })
   const searchLabel = `${board.name} 검색`
 
   if (board.board_type === 'LIST') {

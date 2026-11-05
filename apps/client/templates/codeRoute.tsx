@@ -16,6 +16,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
+import { resolveBoardRoute } from '@/lib/boardRoute'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
@@ -68,24 +69,18 @@ async function resolveBoard(
   entry: CodeTemplateEntry,
   params: CodeRouteParams,
 ): Promise<Resolution> {
-  const [, boardSlug, postId, ...extra] = params.path ?? []
-  if (!boardSlug || extra.length > 0) return null
   const site = await fetchPublicSite(params.tenant_slug)
   if (!site) return null
   if (!usesTemplate(entry, site)) return SWITCHING
-  const board = site.boards?.find((b) => b.slug === boardSlug)
-  if (!board) return null
-  const detailId = postId ? decodeURIComponent(postId) : undefined
-  // 없는 글 · 비공개 글은 화면을 그리기 전에 404
-  const post = detailId ? await fetchPublicPost(params.tenant_slug, board.slug, detailId) : null
-  if (detailId && !post) return null
+  const route = await resolveBoardRoute(site, params.tenant_slug, (params.path ?? []).slice(1))
+  if (!route) return null
   return {
     site,
-    pageKey: boardPageKey(board.slug),
-    detailId,
-    pageTitle: board.name,
-    board,
-    postTitle: post?.title,
+    pageKey: boardPageKey(route.board.slug),
+    detailId: route.detailId,
+    pageTitle: route.board.name,
+    board: route.board,
+    postTitle: route.post?.title,
   }
 }
 

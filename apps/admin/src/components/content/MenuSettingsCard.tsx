@@ -54,7 +54,7 @@ export function MenuSettingsCard() {
       </h2>
       <p className="text-sm text-slate-500">
         홈페이지 맨 위 메뉴에 보일 이름과 보이기를 정해요. 비워 둔 이름은 기본 이름을 씁니다.
-        {reorderable ? '' : ' 메뉴 순서는 섹션 순서를 따라요 — 섹션 관리 탭에서 끌어서 바꾸세요.'}
+        {reorderable ? '' : ' 메뉴 순서는 섹션 순서를 따라요 — 섹션 관리 탭에서 끌어서 바꾸세요. 게시판은 섹션 뒤에 붙어요.'}
       </p>
 
       {items.length === 0 ? (

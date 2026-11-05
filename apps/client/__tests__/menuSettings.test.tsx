@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, within } from '@testing-library/react'
 import { Navbar } from '@/components/layout/Navbar'
 import { applyMenu } from '@/lib/menuSettings'
@@ -78,6 +78,77 @@ describe('테마형 상단 메뉴', () => {
     fireEvent.click(screen.getByRole('button', { name: '메뉴 열기' }))
     expect(screen.getAllByRole('button', { name: '병원 소개' })).toHaveLength(2)
     expect(screen.queryByRole('button', { name: '갤러리' })).not.toBeInTheDocument()
+  })
+})
+
+describe('테마형 상단 메뉴 — 새 게시판 (T-141)', () => {
+  const boards = [
+    { id: 'b1', name: '병원 소식', slug: 'news', description: '', board_type: 'LIST' as const },
+    { id: 'b2', name: '사진첩', slug: 'photos', description: '', board_type: 'GALLERY' as const },
+  ]
+  const desktop = () => screen.getByRole('navigation', { name: '페이지 내 섹션' })
+
+  it('메인: 섹션은 스크롤 버튼, 게시판은 섹션 뒤에 링크', () => {
+    render(<Navbar tenantName="OO" sections={[section('s1', '소개')]} site={{ slug: 'demo', boards }} />)
+    expect(within(desktop()).getByRole('button', { name: '소개' })).toBeInTheDocument()
+    expect(within(desktop()).getAllByRole('link').map((a) => a.getAttribute('href'))).toEqual([
+      '/demo/b/news',
+      '/demo/b/photos',
+    ])
+    expect(within(desktop()).getAllByRole('listitem')[0]).toHaveTextContent('소개')
+  })
+
+  it('이름 · 숨기기 설정이 반영된다', () => {
+    render(
+      <Navbar
+        tenantName="OO"
+        sections={[]}
+        site={{ slug: 'demo', boards }}
+        menuItems={[
+          { key: 'board:b1', label: '새 소식', visible: true },
+          { key: 'board:b2', label: null, visible: false },
+        ]}
+      />,
+    )
+    expect(within(desktop()).getAllByRole('link').map((a) => a.textContent)).toEqual(['새 소식'])
+  })
+
+  it('게시판 화면: 섹션 메뉴 · 로고는 메인으로 가는 링크', () => {
+    render(
+      <Navbar tenantName="OO" sections={[section('s1', '소개')]} site={{ slug: 'demo', boards, subPage: true }} />,
+    )
+    expect(within(desktop()).getByRole('link', { name: '소개' })).toHaveAttribute('href', '/demo#section-s1')
+    expect(screen.getByRole('link', { name: 'OO 홈으로 이동' })).toHaveAttribute('href', '/demo')
+  })
+
+  it('고객 도메인이면 주소에 slug 가 없다', () => {
+    vi.stubGlobal('location', { ...window.location, hostname: 'www.oo.com', hash: '' })
+    render(
+      <Navbar tenantName="OO" sections={[section('s1', '소개')]} site={{ slug: 'demo', boards, subPage: true }} />,
+    )
+    expect(within(desktop()).getByRole('link', { name: '소개' })).toHaveAttribute('href', '/#section-s1')
+    expect(within(desktop()).getByRole('link', { name: '병원 소식' })).toHaveAttribute('href', '/b/news')
+    expect(screen.getByRole('link', { name: 'OO 홈으로 이동' })).toHaveAttribute('href', '/')
+    vi.unstubAllGlobals()
+  })
+
+  it('메인에 #section- 으로 들어오면 그 섹션으로 내려간다', () => {
+    const target = document.createElement('div')
+    target.dataset.sectionId = 's1'
+    target.scrollIntoView = vi.fn()
+    document.body.append(target)
+    window.location.hash = '#section-s1'
+    render(<Navbar tenantName="OO" sections={[section('s1', '소개')]} site={{ slug: 'demo' }} />)
+    expect(target.scrollIntoView).toHaveBeenCalled()
+    window.location.hash = ''
+    target.remove()
+  })
+
+  it('휴대폰 메뉴에도 게시판이 있다', () => {
+    render(<Navbar tenantName="OO" sections={[]} site={{ slug: 'demo', boards }} />)
+    fireEvent.click(screen.getByRole('button', { name: '메뉴 열기' }))
+    const mobile = screen.getByRole('navigation', { name: '모바일 섹션 메뉴' })
+    expect(within(mobile).getByRole('link', { name: '사진첩' })).toHaveAttribute('href', '/demo/b/photos')
   })
 })
 

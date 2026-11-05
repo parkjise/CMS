@@ -111,10 +111,10 @@ describe('사이트맵 (T-140-C)', () => {
     expect(urls.join()).not.toContain('gone')
   })
 
-  it('테마형은 메인 주소만', async () => {
+  it('테마형은 페이지 · 공지 없이 메인과 새 게시판 · 글만 (T-141)', async () => {
     fetchPublicSite.mockResolvedValue(site({ template: { renderer: 'theme', code: 'X' } as PublicSite['template'] }))
-    fetchSitemapPosts.mockResolvedValue([post('news', 'p1')])
-    expect((await locs()).urls).toEqual([BASE])
+    fetchSitemapPosts.mockResolvedValue([post('news', 'p1'), post('notice', 'n1', true)])
+    expect((await locs()).urls).toEqual([BASE, `${BASE}/b/news`, `${BASE}/b/news/p1`])
   })
 
   it('글 조회가 실패해도 메인 · 페이지는 나온다', async () => {
