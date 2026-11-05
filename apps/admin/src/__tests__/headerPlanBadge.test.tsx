@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { MemoryRouter } from 'react-router'
 import { render, screen } from '@testing-library/react'
 import type { Subscription } from '@/hooks/useBilling'
 import { useAuthStore } from '@/stores/authStore'
@@ -39,21 +40,33 @@ describe('Header 요금제 배지', () => {
     ['PREMIUM', 'Premium'],
   ])('%s → %s', (plan, label) => {
     useSubscription.mockReturnValue({ data: sub({ plan_type: plan }) })
-    render(<Header />)
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    )
     expect(screen.getByLabelText(`현재 요금제 ${label}`)).toHaveTextContent(label)
   })
 
   it('무료 체험 중이면 함께 표시', () => {
     useSubscription.mockReturnValue({ data: sub({ plan_type: 'STANDARD', status: 'TRIAL' }) })
-    render(<Header />)
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    )
     expect(screen.getByLabelText('현재 요금제 Standard 무료 체험 중')).toHaveTextContent(
-      'Standard · 체험 중',
+      'Standard · 체험 중'
     )
   })
 
   it('구독 정보가 없으면(로딩 · 오류) 배지를 숨긴다', () => {
     useSubscription.mockReturnValue({ data: null })
-    render(<Header />)
+    render(
+      <MemoryRouter>
+        <Header />
+      </MemoryRouter>
+    )
     expect(screen.queryByLabelText(/현재 요금제/)).toBeNull()
     expect(screen.queryByText('Free')).toBeNull()
   })

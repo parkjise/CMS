@@ -44,7 +44,7 @@ export function KeywordTagInput({
 
   return (
     <div
-      className={`rounded-md border border-slate-300 p-2 ${disabled ? 'bg-slate-50' : 'bg-white'}`}
+      className={`admin-form-control rounded-md border border-slate-300 p-2 ${disabled ? 'bg-slate-50' : 'bg-white'}`}
     >
       <div className="flex flex-wrap items-center gap-1.5">
         {keywords.map((kw, idx) => (

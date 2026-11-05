@@ -25,7 +25,7 @@ export function VisitorLinePlot({ data }: { data: VisitorLinePoint[] }) {
         <YAxis stroke="#64748b" fontSize={12} allowDecimals={false} />
         <Tooltip
           contentStyle={{
-            borderRadius: '6px',
+            borderRadius: '10px',
             border: '1px solid #e2e8f0',
             fontSize: '12px',
           }}
@@ -35,7 +35,7 @@ export function VisitorLinePlot({ data }: { data: VisitorLinePoint[] }) {
           type="monotone"
           dataKey="page_views"
           name="페이지뷰"
-          stroke="#2563eb"
+          stroke="var(--color-blue-600, #003866)"
           strokeWidth={2}
           dot={{ r: 3 }}
         />
@@ -43,7 +43,7 @@ export function VisitorLinePlot({ data }: { data: VisitorLinePoint[] }) {
           type="monotone"
           dataKey="unique_visitors"
           name="순방문자"
-          stroke="#10b981"
+          stroke="#8b5cf6"
           strokeWidth={2}
           dot={{ r: 3 }}
         />

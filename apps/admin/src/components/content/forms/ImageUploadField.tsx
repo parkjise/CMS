@@ -83,7 +83,7 @@ export function ImageUploadField({
             setDragOver(false)
             if (!uploading) void handleFile(e.dataTransfer.files[0])
           }}
-          className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm transition ${
+          className={`flex cursor-pointer flex-col items-center justify-center gap-1 admin-form-control rounded-lg border-2 border-dashed px-4 py-6 text-center text-sm transition ${
             dragOver
               ? 'border-blue-500 bg-blue-50 text-blue-700'
               : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-slate-300'

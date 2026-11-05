@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
-import { ChevronDown, X, ExternalLink, LayoutDashboard, ClipboardList, FileText, Share2, MessageSquare, Search, Layers, BarChart3, CreditCard, LogOut, Sparkles } from 'lucide-react'
+import { ChevronDown, X, ExternalLink, LogOut, Layers } from 'lucide-react'
+import { ADMIN_NAVIGATION } from './navigation'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavBadge, useNavVisibility } from '@/lib/navItems'
@@ -20,27 +21,6 @@ interface NavItem {
   children?: NavChild[]
 }
 
-const NAV_ITEMS: NavItem[] = [
-  { to: '/admin/dashboard', icon: LayoutDashboard, label: '대시보드' },
-  { to: '/admin/content', icon: FileText, label: '콘텐츠 편집' },
-  { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
-  {
-    to: '/admin/boards',
-    icon: ClipboardList,
-    label: '게시판 관리',
-    children: [
-      { to: '/admin/boards', label: '게시판 목록' },
-      { to: '/admin/posts', label: '전체 글' },
-    ],
-  },
-  { to: '/admin/inquiries', icon: MessageSquare, label: '문의 관리' },
-  { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
-  { to: '/admin/templates', icon: Layers, label: '템플릿' },
-  { to: '/admin/analytics', icon: BarChart3, label: '방문자 분석' },
-  { to: '/admin/reports', icon: Sparkles, label: '월간 리포트' },
-  { to: '/admin/billing', icon: CreditCard, label: '요금제' },
-]
-
 interface SidebarProps {
   onClose?: () => void
 }
@@ -48,7 +28,9 @@ interface SidebarProps {
 const itemClass = (isActive: boolean) =>
   [
     'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors',
-    isActive ? 'bg-blue-50 text-blue-700' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+    isActive
+      ? 'bg-blue-50 text-blue-700'
+      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   ].join(' ')
 
 interface NavGroupProps {
@@ -80,7 +62,11 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
       >
         <Icon size={18} aria-hidden="true" />
         <span className="flex-1 text-left">{item.label}</span>
-        <ChevronDown size={16} aria-hidden="true" className={`transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          size={16}
+          aria-hidden="true"
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+        />
       </button>
       {open && (
         <ul id={listId} className="mt-0.5 space-y-0.5">
@@ -116,7 +102,7 @@ export function Sidebar({ onClose }: SidebarProps) {
   const badgeOf = useNavBadge()
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
-  const visibleItems = NAV_ITEMS.filter(({ to }) => isVisible(to))
+  const visibleItems = ADMIN_NAVIGATION.filter(({ to }) => isVisible(to))
 
   const handleLogout = async () => {
     await logout()
@@ -124,10 +110,18 @@ export function Sidebar({ onClose }: SidebarProps) {
   }
 
   return (
-    <aside className="w-60 flex flex-col h-full bg-white border-r border-slate-200">
+    <aside className="admin-sidebar w-64 flex flex-col h-full min-h-0 bg-white border-r border-slate-200">
       {/* Logo */}
       <div className="h-16 flex items-center justify-between px-6 border-b border-slate-100 shrink-0">
-        <span className="text-lg font-bold text-blue-600">CMS Admin</span>
+        <div className="flex items-center gap-3">
+          <span className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-white">
+            <Layers size={21} />
+          </span>
+          <div>
+            <span className="text-lg font-bold tracking-tight text-blue-600">CMS</span>
+            <p className="text-[10px] tracking-widest text-slate-400">TENANT ADMIN</p>
+          </div>
+        </div>
         {onClose && (
           <button
             onClick={onClose}
@@ -140,10 +134,14 @@ export function Sidebar({ onClose }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-0.5">
+      <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-1">
+        <p className="mb-3 px-3 text-[10px] font-semibold tracking-widest text-slate-400">
+          WORKSPACE
+        </p>
         {visibleItems.map((item) => {
           const { to, icon: Icon, label, children } = item
-          if (children) return <NavGroup key={to} item={item} children={children} onNavigate={onClose} />
+          if (children)
+            return <NavGroup key={to} item={item} children={children} onNavigate={onClose} />
           const badge = badgeOf(to)
           return (
             <NavLink
@@ -178,8 +176,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             rel="noopener noreferrer"
             className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-blue-600 hover:bg-blue-50 transition-colors"
           >
-            <ExternalLink size={16} aria-hidden="true" />
-            내 홈페이지 바로가기
+            <ExternalLink size={16} aria-hidden="true" />내 홈페이지 바로가기
           </a>
         )}
         <div className="px-3 py-1">
