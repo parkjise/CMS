@@ -1217,6 +1217,7 @@ TASK.md에서 T-XXX를 [x]로 체크하고 완료 선언해줘.
 |---|---|
 | 전체 기획·API 스펙 | `docs/CMS_Admin_Specification_v1.5.md` |
 | 게시판 관리 모듈 기획 | `docs/CMS_Board_Module_Spec_v1.1.md` |
+| 게시판 관리 작업 목록 · 시작 안내 | `TASK.md` Phase 18 |
 | 개발 태스크 목록 | `TASK.md` |
 | 환경변수 목록 | `apps/backend/.env.example` |
 | DB 마이그레이션 | `apps/backend/alembic/versions/` |
