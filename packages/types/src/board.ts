@@ -62,9 +62,20 @@ export interface BoardField {
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
 export type BodyNode = BodyBlock | RichNode
 
-export type BoardType = 'LIST' | 'GALLERY' | 'FAQ'
+export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
+
+/** 게시판 디자인 (T-148) — 유형에 맞는 값만 화면에 쓴다 */
+export interface BoardDesign {
+  columns: 2 | 3 | 4
+  image_ratio: '1:1' | '4:3' | '16:9'
+  show_date: boolean
+  show_image: boolean
+  show_summary: boolean
+  faq_single_open: boolean
+  faq_first_open: boolean
+}
 
 export interface Board {
   id: string
@@ -84,6 +95,7 @@ export interface Board {
   seo_title: string
   seo_description: string
   seo_index: boolean
+  design: BoardDesign
 }
 
 /** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */
@@ -146,6 +158,7 @@ export interface PublicBoard {
   seo_title?: string
   seo_description?: string
   seo_index?: boolean
+  design?: BoardDesign
 }
 
 export interface PublicPostItem {
@@ -157,6 +170,9 @@ export interface PublicPostItem {
   thumbnail?: string | null
   /** FAQ 게시판 목록에만 — 답변을 펼쳐 보여 준다 */
   body?: BodyNode[] | null
+  /** 카드형 목록에만 */
+  summary?: string | null
+  card_fields?: PublicFieldValue[] | null
 }
 
 export interface PublicPostList {

@@ -1,6 +1,10 @@
 import '@testing-library/jest-dom/vitest'
+import { configure } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll } from 'vitest'
 import { server } from './server'
+
+// CI 는 로컬보다 몇 배 느려 기본 1초면 첫 화면을 못 찾을 때가 있다
+configure({ asyncUtilTimeout: 5000 })
 
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }))
 afterEach(() => server.resetHandlers())

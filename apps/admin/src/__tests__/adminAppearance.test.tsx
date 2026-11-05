@@ -129,6 +129,7 @@ describe('tenant admin appearance', () => {
     ['/admin/boards/b1/settings', ['게시판 관리', '게시판 설정']],
     ['/admin/boards/b1/connection', ['게시판 관리', '홈페이지 연결']],
     ['/admin/boards/b1/fields', ['게시판 관리', '필드 관리']],
+    ['/admin/boards/b1/design', ['게시판 관리', '게시판 디자인']],
     ['/admin/boards/b1/posts', ['게시판 관리', '게시글 목록']],
     ['/admin/boards/trash', ['게시판 관리', '휴지통']],
     ['/admin/content/section1', ['콘텐츠 편집', '섹션 편집']],
