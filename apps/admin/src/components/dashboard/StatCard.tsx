@@ -25,7 +25,7 @@ export function StatCard({
   accent = 'blue',
 }: StatCardProps) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+    <div className={`admin-stat-card rounded-xl border p-5 stat-${accent}`}>
       <div className="mb-3 flex items-center justify-between">
         <span className="text-sm font-medium text-slate-500">{title}</span>
         {Icon && (
@@ -39,12 +39,12 @@ export function StatCard({
       {isLoading ? (
         <div className="h-8 w-24 animate-pulse rounded bg-slate-200" />
       ) : (
-        <div className="text-2xl font-bold text-slate-900">
+        <div className="text-[28px] font-bold tracking-tight text-slate-900">
           {typeof value === 'number' ? value.toLocaleString() : value}
         </div>
       )}
       {secondary && !isLoading && (
-        <p className="mt-1 text-xs text-slate-500">{secondary}</p>
+        <p className="mt-4 border-t border-current/10 pt-3 text-xs text-slate-500">{secondary}</p>
       )}
       {secondary && isLoading && (
         <div className="mt-2 h-3 w-32 animate-pulse rounded bg-slate-100" />

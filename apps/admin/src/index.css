@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 /* 공통 컴포넌트의 클래스도 생성 — 없으면 Toggle 트랙 폭이 0 (T-139) */
 @source "../../../packages/ui/src";
 
@@ -34,4 +34,338 @@
     background-color: var(--color-surface);
     -webkit-font-smoothing: antialiased;
   }
+}
+
+/* Tenant admin palette, matched to Liner's default Navy preset. Kept in this
+   app so the public site and superadmin retain their own design systems. */
+:root[data-tenant-theme] {
+  --color-blue-50: #f0f7ff;
+  --color-blue-100: #dcecff;
+  --color-blue-200: #b8d7f5;
+  --color-blue-300: #83b6e0;
+  --color-blue-400: #4c91c2;
+  --color-blue-500: #146092;
+  --color-blue-600: #003866;
+  --color-blue-700: #002e55;
+  --color-blue-800: #002744;
+  --color-blue-900: #001f38;
+  --admin-surface: #ffffff;
+  --admin-canvas: #fafbfc;
+  --admin-border: #e5e7eb;
+  --admin-muted: #94a3b8;
+  --color-primary: #003866;
+  --color-primary-hover: #002e55;
+  --color-background: #ffffff;
+  --color-surface: #fafbfc;
+  --color-border: #e5e7eb;
+  --color-text-primary: #1e293b;
+  --color-text-secondary: #64748b;
+}
+
+:root[data-tenant-theme='dark'] {
+  color-scheme: dark;
+  --admin-surface: #1e293b;
+  --admin-canvas: #0f172a;
+  --admin-border: #334155;
+  --admin-muted: #94a3b8;
+  --color-slate-50: #0f172a;
+  --color-slate-100: #263449;
+  --color-slate-200: #334155;
+  --color-slate-300: #475569;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #a3b1c5;
+  --color-slate-600: #b7c4d6;
+  --color-slate-700: #cbd5e1;
+  --color-slate-800: #e2e8f0;
+  --color-slate-900: #f1f5f9;
+  --color-slate-950: #f8fafc;
+  --color-blue-50: #16324c;
+  --color-blue-100: #1c4160;
+  --color-blue-200: #295576;
+  --color-blue-400: #7ab5dc;
+  --color-blue-600: #7ab5dc;
+  --color-blue-700: #a3ccec;
+  --color-blue-800: #c0def5;
+  --color-blue-900: #d9edff;
+  --color-primary: #7ab5dc;
+  --color-primary-hover: #a3ccec;
+  --color-background: #1e293b;
+  --color-surface: #0f172a;
+  --color-border: #334155;
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #a3b1c5;
+  --color-emerald-50: #10392f;
+  --color-emerald-100: #164c3e;
+  --color-emerald-600: #34d399;
+  --color-emerald-700: #6ee7b7;
+  --color-amber-50: #3b3019;
+  --color-amber-100: #55421c;
+  --color-amber-600: #fbbf24;
+  --color-amber-700: #fcd34d;
+  --color-amber-800: #fde68a;
+  --color-amber-900: #fef3c7;
+  --color-emerald-800: #a7f3d0;
+  --color-emerald-900: #d1fae5;
+  --color-rose-50: #402332;
+  --color-rose-100: #572b3b;
+  --color-rose-600: #fb7185;
+  --color-rose-700: #fda4af;
+  --color-red-50: #40252c;
+  --color-red-100: #572c34;
+  --color-red-700: #fca5a5;
+  --color-red-800: #fecaca;
+  --color-indigo-50: #282b48;
+  --color-indigo-100: #343759;
+  --color-indigo-700: #a5b4fc;
+  --color-indigo-800: #c7d2fe;
+}
+
+[data-tenant-theme] body {
+  background: var(--admin-canvas);
+}
+[data-tenant-theme] .bg-white {
+  background-color: var(--admin-surface);
+}
+[data-tenant-theme='dark']
+  :is(.bg-blue-600, .bg-blue-700, .bg-emerald-600, .bg-amber-600, .bg-rose-600) {
+  color: #0f172a;
+}
+.tenant-admin {
+  background: var(--admin-canvas);
+  font-family: Inter, 'Noto Sans KR', system-ui, sans-serif;
+}
+.admin-content {
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.admin-content > :last-child {
+  min-height: 100%;
+}
+.admin-header {
+  z-index: 20;
+}
+.admin-sidebar nav {
+  scrollbar-width: thin;
+}
+.admin-sidebar {
+  flex-shrink: 0;
+}
+.admin-icon-button {
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  color: var(--color-slate-600);
+  cursor: pointer;
+  transition:
+    background-color 0.15s,
+    color 0.15s;
+}
+.admin-icon-button:hover {
+  background: var(--color-slate-100);
+  color: var(--color-blue-600);
+}
+.admin-icon-button:focus-visible,
+.admin-setting-option:focus-visible {
+  outline: 2px solid var(--color-blue-600);
+  outline-offset: 3px;
+}
+.admin-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #003866;
+  color: white;
+  font-size: 11px;
+  font-weight: 600;
+}
+.admin-dialog {
+  padding: 0;
+  border: 1px solid var(--admin-border);
+  border-radius: 14px;
+  color: var(--color-text-primary);
+  background: var(--admin-surface);
+  width: min(560px, calc(100% - 32px));
+  max-height: calc(100dvh - 48px);
+  margin: 8dvh auto auto;
+  box-shadow: 0 24px 80px #0003;
+}
+.admin-dialog::backdrop {
+  background: #0f172a66;
+  backdrop-filter: blur(3px);
+}
+.admin-dialog-drawer {
+  width: min(380px, 100%);
+  max-height: 100dvh;
+  height: 100dvh;
+  margin: 0 0 0 auto;
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+}
+.admin-dialog:has(.admin-sidebar) > div > div:last-child {
+  padding: 0;
+  flex: 1;
+}
+.admin-dialog .admin-sidebar {
+  width: 100%;
+  border: 0;
+}
+.admin-setting-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--color-slate-500);
+  cursor: pointer;
+}
+.admin-setting-option.is-selected {
+  border-color: var(--color-blue-600);
+  background: var(--color-blue-50);
+  color: var(--color-blue-600);
+  box-shadow: 0 0 0 1px var(--color-blue-600);
+}
+/* Existing subpages and portal-based forms share the same cards and controls. */
+.tenant-admin
+  main
+  :is(.rounded-lg, .rounded-xl).border.bg-white:not(
+    input,
+    textarea,
+    select,
+    button,
+    [role='button'],
+    [contenteditable='true'],
+    .admin-form-control
+  ) {
+  border-radius: 12px;
+  border-color: var(--admin-border);
+  box-shadow: 0 1px 2px #0f172a03;
+}
+.tenant-admin main h1 {
+  letter-spacing: -0.035em;
+  font-size: 24px;
+  font-weight: 650;
+}
+[data-tenant-theme] :is(input, textarea, select) {
+  accent-color: var(--color-blue-600);
+}
+[data-tenant-theme='dark']
+  :is(input, textarea, select):not([type='checkbox']):not([type='radio']):not([type='range']):not(
+    [type='color']
+  ) {
+  background-color: var(--admin-surface);
+  color: var(--color-text-primary);
+}
+[data-tenant-theme='dark'] .recharts-default-tooltip {
+  background: var(--admin-surface) !important;
+  color: var(--color-text-primary);
+}
+[data-tenant-theme='dark'] .recharts-cartesian-axis-tick-value {
+  fill: #94a3b8;
+}
+[data-tenant-theme='dark'] .recharts-cartesian-grid line {
+  stroke: #334155;
+}
+@media (max-width: 767px) {
+  .admin-header {
+    gap: 4px;
+    padding-inline: 10px;
+  }
+  .admin-header .admin-icon-button {
+    width: 32px;
+  }
+  .admin-content > :last-child {
+    padding: 20px 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tenant-admin *,
+  .admin-dialog * {
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+.admin-stat-card.stat-blue {
+  background: var(--color-blue-50);
+  border-color: var(--color-blue-100);
+}
+.admin-stat-card.stat-emerald {
+  background: var(--color-emerald-50);
+  border-color: var(--color-emerald-100);
+}
+.admin-stat-card.stat-amber {
+  background: var(--color-amber-50);
+  border-color: var(--color-amber-100);
+}
+.admin-stat-card.stat-rose {
+  background: var(--color-rose-50);
+  border-color: var(--color-rose-100);
+}
+
+@layer components {
+  .admin-icon-button {
+    display: inline-flex;
+  }
+}
+
+[data-tenant-theme='dark'] .bg-slate-900.text-white {
+  color: #0f172a;
+}
+[data-tenant-theme='dark'] .bg-slate-900\/55 {
+  background-color: rgb(15 23 42 / 70%);
+}
+[data-tenant-theme='dark'] .bg-white\/70 {
+  background-color: rgb(30 41 59 / 70%);
+}
+
+/* Portaled outside the scrolling rail so flyouts remain visible over content. */
+.admin-sidebar-flyout {
+  position: fixed;
+  z-index: 50;
+  width: 236px;
+  padding-left: 20px;
+  color: var(--color-text-primary);
+  font-family: Inter, 'Noto Sans KR', system-ui, sans-serif;
+}
+
+/* Shared form radius also covers controls rendered in portal-based modals. */
+[data-tenant-theme] {
+  --admin-radius-control: 4px;
+}
+[data-tenant-theme]
+  :is(
+    input:not([type='radio']):not([type='range']),
+    textarea,
+    select,
+    [contenteditable='true'],
+    .admin-form-control,
+    [role='button'].border-dashed,
+    button.inline-flex:not(.rounded-full),
+    button[type='submit']
+  ) {
+  border-radius: var(--admin-radius-control);
+}
+
+/* Keep select labels clear of the inset arrow. */
+[data-tenant-theme] select:not([multiple]):not([size]) {
+  padding-right: 36px;
+}
+[data-tenant-theme] select:not(.appearance-none):not([multiple]):not([size]) {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+[data-tenant-theme='dark'] select:not(.appearance-none):not([multiple]):not([size]) {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }

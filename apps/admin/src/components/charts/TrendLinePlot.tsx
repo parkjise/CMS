@@ -24,7 +24,7 @@ export function TrendLinePlot({ data }: { data: VisitorLinePoint[] }) {
           type="monotone"
           dataKey="page_views"
           name="페이지뷰"
-          stroke="#2563eb"
+          stroke="var(--color-blue-600, #003866)"
           strokeWidth={2}
           dot={false}
         />
@@ -32,7 +32,7 @@ export function TrendLinePlot({ data }: { data: VisitorLinePoint[] }) {
           type="monotone"
           dataKey="unique_visitors"
           name="순방문자"
-          stroke="#16a34a"
+          stroke="#8b5cf6"
           strokeWidth={2}
           dot={false}
         />
