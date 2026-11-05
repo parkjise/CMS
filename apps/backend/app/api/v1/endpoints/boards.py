@@ -70,11 +70,15 @@ def _not_found(message: str) -> HTTPException:
 
 def _board_audit(board: Board) -> dict:
     """감사 로그에 남기는 게시판 값 — 본문 · 개인정보 없이."""
+    options = board_service.board_options(board)
     return {
         "name": board.name,
         "slug": board.slug,
         "board_type": board.board_type,
         "status": board.status,
+        "sort_order": options["sort_order"],
+        "page_size": options["page_size"],
+        "seo_index": options["seo_index"],
     }
 
 
@@ -583,7 +587,7 @@ async def list_public_posts(
     tenant_slug: str,
     board_slug: str,
     page: int = Query(default=1, ge=1),
-    size: int = Query(default=10, ge=1, le=50),
+    size: int | None = Query(default=None, ge=1, le=50),
     q: str | None = Query(default=None, max_length=100),
     order: Literal["default", "latest"] = "default",
     db: AsyncSession = Depends(get_db),
@@ -591,6 +595,8 @@ async def list_public_posts(
     board = await board_service.open_public_board(db, tenant_slug, board_slug)
     if board is None:
         raise _not_found(MSG_BOARD_NOT_FOUND)
+    # 크기를 안 보내면 게시판 설정대로 (T-146)
+    size = size or board_service.public_page_size(board)
     posts, total, has_posts = await board_service.list_public_posts(
         db, board, page=page, size=size, q=q, latest=order == "latest"
     )
