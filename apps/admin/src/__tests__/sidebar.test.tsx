@@ -1,13 +1,14 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { useFeatureStore } from '@/stores/featureStore'
 import type { ActiveFeature } from '@/stores/featureStore'
 
-function renderSidebar() {
+function renderSidebar(path = '/') {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[path]}>
       <Sidebar />
     </MemoryRouter>,
   )
@@ -74,5 +75,63 @@ describe('Sidebar 기능 게이팅', () => {
     })
     renderSidebar()
     expect(screen.getByText('NEW')).toBeInTheDocument()
+  })
+})
+
+describe('게시판 관리 2뎁스 메뉴', () => {
+  beforeEach(() => useFeatureStore.getState().reset())
+  afterEach(() => useFeatureStore.getState().reset())
+
+  const group = () => screen.getByRole('button', { name: '게시판 관리' })
+
+  it('다른 화면에서는 접혀 있고, 누르면 하위 메뉴가 나온다 (누르기만 해서는 이동하지 않음)', async () => {
+    renderSidebar('/admin/dashboard')
+    expect(group()).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: '전체 글' })).not.toBeInTheDocument()
+
+    await userEvent.click(group())
+
+    expect(group()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: '게시판 목록' })).toHaveAttribute('href', '/admin/boards')
+    expect(screen.getByRole('link', { name: '전체 글' })).toHaveAttribute('href', '/admin/posts')
+    // 지금 화면은 그대로
+    expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('다시 누르면 접힌다', async () => {
+    renderSidebar('/admin/boards')
+    await userEvent.click(group())
+    expect(group()).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByRole('link', { name: '게시판 목록' })).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['/admin/boards', '게시판 목록'],
+    ['/admin/boards/b1/posts', '게시판 목록'],
+    ['/admin/boards/b1/settings', '게시판 목록'],
+    ['/admin/boards/trash', '게시판 목록'],
+    ['/admin/posts', '전체 글'],
+  ])('%s 에서는 펼친 채 %s 표시', (path, label) => {
+    renderSidebar(path)
+    expect(group()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('하위 메뉴를 고르면 모바일 메뉴 닫기 호출', async () => {
+    const onClose = vi.fn()
+    render(
+      <MemoryRouter initialEntries={['/admin/boards']}>
+        <Sidebar onClose={onClose} />
+      </MemoryRouter>,
+    )
+    await userEvent.click(screen.getByRole('link', { name: '전체 글' }))
+    expect(onClose).toHaveBeenCalled()
+  })
+
+  it('기능이 꺼지면 메뉴째 숨긴다', () => {
+    useFeatureStore.setState({ loaded: true, flags: {}, features: [] })
+    renderSidebar('/admin/dashboard')
+    expect(screen.queryByRole('button', { name: '게시판 관리' })).not.toBeInTheDocument()
+    expect(within(screen.getByRole('navigation')).queryByText('게시판 목록')).not.toBeInTheDocument()
   })
 })
