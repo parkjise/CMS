@@ -692,6 +692,27 @@ class TestChangePolicy:
         assert resp.status_code == 201, resp.text
 
 
+class TestValueCount:
+    async def test_counts_posts_with_values(self, client, auth_headers, board):
+        used = await _field(client, auth_headers, board, label="쓰는 칸")
+        await _field(client, auth_headers, board, label="빈 칸")
+        await _publish(client, auth_headers, board, **{used["field_key"]: "값"})
+        gone = await _publish(client, auth_headers, board, **{used["field_key"]: "값"})
+        await client.delete(f"{board['posts']}/{gone['id']}", headers=auth_headers)
+
+        data = (await client.get(board["fields"], headers=auth_headers)).json()["data"]
+
+        assert {f["label"]: f["value_count"] for f in data} == {
+            "쓰는 칸": 2,
+            "빈 칸": 0,
+        }
+
+    async def test_no_posts(self, client, auth_headers, board):
+        await _field(client, auth_headers, board)
+        data = (await client.get(board["fields"], headers=auth_headers)).json()["data"]
+        assert data[0]["value_count"] == 0
+
+
 class TestDuplicate:
     async def test_copies_fields_not_values(self, client, auth_headers, board):
         field = await _field(

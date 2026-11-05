@@ -217,6 +217,8 @@ class FieldResponse(BaseModel):
     max: float | None
     display_order: int
     deleted_at: datetime | None
+    # 값이 있는 글 수 (휴지통 글 포함) — 목록에서만, 삭제 · 유형 변경 안내용
+    value_count: int = 0
 
 
 class PostCreate(BaseModel):

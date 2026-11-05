@@ -321,7 +321,15 @@ async def list_fields(
     db: AsyncSession = Depends(get_db_with_rls),
 ):
     fields = await field_service.list_fields(db, board.id, deleted=trash)
-    return ApiResponse.ok([_field_response(f) for f in fields])
+    counts = await field_service.value_counts(db, board.id)
+    return ApiResponse.ok(
+        [
+            _field_response(f).model_copy(
+                update={"value_count": counts.get(f.field_key, 0)}
+            )
+            for f in fields
+        ]
+    )
 
 
 @router.post(

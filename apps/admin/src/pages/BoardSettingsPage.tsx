@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router'
-import type { Board, BoardType } from '@cms/types'
-import { Button, Input, Textarea, Toggle, toast } from '@cms/ui'
+import { useNavigate, useParams } from 'react-router'
+import type { Board } from '@cms/types'
+import { Button, Input, Textarea, toast } from '@cms/ui'
+import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoards, useDeleteBoard, useDuplicateBoard, useUpdateBoard } from '@/hooks/useBoards'
-import { BOARD_TYPES, boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 function BoardSettingsForm({ board }: { board: Board }) {
@@ -16,43 +16,29 @@ function BoardSettingsForm({ board }: { board: Board }) {
   const deleteBoard = useDeleteBoard()
   const [name, setName] = useState(board.name)
   const [description, setDescription] = useState(board.description)
-  const [slug, setSlug] = useState(board.slug)
-  const [boardType, setBoardType] = useState<BoardType>(board.board_type)
-  const [active, setActive] = useState(board.status === 'ACTIVE')
-  const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
+  const [nameError, setNameError] = useState<string>()
 
   const isSystem = board.system_key !== null
-  // 사진 없는 글은 갤러리에서 빈 칸으로 보일 수 있다 (D-03)
-  const typeWarning = boardType !== board.board_type && board.post_count > 0
 
   const save = async () => {
-    const next = {
-      name: name.trim() ? undefined : '이름을 입력해주세요.',
-      slug: boardSlugError(slug),
-    }
-    setErrors(next)
-    if (next.name || next.slug) return
+    const error = name.trim() ? undefined : '이름을 입력해주세요.'
+    setNameError(error)
+    if (error) return
     try {
       await updateBoard.mutateAsync({
         id: board.id,
-        payload: {
-          name: name.trim(),
-          description: description.trim(),
-          slug,
-          board_type: boardType,
-          status: active ? 'ACTIVE' : 'INACTIVE',
-        },
+        payload: { name: name.trim(), description: description.trim() },
       })
       toast.success('저장했습니다.')
-    } catch (error) {
-      toast.error(pickErrorMessage(error, '저장하지 못했습니다.'))
+    } catch (err) {
+      toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
     }
   }
 
   const duplicate = async () => {
     try {
       const copy = await duplicateBoard.mutateAsync(board.id)
-      toast.success('설정을 복제했습니다. 글은 복제되지 않습니다.')
+      toast.success('설정과 칸을 복제했습니다. 글은 복제되지 않습니다.')
       navigate(`/admin/boards/${copy.id}/settings`)
     } catch (error) {
       toast.error(pickErrorMessage(error, '복제하지 못했습니다.'))
@@ -72,7 +58,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="mx-auto max-w-2xl space-y-5">
       <form
         className="space-y-5"
         onSubmit={(e) => {
@@ -87,7 +73,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
               required
               maxLength={100}
               value={name}
-              error={errors.name}
+              error={nameError}
               onChange={(e) => setName(e.target.value)}
             />
             <Textarea
@@ -96,50 +82,6 @@ function BoardSettingsForm({ board }: { board: Board }) {
               maxLength={200}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-            />
-            <Input
-              label="주소 이름"
-              maxLength={60}
-              value={slug}
-              error={errors.slug}
-              disabled={isSystem}
-              helperText={
-                isSystem
-                  ? '기본 게시판의 주소는 바꿀 수 없습니다.'
-                  : slug !== board.slug
-                    ? '주소를 바꾸면 이전 주소는 더 이상 열리지 않습니다.'
-                    : undefined
-              }
-              onChange={(e) => setSlug(e.target.value)}
-            />
-            <div>
-              <label htmlFor="board-type" className="mb-1.5 block text-sm font-medium text-slate-700">
-                유형
-              </label>
-              <select
-                id="board-type"
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm disabled:bg-slate-50"
-                value={boardType}
-                disabled={isSystem}
-                onChange={(e) => setBoardType(e.target.value as BoardType)}
-              >
-                {BOARD_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-              {typeWarning && (
-                <p className="mt-1.5 text-sm text-amber-700">
-                  이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수 있습니다.
-                </p>
-              )}
-            </div>
-            <Toggle
-              label="게시판 사용"
-              description="끄면 홈페이지 메뉴에서 빠지고 글이 보이지 않습니다."
-              checked={active}
-              onChange={(e) => setActive(e.target.checked)}
             />
           </div>
         </ReadOnlyFieldset>
@@ -169,20 +111,15 @@ function BoardSettingsForm({ board }: { board: Board }) {
   )
 }
 
-/** 게시판 설정 (BM-03) */
+/** 기본 정보 (BM-03) — 유형 · 주소 · 사용 여부는 홈페이지 연결 탭 */
 export function BoardSettingsPage() {
   const { boardId = '' } = useParams()
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 p-6 md:p-8">
-      <div>
-        <Link to="/admin/boards" className="text-sm text-slate-500 hover:text-slate-700">
-          ← 게시판 관리
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">게시판 설정</h1>
-      </div>
+    <div className="space-y-5 p-6 md:p-8">
+      <BoardDetailHeader boardId={boardId} />
 
       {boardsQuery.isLoading && (
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />

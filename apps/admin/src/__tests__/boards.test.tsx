@@ -61,6 +61,7 @@ const ok = (data: unknown) => Promise.resolve({ data: { data } })
 
 const mockApi = ({ boards = [board], posts = list(), detail }: { boards?: Board[]; posts?: PostList; detail?: Post }) => {
   get.mockImplementation((url: string) => {
+    if (url.endsWith('/fields')) return Promise.resolve({ data: { data: [] } })
     if (url === '/v1/boards') return ok(boards)
     if (url === '/v1/boards/limits') {
       return ok({ plan: 'BASIC', limit: 0, used: 0, can_create: false, reason: '한도' })
@@ -253,6 +254,7 @@ describe('글 작성 · 수정', () => {
 
   it('제목 없이는 저장하지 않는다', async () => {
     renderNew()
+    await screen.findByRole('button', { name: '문단 추가' })
     await userEvent.click(screen.getByRole('button', { name: '공개하기' }))
     expect(await screen.findByText('제목을 입력해주세요.')).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
@@ -261,6 +263,7 @@ describe('글 작성 · 수정', () => {
   it('새 글을 공개하면 글 목록으로 돌아간다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
+    await screen.findByRole('button', { name: '문단 추가' })
     await userEvent.type(screen.getByLabelText(/제목/), '  새 공지 ')
     await userEvent.click(screen.getByRole('button', { name: '문단 추가' }))
     await userEvent.type(screen.getByLabelText('문단 1'), '안내드립니다')
@@ -279,6 +282,7 @@ describe('글 작성 · 수정', () => {
   it('상단 고정을 켜서 보낸다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
+    await screen.findByRole('button', { name: '문단 추가' })
     await userEvent.type(screen.getByLabelText(/제목/), '고정 글')
     await userEvent.click(screen.getByLabelText('상단 고정'))
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
@@ -288,6 +292,7 @@ describe('글 작성 · 수정', () => {
   it('임시저장은 DRAFT 로 보낸다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
+    await screen.findByRole('button', { name: '문단 추가' })
     await userEvent.type(screen.getByLabelText(/제목/), '초안')
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() =>
@@ -298,6 +303,7 @@ describe('글 작성 · 수정', () => {
   it('저장 실패를 알리고 화면에 남는다', async () => {
     post.mockRejectedValue(new Error('x'))
     renderNew()
+    await screen.findByRole('button', { name: '문단 추가' })
     await userEvent.type(screen.getByLabelText(/제목/), '초안')
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() => expect(toastError).toHaveBeenCalled())
