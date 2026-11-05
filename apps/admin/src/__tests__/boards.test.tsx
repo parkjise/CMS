@@ -243,7 +243,7 @@ describe('글 작성 · 수정', () => {
   const renderNew = () =>
     renderAt('/admin/boards/b1/posts/new', <BoardPostEditPage />, '/admin/boards/:boardId/posts/new')
 
-  const detail: Post = { ...item, body: [{ type: 'p', text: '기존 내용' }] }
+  const detail: Post = { ...item, body: [{ type: 'p', text: '기존 내용' }], custom_data: {} }
   const renderEdit = () =>
     renderAt(
       '/admin/boards/b1/posts/p1/edit',

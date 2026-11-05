@@ -32,8 +32,8 @@
 | **Phase 15: 방문자 인증** | **11** | **11** | **100%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **18** | **18** | **100%** |
 | **Phase 17: 기획서 대조 후속** | **15** | **15** | **100%** |
-| **Phase 18: 게시판 관리 모듈** | **7** | **5** | **71%** |
-| **합계** | **185** | **183** | **99%** |
+| **Phase 18: 게시판 관리 모듈** | **7** | **6** | **86%** |
+| **합계** | **185** | **184** | **99%** |
 
 ---
 
@@ -3087,9 +3087,9 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 | 2 | T-140-A | 게시판 생성 · 설정 · 휴지통 | T-139 | 완료 (PR #80) |
 | 3 | T-140-B | 코드형 템플릿의 새 게시판 화면 · 메뉴 | T-140-A | 완료 (PR #81) |
 | 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 완료 (PR #82) |
-| 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 구현 완료 · PR 대기 |
-| 6 | T-142-A | 필드 정의 · 값 검증 (백엔드) | T-140-A | 다음 |
-| 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 (화면) | T-142-A | 대기 |
+| 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 완료 (PR #83) |
+| 6 | T-142-A | 필드 정의 · 값 검증 (백엔드) | T-140-A | 구현 완료 · PR 대기 |
+| 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 · 게시판 상세 탭 (화면) | T-142-A | 다음 |
 
 **이미 정한 것 — 바꾸려면 먼저 사용자에게 묻는다:**
 - 실제 글은 `boards` · `board_posts` 에 저장한다. 본문은 HTML 이 아닌 블록 JSON(`p` · `ul` · `image`)이다.
@@ -3102,22 +3102,23 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 새 게시판 주소는 `/{slug}/b/{게시판}[/{글}]`, 메뉴 저장 키는 `board:{id}`. 만들 때 메뉴 기본 켬, 복제본은 메뉴에 넣지 않음. 주소를 바꾼 뒤 옛 주소 · `/b/notice` 는 404. 샘플 미리보기에는 새 게시판을 넣지 않음 (2026-11-05 결정).
 - 일괄 처리는 전부 처리 또는 전부 취소, 한 번에 100개까지. 감사 로그에는 게시판 변경 · 글 휴지통 · 복원 · 일괄 처리만 남기고 본문 · IP 는 저장하지 않는다. 보는 곳은 슈퍼 어드민뿐. 사이트맵은 메뉴에서 숨긴 곳을 뺀다 (2026-11-05 결정).
 - 테마형: 게시판은 섹션 뒤 메뉴에 붙고(순서 변경 없음), 화면은 Tailwind + 테마 변수로 6종 공통. 공지 전용 페이지는 없어 공지 글은 관리자 화면에만 남고 `/b/notice` 는 404. 편집 툴바 · 테마 템플릿 미리보기에는 넣지 않음 (2026-11-05 결정).
+- 필드: 기본 게시판에는 추가 불가, 게시판당 20개, `CHECKBOX` 없이 9종, 이미지는 주소 · 칸당 한 장. 필수 칸은 공개할 때만 검사하고 한 번 공개했던 글은 있던 값을 비우는 것만 막는다. 쓰고 있는 선택지 삭제 · 값 있는 칸의 유형 변경은 409 (2026-11-05 결정).
 - 일정상 오픈 전(목표 2027-04 말)이라 기존 공지 이전 도구를 만들지 않는다. **실제 고객이 생긴 뒤에는 이 전제가 깨지므로 다시 확인한다.**
 
 **사용자에게 아직 물어야 하는 것:**
 - 휴지통 보관 기간 · 자동 파기 (D-06) — 해지 데이터 파기(상위 기획서 10.2 #5)와 함께 결정. 정해지기 전에는 자동 파기를 만들지 않는다.
 - 방문자 글쓰기를 열기 전 법률 확인 — 병원 후기(의료법 제56조), 개인정보 고지, 게시 중단 절차 (기획서 11.3).
 
-**코드 지도 (T-141 기준):**
+**코드 지도 (T-142-A 기준):**
 
 | 영역 | 파일 |
 |---|---|
-| DB | `apps/backend/alembic/versions/0038_add_boards.py` · `0039_audit_logs_tenant.py`, `app/models/board.py` |
-| 백엔드 | `app/schemas/board.py`, `app/services/board.py`, `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
+| DB | `apps/backend/alembic/versions/0038_add_boards.py` · `0039_audit_logs_tenant.py` · `0040_add_board_fields.py`, `app/models/board.py` |
+| 백엔드 | `app/schemas/board.py`, `app/services/board.py` · `board_field.py`(필드 · 값 검증), `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
 | 관리자 | `apps/admin/src/pages/Board*.tsx` · `PostsOverviewPage.tsx`, `components/boards/BodyBlockEditor.tsx`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
 | 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`), `app/[tenant_slug]/sitemap.xml/route.ts`, 공통 `lib/boardRoute.ts`, 테마형 `app/[tenant_slug]/b/[...path]/page.tsx` · `components/board/ThemeBoard.tsx` · `components/layout/Navbar.tsx` |
 | 공통 타입 | `packages/types/src/board.ts` |
-| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` · `themeBoard.test.tsx` · `menuSettings.test.tsx` · `middleware.test.ts` |
+| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py` · `test_board_fields.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` · `themeBoard.test.tsx` · `menuSettings.test.tsx` · `middleware.test.ts` |
 
 **자주 빠지는 함정 (T-139 에서 실제로 겪음):**
 - **타입 검사:** admin · superadmin 에서 `tsc --noEmit` 은 아무것도 검사하지 않고 통과한다 (`tsconfig.json` 이 `files: []`). 반드시 `pnpm type-check` 를 쓴다.
@@ -3131,6 +3132,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **게시판 시험 데이터:** 시험 계정은 STANDARD 라 새 게시판 5개에서 막힌다. 자동 주소는 `board-1` 이다. 시험 뒤 `boards` · `board_posts` · `site_settings.menu_items` 를 되돌리고 메뉴 저장 API 로 캐시를 비운다.
 - **테마형 404:** `app/[tenant_slug]/loading.tsx` 때문에 페이지 · 메타에서 `notFound()` 를 해도 상태 코드는 200 이다. 실제 404 는 미들웨어(`isMissingBoardRoute`)가 만든다. 검증은 화면이 아니라 `curl` 상태 코드로 한다.
 - **브라우저 시험의 hydration 경고:** Playwright 스크린샷이 입력칸에 `caret-color` 를 넣어 생긴다. 제품 문제가 아니다.
+- **`custom_data` 는 아직 공개되지 않는다:** 공개 API 는 값을 돌려주지 않는다. 필드 정의 · 값 공개는 T-142-B 에서 `is_visible` 칸만.
 - **감사 로그 RLS:** `audit_logs` 는 정책이 4개로 나뉜다 (읽기 · 쓰기 · 수정 · 삭제). 사업체는 자기 것만 읽고 지울 수 없다. 사업체 안의 일은 `log_action(..., tenant_id=...)` 로 남긴다.
 - **코드형 템플릿을 늘릴 때:** 메뉴 후보는 템플릿과 관계없이 게시판을 더한다. 새 템플릿도 `board` 화면을 그리지 않으면 메뉴 링크가 빈 화면이 된다.
 
@@ -3215,18 +3217,20 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **완료 조건:** 테마형 고객도 게시판을 만들어 볼 수 있고, 템플릿을 바꿔도 글이 남는다 (AC-18) ✅
 - **범위 밖:** 테마형에 공지 전용 기본 페이지, 테마별 게시판 디자인, 테마형 메뉴 순서 변경
 
-### T-142-A: 필드 정의 · 값 검증 — 백엔드 (4단계)
+### T-142-A: 필드 정의 · 값 검증 — 백엔드 (4단계) ✅
 - **담당:** 백엔드
 - **선행:** T-140-A
 - **참조:** 기획서 BM-04, 8.1 · 8.3 · 8.4, 11.2, D-07
-- **코드 시작점:** `app/services/inquiry_fields.py`(같은 방식의 칸 정의 · 값 검사), `board_posts.custom_data`(칸은 이미 있음, 표 `board_fields` 는 아직 없음)
+- **코드 시작점:** `app/services/board_field.py`, `app/models/board.py`(`BoardField`), `app/api/v1/endpoints/boards.py`(`/fields`)
 - **작업 내용:**
-  - [ ] `board_fields` 마이그레이션, RLS, 필드 CRUD · 순서 API
-  - [ ] 타입: TEXT · TEXTAREA · NUMBER · DATE · SELECT · MULTI_SELECT · CHECKBOX · BOOLEAN · IMAGE · RATING
-  - [ ] 변경 정책: `field_key` 변경 불가, 값 있는 필드의 타입 변경 차단, 삭제는 소프트 삭제 후 복원 가능 (기획서 8.4)
-  - [ ] 글 저장 시 `custom_data` 서버 검증 — 정의에 없는 키 거부, 필수 · 형식 · 옵션 검사
-- **테스트:** 타입별 정상 · 실패 / 정의 밖 키 / 값 있는 타입 변경 차단 / 삭제 후 기존 값 유지 / 다른 사업체 차단
-- **완료 조건:** API 만으로 필드를 정의하고 검증된 글을 저장한다 (AC-03 ~ AC-06 서버 쪽)
+  - [x] `board_fields` 마이그레이션 0040, RLS, 필드 목록 · 추가 · 수정 · 삭제 · 복원 · 순서 API
+  - [x] 타입 9종: TEXT · TEXTAREA · NUMBER · DATE · SELECT · MULTI_SELECT · BOOLEAN · RATING · IMAGE (`CHECKBOX` 는 BOOLEAN · MULTI_SELECT 와 같아 뺌)
+  - [x] 변경 정책: `field_key` 변경 불가 · 재사용 불가, 값 있는 필드의 타입 변경 차단, 쓰고 있는 선택지 삭제 차단, 삭제는 소프트 삭제 후 복원 (기획서 8.4)
+  - [x] 글 저장 시 `custom_data` 서버 검증 — 정의에 없는 키 거부, 필수 · 형식 · 옵션 검사. 일괄 공개도 같은 규칙
+  - [x] 게시판 복제 시 필드 복사, 필드 변경 감사 로그
+- **테스트:** backend 91 (타입별 정상 · 실패 / 정의 밖 키 / 필수 규칙 / 타입 · 선택지 변경 차단 / 삭제 후 값 유지 · 복원 / 다른 사업체 · 보기 전용 / RLS / 감사) / 실제 서버 API 흐름 확인
+- **완료 조건:** API 만으로 필드를 정의하고 검증된 글을 저장한다 (AC-03 ~ AC-06 서버 쪽) ✅
+- **범위 밖:** 관리자 화면 · 공개 표시 (T-142-B), 선택지 매핑 도구 · 타입 변환 도구 (후속 후보)
 
 ### T-142-B: 필드 빌더 · 자동 글쓰기 폼 — 화면 (4단계)
 - **담당:** 프런트엔드
@@ -3237,12 +3241,13 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
   - [ ] 게시판 상세 탭: 글 관리 · 기본 정보 · 홈페이지 연결 · 필드 관리 (기획서 4장). 기능이 있는 탭만 연다. 지금 설정 화면의 칸을 기본 정보 · 홈페이지 연결로 나누고, 기존 주소는 유지
   - [ ] `/admin/boards/:boardId/fields`: 추가 · 수정 · 숨김 · 순서, 오른쪽 폼 미리보기
   - [ ] 글쓰기 폼을 필드 정의로 자동 생성, 오류는 해당 칸 아래 표시
-  - [ ] 공개 상세 · 목록에 허용된 필드 표시
+  - [ ] 공개 API 에 필드 정의 · 값 (`is_visible` 칸만), 공개 상세 · 목록에 표시 — 코드형 · 테마형 모두
 - **테스트:** 탭 이동 · 기존 주소 유지 / 필드 추가 뒤 폼 반영 / 필수 오류 표시 / 옵션 경고 / 기존 글 수정 / 보기 전용 계정
 - **완료 조건:** 관리자가 칸을 바꾸면 글쓰기 폼과 홈페이지에 반영되고 기존 글은 보존된다 (AC-03 ~ AC-06)
 - **범위 밖:** 병원 업종의 고객 후기 프리셋 (법률 확인 전 금지)
 
 ### 후속 후보 (번호 없음 — 시작할 때 사용자와 정하고 번호를 붙인다)
+- 쓰고 있는 선택지를 다른 값으로 바꾸는 매핑 도구, 값 있는 칸의 타입 변환 도구 (기획서 8.4)
 - 테마형에 공지 전용 페이지 — 코드형에서 바꾼 고객의 공지 글이 지금은 관리자 화면에만 남는다 (T-141)
 - 다른 사업체 관리자로 로그인한 채 홈페이지를 보면 편집 모드 · 글쓰기 버튼이 보임 — 눌러도 자기 관리자로 간다. 기존 동작, 테넌트 비교 검토 (T-141 때 발견)
 - 전체 글의 내용 · 작성자 검색, 작성일 필터 (BM-05 — 본문 JSON 검색 · 개인정보 검토 필요)

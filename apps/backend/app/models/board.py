@@ -7,6 +7,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Index,
+    Integer,
     String,
     UniqueConstraint,
 )
@@ -74,3 +76,36 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+
+
+class BoardField(Base, TimestampMixin, SoftDeleteMixin):
+    """게시판에 더하는 칸 (T-142-A) — 값은 BoardPost.custom_data[field_key]."""
+
+    __tablename__ = "board_fields"
+    __table_args__ = (
+        UniqueConstraint("board_id", "field_key", name="uq_board_fields_key"),
+        Index("ix_board_fields_tenant_id", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    board_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
+    )
+    field_key: Mapped[str] = mapped_column(String(50), nullable=False)
+    label: Mapped[str] = mapped_column(String(50), nullable=False)
+    field_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    is_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_visible: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    help_text: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    placeholder: Mapped[str] = mapped_column(String(100), nullable=False, default="")
+    default_value: Mapped[Any] = mapped_column(JSONB(none_as_null=True), nullable=True)
+    # {choices: [{value, label}], min, max} — 타입에 따라 쓰는 값만
+    field_options: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

@@ -5,7 +5,7 @@
 """
 
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import ColumnElement, UnaryExpression, func, or_, select
@@ -26,6 +26,7 @@ from app.schemas.board import (
     PostCreate,
     PostUpdate,
 )
+from app.services import board_field as field_service
 from app.services import site_cache
 
 NOTICE_KEY = "notice"
@@ -404,7 +405,9 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
 async def duplicate_board(db: AsyncSession, board: Board) -> Board:
     """설정만 복제하고 글은 복제하지 않는다 (D-02). 복제본은 기본 게시판이 아니다."""
     await _ensure_can_create(db, board.tenant_id)
+    fields = await field_service.list_fields(db, board.id)
     copy = Board(
+        id=uuid4(),
         tenant_id=board.tenant_id,
         name=f"{board.name} 복사본"[:100],
         slug=await _next_auto_slug(db, board.tenant_id),
@@ -413,6 +416,7 @@ async def duplicate_board(db: AsyncSession, board: Board) -> Board:
         settings=dict(board.settings or {}),
     )
     db.add(copy)
+    db.add_all(field_service.copies_of(fields, copy.id))
     await _commit_board(db)
     await db.refresh(copy)
     await site_cache.purge_site(db, board.tenant_id)
@@ -519,6 +523,9 @@ async def create_post(
     author_id: UUID,
     data: PostCreate,
 ) -> BoardPost:
+    custom_data = await field_service.resolve_custom_data(
+        db, board_id, None, data.custom_data, data.status
+    )
     post = BoardPost(
         tenant_id=tenant_id,
         board_id=board_id,
@@ -527,6 +534,7 @@ async def create_post(
         body=[b.model_dump() for b in data.body],
         status=data.status,
         is_pinned=data.is_pinned,
+        custom_data=custom_data,
     )
     db.add(post)
     await _after_write(db, post)
@@ -534,6 +542,9 @@ async def create_post(
 
 
 async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> BoardPost:
+    post.custom_data = await field_service.resolve_custom_data(
+        db, post.board_id, post, data.custom_data, data.status or post.status
+    )
     if data.title is not None:
         post.title = data.title
     if data.body is not None:
@@ -627,6 +638,8 @@ async def bulk_update_posts(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=MSG_BULK_MISMATCH
         )
+    if action == "PUBLISH":
+        await field_service.ensure_publishable(db, [(p, b) for p, b in rows])
     now = datetime.now(UTC)
     for post, _board in rows:
         if action == "TRASH":

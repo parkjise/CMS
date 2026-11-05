@@ -2,7 +2,7 @@
 
 import re
 from datetime import datetime
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
@@ -13,7 +13,7 @@ MAX_BLOCKS = 100
 MSG_INVALID_IMAGE_URL = "사진 주소가 올바르지 않습니다."
 
 # http(s) 또는 사이트 안 경로만 — javascript: · data: · //다른사이트 차단
-_SAFE_IMAGE_URL = re.compile(r"^(https?://|/(?!/))", re.IGNORECASE)
+SAFE_IMAGE_URL = re.compile(r"^(https?://|/(?!/))", re.IGNORECASE)
 
 SLUG_MAX_LENGTH = 60
 BoardType = Literal["LIST", "GALLERY", "FAQ"]
@@ -57,7 +57,7 @@ class ImageBlock(_Block):
     @field_validator("src")
     @classmethod
     def _safe_src(cls, value: str) -> str:
-        if not _SAFE_IMAGE_URL.match(value):
+        if not SAFE_IMAGE_URL.match(value):
             raise ValueError(MSG_INVALID_IMAGE_URL)
         return value
 
@@ -116,11 +116,116 @@ class BoardLimitsResponse(BaseModel):
     reason: str | None
 
 
+# ── 필드 (T-142-A) ───────────────────────────────────────────────────────
+
+FieldType = Literal[
+    "TEXT",
+    "TEXTAREA",
+    "NUMBER",
+    "DATE",
+    "SELECT",
+    "MULTI_SELECT",
+    "BOOLEAN",
+    "RATING",
+    "IMAGE",
+]
+FieldKey = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{1,49}$")]
+FieldLabel = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=50)
+]
+MAX_FIELD_OPTIONS = 50
+MSG_DUPLICATE_OPTION = "같은 선택지가 두 번 들어 있습니다."
+
+
+class FieldOption(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    value: str = Field(min_length=1, max_length=100)
+    label: str = Field(min_length=1, max_length=100)
+
+
+def _unique_options(options: list[FieldOption] | None) -> list[FieldOption] | None:
+    if options and len({o.value for o in options}) != len(options):
+        raise ValueError(MSG_DUPLICATE_OPTION)
+    return options
+
+
+class FieldCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    label: FieldLabel
+    field_type: FieldType
+    # 비우면 서버가 field_1 처럼 만든다. 만든 뒤에는 바꿀 수 없다
+    field_key: FieldKey | None = None
+    is_required: bool = False
+    is_visible: bool = True
+    help_text: str = Field(default="", max_length=200)
+    placeholder: str = Field(default="", max_length=100)
+    default_value: Any = None
+    options: list[FieldOption] | None = Field(
+        default=None, max_length=MAX_FIELD_OPTIONS
+    )
+    min: float | None = None
+    max: float | None = None
+
+    @field_validator("options")
+    @classmethod
+    def _options(cls, value: list[FieldOption] | None) -> list[FieldOption] | None:
+        return _unique_options(value)
+
+
+class FieldUpdate(BaseModel):
+    # field_key 는 받지 않는다 — 보내면 검증 오류 (기획서 8.4)
+    model_config = ConfigDict(extra="forbid")
+
+    label: FieldLabel | None = None
+    field_type: FieldType | None = None
+    is_required: bool | None = None
+    is_visible: bool | None = None
+    help_text: str | None = Field(default=None, max_length=200)
+    placeholder: str | None = Field(default=None, max_length=100)
+    default_value: Any = None
+    options: list[FieldOption] | None = Field(
+        default=None, max_length=MAX_FIELD_OPTIONS
+    )
+    min: float | None = None
+    max: float | None = None
+
+    @field_validator("options")
+    @classmethod
+    def _options(cls, value: list[FieldOption] | None) -> list[FieldOption] | None:
+        return _unique_options(value)
+
+
+class FieldOrderRequest(BaseModel):
+    field_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+
+class FieldResponse(BaseModel):
+    id: UUID
+    board_id: UUID
+    field_key: str
+    label: str
+    field_type: str
+    is_required: bool
+    is_visible: bool
+    help_text: str
+    placeholder: str
+    default_value: Any
+    options: list[FieldOption]
+    min: float | None
+    max: float | None
+    display_order: int
+    deleted_at: datetime | None
+
+
 class PostCreate(BaseModel):
     title: PostTitle
     body: PostBody = []
     status: PostStatus = "DRAFT"
     is_pinned: bool = False
+    # 필드 값 {field_key: 값} — 서버가 필드 정의로 검사한다
+    custom_data: dict[str, Any] | None = None
 
 
 class PostUpdate(BaseModel):
@@ -128,6 +233,8 @@ class PostUpdate(BaseModel):
     body: PostBody | None = None
     status: PostStatus | None = None
     is_pinned: bool | None = None
+    # 보낸 칸만 바뀐다. 빈 값은 그 칸을 비운다
+    custom_data: dict[str, Any] | None = None
 
 
 class PostListItem(BaseModel):
@@ -146,6 +253,7 @@ class PostListItem(BaseModel):
 
 class PostResponse(PostListItem):
     body: list[BodyBlock]
+    custom_data: dict[str, Any]
 
 
 class PostListResponse(BaseModel):
