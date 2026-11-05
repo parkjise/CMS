@@ -1,11 +1,10 @@
 import type { BodyBlock } from '@cms/types'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
-import { RichLine } from '../sub/RichText'
-import { BoardToolbar, type SearchTarget } from './BoardToolbar'
+import { BoardBody } from './BoardBody'
+import { BoardEmpty, BoardListShell } from './BoardListShell'
+import type { SearchTarget } from './BoardToolbar'
 import { BoardViewNav } from './BoardViewNav'
-import { NoticeWriteLink } from './NoticeWriteLink'
-import { Pagination } from './Pagination'
 import { dotDate } from './format'
 
 export interface NoticeItem {
@@ -43,49 +42,34 @@ interface NoticeDetailViewProps {
   prevHref: string | null
   nextHref: string | null
   listHref: string
+  /** 제목 앞 표시 — 새 게시판이면 게시판 이름 */
+  badge?: string
 }
 
-/** 공지 상세 — 목업 sub/board-view.html */
-export function NoticeDetailView({ subject, date, body, prevHref, nextHref, listHref }: NoticeDetailViewProps) {
+/** 게시글 상세 — 목업 sub/board-view.html */
+export function NoticeDetailView({
+  subject,
+  date,
+  body,
+  prevHref,
+  nextHref,
+  listHref,
+  badge = '공지사항',
+}: NoticeDetailViewProps) {
   return (
     <section className="board-view" aria-labelledby="board-view-title">
       <div className="page-container">
         <article className="board-view__article">
           <header className="board-view__head">
             <h2 className="board-view__title" id="board-view-title">
-              <span className="board-view__badge">공지사항</span>
+              <span className="board-view__badge">{badge}</span>
               {subject}
             </h2>
             <time className="board-view__date" dateTime={date}>
               {dotDate(date)}
             </time>
           </header>
-          <div className="board-view__content">
-            {body.map((block, i) => {
-              if (block.type === 'image') {
-                return (
-                  <figure key={i}>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- 공지 본문 이미지 */}
-                    <img src={block.src} alt={block.alt} />
-                  </figure>
-                )
-              }
-              if (block.type === 'ul') {
-                return (
-                  <ul key={i}>
-                    {block.items.map((li, n) => (
-                      <li key={n}>{li}</li>
-                    ))}
-                  </ul>
-                )
-              }
-              return (
-                <p key={i}>
-                  <RichLine text={block.text} />
-                </p>
-              )
-            })}
-          </div>
+          <BoardBody blocks={body} />
         </article>
         <BoardViewNav prevHref={prevHref} nextHref={nextHref} listHref={listHref} />
       </div>
@@ -104,9 +88,14 @@ interface NoticeListViewProps {
   searchTarget: SearchTarget
   /** 실제 사업체 공지면 관리자에게 [글쓰기] — 샘플 미리보기에는 없음 */
   canWrite: boolean
+  /** 글쓰기 · 문구 — 새 게시판이면 그 게시판 값 */
+  boardSlug?: string
+  description?: string
+  searchLabel?: string
+  emptyText?: string
 }
 
-/** 공지 목록 — 목업 sub/board-list.html */
+/** 글 목록 — 목업 sub/board-list.html */
 export function NoticeListView({
   title,
   items,
@@ -117,53 +106,45 @@ export function NoticeListView({
   hrefFor,
   searchTarget,
   canWrite,
+  boardSlug = 'notice',
+  description,
+  searchLabel = '공지사항 검색',
+  emptyText = '등록된 공지가 없습니다.',
 }: NoticeListViewProps) {
   return (
-    <section className="board-list" aria-labelledby="board-list-title">
-      <div className="page-container">
-        <h2 className="board-list__title" id="board-list-title">
-          {title}
-        </h2>
-        {canWrite && <NoticeWriteLink />}
-        <BoardToolbar
-          total={total}
-          q={keyword}
-          label="공지사항 검색"
-          inputId="board-search"
-          target={searchTarget}
-          className="board-list__toolbar"
-        />
-        {items.length > 0 ? (
-          <ul className="board-list__list">
-            {items.map((item) => (
-              <li
-                className={`board-list__item${item.pinned ? ' board-list__item--pinned' : ''}`}
-                key={item.id}
-              >
-                <a className="board-list__link" href={hrefFor({ id: item.id })}>
-                  {item.pinned && <span className="board-list__badge">공지</span>}
-                  <span className="board-list__subject">{item.subject}</span>
-                  <time className="board-list__date" dateTime={item.date}>
-                    {dotDate(item.date)}
-                  </time>
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <>
-            <ul className="board-list__list" />
-            <p className="board-list__empty">{keyword ? '검색 결과가 없습니다.' : '등록된 공지가 없습니다.'}</p>
-          </>
-        )}
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          hrefFor={(p) => hrefFor({ q: keyword || undefined, p })}
-          className="board-list__pagination"
-        />
-      </div>
-    </section>
+    <BoardListShell
+      title={title}
+      description={description}
+      writeBoard={canWrite ? boardSlug : undefined}
+      total={total}
+      page={page}
+      totalPages={totalPages}
+      keyword={keyword}
+      hrefFor={hrefFor}
+      searchTarget={searchTarget}
+      searchLabel={searchLabel}
+    >
+      {items.length > 0 ? (
+        <ul className="board-list__list">
+          {items.map((item) => (
+            <li
+              className={`board-list__item${item.pinned ? ' board-list__item--pinned' : ''}`}
+              key={item.id}
+            >
+              <a className="board-list__link" href={hrefFor({ id: item.id })}>
+                {item.pinned && <span className="board-list__badge">공지</span>}
+                <span className="board-list__subject">{item.subject}</span>
+                <time className="board-list__date" dateTime={item.date}>
+                  {dotDate(item.date)}
+                </time>
+              </a>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <BoardEmpty keyword={keyword} emptyText={emptyText} />
+      )}
+    </BoardListShell>
   )
 }
 

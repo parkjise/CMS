@@ -10,6 +10,7 @@ import type {
   PostStatus,
 } from '@cms/types'
 import { api } from '@/lib/api'
+import { MENU_KEY } from '@/hooks/useSiteSettings'
 
 /** 게시판 관리 (T-139, 게시판 모듈 기획서 4 · 9장) */
 
@@ -47,6 +48,8 @@ export interface BoardInput {
   slug?: string
   board_type?: BoardType
   status?: BoardStatus
+  /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
+  in_menu?: boolean
 }
 
 export function useBoardLimits() {
@@ -93,10 +96,14 @@ export function usePost(boardId: string, postId: string | undefined) {
   })
 }
 
-/** 글이 바뀌면 글 수 · 샘플 여부가 함께 바뀌므로 게시판 전체를 다시 읽는다 */
+/** 글이 바뀌면 글 수 · 샘플 여부가 함께 바뀌므로 게시판 전체를 다시 읽는다. 게시판은 상단 메뉴 후보이기도 하다 */
 const useInvalidateBoards = () => {
   const queryClient = useQueryClient()
-  return () => queryClient.invalidateQueries({ queryKey: BOARDS_KEY })
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: BOARDS_KEY }),
+      queryClient.invalidateQueries({ queryKey: MENU_KEY }),
+    ])
 }
 
 export function useCreateBoard() {

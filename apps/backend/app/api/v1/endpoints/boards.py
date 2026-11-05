@@ -33,6 +33,7 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
+from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
 MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
@@ -91,6 +92,8 @@ async def create_board(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     board = await board_service.create_board(db, tenant_id, data)
+    if not data.in_menu:
+        await site_settings_service.hide_board_from_menu(db, board)
     return ApiResponse.ok(await board_service.board_response(db, board))
 
 
@@ -139,6 +142,8 @@ async def duplicate_board(
     db: AsyncSession = Depends(get_db_with_rls),
 ):
     copy = await board_service.duplicate_board(db, board)
+    # 같은 이름이 메뉴에 두 번 나오지 않게 — 이름을 고치고 직접 켠다
+    await site_settings_service.hide_board_from_menu(db, copy)
     return ApiResponse.ok(await board_service.board_response(db, copy))
 
 
@@ -281,7 +286,10 @@ async def list_public_posts(
             page=page,
             size=size,
             has_posts=has_posts,
-            items=[PublicPostItem.model_validate(p) for p in posts],
+            items=[
+                PublicPostItem(**board_service.public_post_item(board, p))
+                for p in posts
+            ],
         )
     )
 

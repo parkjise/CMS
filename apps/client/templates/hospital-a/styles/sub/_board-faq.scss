@@ -1,0 +1,60 @@
+// ── BOARD FAQ — 새 게시판 FAQ형 (T-140-B) ────────────────────────
+// <details> 라 스크립트 없이 키보드로도 열린다
+@use '../mixins' as *;
+
+$line-strong: #ced7e3;
+$line: #eee;
+
+.board-faq {
+  margin-top: 28px;
+  border-top: 1px solid $line-strong;
+
+  &__item {
+    border-bottom: 1px solid $line;
+  }
+
+  &__question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 8px;
+    @include fluid-type(1.0625rem, 1.25rem);
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+    cursor: pointer;
+    list-style: none;
+    @include focus-ring(var(--color-primary), -2px);
+    @include md {
+      padding: 28px 30px;
+    }
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+
+    // 펼침 표시
+    &::after {
+      content: '';
+      flex-shrink: 0;
+      width: 10px;
+      height: 10px;
+      border-right: 2px solid currentcolor;
+      border-bottom: 2px solid currentcolor;
+      transform: rotate(45deg);
+    }
+  }
+  &__item[open] &__question::after {
+    transform: rotate(-135deg);
+  }
+
+  // .board-view__content 본문 스타일 위에 간격만 바꾼다
+  &__answer {
+    padding: 0 8px 28px;
+    border-bottom: 0;
+    @include md {
+      padding: 0 30px 36px;
+    }
+  }
+}

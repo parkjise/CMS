@@ -584,6 +584,43 @@ async def open_public_board(
     return result.scalar_one_or_none()
 
 
+async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
+    """홈페이지에 나가는 새 게시판 — 기본 게시판은 템플릿 페이지가 따로 있다 (5.3)."""
+    result = await db.execute(
+        select(Board)
+        .where(
+            Board.tenant_id == tenant_id,
+            Board.system_key.is_(None),
+            Board.status == "ACTIVE",
+            Board.deleted_at.is_(None),
+        )
+        .order_by(Board.created_at, Board.id)
+    )
+    return [
+        {
+            "id": board.id,
+            "name": board.name,
+            "slug": board.slug,
+            "description": (board.settings or {}).get(DESCRIPTION_KEY, ""),
+            "board_type": board.board_type,
+        }
+        for board in result.scalars()
+    ]
+
+
+def public_post_item(board: Board, post: BoardPost) -> dict:
+    """공개 목록의 글 한 줄 — 유형별로 화면이 더 필요한 값까지."""
+    blocks = post.body or []
+    return {
+        "id": post.id,
+        "title": post.title,
+        "is_pinned": post.is_pinned,
+        "published_at": post.published_at,
+        "thumbnail": next((b["src"] for b in blocks if b.get("type") == "image"), None),
+        "body": blocks if board.board_type == "FAQ" else None,
+    }
+
+
 def _public_conditions(board: Board) -> list[ColumnElement[bool]]:
     return [
         *_active_post(board.tenant_id, board.id),

@@ -57,11 +57,24 @@ export interface PostList {
   items: PostListItem[]
 }
 
+/** 홈페이지에 나가는 새 게시판 (T-140-B) — 메뉴 · /b/{slug} 화면 */
+export interface PublicBoard {
+  id: string
+  name: string
+  slug: string
+  description: string
+  board_type: BoardType
+}
+
 export interface PublicPostItem {
   id: string
   title: string
   is_pinned: boolean
   published_at: string
+  /** 갤러리 썸네일 — 본문의 첫 사진 */
+  thumbnail?: string | null
+  /** FAQ 게시판 목록에만 — 답변을 펼쳐 보여 준다 */
+  body?: BodyBlock[] | null
 }
 
 export interface PublicPostList {
@@ -73,7 +86,7 @@ export interface PublicPostList {
   items: PublicPostItem[]
 }
 
-export interface PublicPost extends PublicPostItem {
+export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   body: BodyBlock[]
   prev_id: string | null
   next_id: string | null

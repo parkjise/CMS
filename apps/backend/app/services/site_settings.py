@@ -7,15 +7,18 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.template_samples import load_menu
+from app.models.board import Board
 from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.template import Template
 from app.schemas.site import (
     MenuItemResponse,
+    MenuItemUpdate,
     MenuResponse,
     MenuUpdate,
     SiteSettingsUpdate,
 )
+from app.services import board as board_service
 from app.services import site_cache
 from app.services import template as template_service
 from app.services.section_manage import THEME_SECTION_TYPES
@@ -53,19 +56,28 @@ async def update_site_settings(
 # ── 상단 메뉴 (T-036-B) ────────────────────────────────────────────────
 
 
+def board_menu_key(board_id: UUID) -> str:
+    """id 를 쓴다 — 주소를 바꿔도 메뉴 이름 · 순서 · 숨김이 그대로다."""
+    return f"board:{board_id}"
+
+
 async def _menu_candidates(
     db: AsyncSession, tenant_id: UUID
 ) -> tuple[str, list[tuple[str, str]]]:
     """지금 템플릿의 기본 메뉴 [(key, 이름)].
 
-    코드형은 템플릿 페이지(menu.json), 테마형은 노출 중인 홈 섹션.
+    코드형은 템플릿 페이지(menu.json) + 사용 중인 새 게시판, 테마형은 노출 중인 홈 섹션.
     """
     override = await template_service.get_current_override(db, tenant_id)
     template = await db.get(Template, override.template_id) if override else None
     if template and template.renderer == "code" and template.code:
         pages = load_menu(template.code)
         if pages:
-            return "code", [(p["key"], p["title"]) for p in pages]
+            boards = await board_service.list_public_boards(db, tenant_id)
+            return "code", [
+                *((p["key"], p["title"]) for p in pages),
+                *((board_menu_key(b["id"]), b["name"]) for b in boards),
+            ]
     result = await db.execute(
         select(Section)
         .where(
@@ -143,3 +155,29 @@ async def update_menu(
     await site_cache.purge_site(db, tenant_id)
     db.expire_all()
     return await get_menu(db, tenant_id)
+
+
+async def hide_board_from_menu(db: AsyncSession, board: Board) -> None:
+    """메뉴에서 숨긴다. 지금 메뉴를 통째로 저장해 다른 메뉴의 기본 순서를 유지한다.
+
+    후보가 아니면(테마형 · 사용 안 함) 할 일이 없다.
+    """
+    key = board_menu_key(board.id)
+    menu = await get_menu(db, board.tenant_id)
+    if all(item.key != key for item in menu.items):
+        return
+    await update_menu(
+        db,
+        board.tenant_id,
+        MenuUpdate(
+            items=[
+                MenuItemUpdate(
+                    key=item.key,
+                    label=item.label,
+                    visible=item.visible and item.key != key,
+                )
+                for item in menu.items
+            ]
+        ),
+    )
+    await db.refresh(board)

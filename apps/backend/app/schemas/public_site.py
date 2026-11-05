@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.board import PublicBoardResponse
 from app.schemas.site import PublicSiteSettingsResponse
 
 
@@ -105,3 +106,5 @@ class PublicSiteResponse(BaseModel):
     site_settings: PublicSiteSettingsResponse | None = None
     template: PublicTemplateResponse | None
     member: PublicMemberFlags = PublicMemberFlags()
+    # 사용 중인 새 게시판 (T-140-B) — 메뉴 · /b/{게시판} 화면
+    boards: list[PublicBoardResponse] = []

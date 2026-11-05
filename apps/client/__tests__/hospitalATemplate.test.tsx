@@ -167,6 +167,87 @@ describe('hospital-a 화면 (T-121)', () => {
     expect(screen.getByRole('complementary', { name: '빠른 메뉴' })).toBeInTheDocument()
   })
 
+  describe('메뉴가 많을 때 헤더 (T-140-B)', () => {
+    const renderHeader = (scrollWidth: number) => {
+      vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockReturnValue(scrollWidth)
+      vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000)
+      const { container } = render(
+        <HospitalATemplate
+          site={site}
+          tenantSlug="demo"
+          pageKey="home"
+          sections={sections}
+          siteInfo={resolveSiteInfo(hospitalASample, site)}
+          preview={false}
+        />,
+      )
+      vi.restoreAllMocks()
+      return container.querySelector('.header')
+    }
+
+    it('한 줄에 안 들어가면 토글로 접는다', () => {
+      expect(renderHeader(1200)).toHaveClass('header--collapsed')
+    })
+
+    it('들어가면 그대로 펼친다', () => {
+      expect(renderHeader(1000)).not.toHaveClass('header--collapsed')
+    })
+  })
+
+  describe('새 게시판 메뉴 (T-140-B)', () => {
+    const boards = [
+      { id: 'b1', name: '병원 소식', slug: 'news', description: '', board_type: 'LIST' as const },
+      { id: 'b2', name: '사진첩', slug: 'photos', description: '', board_type: 'GALLERY' as const },
+    ]
+    const menuLinks = (extra: Partial<Parameters<typeof HospitalATemplate>[0]>) => {
+      render(
+        <HospitalATemplate
+          site={site}
+          tenantSlug="demo"
+          pageKey="home"
+          sections={sections}
+          siteInfo={resolveSiteInfo(hospitalASample, site)}
+          preview={false}
+          boards={boards}
+          {...extra}
+        />,
+      )
+      const nav = screen.getByRole('navigation', { name: '주 메뉴' })
+      return within(nav).getAllByRole('link').map((a) => [a.textContent, a.getAttribute('href')])
+    }
+
+    it('페이지 뒤에 게시판이 붙는다', () => {
+      expect(menuLinks({}).slice(-2)).toEqual([
+        ['병원 소식', '/demo/b/news'],
+        ['사진첩', '/demo/b/photos'],
+      ])
+    })
+
+    it('이름 · 순서 · 숨기기 설정이 반영된다', () => {
+      const links = menuLinks({
+        menuItems: [
+          { key: 'board:b2', label: '갤러리', visible: true },
+          { key: 'board:b1', label: null, visible: false },
+        ],
+      })
+      expect(links[0]).toEqual(['갤러리', '/demo/b/photos'])
+      expect(links.map(([, href]) => href)).not.toContain('/demo/b/news')
+    })
+
+    it('고객 도메인에서는 주소에 slug 가 없다', () => {
+      expect(menuLinks({ onCustomDomain: true }).at(-2)).toEqual(['병원 소식', '/b/news'])
+    })
+
+    it('미리보기에서는 미리보기 주소를 유지한다', () => {
+      const [, href] = menuLinks({ previewQuery: 'tpl=TPL_X&content=mine' }).at(-2)!
+      expect(href).toBe('/demo/preview?tpl=TPL_X&content=mine&page=b%2Fnews')
+    })
+
+    it('사용 중인 게시판이 없으면 메뉴에 없다', () => {
+      expect(menuLinks({ boards: [] }).map(([, href]) => href).join()).not.toContain('/b/')
+    })
+  })
+
   it('관리자 상단 메뉴 설정 — 순서 · 이름 · 숨기기가 헤더 메뉴에 반영된다 (T-036-B)', () => {
     render(
       <HospitalATemplate

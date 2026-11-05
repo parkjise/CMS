@@ -60,6 +60,8 @@ function BoardSettingsForm({ board }: { board: Board }) {
   }
 
   const remove = async () => {
+    const posts = board.post_count > 0 ? `글 ${board.post_count.toLocaleString()}개도 함께 보이지 않게 되고, ` : ''
+    if (!window.confirm(`'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.`)) return
     try {
       await deleteBoard.mutateAsync(board.id)
       toast.success('휴지통으로 옮겼습니다.')
@@ -101,7 +103,13 @@ function BoardSettingsForm({ board }: { board: Board }) {
               value={slug}
               error={errors.slug}
               disabled={isSystem}
-              helperText={isSystem ? '기본 게시판의 주소는 바꿀 수 없습니다.' : undefined}
+              helperText={
+                isSystem
+                  ? '기본 게시판의 주소는 바꿀 수 없습니다.'
+                  : slug !== board.slug
+                    ? '주소를 바꾸면 이전 주소는 더 이상 열리지 않습니다.'
+                    : undefined
+              }
               onChange={(e) => setSlug(e.target.value)}
             />
             <div>
@@ -129,7 +137,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
             </div>
             <Toggle
               label="게시판 사용"
-              description="끄면 홈페이지에서 글이 보이지 않습니다."
+              description="끄면 홈페이지 메뉴에서 빠지고 글이 보이지 않습니다."
               checked={active}
               onChange={(e) => setActive(e.target.checked)}
             />

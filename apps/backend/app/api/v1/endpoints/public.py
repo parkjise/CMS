@@ -15,6 +15,7 @@ from app.models.site import SiteSetting
 from app.models.sns import SnsChannelSetting
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
+from app.schemas.board import PublicBoardResponse
 from app.schemas.common import ApiResponse
 from app.schemas.public_site import (
     PublicDomainResponse,
@@ -27,6 +28,7 @@ from app.schemas.public_site import (
     PublicTenantResponse,
 )
 from app.schemas.site import PublicSiteSettingsResponse
+from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features
 
@@ -131,6 +133,10 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             reservations=flags.reservations,
             social_login=flags.social_login,
         ),
+        boards=[
+            PublicBoardResponse(**board)
+            for board in await board_service.list_public_boards(db, tid)
+        ],
     )
 
 

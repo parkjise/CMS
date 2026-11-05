@@ -75,6 +75,8 @@ class BoardCreate(BaseModel):
     description: str = Field(default="", max_length=200)
     board_type: BoardType = "LIST"
     status: BoardStatus = "ACTIVE"
+    # 끄면 만들어 두기만 하고 상단 메뉴에는 숨긴다 (코드형 템플릿)
+    in_menu: bool = True
 
 
 class BoardUpdate(BaseModel):
@@ -153,6 +155,16 @@ class PostListResponse(BaseModel):
     items: list[PostListItem]
 
 
+class PublicBoardResponse(BaseModel):
+    """홈페이지 메뉴 · 게시판 화면 (T-140-B) — 사용 중인 새 게시판만."""
+
+    id: UUID
+    name: str
+    slug: str
+    description: str
+    board_type: str
+
+
 class PublicPostItem(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -160,6 +172,10 @@ class PublicPostItem(BaseModel):
     title: str
     is_pinned: bool
     published_at: datetime
+    # 갤러리 썸네일 — 본문의 첫 사진
+    thumbnail: str | None = None
+    # FAQ 는 목록에서 답변을 펼치므로 본문까지, 그 밖에는 없음
+    body: list[BodyBlock] | None = None
 
 
 class PublicPostListResponse(BaseModel):

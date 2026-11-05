@@ -3,12 +3,14 @@ import { Plus, Settings, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards } from '@/hooks/useBoards'
+import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { NOT_SHOWN_YET, boardTypeLabel } from '@/lib/boardLabels'
 
 /** 게시판 목록 (BM-01, 게시판 모듈 기획서 4장) */
 export function BoardsPage() {
   const boardsQuery = useBoards()
   const limitsQuery = useBoardLimits()
+  const isTheme = useSiteMenu().data?.mode === 'theme'
   const canEdit = useCanEdit()
   const boards = boardsQuery.data
   const limits = limitsQuery.data
@@ -59,7 +61,7 @@ export function BoardsPage() {
           </Link>
         </p>
       )}
-      {hasCustomBoard && (
+      {hasCustomBoard && isTheme && (
         <p className="rounded-lg bg-amber-50 p-3 text-sm text-amber-800">{NOT_SHOWN_YET}</p>
       )}
 

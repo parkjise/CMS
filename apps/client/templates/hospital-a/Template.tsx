@@ -37,6 +37,7 @@ import { SubHero } from './components/sub/SubHero'
 import { SubNav, type SubNavTab } from './components/sub/SubNav'
 import { ValueCircles } from './components/sub/ValueCircles'
 import { ConsultBoard } from './components/board/ConsultBoard'
+import { CustomBoard } from './components/board/CustomBoard'
 import { NoticeBoard } from './components/board/NoticeBoard'
 import { NoticeBoardLive } from './components/board/NoticeBoardLive'
 import { ReserveForm } from './components/board/ReserveForm'
@@ -48,6 +49,7 @@ import { MemberScreen } from './components/member/MemberScreen'
 import { MobileHideMarker } from '@/components/MobileHideMarker'
 import { isMobileHidden } from '@/lib/mobileSettings'
 import { applyMenu } from '@/lib/menuSettings'
+import { boardPageKey } from '@/lib/publicPosts'
 
 // 웹폰트 (목업 _base.scss 의 @import)
 // - Noto Serif KR: Google Fonts CSS (한글 글리프를 unicode-range 로 나눠 받음 — next/font 는 한글 서브셋이 없어 사용 안 함)
@@ -63,18 +65,18 @@ const FONT_URLS = [
 // 키트가 font-display:auto 라 첫 화면 영문 카피(LCP)가 글꼴을 기다리며 숨는다 → swap 으로 적용
 const SWAP_FONT_DISPLAY = [TYPEKIT_URL]
 
-/** 회원 화면 상단 — 이미지 없는 서브 히어로 (목업 sub-hero-plain: eyebrow · category "Member") */
-const memberHero = (title: string): PublicSection => ({
-  id: 'member-hero',
+/** 회원 · 새 게시판 화면 상단 — 이미지 없는 서브 히어로 (목업 sub-hero-plain) */
+const plainHero = (eyebrow: string, title: string, category: string, pageKey: string): PublicSection => ({
+  id: `${eyebrow.toLowerCase()}-hero`,
   section_type: 'SUB_HERO',
   label: title,
   display_order: 0,
   is_active: true,
-  page_key: 'member',
+  page_key: pageKey,
   settings: [
-    { field_key: 'eyebrow', field_value: 'Member', value_type: 'STRING' },
+    { field_key: 'eyebrow', field_value: eyebrow, value_type: 'STRING' },
     { field_key: 'title', field_value: title, value_type: 'STRING' },
-    { field_key: 'category', field_value: 'Member', value_type: 'STRING' },
+    { field_key: 'category', field_value: category, value_type: 'STRING' },
     { field_key: 'plain', field_value: 'true', value_type: 'BOOLEAN' },
   ],
 })
@@ -98,6 +100,8 @@ export default function HospitalATemplate({
   menuItems,
   onCustomDomain,
   latestNotices,
+  boards,
+  board,
 }: CodeTemplateProps) {
   const noSlug = Boolean(onCustomDomain) && !previewQuery
   const siteBase = noSlug ? '' : `/${tenantSlug}`
@@ -113,12 +117,19 @@ export default function HospitalATemplate({
     : { action: `${siteBase}/${pageKey}`, hidden: [] }
   const listPage = Math.max(1, Number(query?.p) || 1)
   const pages = hospitalAManifest.pages
-  // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B)
+  // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B). 새 게시판은 페이지 뒤에 (T-140-B)
   const menu: HeaderLink[] = applyMenu(
-    pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title })),
+    [
+      ...pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title, href: hrefFor(p.key) })),
+      ...(boards ?? []).map((b) => ({
+        key: `board:${b.id}`,
+        label: b.name,
+        href: hrefFor(boardPageKey(b.slug)),
+      })),
+    ],
     menuItems,
     true,
-  ).map((p) => ({ href: hrefFor(p.key), title: p.label }))
+  ).map((p) => ({ href: p.href, title: p.label }))
   // 방문자 회원 화면 — 기획서 16.0 (/{slug}/member/*, T-113)
   const account: HeaderLink[] = [
     { href: `${siteBase}/member/login`, title: '로그인' },
@@ -280,13 +291,33 @@ export default function HospitalATemplate({
           // 방문자 회원 화면 (T-124) — 목업 sub-hero-plain + 회원 화면
           <>
             <SubHero
-              section={memberHero(MEMBER_PAGES[member.page])}
+              section={plainHero('Member', MEMBER_PAGES[member.page], 'Member', 'member')}
               editable={false}
               tenantSlug={tenantSlug}
               homeHref={hrefFor('home')}
               scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
             />
             <MemberScreen slug={tenantSlug} brandName={siteInfo.brand_name} route={member} />
+          </>
+        ) : board ? (
+          // 새 게시판 (T-140-B) — 템플릿 페이지가 아니라 섹션이 없다
+          <>
+            <SubHero
+              section={plainHero('Board', board.name, '게시판', pageKey)}
+              editable={false}
+              tenantSlug={tenantSlug}
+              homeHref={hrefFor('home')}
+              scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
+            />
+            <CustomBoard
+              board={board}
+              tenantSlug={tenantSlug}
+              detailId={detailId}
+              q={query?.q}
+              page={listPage}
+              hrefFor={boardHref}
+              searchTarget={searchTarget}
+            />
           </>
         ) : (
           sections.map(({ section, editable }) => (

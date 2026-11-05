@@ -20,6 +20,13 @@ $badge-bg: #f1f5f9;
     word-break: keep-all;
   }
 
+  // 새 게시판 설명 (T-140-B)
+  &__desc {
+    margin-top: 12px;
+    color: $muted;
+    word-break: keep-all;
+  }
+
   &__toolbar {
     margin-top: 40px;
     @include md {

@@ -38,6 +38,16 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     )
   })
 
+  it('새 게시판 주소 /b/{게시판}[/{글}] 도 템플릿 라우트로, 더 깊은 주소는 통과 (T-140-B)', async () => {
+    fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
+    expect(rewriteOf(await run('/clinic/b/news'))).toBe('http://localhost:3000/tpl-hospital-a/clinic/b/news')
+    expect(rewriteOf(await run('/clinic/b/news/post-1?q=a'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/b/news/post-1?q=a',
+    )
+    expect(rewriteOf(await run('/clinic/b/news/post-1/extra'))).toBeNull()
+    expect(rewriteOf(await run('/clinic/about/a/b'))).toBeNull()
+  })
+
   it('회원 화면을 그리는 코드형 템플릿(hospital-a)이면 템플릿 라우트로 rewrite (T-124)', async () => {
     fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
     expect(rewriteOf(await run('/clinic/member/login'))).toBe(
