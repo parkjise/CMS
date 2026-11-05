@@ -183,6 +183,10 @@ describe('게시판 추가 마법사', () => {
       'href',
       '/admin/boards/new1/posts/new',
     )
+    expect(screen.getByRole('link', { name: '칸 설정' })).toHaveAttribute(
+      'href',
+      '/admin/boards/new1/fields',
+    )
     expect(screen.getByText(/상단 메뉴에 추가했습니다/)).toBeInTheDocument()
   })
 

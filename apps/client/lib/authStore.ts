@@ -11,6 +11,10 @@ interface ClientAuthStore {
   flags: Record<string, boolean> | null
   /** initialize() 가 끝났는지 — 끝나기 전의 isLoggedIn=false 는 "아직 모름" */
   isInitialized: boolean
+  /** 지금 보고 있는 홈페이지의 사업체 — 모르면 null */
+  siteTenantId: string | null
+
+  setSiteTenant: (tenantId: string | null) => void
 
   // 페이지 로드 시 호출 → HttpOnly 쿠키 기반 자동 로그인 확인
   initialize: () => Promise<void>
@@ -21,9 +25,13 @@ interface ClientAuthStore {
   logout: () => Promise<void>
 }
 
-/** 편집 모드를 쓸 수 있는 계정 — 보기 전용 계정(TENANT_VIEWER)은 제외 (T-130) */
-export const canEditSite = (s: Pick<ClientAuthStore, 'isLoggedIn' | 'user'>) =>
-  s.isLoggedIn && s.user?.role !== 'TENANT_VIEWER'
+/** 다른 사업체 계정으로 이 홈페이지를 보는 중인지 — 사업체가 없는 계정(운영사)은 아니다 (T-144) */
+export const isOtherTenant = (s: Pick<ClientAuthStore, 'user' | 'siteTenantId'>) =>
+  Boolean(s.siteTenantId && s.user?.tenant_id && s.user.tenant_id !== s.siteTenantId)
+
+/** 편집 모드를 쓸 수 있는 계정 — 보기 전용 계정(TENANT_VIEWER, T-130) · 다른 사업체 계정(T-144)은 제외 */
+export const canEditSite = (s: Pick<ClientAuthStore, 'isLoggedIn' | 'user' | 'siteTenantId'>) =>
+  s.isLoggedIn && s.user?.role !== 'TENANT_VIEWER' && !isOtherTenant(s)
 
 /** 편집 모드 기능이 켜져 있는지 — 모르면 보여 준다 (서버가 다시 막는다) (T-138) */
 export const featureOn =
@@ -45,6 +53,9 @@ export const useClientAuthStore = create<ClientAuthStore>((set) => ({
   isLoggedIn: false,
   flags: null,
   isInitialized: false,
+  siteTenantId: null,
+
+  setSiteTenant: (tenantId) => set({ siteTenantId: tenantId }),
 
   initialize: async () => {
     try {

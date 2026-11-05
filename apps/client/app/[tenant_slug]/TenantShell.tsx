@@ -95,7 +95,7 @@ export default async function TenantShell({ children, params }: Props) {
           }}
         />
       )}
-      <AuthInitializer />
+      <AuthInitializer tenantId={site?.tenant.id ?? null} />
       {memberEnabled(site) && <MemberInitializer slug={tenant_slug} />}
       {children}
       <RestoreDraftDialog />
