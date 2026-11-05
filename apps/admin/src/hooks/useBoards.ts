@@ -4,7 +4,7 @@ import type {
   BoardLimits,
   BoardStatus,
   BoardType,
-  BodyBlock,
+  BodyNode,
   Post,
   PostBulkAction,
   PostList,
@@ -26,7 +26,7 @@ export interface PostFilters {
 
 export interface PostInput {
   title?: string
-  body?: BodyBlock[]
+  body?: BodyNode[]
   status?: PostStatus
   is_pinned?: boolean
 }

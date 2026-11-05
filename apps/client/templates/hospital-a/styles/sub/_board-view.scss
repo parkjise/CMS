@@ -155,6 +155,64 @@ $muted: #64748b;
       color: var(--color-primary);
       text-decoration: underline;
     }
+    // Tiptap 서식 (T-143) — 빈 줄 · 빈 표 칸도 한 줄 높이로
+    p:empty::before {
+      content: '\00a0';
+    }
+    h2 {
+      font-size: 1.5em;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    h3 {
+      font-size: 1.25em;
+      font-weight: 700;
+      line-height: 1.4;
+    }
+    ol {
+      padding-left: 1.25em;
+      list-style: decimal;
+    }
+    li > ul,
+    li > ol {
+      margin-top: 0.25em;
+    }
+    em {
+      font-style: italic;
+    }
+    u {
+      text-decoration: underline;
+    }
+    s {
+      text-decoration: line-through;
+    }
+    blockquote {
+      padding-left: 1em;
+      border-left: 3px solid $line-strong;
+      color: $muted;
+    }
+    hr {
+      border: 0;
+      border-top: 1px solid $line-strong;
+    }
+    [data-table-scroll] {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th,
+    td {
+      padding: 8px 12px;
+      border: 1px solid $line-strong;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: var(--color-surface);
+      font-weight: 600;
+    }
   }
 
   // 답변 (상담 상세) — 문의 본문 아래 회색 박스

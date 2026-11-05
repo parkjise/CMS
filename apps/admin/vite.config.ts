@@ -29,7 +29,6 @@ const CHART_ONLY_DEPS = [
   'lodash',
   'decimal.js-light',
   'react-smooth',
-  'fast-equals',
   'recharts-scale',
   'eventemitter3',
   'victory-vendor',
@@ -37,6 +36,17 @@ const CHART_ONLY_DEPS = [
   'prop-types',
   'react-transition-group',
   'dom-helpers',
+]
+
+// 글 편집기(Tiptap)와 그 하위 패키지 — 글쓰기 화면에서만 받는다 (T-143)
+// fast-equals 는 차트 · 편집기가 함께 써서 어느 쪽에도 넣지 않고 공용 vendor 에 둔다
+const EDITOR_ONLY_PATHS = [
+  '/@tiptap/',
+  '/prosemirror-',
+  '/orderedmap/',
+  '/rope-sequence/',
+  '/w3c-keyname/',
+  '/linkifyjs/',
 ]
 
 export default defineConfig(({ mode }) => ({
@@ -73,6 +83,7 @@ export default defineConfig(({ mode }) => ({
           )
             return 'vendor-charts'
           if (id.includes('/@dnd-kit/')) return 'vendor-dnd'
+          if (EDITOR_ONLY_PATHS.some((path) => id.includes(path))) return 'vendor-editor'
           if (
             id.includes('/react-hook-form/') ||
             id.includes('/@hookform/') ||
@@ -80,11 +91,13 @@ export default defineConfig(({ mode }) => ({
           )
             return 'vendor-forms'
           if (id.includes('/@tanstack/')) return 'vendor-query'
+          // /node_modules/ 까지 본다 — '/react/' 만 보면 @tiptap/react 도 걸려
+          // 묶음끼리 서로 불러오다 빌드본 관리자 화면이 통째로 멈춘다 (T-143)
           if (
-            id.includes('/react/') ||
-            id.includes('/react-dom/') ||
-            id.includes('/react-router/') ||
-            id.includes('/scheduler/')
+            id.includes('/node_modules/react/') ||
+            id.includes('/node_modules/react-dom/') ||
+            id.includes('/node_modules/react-router/') ||
+            id.includes('/node_modules/scheduler/')
           )
             return 'vendor-react'
           return 'vendor'

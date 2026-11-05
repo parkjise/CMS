@@ -1,8 +1,8 @@
-import type { BodyBlock, PublicBoard, PublicPost } from '@cms/types'
+import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
 import { loadBoardPage } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
-import { RichLine } from '@/templates/shared/RichLine'
+import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
 const muted = 'text-[color:var(--color-text-muted)]'
@@ -12,29 +12,10 @@ const line = 'border-[color:var(--color-border)]'
 /** 2026-11-05 → 2026.11.05 */
 const dotted = (iso: string): string => postDate(iso).replaceAll('-', '.')
 
-function Body({ blocks }: { blocks: BodyBlock[] }) {
+function Body({ blocks }: { blocks: BodyNode[] }) {
   return (
-    <div className={`space-y-4 leading-relaxed ${primary}`}>
-      {blocks.map((block, i) => {
-        if (block.type === 'image') {
-          // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
-          return <img key={i} src={block.src} alt={block.alt} className="mx-auto h-auto max-w-full rounded-lg" />
-        }
-        if (block.type === 'ul') {
-          return (
-            <ul key={i} className="list-disc space-y-1 pl-5">
-              {block.items.map((item, n) => (
-                <li key={n}>{item}</li>
-              ))}
-            </ul>
-          )
-        }
-        return (
-          <p key={i}>
-            <RichLine text={block.text} />
-          </p>
-        )
-      })}
+    <div className={`rich-body leading-relaxed ${primary}`}>
+      <RichBody nodes={blocks} />
     </div>
   )
 }

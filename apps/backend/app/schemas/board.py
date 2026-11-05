@@ -1,19 +1,21 @@
 """게시판 · 게시글 스키마 (T-139, 게시판 모듈 기획서 8 · 9장)."""
 
-import re
 from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+)
+
+from app.schemas.rich_body import clean_body
 
 PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
-
-MAX_BLOCKS = 100
-MSG_INVALID_IMAGE_URL = "사진 주소가 올바르지 않습니다."
-
-# http(s) 또는 사이트 안 경로만 — javascript: · data: · //다른사이트 차단
-SAFE_IMAGE_URL = re.compile(r"^(https?://|/(?!/))", re.IGNORECASE)
 
 SLUG_MAX_LENGTH = 60
 BoardType = Literal["LIST", "GALLERY", "FAQ"]
@@ -33,39 +35,9 @@ PostTitle = Annotated[
 ]
 
 
-class _Block(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-
-class ParagraphBlock(_Block):
-    type: Literal["p"]
-    text: str = Field(max_length=5000)
-
-
-class ListBlock(_Block):
-    type: Literal["ul"]
-    items: list[Annotated[str, StringConstraints(max_length=500)]] = Field(
-        min_length=1, max_length=50
-    )
-
-
-class ImageBlock(_Block):
-    type: Literal["image"]
-    src: str = Field(min_length=1, max_length=500)
-    alt: str = Field(default="", max_length=200)
-
-    @field_validator("src")
-    @classmethod
-    def _safe_src(cls, value: str) -> str:
-        if not SAFE_IMAGE_URL.match(value):
-            raise ValueError(MSG_INVALID_IMAGE_URL)
-        return value
-
-
-BodyBlock = Annotated[
-    ParagraphBlock | ListBlock | ImageBlock, Field(discriminator="type")
-]
-PostBody = Annotated[list[BodyBlock], Field(max_length=MAX_BLOCKS)]
+# Tiptap 노드 목록 (이전 p · ul · image 도 받음) — 허용 목록 검사는 schemas/rich_body.py
+BodyNode = dict[str, Any]
+PostBody = Annotated[list[Any], AfterValidator(clean_body)]
 
 
 class BoardCreate(BaseModel):
@@ -254,7 +226,7 @@ class PostListItem(BaseModel):
 
 
 class PostResponse(PostListItem):
-    body: list[BodyBlock]
+    body: list[BodyNode]
     custom_data: dict[str, Any]
 
 
@@ -319,7 +291,7 @@ class PublicPostItem(BaseModel):
     # 갤러리 썸네일 — 본문의 첫 사진
     thumbnail: str | None = None
     # FAQ 는 목록에서 답변을 펼치므로 본문까지, 그 밖에는 없음
-    body: list[BodyBlock] | None = None
+    body: list[BodyNode] | None = None
 
 
 class PublicPostListResponse(BaseModel):
@@ -341,7 +313,7 @@ class PublicFieldValue(BaseModel):
 
 
 class PublicPostDetail(PublicPostItem):
-    body: list[BodyBlock]
+    body: list[BodyNode]
     # 홈페이지에 표시하는 칸 중 값이 있는 것만, 정한 순서대로
     fields: list[PublicFieldValue] = []
     prev_id: UUID | None

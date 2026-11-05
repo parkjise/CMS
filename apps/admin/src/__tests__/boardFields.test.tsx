@@ -23,6 +23,7 @@ const { get, post, patch, del, toast } = vi.hoisted(() => ({
   toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() },
 }))
 
+vi.mock('@/components/boards/RichTextEditor', () => ({ RichTextEditor: () => <div>본문 편집기</div> }))
 vi.mock('@/lib/api', () => ({ api: { get, post, patch, delete: del } }))
 vi.mock('@cms/ui', async (original) => ({
   ...(await original<typeof import('@cms/ui')>()),

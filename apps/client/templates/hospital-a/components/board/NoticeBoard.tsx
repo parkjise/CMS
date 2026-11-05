@@ -1,4 +1,4 @@
-import type { BodyBlock, PublicFieldValue } from '@cms/types'
+import type { BodyBlock, BodyNode, PublicFieldValue } from '@cms/types'
 import { fieldValueText } from '@/lib/publicPosts'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
@@ -40,7 +40,7 @@ export function sortNotices(items: NoticeItem[]): NoticeItem[] {
 interface NoticeDetailViewProps {
   subject: string
   date: string
-  body: BodyBlock[]
+  body: BodyNode[]
   prevHref: string | null
   nextHref: string | null
   listHref: string
