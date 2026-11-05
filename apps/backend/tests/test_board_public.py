@@ -136,6 +136,10 @@ class TestPublicSiteBoards:
                 "slug": "photos",
                 "description": "사진 모음",
                 "board_type": "GALLERY",
+                "page_size": None,
+                "seo_title": "",
+                "seo_description": "",
+                "seo_index": True,
             }
         ]
 

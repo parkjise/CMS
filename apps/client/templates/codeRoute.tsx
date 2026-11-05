@@ -10,7 +10,7 @@
  */
 import { headers } from 'next/headers'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
-import { canonicalMeta } from '@/lib/seoMeta'
+import { boardSeoMeta, canonicalMeta } from '@/lib/seoMeta'
 import type { PublicBoard } from '@cms/types'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -128,6 +128,7 @@ export async function codeRouteMetadata(
     ...((resolved.pageKey === 'consult' && resolved.detailId) || resolved.memberPage
       ? { robots: { index: false, follow: false } }
       : {}),
+    ...(resolved.board ? boardSeoMeta(resolved.board, resolved.site.tenant.name, resolved.postTitle) : {}),
   }
 }
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router'
 import { ChevronDown, X, ExternalLink, LogOut, Layers } from 'lucide-react'
-import { ADMIN_NAVIGATION } from './navigation'
+import { ADMIN_NAVIGATION, isChildActive } from './navigation'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavBadge, useNavVisibility } from '@/lib/navItems'
@@ -75,10 +75,10 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
               <NavLink
                 to={to}
                 onClick={onNavigate}
-                className={({ isActive }) =>
+                className={() =>
                   [
                     'block rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
-                    isActive
+                    isChildActive(pathname, to, children)
                       ? 'bg-blue-50 font-medium text-blue-700'
                       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                   ].join(' ')

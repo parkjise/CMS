@@ -38,6 +38,11 @@ const board: Board = {
   post_count: 2,
   has_samples: false,
   deleted_at: null,
+  sort_order: 'LATEST',
+  page_size: null,
+  seo_title: '',
+  seo_description: '',
+  seo_index: true,
 }
 const notice: Board = { ...board, id: 'n1', name: '공지사항', slug: 'notice', system_key: 'notice' }
 
@@ -141,6 +146,16 @@ describe('게시판 목록', () => {
 describe('게시판 추가 마법사', () => {
   const renderNew = () => renderAt('/admin/boards/new', <BoardNewPage />, '/admin/boards/new')
   const next = () => userEvent.click(screen.getByRole('button', { name: '다음' }))
+
+  it('보기 전용 계정에는 입력 칸 대신 안내를 보여 준다', async () => {
+    mockApi({})
+    const user = useAuthStore.getState().user
+    useAuthStore.setState({ user: { ...user, role: 'TENANT_VIEWER' } as typeof user })
+    renderNew()
+    expect(await screen.findByText(/보기 전용 계정은 게시판을 추가할 수 없습니다/)).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
+    useAuthStore.setState({ user })
+  })
 
   it('이름 없이는 다음으로 가지 않는다', async () => {
     mockApi({})
@@ -265,8 +280,59 @@ describe('기본 정보 탭', () => {
     await userEvent.type(name, '새 이름')
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', { name: '새 이름', description: '' }),
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
+        name: '새 이름',
+        description: '',
+        sort_order: 'LATEST',
+        page_size: null,
+        seo_title: '',
+        seo_description: '',
+        seo_index: true,
+      }),
     )
+  })
+
+  it('정렬 · 글 수 · 검색 노출을 저장한다', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderSettings()
+    await userEvent.selectOptions(await screen.findByLabelText('기본 정렬'), '제목순')
+    await userEvent.selectOptions(screen.getByLabelText('페이지당 글 수'), '20개')
+    await userEvent.type(screen.getByLabelText(/검색 제목/), '  소식 모음 ')
+    await userEvent.type(screen.getByLabelText(/검색 설명/), '병원 소식')
+    await userEvent.click(screen.getByLabelText(/검색 결과에 표시/))
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
+        name: '병원 소식',
+        description: '',
+        sort_order: 'TITLE',
+        page_size: 20,
+        seo_title: '소식 모음',
+        seo_description: '병원 소식',
+        seo_index: false,
+      }),
+    )
+  })
+
+  it('저장된 글 수를 자동으로 되돌리면 null 을 보낸다', async () => {
+    mockApi({ boards: [{ ...board, page_size: 30 }] })
+    patch.mockResolvedValue({ data: { data: board } })
+    renderSettings()
+    await userEvent.selectOptions(await screen.findByLabelText('페이지당 글 수'), '자동 (유형에 맞게)')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(patch.mock.calls[0][1]).toMatchObject({ page_size: null }))
+  })
+
+  it('기본 게시판은 검색 노출 칸이 없고 정렬 · 글 수만 저장한다', async () => {
+    mockApi({ boards: [notice] })
+    patch.mockResolvedValue({ data: { data: notice } })
+    renderSettings('n1')
+    await screen.findByLabelText('기본 정렬')
+    expect(screen.queryByLabelText(/검색 제목/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(patch).toHaveBeenCalled())
+    expect(patch.mock.calls[0][1]).not.toHaveProperty('seo_title')
   })
 
   it('탭 — 새 게시판은 필드 관리까지, 현재 탭 표시', async () => {

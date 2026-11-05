@@ -49,7 +49,10 @@ function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
   const pages = (manifest?.pages ?? [])
     .filter((page) => page.key !== 'home' && !hidden.has(page.key))
     .map((page) => ({ path: `/${page.key}`, lastmod: now }))
-  const boards = (site.boards ?? []).filter((board) => !hidden.has(`board:${board.id}`))
+  // 검색 노출을 끈 게시판은 글까지 뺀다 (T-146)
+  const boards = (site.boards ?? []).filter(
+    (board) => !hidden.has(`board:${board.id}`) && board.seo_index !== false,
+  )
   const newest = new Map<string, string>()
   const postUrls = posts.flatMap((post) => {
     const base = post.is_system

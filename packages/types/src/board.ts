@@ -59,6 +59,7 @@ export type BodyNode = BodyBlock | RichNode
 
 export type BoardType = 'LIST' | 'GALLERY' | 'FAQ'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
+export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
 
 export interface Board {
   id: string
@@ -72,6 +73,12 @@ export interface Board {
   /** 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지 */
   has_samples: boolean
   deleted_at: string | null
+  sort_order: BoardSortOrder
+  /** null 이면 유형별 기본값 (목록 10 · 갤러리 12 · FAQ 20) */
+  page_size: number | null
+  seo_title: string
+  seo_description: string
+  seo_index: boolean
 }
 
 /** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */
@@ -129,6 +136,10 @@ export interface PublicBoard {
   slug: string
   description: string
   board_type: BoardType
+  page_size?: number | null
+  seo_title?: string
+  seo_description?: string
+  seo_index?: boolean
 }
 
 export interface PublicPostItem {

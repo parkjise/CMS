@@ -46,7 +46,7 @@ export async function loadBoardPage(
   board: PublicBoard,
   { page, q }: { page: number; q?: string },
 ): Promise<BoardPage> {
-  const size = BOARD_PAGE_SIZE[board.board_type]
+  const size = board.page_size ?? BOARD_PAGE_SIZE[board.board_type]
   const keyword = (q ?? '').trim()
   const load = (p: number) => fetchPublicPosts(tenantSlug, board.slug, { page: p, size, q: keyword || undefined })
   let list = await load(page)

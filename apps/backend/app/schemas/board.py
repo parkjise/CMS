@@ -20,6 +20,8 @@ PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
 SLUG_MAX_LENGTH = 60
 BoardType = Literal["LIST", "GALLERY", "FAQ"]
 BoardStatus = Literal["ACTIVE", "INACTIVE"]
+BoardSortOrder = Literal["LATEST", "OLDEST", "TITLE"]
+BoardPageSize = Literal[10, 20, 30]
 BoardName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
@@ -57,6 +59,12 @@ class BoardUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=200)
     board_type: BoardType | None = None
     status: BoardStatus | None = None
+    sort_order: BoardSortOrder | None = None
+    # null 이면 유형별 기본값 (목록 10 · 갤러리 12 · FAQ 20)
+    page_size: BoardPageSize | None = None
+    seo_title: str | None = Field(default=None, max_length=60)
+    seo_description: str | None = Field(default=None, max_length=160)
+    seo_index: bool | None = None
 
 
 class BoardResponse(BaseModel):
@@ -71,6 +79,11 @@ class BoardResponse(BaseModel):
     # 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지
     has_samples: bool
     deleted_at: datetime | None
+    sort_order: str
+    page_size: int | None
+    seo_title: str
+    seo_description: str
+    seo_index: bool
 
 
 class BoardRestoreResponse(BaseModel):
@@ -279,6 +292,10 @@ class PublicBoardResponse(BaseModel):
     slug: str
     description: str
     board_type: str
+    page_size: int | None
+    seo_title: str
+    seo_description: str
+    seo_index: bool
 
 
 class PublicPostItem(BaseModel):

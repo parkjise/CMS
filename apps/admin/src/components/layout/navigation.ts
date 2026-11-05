@@ -21,6 +21,7 @@ export const ADMIN_NAVIGATION = [
     label: '게시판 관리',
     children: [
       { to: '/admin/boards', label: '게시판 목록' },
+      { to: '/admin/boards/new', label: '게시판 생성' },
       { to: '/admin/posts', label: '전체 글' },
     ],
   },
@@ -31,6 +32,16 @@ export const ADMIN_NAVIGATION = [
   { to: '/admin/reports', icon: Sparkles, label: '월간 리포트' },
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
+
+const matches = (pathname: string, to: string) => pathname === to || pathname.startsWith(`${to}/`)
+
+/** 2뎁스 현재 화면 — 더 구체적인 형제 메뉴가 있으면 그쪽만 (목록과 생성이 함께 켜지지 않게) */
+export function isChildActive(pathname: string, to: string, siblings: { to: string }[]) {
+  return (
+    matches(pathname, to) &&
+    !siblings.some((other) => other.to.startsWith(`${to}/`) && matches(pathname, other.to))
+  )
+}
 
 export function breadcrumbsFor(pathname: string) {
   const base = ADMIN_NAVIGATION.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))

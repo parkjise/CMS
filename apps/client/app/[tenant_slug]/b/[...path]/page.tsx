@@ -9,7 +9,7 @@ import { resolveBoardRoute } from '@/lib/boardRoute'
 import { boardPageKey } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled } from '@/lib/publicSite.types'
-import { canonicalMeta } from '@/lib/seoMeta'
+import { boardSeoMeta, canonicalMeta } from '@/lib/seoMeta'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { themeHomeSections } from '@/lib/themeSections'
 import { pageHref } from '@/templates/shared/contracts'
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!route) return NOT_FOUND_META
   const key = boardPageKey(route.board.slug)
   return {
-    title: `${route.post?.title ?? route.board.name} | ${site.tenant.name}`,
+    ...boardSeoMeta(route.board, site.tenant.name, route.post?.title),
     ...canonicalMeta(site, route.detailId ? `/${key}/${route.detailId}` : `/${key}`),
   }
 }

@@ -57,6 +57,26 @@ describe('새 게시판 주소 (T-140-B)', () => {
     expect(JSON.stringify(tree)).toContain('"pageKey":"b/news"')
   })
 
+  it('검색 제목 · 설명은 목록 화면에, 노출을 끄면 글 화면까지 뺀다 (T-146)', async () => {
+    const seo = { ...news, seo_title: '소식 모음', seo_description: '병원 소식입니다', seo_index: false }
+    fetchPublicSite.mockResolvedValue({ ...site(), boards: [seo] })
+    const list = await meta('b', 'news')
+    expect(list.title).toBe('소식 모음 | 데모')
+    expect(list.description).toBe('병원 소식입니다')
+    expect(list.robots).toEqual({ index: false, follow: false })
+
+    fetchPublicPost.mockResolvedValue({ id: 'p1', title: '첫 글' })
+    const detail = await meta('b', 'news', 'p1')
+    expect(detail.title).toBe('첫 글 | 데모')
+    expect(detail.description).toBeUndefined()
+    expect(detail.robots).toEqual({ index: false, follow: false })
+  })
+
+  it('검색 노출이 켜져 있으면 robots 를 넣지 않아 사이트 설정을 따른다 (T-146)', async () => {
+    fetchPublicSite.mockResolvedValue({ ...site(), boards: [{ ...news, seo_index: true }] })
+    expect(await meta('b', 'news')).not.toHaveProperty('robots')
+  })
+
   it('상세: 글 제목 · 대표 주소', async () => {
     fetchPublicPost.mockResolvedValue({ id: 'p1', title: '첫 글' })
     const m = await meta('b', 'news', 'p1')

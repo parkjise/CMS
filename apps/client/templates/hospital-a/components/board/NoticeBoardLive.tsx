@@ -1,7 +1,6 @@
 import { NOTICE_BOARD, fetchPublicPost, fetchPublicPosts, postDate } from '@/lib/publicPosts'
 import { getPlainString } from '@/lib/sectionSettings'
 import {
-  NOTICE_PAGE_SIZE,
   NoticeBoard,
   type NoticeBoardProps,
   NoticeDetailView,
@@ -34,11 +33,11 @@ export async function NoticeBoardLive(props: NoticeBoardProps) {
 
   const keyword = (q ?? '').trim()
   const load = (p: number) =>
-    fetchPublicPosts(tenantSlug, NOTICE_BOARD, { page: p, size: NOTICE_PAGE_SIZE, q: keyword || undefined })
+    fetchPublicPosts(tenantSlug, NOTICE_BOARD, { page: p, q: keyword || undefined })
   let list = await load(page)
   if (!list?.has_posts) return <NoticeBoard {...props} />
 
-  const totalPages = Math.max(1, Math.ceil(list.total / NOTICE_PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(list.total / list.size))
   // 지난 주소의 페이지가 사라졌으면 마지막 페이지로
   if (page > totalPages) list = (await load(totalPages)) ?? list
 

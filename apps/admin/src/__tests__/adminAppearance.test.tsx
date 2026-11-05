@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Header } from '@/components/layout/Header'
 import { CollapsedSidebar } from '@/components/layout/CollapsedSidebar'
-import { breadcrumbsFor } from '@/components/layout/navigation'
+import { breadcrumbsFor, isChildActive } from '@/components/layout/navigation'
 import { useAppearanceStore } from '@/stores/appearanceStore'
 import { useFeatureStore } from '@/stores/featureStore'
 
@@ -114,6 +114,13 @@ describe('tenant admin appearance', () => {
     expect(screen.getByRole('navigation', { name: '대시보드 바로가기' })).toBeInTheDocument()
     await userEvent.keyboard('{Escape}')
     expect(screen.queryByRole('navigation', { name: '대시보드 바로가기' })).not.toBeInTheDocument()
+  })
+
+  it('게시판 생성 화면이면 메뉴에서 그것만 현재 화면으로 표시한다', () => {
+    const children = [{ to: '/admin/boards' }, { to: '/admin/boards/new' }, { to: '/admin/posts' }]
+    expect(isChildActive('/admin/boards/new', '/admin/boards/new', children)).toBe(true)
+    expect(isChildActive('/admin/boards/new', '/admin/boards', children)).toBe(false)
+    expect(isChildActive('/admin/boards/b1/settings', '/admin/boards', children)).toBe(true)
   })
 
   it.each([

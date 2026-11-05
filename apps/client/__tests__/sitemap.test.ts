@@ -128,4 +128,11 @@ describe('사이트맵 (T-140-C)', () => {
     fetchPublicSite.mockResolvedValue(null)
     expect((await locs()).urls).toEqual([])
   })
+
+  it('검색 노출을 끈 게시판은 글까지 빠진다 (T-146)', async () => {
+    fetchPublicSite.mockResolvedValue(site({ boards: [{ ...news, board_type: 'LIST' as const, seo_index: false }] }))
+    fetchSitemapPosts.mockResolvedValue([post('news', 'p1')])
+    const { urls } = await locs()
+    expect(urls.some((url) => url.includes('/b/news'))).toBe(false)
+  })
 })

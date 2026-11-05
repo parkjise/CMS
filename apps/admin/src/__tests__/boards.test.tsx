@@ -45,6 +45,11 @@ const board: Board = {
   post_count: 2,
   has_samples: false,
   deleted_at: null,
+  sort_order: 'LATEST',
+  page_size: null,
+  seo_title: '',
+  seo_description: '',
+  seo_index: true,
 }
 
 const item = {

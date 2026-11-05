@@ -38,6 +38,20 @@ EMPTY_ITEMS = "[]"
 MSG_BULK_MISMATCH = "처리할 수 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
 SITEMAP_POST_LIMIT = 5000
 DESCRIPTION_KEY = "description"
+SORT_ORDER_KEY = "sort_order"
+PAGE_SIZE_KEY = "page_size"
+SEO_TITLE_KEY = "seo_title"
+SEO_DESCRIPTION_KEY = "seo_description"
+SEO_INDEX_KEY = "seo_index"
+OPTION_KEYS = {
+    SORT_ORDER_KEY,
+    PAGE_SIZE_KEY,
+    SEO_TITLE_KEY,
+    SEO_DESCRIPTION_KEY,
+    SEO_INDEX_KEY,
+}
+DEFAULT_SORT_ORDER = "LATEST"
+DEFAULT_PUBLIC_PAGE_SIZE = 10
 AUTO_SLUG_PREFIX = "board"
 
 # 기본 게시판을 뺀 추가 게시판 수 (기획서 4장 · D-01). None 은 제한 없음
@@ -183,6 +197,18 @@ async def _post_counts(db: AsyncSession, board_ids: list[UUID]) -> dict[UUID, in
     return {board_id: count for board_id, count in rows.all()}
 
 
+def board_options(board: Board) -> dict:
+    """목록 표시 · 검색 노출 설정 (BM-03, T-146) — 저장하지 않은 값은 기본값."""
+    settings = board.settings or {}
+    return {
+        SORT_ORDER_KEY: settings.get(SORT_ORDER_KEY, DEFAULT_SORT_ORDER),
+        PAGE_SIZE_KEY: settings.get(PAGE_SIZE_KEY),
+        SEO_TITLE_KEY: settings.get(SEO_TITLE_KEY, ""),
+        SEO_DESCRIPTION_KEY: settings.get(SEO_DESCRIPTION_KEY, ""),
+        SEO_INDEX_KEY: settings.get(SEO_INDEX_KEY, True),
+    }
+
+
 def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
     return {
         "id": board.id,
@@ -195,6 +221,7 @@ def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
         "post_count": post_count,
         "has_samples": has_samples and board.system_key == NOTICE_KEY,
         "deleted_at": board.deleted_at,
+        **board_options(board),
     }
 
 
@@ -365,6 +392,18 @@ async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> 
     return board
 
 
+def _merged_options(settings: dict, data: BoardUpdate) -> dict:
+    """보낸 값만 바꾼다. 글 수의 null 은 유형별 기본값으로 되돌리기."""
+    merged = dict(settings)
+    sent = data.model_dump(include=OPTION_KEYS, exclude_unset=True)
+    for key, value in sent.items():
+        if value is not None:
+            merged[key] = value
+        elif key == PAGE_SIZE_KEY:
+            merged.pop(key, None)
+    return merged
+
+
 async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
     is_system = board.system_key is not None
     if is_system and data.slug is not None and data.slug != board.slug:
@@ -392,6 +431,7 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         board.board_type = data.board_type
     if data.description is not None:
         board.settings = {**(board.settings or {}), DESCRIPTION_KEY: data.description}
+    board.settings = _merged_options(board.settings or {}, data)
     if data.status is not None:
         board.status = data.status
         # 비활성이면 공개 글을 읽지 못해 화면이 샘플로 돌아가므로 함께 비운다
@@ -704,6 +744,21 @@ async def open_public_board(
     return result.scalar_one_or_none()
 
 
+def _public_board(board: Board) -> dict:
+    options = board_options(board)
+    return {
+        "id": board.id,
+        "name": board.name,
+        "slug": board.slug,
+        "description": (board.settings or {}).get(DESCRIPTION_KEY, ""),
+        "board_type": board.board_type,
+        PAGE_SIZE_KEY: options[PAGE_SIZE_KEY],
+        SEO_TITLE_KEY: options[SEO_TITLE_KEY],
+        SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
+        SEO_INDEX_KEY: options[SEO_INDEX_KEY],
+    }
+
+
 async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
     """홈페이지에 나가는 새 게시판 — 기본 게시판은 템플릿 페이지가 따로 있다 (5.3)."""
     result = await db.execute(
@@ -716,16 +771,7 @@ async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
         )
         .order_by(Board.created_at, Board.id)
     )
-    return [
-        {
-            "id": board.id,
-            "name": board.name,
-            "slug": board.slug,
-            "description": (board.settings or {}).get(DESCRIPTION_KEY, ""),
-            "board_type": board.board_type,
-        }
-        for board in result.scalars()
-    ]
+    return [_public_board(board) for board in result.scalars()]
 
 
 async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] | None:
@@ -785,6 +831,24 @@ def _public_order(latest: bool = False) -> list[UnaryExpression]:
     return newest if latest else [BoardPost.is_pinned.desc(), *newest]
 
 
+def _list_order(board: Board) -> list[UnaryExpression]:
+    """고객이 고른 기본 정렬 (T-146) — 상단 고정 글은 언제나 먼저."""
+    sort_order = board_options(board)[SORT_ORDER_KEY]
+    if sort_order == "OLDEST":
+        return [
+            BoardPost.is_pinned.desc(),
+            BoardPost.published_at.asc(),
+            BoardPost.id.asc(),
+        ]
+    if sort_order == "TITLE":
+        return [BoardPost.is_pinned.desc(), BoardPost.title.asc(), BoardPost.id.desc()]
+    return _public_order()
+
+
+def public_page_size(board: Board) -> int:
+    return board_options(board)[PAGE_SIZE_KEY] or DEFAULT_PUBLIC_PAGE_SIZE
+
+
 async def list_public_posts(
     db: AsyncSession,
     board: Board,
@@ -805,7 +869,7 @@ async def list_public_posts(
     result = await db.execute(
         select(BoardPost)
         .where(*conditions)
-        .order_by(*_public_order(latest))
+        .order_by(*(_public_order(latest=True) if latest else _list_order(board)))
         .offset((page - 1) * size)
         .limit(size)
     )

@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type { Board, BoardStatus, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { useBoardLimits, useCreateBoard } from '@/hooks/useBoards'
+import { useCanEdit } from '@/hooks/useCanEdit'
 import { BOARD_TYPES, boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -10,6 +11,7 @@ const STEPS = ['기본 정보', '유형', '공개 여부'] as const
 
 /** 게시판 추가 마법사 (BM-02) — 어려운 칸은 고급 설정으로 */
 export function BoardNewPage() {
+  const canEdit = useCanEdit()
   const limitsQuery = useBoardLimits()
   const createBoard = useCreateBoard()
   const [step, setStep] = useState(0)
@@ -104,7 +106,11 @@ export function BoardNewPage() {
         <h1 className="mt-1 text-2xl font-bold text-slate-900">게시판 추가</h1>
       </div>
 
-      {limits && !limits.can_create ? (
+      {!canEdit ? (
+        <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+          보기 전용 계정은 게시판을 추가할 수 없습니다.
+        </p>
+      ) : limits && !limits.can_create ? (
         <div className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
           <p>{limits.reason}</p>
           <Link to="/admin/billing" className="font-medium underline">

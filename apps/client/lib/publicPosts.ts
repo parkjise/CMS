@@ -34,9 +34,11 @@ const postsPath = (tenantSlug: string, board: string) =>
 export function fetchPublicPosts(
   tenantSlug: string,
   board: string,
-  { page = 1, size = 10, q, order }: { page?: number; size?: number; q?: string; order?: 'latest' },
+  { page = 1, size, q, order }: { page?: number; size?: number; q?: string; order?: 'latest' },
 ): Promise<PublicPostList | null> {
-  const params = new URLSearchParams({ page: String(page), size: String(size) })
+  // 크기를 안 보내면 서버가 게시판 설정대로 (T-146)
+  const params = new URLSearchParams({ page: String(page) })
+  if (size) params.set('size', String(size))
   if (q) params.set('q', q)
   if (order) params.set('order', order)
   return getJson<PublicPostList>(tenantSlug, `${postsPath(tenantSlug, board)}?${params.toString()}`)
