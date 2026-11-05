@@ -54,10 +54,12 @@ const mockApi = ({
   boards = [board],
   limits = openLimits,
   trash = [],
-}: { boards?: Board[]; limits?: BoardLimits; trash?: Board[] }) => {
+  mode = 'code',
+}: { boards?: Board[]; limits?: BoardLimits; trash?: Board[]; mode?: 'code' | 'theme' }) => {
   get.mockImplementation((url: string, config?: { params?: { trash?: boolean } }) => {
     if (url === '/v1/boards/limits') return ok(limits)
     if (url === '/v1/boards') return ok(config?.params?.trash ? trash : boards)
+    if (url === '/v1/site-settings/menu') return ok({ mode, reorderable: mode === 'code', items: [] })
     return ok(undefined)
   })
 }
@@ -94,16 +96,23 @@ describe('주소 이름 검사', () => {
 describe('게시판 목록', () => {
   const renderList = () => renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
 
-  it('한도 안이면 추가 버튼, 새 게시판이 있으면 아직 표시되지 않는다고 안내', async () => {
+  it('한도 안이면 추가 버튼, 코드형 템플릿이면 표시 안내가 없다', async () => {
     mockApi({})
     renderList()
     expect(await screen.findByRole('link', { name: '게시판 추가' })).toHaveAttribute('href', '/admin/boards/new')
-    expect(await screen.findByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
+    expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '병원 소식 설정' })).toHaveAttribute('href', '/admin/boards/b1/settings')
   })
 
-  it('기본 게시판만 있으면 표시 안내가 없다', async () => {
-    mockApi({ boards: [notice] })
+  it('테마형 템플릿에 새 게시판이 있으면 아직 표시되지 않는다고 안내', async () => {
+    mockApi({ mode: 'theme' })
+    renderList()
+    expect(await screen.findByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
+  })
+
+  it('테마형이어도 기본 게시판만 있으면 표시 안내가 없다', async () => {
+    mockApi({ boards: [notice], mode: 'theme' })
     renderList()
     await screen.findByRole('link', { name: '공지사항 설정' })
     expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
@@ -166,13 +175,58 @@ describe('게시판 추가 마법사', () => {
         slug: undefined,
         board_type: 'GALLERY',
         status: 'INACTIVE',
+        in_menu: true,
       }),
     )
     expect(await screen.findByRole('link', { name: '첫 글 쓰기' })).toHaveAttribute(
       'href',
       '/admin/boards/new1/posts/new',
     )
-    expect(screen.getByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
+    expect(screen.getByText(/상단 메뉴에 추가했습니다/)).toBeInTheDocument()
+    expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
+  })
+
+  const toLastStep = async () => {
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    await next()
+    await next()
+  }
+
+  it('[메뉴에 추가]는 기본 켜짐, 끄면 메뉴에 넣지 않는다', async () => {
+    mockApi({})
+    post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+    renderNew()
+    await toLastStep()
+    const checkbox = await screen.findByRole('checkbox', { name: /상단 메뉴에 추가/ })
+    expect(checkbox).toBeChecked()
+    await userEvent.click(checkbox)
+    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/boards', expect.objectContaining({ in_menu: false })),
+    )
+    expect(await screen.findByText(/상단 메뉴에는 넣지 않았습니다/)).toBeInTheDocument()
+  })
+
+  it('사용 안 함이면 [메뉴에 추가]가 없고, 켜면 나온다고 안내', async () => {
+    mockApi({})
+    post.mockResolvedValue({ data: { data: { ...board, id: 'new1', status: 'INACTIVE' } } })
+    renderNew()
+    await toLastStep()
+    await userEvent.click(screen.getByRole('radio', { name: /사용 안 함/ }))
+    expect(screen.queryByRole('checkbox', { name: /상단 메뉴에 추가/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    expect(await screen.findByText(/사용으로 바꾸면 홈페이지 상단 메뉴에 나옵니다/)).toBeInTheDocument()
+  })
+
+  it('테마형은 [메뉴에 추가]가 없고 아직 표시되지 않는다고 안내', async () => {
+    mockApi({ mode: 'theme' })
+    post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+    renderNew()
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
+    await toLastStep()
+    expect(screen.queryByRole('checkbox', { name: /상단 메뉴에 추가/ })).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    expect(await screen.findByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
   })
 
   it('이전으로 돌아가도 입력이 남는다', async () => {
@@ -260,13 +314,34 @@ describe('게시판 설정', () => {
     expect(await screen.findByText('게시판을 찾을 수 없습니다.')).toBeInTheDocument()
   })
 
-  it('휴지통으로 옮기면 목록으로', async () => {
+  it('휴지통으로 옮기기 전에 글 수와 메뉴에서 빠진다고 확인하고, 옮기면 목록으로', async () => {
     mockApi({})
     del.mockResolvedValue({})
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
     renderSettings()
     await userEvent.click(await screen.findByRole('button', { name: '휴지통으로' }))
+    expect(confirm.mock.calls[0][0]).toMatch(/글 2개.*메뉴/)
     await waitFor(() => expect(del).toHaveBeenCalledWith('/v1/boards/b1'))
     expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
+    confirm.mockRestore()
+  })
+
+  it('확인에서 취소하면 옮기지 않는다', async () => {
+    mockApi({})
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderSettings()
+    await userEvent.click(await screen.findByRole('button', { name: '휴지통으로' }))
+    expect(del).not.toHaveBeenCalled()
+    confirm.mockRestore()
+  })
+
+  it('주소를 바꾸면 이전 주소가 열리지 않는다고 알린다', async () => {
+    mockApi({})
+    renderSettings()
+    const slug = await screen.findByLabelText('주소 이름')
+    expect(screen.queryByText(/이전 주소는/)).not.toBeInTheDocument()
+    await userEvent.type(slug, '-2')
+    expect(screen.getByText(/이전 주소는 더 이상 열리지 않습니다/)).toBeInTheDocument()
   })
 
   it('저장 실패를 알린다', async () => {

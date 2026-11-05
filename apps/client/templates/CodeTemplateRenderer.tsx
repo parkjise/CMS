@@ -1,3 +1,4 @@
+import type { PublicBoard } from '@cms/types'
 import { buildCssVarBody } from '@/lib/theme'
 import { NOTICE_BOARD, fetchPublicPosts } from '@/lib/publicPosts'
 import type { PublicSite } from '@/lib/publicSite.types'
@@ -22,6 +23,8 @@ interface Props {
   detailId?: string
   query?: { q?: string; p?: string }
   member?: MemberRoute
+  /** 지금 페이지가 새 게시판이면 그 게시판 (T-140-B) */
+  board?: PublicBoard
 }
 
 /**
@@ -42,6 +45,7 @@ export async function CodeTemplateRenderer({
   detailId,
   query,
   member,
+  board,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -78,6 +82,8 @@ export async function CodeTemplateRenderer({
         siteInfo={siteInfo}
         preview={preview}
         menuItems={useSample ? null : site.site_settings?.menu_items}
+        boards={useSample ? [] : site.boards}
+        board={board}
         previewQuery={previewQuery}
         latestNotices={latestNotices}
         detailId={detailId}

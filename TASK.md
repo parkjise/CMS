@@ -32,8 +32,8 @@
 | **Phase 15: 방문자 인증** | **11** | **11** | **100%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **18** | **18** | **100%** |
 | **Phase 17: 기획서 대조 후속** | **15** | **15** | **100%** |
-| **Phase 18: 게시판 관리 모듈** | **7** | **2** | **29%** |
-| **합계** | **185** | **180** | **97%** |
+| **Phase 18: 게시판 관리 모듈** | **7** | **3** | **43%** |
+| **합계** | **185** | **181** | **98%** |
 
 ---
 
@@ -3084,9 +3084,9 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 | 순서 | 태스크 | 내용 | 선행 | 상태 |
 |---|---|---|---|---|
 | 1 | T-139 | 공지 실사용 | — | 완료 (PR #79) |
-| 2 | T-140-A | 게시판 생성 · 설정 · 휴지통 | T-139 | 구현 완료 · PR 대기 |
-| 3 | T-140-B | 코드형 템플릿의 새 게시판 화면 · 메뉴 | T-140-A | 다음 |
-| 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 대기 |
+| 2 | T-140-A | 게시판 생성 · 설정 · 휴지통 | T-139 | 완료 (PR #80) |
+| 3 | T-140-B | 코드형 템플릿의 새 게시판 화면 · 메뉴 | T-140-A | 구현 완료 · PR 대기 |
+| 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 다음 |
 | 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 대기 |
 | 6 | T-142-A | 필드 정의 · 값 검증 (백엔드) | T-140-A | 대기 |
 | 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 (화면) | T-142-A | 대기 |
@@ -3099,22 +3099,23 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 공개 API 는 `/api/public/site/{tenant_slug}/boards/...` 다. 게시판 슬러그는 사업체별이라 슬러그만으로 찾으면 안 된다.
 - 기능 플래그 `BOARD_MANAGER` 를 꺼도 공개 홈페이지는 그대로다.
 - 슬러그는 비우면 `board-1` 처럼 자동(휴지통 슬러그도 재사용 안 함), 복원 시 충돌하면 뒤에 번호를 붙인다. 복제는 설정만, 글은 복제하지 않는다. 유형은 글이 있어도 바꿀 수 있고 화면이 경고한다. 공지 게시판을 비활성화하면 샘플도 비운다 (2026-11-05 결정).
+- 새 게시판 주소는 `/{slug}/b/{게시판}[/{글}]`, 메뉴 저장 키는 `board:{id}`. 만들 때 메뉴 기본 켬, 복제본은 메뉴에 넣지 않음. 주소를 바꾼 뒤 옛 주소 · `/b/notice` 는 404. 샘플 미리보기에는 새 게시판을 넣지 않음 (2026-11-05 결정).
 - 일정상 오픈 전(목표 2027-04 말)이라 기존 공지 이전 도구를 만들지 않는다. **실제 고객이 생긴 뒤에는 이 전제가 깨지므로 다시 확인한다.**
 
 **사용자에게 아직 물어야 하는 것:**
 - 휴지통 보관 기간 · 자동 파기 (D-06) — 해지 데이터 파기(상위 기획서 10.2 #5)와 함께 결정. 정해지기 전에는 자동 파기를 만들지 않는다.
 - 방문자 글쓰기를 열기 전 법률 확인 — 병원 후기(의료법 제56조), 개인정보 고지, 게시 중단 절차 (기획서 11.3).
 
-**코드 지도 (T-140-A 기준):**
+**코드 지도 (T-140-B 기준):**
 
 | 영역 | 파일 |
 |---|---|
 | DB | `apps/backend/alembic/versions/0038_add_boards.py`, `app/models/board.py` |
 | 백엔드 | `app/schemas/board.py`, `app/services/board.py`, `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
 | 관리자 | `apps/admin/src/pages/Board*.tsx`, `components/boards/BodyBlockEditor.tsx`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
-| 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx` |
+| 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`) |
 | 공통 타입 | `packages/types/src/board.ts` |
-| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` |
+| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` |
 
 **자주 빠지는 함정 (T-139 에서 실제로 겪음):**
 - **타입 검사:** admin · superadmin 에서 `tsc --noEmit` 은 아무것도 검사하지 않고 통과한다 (`tsconfig.json` 이 `files: []`). 반드시 `pnpm type-check` 를 쓴다.
@@ -3125,6 +3126,8 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **개발 DB:** 글을 공개하면 샘플이 비워진다. 시험 전에 해당 `section_settings` 를 백업하고 시험 뒤 되돌린다.
 - **캐시:** 글 · 게시판을 바꾸면 `site_cache.purge_site` 를 호출한다. 공개 글 조회는 `site:{slug}` 태그를 쓴다.
 - **로그인:** 관리자 로그인에는 사이트 슬러그 칸도 필요하다.
+- **게시판 시험 데이터:** 시험 계정은 STANDARD 라 새 게시판 5개에서 막힌다. 자동 주소는 `board-1` 이다. 시험 뒤 `boards` · `board_posts` · `site_settings.menu_items` 를 되돌리고 메뉴 저장 API 로 캐시를 비운다.
+- **코드형 템플릿을 늘릴 때:** 메뉴 후보는 코드형이면 모두 게시판을 더한다. 새 템플릿도 `board` 화면을 그리지 않으면 메뉴 링크가 빈 화면이 된다.
 
 **작업 규칙:**
 - 태스크 하나에 플랜 승인 · 브랜치(`feat/T-140-A`) · PR 하나씩. 플랜 승인 전에는 코드를 쓰지 않는다.
@@ -3161,25 +3164,22 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **완료 조건:** STANDARD 고객이 게시판을 만들고 글을 쓸 수 있고, FREE · BASIC 은 한도 안내를 본다 (AC-01 · AC-02 · AC-07 · AC-13 · AC-21) ✅
 - **범위 밖:** 홈페이지 표시 (T-140-B), 필드 수정 (T-142), 읽기 · 쓰기 권한 · 댓글 · 첨부 설정 (후속 후보)
 
-### T-140-B: 코드형 템플릿의 새 게시판 화면 · 메뉴 (2단계)
+### T-140-B: 코드형 템플릿의 새 게시판 화면 · 메뉴 (2단계) ✅
 - **담당:** 풀스택
 - **선행:** T-140-A
 - **참조:** 기획서 5.3, 7장, 9.2, 10장
 - **코드 시작점:** `apps/client/middleware.ts`, `templates/codeRoute.tsx`, `templates/hospital-a/Template.tsx`, `lib/menuSettings`, `apps/backend/app/services/site_settings.py`(`_menu_candidates`)
-- **알아 둘 것:**
-  - 지금 주소는 `/{slug}/{page}/{id}` 까지다. 미들웨어는 4단계 주소를 그대로 보내고, `resolve()` 는 매니페스트 페이지만 받는다. 둘 다 고쳐야 `/{slug}/b/{게시판}/{글}` 이 열린다.
-  - 메뉴 후보와 `Template.tsx` 의 메뉴는 매니페스트 · `menu.json` 에서만 나온다. 게시판을 후보에 더해야 한다.
-  - 고객 도메인(주소에 slug 없음)과 템플릿 미리보기에서도 링크가 맞아야 한다 — `pageHref` 사용.
 - **작업 내용:**
-  - [ ] 공개 API: `GET /api/public/site/{tenant_slug}/boards/{board_slug}` (이름 · 유형)
-  - [ ] 주소: `/{slug}/b/{게시판}`, `/{slug}/b/{게시판}/{글}` — 미들웨어 · `codeRoute` · 메타 제목
-  - [ ] hospital-a 화면: 목록(기존 `NoticeListView` 재사용) · 갤러리 · FAQ 아코디언 + SCSS(BEM)
-  - [ ] 메뉴: 마법사의 [메뉴에 추가], 관리자 메뉴 설정 후보, 삭제 · 비활성 시 메뉴에서 빠짐
-  - [ ] 게시판 변경 시 사이트 캐시 비우기
-- **테스트:** 유형별 렌더링 / 없는 게시판 · 비활성 404 / 고객 도메인 링크 / 미리보기 링크 / 메뉴 표시 · 숨김 / 공지 · 상담 · 예약 회귀
-- **함께 지울 것:** `lib/boardLabels.ts` 의 `NOT_SHOWN_YET` 안내 (단, 테마형은 T-141 전까지 유지 여부 확인)
-- **완료 조건:** 새 게시판이 메뉴로 열리고 목록 · 상세가 보인다. 실제 브라우저 PC · 모바일 확인 (AC-08 · AC-11 · AC-14)
-- **범위 밖:** 테마형 (T-141), 메인 화면 최신 글 배치 (후속 후보)
+  - [x] 공개 API: 사이트 응답에 `boards`(사용 중인 새 게시판), 글 목록에 `thumbnail`(첫 사진) · FAQ 는 `body`. DB 변경 없음
+  - [x] 주소: `/{slug}/b/{게시판}`, `/{slug}/b/{게시판}/{글}` — 미들웨어 · `codeRoute` · 메타 제목 · 대표 주소. 없는 게시판 · 글은 실제 404 응답
+  - [x] hospital-a 화면: 목록(기존 화면 재사용) · 갤러리(12개씩) · FAQ(`<details>`, 20개씩) + SCSS(BEM). 공지 전용 문구 · 글쓰기 링크를 게시판별로
+  - [x] 메뉴: 마법사의 [메뉴에 추가], 관리자 메뉴 설정 후보, 삭제 · 비활성 시 메뉴에서 빠짐, 복제본은 숨김
+  - [x] 게시판 변경 시 사이트 캐시 비우기 (T-140-A 에서 구현, 이번에 메뉴 · 화면 반영 확인)
+  - [x] 관리자: 휴지통 전 확인(글 수 · 메뉴), 주소 변경 경고, `NOT_SHOWN_YET` 은 테마형에서만
+  - [x] 버그: 메뉴가 많으면 글자가 세로로 쪼개지던 헤더 — 한 줄에 안 들어가면 넓은 화면에서도 토글로 접음
+- **테스트:** backend 14 / admin 6 / client 31 / 실제 브라우저(1024 · 1280 · 1440 · 1600 · 1920 · 모바일 390): 마법사 · 첫 글 · 유형별 목록 · 상세 · 검색 · 페이지 이동 · 메뉴 9개 · 끄기 · 주소 변경 · 휴지통 · 복원 · 내 콘텐츠 미리보기 · 한도 안내 · 공지 · 상담 · 예약 응답. 고객 도메인 링크는 단위 테스트만
+- **완료 조건:** 새 게시판이 메뉴로 열리고 목록 · 상세가 보인다 (AC-08 · AC-11 · AC-14) ✅
+- **범위 밖:** 테마형 (T-141), 메인 화면 최신 글 배치 · 사이트맵 (T-140-C), 게시판 전용 공개 조회 API (기획서 9.2 — 사이트 응답으로 충분해 쓰는 곳이 생길 때)
 
 ### T-140-C: 글 통합 관리 · 사이트맵 · 감사 로그 (2단계)
 - **담당:** 풀스택
@@ -3235,6 +3235,8 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **범위 밖:** 병원 업종의 고객 후기 프리셋 (법률 확인 전 금지)
 
 ### 후속 후보 (번호 없음 — 시작할 때 사용자와 정하고 번호를 붙인다)
+- 게시판 화면에 이름이 히어로와 목록 제목으로 두 번 나옴 — 제목을 빼거나 설명으로 대체 검토 (T-140-B)
+- 휴대폰 폭에서 상호가 길면 헤더의 로그인 · 회원가입 글자가 두 줄로 꺾임 — 메뉴와 무관한 기존 동작 (T-140-B 때 발견)
 - 방문자 글쓰기 · 비회원 수정 (먼저 기획서 11.3 법률 확인, D-08)
 - 댓글 · 신고 · 스팸 처리
 - 일반 파일 · 비공개 파일 첨부 (별도 버킷 + 서명 URL — 지금 버킷은 익명 읽기 공개)

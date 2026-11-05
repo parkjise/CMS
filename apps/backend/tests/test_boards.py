@@ -270,7 +270,7 @@ class TestPublic:
         data = (await client.get(notice["public"])).json()["data"]
         assert [p["title"] for p in data["items"]] == ["공개"]
         assert data["has_posts"] is True
-        assert "body" not in data["items"][0]
+        assert data["items"][0]["body"] is None
 
         shown = await client.get(f"{notice['public']}/{public['id']}")
         assert shown.status_code == 200

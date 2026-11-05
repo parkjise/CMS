@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { fetchPublicSite, fetchTemplatePreview } from '@/lib/publicSite'
+import { boardPageKey } from '@/lib/publicPosts'
 import { buildCssVarBody } from '@/lib/theme'
 import { hiddenInThemeCount, themeHomeSections } from '@/lib/themeSections'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
@@ -40,7 +41,10 @@ export default async function TemplatePreviewPage({
       notFound()
     }
     const pageKey = page ?? 'home'
-    if (!codeTemplate.manifest.pages.some((p) => p.key === pageKey)) {
+    // 새 게시판은 내 콘텐츠 미리보기에서만 — 샘플 미리보기는 디자인 원본 (T-140-B)
+    const board =
+      content === 'mine' ? tenantSite.boards?.find((b) => boardPageKey(b.slug) === pageKey) : undefined
+    if (!board && !codeTemplate.manifest.pages.some((p) => p.key === pageKey)) {
       notFound()
     }
     const previewQuery = `tpl=${encodeURIComponent(tpl)}${content === 'mine' ? '&content=mine' : ''}`
@@ -57,6 +61,7 @@ export default async function TemplatePreviewPage({
           previewQuery={previewQuery}
           detailId={id}
           query={{ q, p }}
+          board={board}
         />
       </>
     )

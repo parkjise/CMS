@@ -1,3 +1,4 @@
+import type { PublicBoard } from '@cms/types'
 import type { MenuOverride } from './menuSettings'
 
 export interface PublicTenant {
@@ -107,6 +108,8 @@ export interface PublicSite {
   site_settings?: PublicSiteSettings | null
   template: PublicTemplate | null
   member?: PublicMemberFlags
+  /** 사용 중인 새 게시판 (T-140-B) */
+  boards?: PublicBoard[]
 }
 
 /** 회원 메뉴 · 화면을 보여줄지 — 응답에 없으면(이전 버전 캐시 등) 숨긴다 */

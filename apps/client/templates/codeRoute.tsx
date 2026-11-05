@@ -5,17 +5,19 @@
  * - 테넌트가 실제로 이 템플릿을 쓰는지 다시 확인 — 템플릿을 바꾼 직후 미들웨어 기억 때문에
  *   잘못 들어오면 404 대신 전환 안내 화면 (곧 다시 불러옴, T-037-F)
  * - 페이지 키는 매니페스트에 있는 것만, 상세·글쓰기({id})는 BOARD 페이지만
+ * - b/{게시판}[/{글}] 는 사용 중인 새 게시판만 (T-140-B) — 공지는 /notice 가 있어 /b/notice 는 404
  * - member/{page} 는 회원 화면을 직접 그리는 템플릿만 (T-124, 회원 기능 꺼져 있으면 404)
  */
 import { headers } from 'next/headers'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { canonicalMeta } from '@/lib/seoMeta'
+import type { PublicBoard } from '@cms/types'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
-import { NOTICE_BOARD, fetchPublicPost } from '@/lib/publicPosts'
+import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
 import { countSampleSettings } from '@/lib/sampleCount'
@@ -36,6 +38,10 @@ interface Resolved {
   pageTitle: string
   /** 방문자 회원 화면 (T-124) */
   memberPage?: MemberPageKey
+  /** 새 게시판 화면 (T-140-B) */
+  board?: PublicBoard
+  /** 새 게시판의 글 제목 — 메타 제목 */
+  postTitle?: string
 }
 
 /** 테넌트는 있는데 지금 다른 템플릿을 쓴다 — 방금 바꿨고 미들웨어가 아직 이전 템플릿을 기억하는 중 */
@@ -58,8 +64,34 @@ async function resolveMember(
   return { site, pageKey: 'member', pageTitle: MEMBER_PAGES[page], memberPage: page }
 }
 
+async function resolveBoard(
+  entry: CodeTemplateEntry,
+  params: CodeRouteParams,
+): Promise<Resolution> {
+  const [, boardSlug, postId, ...extra] = params.path ?? []
+  if (!boardSlug || extra.length > 0) return null
+  const site = await fetchPublicSite(params.tenant_slug)
+  if (!site) return null
+  if (!usesTemplate(entry, site)) return SWITCHING
+  const board = site.boards?.find((b) => b.slug === boardSlug)
+  if (!board) return null
+  const detailId = postId ? decodeURIComponent(postId) : undefined
+  // 없는 글 · 비공개 글은 화면을 그리기 전에 404
+  const post = detailId ? await fetchPublicPost(params.tenant_slug, board.slug, detailId) : null
+  if (detailId && !post) return null
+  return {
+    site,
+    pageKey: boardPageKey(board.slug),
+    detailId,
+    pageTitle: board.name,
+    board,
+    postTitle: post?.title,
+  }
+}
+
 async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promise<Resolution> {
   if (params.path?.[0] === 'member') return resolveMember(entry, params)
+  if (params.path?.[0] === BOARD_PATH) return resolveBoard(entry, params)
   const [pageKey = 'home', detailId, ...extra] = params.path ?? []
   if (extra.length > 0 || pageKey === 'home' && params.path?.length) return null
   const page = entry.manifest.pages.find((p) => p.key === pageKey)
@@ -94,7 +126,7 @@ export async function codeRouteMetadata(
       ? await fetchPublicPost(params.tenant_slug, NOTICE_BOARD, resolved.detailId)
       : null
   return {
-    title: `${post?.title ?? resolved.pageTitle} | ${resolved.site.tenant.name}`,
+    title: `${resolved.postTitle ?? post?.title ?? resolved.pageTitle} | ${resolved.site.tenant.name}`,
     ...(resolved.memberPage ? {} : canonicalMeta(resolved.site, `/${path}`)),
     // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외. 그 밖에는 키를 넣지 않는다 —
     // undefined 도 레이아웃의 검색 노출 설정(T-129)을 덮어써 서브 페이지가 숨겨지지 않는다
@@ -117,7 +149,7 @@ export async function CodeRoutePage({
   if (!resolved) notFound()
   if (resolved === SWITCHING) return <TemplateSwitching />
   const onCustomDomain = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
-  const { site, pageKey, detailId, memberPage } = resolved
+  const { site, pageKey, detailId, memberPage, board } = resolved
   const pageSections = site.sections.filter((s) => (s.page_key ?? 'home') === pageKey)
 
   return (
@@ -138,6 +170,7 @@ export async function CodeRoutePage({
         detailId={detailId}
         query={{ q: searchParams.q, p: searchParams.p }}
         member={memberPage ? { page: memberPage, query: searchParams } : undefined}
+        board={board}
       />
       {/* 관리자 로그인 · 편집 모드 진입 (T-125-A — 예전엔 코드형 템플릿에 입구가 없었음).
           카카오 · 상단으로는 템플릿 퀵메뉴가 맡으므로 끄고, 오른쪽 퀵메뉴와 겹치지 않게 왼쪽 */}

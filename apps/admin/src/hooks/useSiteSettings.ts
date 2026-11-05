@@ -71,7 +71,7 @@ export interface MenuItemUpdate {
   visible: boolean
 }
 
-const MENU_KEY = ['site-settings', 'menu'] as const
+export const MENU_KEY = ['site-settings', 'menu'] as const
 
 export function useSiteMenu() {
   return useQuery({

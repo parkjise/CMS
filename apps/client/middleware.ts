@@ -2,12 +2,13 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 import { serverApiBase } from './lib/apiBase'
+import { BOARD_PATH } from './lib/publicPosts'
 import { CUSTOM_HOST_HEADER, hostnameFromHeader, isCustomHost } from './lib/siteHost'
 
 /**
  * 코드형 템플릿 라우트 분기 (기획서 11.11 오픈 이슈 #26 — 결정: 미들웨어 rewrite)
  *
- * /{slug}[/{page}[/{id}]] 요청에서 테넌트가 코드형 템플릿을 쓰면 템플릿 전용 라우트
+ * /{slug}[/{page}[/{id}]] · /{slug}/b/{게시판}[/{글}] 요청에서 테넌트가 코드형 템플릿을 쓰면 템플릿 전용 라우트
  * /tpl-{key}/{slug}/... 로 rewrite 한다 → 그 템플릿의 CSS·JS 는 그 라우트에만 묶인다.
  * - 테마형 · 확인 실패(백엔드 장애) → 그대로 통과 (기존 테마형 라우트)
  * - 미리보기 · 관리자 로그인 · 사이트맵은 기존 라우트 유지
@@ -140,7 +141,7 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
     }
     return pass()
   }
-  if (segments.length > 3 || (page && RESERVED_PAGES.has(page))) return pass()
+  if (segments.length > (page === BOARD_PATH ? 4 : 3) || (page && RESERVED_PAGES.has(page))) return pass()
 
   const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
   if (!key) return pass()

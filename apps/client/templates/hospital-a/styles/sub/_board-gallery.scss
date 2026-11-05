@@ -1,0 +1,74 @@
+// ── BOARD GALLERY — 새 게시판 갤러리형 (T-140-B) ─────────────────
+@use '../mixins' as *;
+
+$muted: #64748b;
+$empty: #e2e8f0;
+$badge-bg: #f1f5f9;
+
+.board-gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 16px;
+  margin-top: 28px;
+  @include md {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 48px 28px;
+  }
+
+  &__link {
+    display: block;
+    border-radius: 8px;
+    @include focus-ring;
+
+    @include hover {
+      .board-gallery__subject {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+    }
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    object-fit: cover;
+
+    // 사진 없는 글 (D-03)
+    &--empty {
+      background: $empty;
+    }
+  }
+
+  &__badge {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 2px 10px;
+    border-radius: 50px;
+    background: $badge-bg;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  &__subject {
+    display: block;
+    margin-top: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+    @include line-clamp(2);
+    @include md {
+      font-size: 1.125rem;
+    }
+  }
+
+  &__date {
+    display: block;
+    margin-top: 6px;
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: $muted;
+  }
+}

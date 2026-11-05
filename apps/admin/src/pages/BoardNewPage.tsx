@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type { Board, BoardStatus, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { useBoardLimits, useCreateBoard } from '@/hooks/useBoards'
+import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { BOARD_TYPES, NOT_SHOWN_YET, boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -12,12 +13,14 @@ const STEPS = ['기본 정보', '유형', '공개 여부'] as const
 export function BoardNewPage() {
   const limitsQuery = useBoardLimits()
   const createBoard = useCreateBoard()
+  const isTheme = useSiteMenu().data?.mode === 'theme'
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [slug, setSlug] = useState('')
   const [boardType, setBoardType] = useState<BoardType>('LIST')
   const [status, setStatus] = useState<BoardStatus>('ACTIVE')
+  const [inMenu, setInMenu] = useState(true)
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
   const [created, setCreated] = useState<Board | null>(null)
 
@@ -40,6 +43,7 @@ export function BoardNewPage() {
         slug: slug || undefined,
         board_type: boardType,
         status,
+        in_menu: inMenu,
       })
       setCreated(board)
     } catch (error) {
@@ -55,7 +59,18 @@ export function BoardNewPage() {
           <strong className="text-slate-900">{created.name}</strong> 의 주소 이름은{' '}
           <code>{created.slug}</code> 입니다.
         </p>
-        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{NOT_SHOWN_YET}</p>
+        {isTheme ? (
+          <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">{NOT_SHOWN_YET}</p>
+        ) : (
+          <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+            {created.status !== 'ACTIVE'
+              ? '사용으로 바꾸면 홈페이지 상단 메뉴에 나옵니다.'
+              : inMenu
+                ? '홈페이지 상단 메뉴에 추가했습니다.'
+                : '상단 메뉴에는 넣지 않았습니다.'}{' '}
+            이름 · 순서 · 보이기는 공통 설정의 상단 메뉴에서 바꿀 수 있습니다.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Link
             to={`/admin/boards/${created.id}/posts/new`}
@@ -192,6 +207,12 @@ export function BoardNewPage() {
                   />
                   <span className="text-sm text-slate-900">사용 안 함 (글을 준비한 뒤 켜기)</span>
                 </label>
+                {status === 'ACTIVE' && !isTheme && (
+                  <label className="flex cursor-pointer items-center gap-3 pt-2">
+                    <input type="checkbox" checked={inMenu} onChange={(e) => setInMenu(e.target.checked)} />
+                    <span className="text-sm text-slate-900">홈페이지 상단 메뉴에 추가</span>
+                  </label>
+                )}
               </fieldset>
             )}
           </div>
