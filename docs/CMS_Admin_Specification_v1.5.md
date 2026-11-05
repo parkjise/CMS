@@ -28,6 +28,8 @@
 15. [SaaS 운영 시스템](#15-saas-운영-시스템-결제-온보딩-도메인-구독-관리)
 16. [테넌트 사이트 방문자 인증](#16-테넌트-사이트-방문자-인증-site-member-auth)
 
+**별도 문서:** 게시판 관리 모듈 — `docs/CMS_Board_Module_Spec_v1.1.md` (T-139 ~ T-142)
+
 ---
 
 ## 1. 프로젝트 개요
@@ -1879,6 +1881,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 |---|---|---|
 | 11 | 15.2 사이트 접근 차단 | 차단은 동작한다(캐시도 비움). 방문자에게는 안내 없이 404 |
 | 12 | 14.1 · 14.2 템플릿 관리 · SA-02 · SA-06 | 슈퍼 어드민에 템플릿 관리 화면 없음. SA-02 만료일 · 방문자 · 문의 수 칸 · 업종 필터 · 정렬 없음(API 는 업종 필터 지원). SA-06 [유예처리] 없음 |
+| 15 | 게시판 관리 (2026-11-04 추가) | 공지를 쓸 화면이 없어 섹션의 JSON 칸으로만 고칠 수 있다. 메인 최신 공지는 글 목록을 따로 가져 공지와 어긋난다 — T-139 |
 | 13 | AD-02 · AD-03 · AD-04 · AD-08 | AD-02 [미리보기] · 이미지 원본 보존 없음. AD-03 수신 번호 [인증] 없음. AD-04 페이지당 개수 · [새로고침] · 상태별 건수(대기만 있음) · [알림톡으로 답장] 없음. AD-08 카드 [삭제] 없음 |
 
 
@@ -2242,7 +2245,7 @@ export interface TemplateManifest {
 - 매니페스트 `pages` 에 페이지 키·메뉴명·기본 섹션 목록·헤더 메뉴 위치를 정의하고, 헤더/푸터 메뉴는 이 목록으로 그린다.
 - 게시판형 페이지(공지·상담)와 예약 페이지는 기존 데이터 연동: 상담·예약 → 문의 API (5.5, AD-04), 회원 화면 → 섹션 16 방문자 인증. 공지 게시판 데이터 저장 방식은 오픈 이슈 #27.
 - **구현 (T-123):** 페이지 섹션 `BOARD` 의 `board` 값으로 구분 — `notice` · `consult` · `reservation`. 상세·글쓰기 주소는 `/{slug}/{page}/{id}` (`/consult/write`), 목록 검색·페이지는 `?q=` · `?p=`.
-  - **공지:** 섹션 JSON (`items [{ id, subject, date, pinned, body [블록] }]`) — #27 옵션 A
+  - **공지:** 섹션 JSON (`items [{ id, subject, date, pinned, body [블록] }]`) — #27 옵션 A. T-139 에서 실제 글은 게시글 테이블로 바뀌고 이 JSON 은 샘플로만 남는다 (게시판 모듈 기획서 2.2)
   - **온라인 상담:** 문의(inquiries)에 `is_board` 로 저장. 공개 API `GET /api/public/inquiries/board` (목록: 제목·가린 이름·비밀글·답변 여부·등록일, 스팸 제외 — 연락처는 절대 미노출), `GET /board/{id}` (비밀글은 `locked`), `POST /board/{id}/unlock` (작성 비밀번호 bcrypt 확인, IP당 분당 10회), `POST /board` (reCAPTCHA, 분당 3회). 답변은 AD-04 문의 상세에서 작성 → `answer` · `answered_at`, 상태 '완료'.
   - **온라인 예약:** `POST /api/public/inquiries` 에 `inquiry_type=RESERVATION` + `subject` · `reserved_date` · `reserved_time`.
   - 목업의 6자리 보안문자는 브라우저에서 만드는 장식이라 실제로는 보이지 않는 reCAPTCHA v3 로 대체한다.
@@ -2298,7 +2301,7 @@ CREATE INDEX idx_sections_tenant_page ON sections(tenant_id, page_key, display_o
 |---|---|---|---|---|---|
 | 25 | 목업 템플릿 이름·ID | `TPL_HOSPITAL_A` (업종+순번) | 디자인 컨셉명 (예: `TPL_CLASSIC_SERIF`) | 1주차 | PM |
 | 26 | SCSS 템플릿 CSS 전달 방식 | Next 번들(동적 import 청크) — 적용 후 확인: 서버 컴포넌트 동적 import 는 청크가 나뉘지 않아 다른 테넌트에도 CSS(gzip 약 10KB)·JS 가 함께 내려옴 | **✅ 결정 (2026-10-25): 미들웨어로 템플릿별 라우트 분기** — `/{slug}` 요청을 템플릿 전용 내부 라우트로 rewrite 해 CSS·JS 를 라우트 단위로 분리 (T-125 에서 적용 — 11.10 참조) | 구현됨 | 프론트 |
-| 27 | 공지 게시판 데이터 | **✅ 결정 (2026-10-25): 섹션 settings JSON** — T-123 적용 | 별도 `posts` 테이블 + API (공지가 많아지면 이전) | 결정됨 | 백엔드 |
+| 27 | 공지 게시판 데이터 | **✅ 변경 (2026-11-05): 게시글 테이블** — T-139 에서 적용 예정, 게시판 모듈 기획서 참조. (이전 결정 2026-10-25: 섹션 settings JSON, T-123) | — | 결정됨 | 백엔드 |
 | 28 | 샘플 콘텐츠 업데이트 전파 | 신규 적용분에만 반영 | `is_sample=true` 값은 새 버전으로 자동 갱신 | 2주차 | PM |
 
 ---
