@@ -26,6 +26,7 @@ from app.schemas.board import (
     PostCreate,
     PostUpdate,
 )
+from app.schemas.rich_body import first_image
 from app.services import board_field as field_service
 from app.services import site_cache
 
@@ -531,7 +532,7 @@ async def create_post(
         board_id=board_id,
         author_id=author_id,
         title=data.title,
-        body=[b.model_dump() for b in data.body],
+        body=data.body,
         status=data.status,
         is_pinned=data.is_pinned,
         custom_data=custom_data,
@@ -548,7 +549,7 @@ async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> Bo
     if data.title is not None:
         post.title = data.title
     if data.body is not None:
-        post.body = [b.model_dump() for b in data.body]
+        post.body = data.body
     if data.status is not None:
         post.status = data.status
     if data.is_pinned is not None:
@@ -764,7 +765,7 @@ def public_post_item(board: Board, post: BoardPost) -> dict:
         "title": post.title,
         "is_pinned": post.is_pinned,
         "published_at": post.published_at,
-        "thumbnail": next((b["src"] for b in blocks if b.get("type") == "image"), None),
+        "thumbnail": first_image(blocks),
         "body": blocks if board.board_type == "FAQ" else None,
     }
 

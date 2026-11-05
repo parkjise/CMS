@@ -2,7 +2,16 @@
 
 export type PostStatus = 'DRAFT' | 'PUBLISHED' | 'PRIVATE'
 
-/** 본문 블록 — HTML 을 저장하지 않는다. p 는 줄바꿈 · **굵게** 만 */
+/** Tiptap 노드 (T-143) — 서버가 허용 목록으로 검사한 값. HTML 을 저장하지 않는다 */
+export interface RichNode {
+  type: string
+  attrs?: Record<string, unknown>
+  marks?: { type: string; attrs?: Record<string, unknown> }[]
+  content?: RichNode[]
+  text?: string
+}
+
+/** 이전 본문 블록 — 기존 글 · 샘플. p 는 줄바꿈 · **굵게** 만 */
 export type BodyBlock =
   | { type: 'p'; text: string }
   | { type: 'ul'; items: string[] }
@@ -45,6 +54,9 @@ export interface BoardField {
   value_count: number
 }
 
+/** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
+export type BodyNode = BodyBlock | RichNode
+
 export type BoardType = 'LIST' | 'GALLERY' | 'FAQ'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 
@@ -84,7 +96,7 @@ export interface PostListItem {
 }
 
 export interface Post extends PostListItem {
-  body: BodyBlock[]
+  body: BodyNode[]
   /** 필드 값 {field_key: 값} (T-142-A) */
   custom_data: Record<string, unknown>
 }
@@ -127,7 +139,7 @@ export interface PublicPostItem {
   /** 갤러리 썸네일 — 본문의 첫 사진 */
   thumbnail?: string | null
   /** FAQ 게시판 목록에만 — 답변을 펼쳐 보여 준다 */
-  body?: BodyBlock[] | null
+  body?: BodyNode[] | null
 }
 
 export interface PublicPostList {
@@ -156,7 +168,7 @@ export interface PublicFieldValue {
 }
 
 export interface PublicPost extends Omit<PublicPostItem, 'body'> {
-  body: BodyBlock[]
+  body: BodyNode[]
   fields?: PublicFieldValue[]
   prev_id: string | null
   next_id: string | null

@@ -4,7 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useParams } from 'react-router'
 import type { Board, Post, PostList } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
-import { type DraftBlock, BodyBlockEditor, fromDraft, toDraft } from '@/components/boards/BodyBlockEditor'
 import { BoardPostEditPage } from '@/pages/BoardPostEditPage'
 import { BoardPostsPage } from '@/pages/BoardPostsPage'
 import { BoardsPage } from '@/pages/BoardsPage'
@@ -16,6 +15,17 @@ const { get, post, patch, del, toastError } = vi.hoisted(() => ({
   patch: vi.fn(),
   del: vi.fn(),
   toastError: vi.fn(),
+}))
+
+// 실제 편집기는 richTextEditor.test.tsx — 여기는 글쓰기 흐름만
+vi.mock('@/components/boards/RichTextEditor', () => ({
+  RichTextEditor: ({ initial, onChange }: { initial: unknown[]; onChange: (v: unknown[]) => void }) => (
+    <textarea
+      aria-label="내용"
+      defaultValue={initial.length ? JSON.stringify(initial) : ''}
+      onChange={(e) => onChange([{ type: 'paragraph', content: [{ type: 'text', text: e.target.value }] }])}
+    />
+  ),
 }))
 
 vi.mock('@/lib/api', () => ({ api: { get, post, patch, delete: del } }))
@@ -95,47 +105,6 @@ const EditTarget = () => {
   const { postId } = useParams()
   return <p>수정 화면: {postId}</p>
 }
-
-describe('본문 블록 값', () => {
-  it('저장할 때 빈 문단 · 빈 줄 · 사진 없는 칸을 뺀다', () => {
-    const draft: DraftBlock[] = [
-      { key: 0, block: { type: 'p', text: '   ' } },
-      { key: 1, block: { type: 'p', text: '안내' } },
-      { key: 2, block: { type: 'ul', items: ['가', '', ' 나 '] } },
-      { key: 3, block: { type: 'ul', items: ['', ' '] } },
-      { key: 4, block: { type: 'image', src: '', alt: '' } },
-      { key: 5, block: { type: 'image', src: '/a.webp', alt: '사진' } },
-    ]
-    expect(fromDraft(draft)).toEqual([
-      { type: 'p', text: '안내' },
-      { type: 'ul', items: ['가', '나'] },
-      { type: 'image', src: '/a.webp', alt: '사진' },
-    ])
-  })
-})
-
-describe('BodyBlockEditor', () => {
-  it('블록을 추가 · 이동 · 삭제한다', async () => {
-    const onChange = vi.fn()
-    const value = toDraft([
-      { type: 'p', text: '첫째' },
-      { type: 'p', text: '둘째' },
-    ])
-    renderWithQuery(<BodyBlockEditor value={value} onChange={onChange} />)
-
-    expect(screen.getByRole('button', { name: '문단 1 위로' })).toBeDisabled()
-    await userEvent.click(screen.getByRole('button', { name: '문단 1 아래로' }))
-    expect(onChange.mock.lastCall?.[0].map((d: DraftBlock) => d.key)).toEqual([1, 0])
-
-    await userEvent.click(screen.getByRole('button', { name: '문단 2 삭제' }))
-    expect(onChange.mock.lastCall?.[0]).toHaveLength(1)
-
-    await userEvent.click(screen.getByRole('button', { name: '목록 추가' }))
-    const added = onChange.mock.lastCall?.[0]
-    expect(added[2].block.type).toBe('ul')
-    expect(new Set(added.map((d: DraftBlock) => d.key)).size).toBe(3)
-  })
-})
 
 describe('게시판 목록', () => {
   it('글 수를 보여 주고 글 관리로 연결한다', async () => {
@@ -308,7 +277,7 @@ describe('글 작성 · 수정', () => {
 
   it('제목 없이는 저장하지 않는다', async () => {
     renderNew()
-    await screen.findByRole('button', { name: '문단 추가' })
+    await screen.findByLabelText('내용')
     await userEvent.click(screen.getByRole('button', { name: '공개하기' }))
     expect(await screen.findByText('제목을 입력해주세요.')).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
@@ -317,15 +286,14 @@ describe('글 작성 · 수정', () => {
   it('새 글을 공개하면 글 목록으로 돌아간다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
-    await screen.findByRole('button', { name: '문단 추가' })
+    await screen.findByLabelText('내용')
     await userEvent.type(screen.getByLabelText(/제목/), '  새 공지 ')
-    await userEvent.click(screen.getByRole('button', { name: '문단 추가' }))
-    await userEvent.type(screen.getByLabelText('문단 1'), '안내드립니다')
+    await userEvent.type(screen.getByLabelText('내용'), '안내드립니다')
     await userEvent.click(screen.getByRole('button', { name: '공개하기' }))
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/v1/boards/b1/posts', {
         title: '새 공지',
-        body: [{ type: 'p', text: '안내드립니다' }],
+        body: [{ type: 'paragraph', content: [{ type: 'text', text: '안내드립니다' }] }],
         is_pinned: false,
         status: 'PUBLISHED',
       }),
@@ -336,7 +304,7 @@ describe('글 작성 · 수정', () => {
   it('상단 고정을 켜서 보낸다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
-    await screen.findByRole('button', { name: '문단 추가' })
+    await screen.findByLabelText('내용')
     await userEvent.type(screen.getByLabelText(/제목/), '고정 글')
     await userEvent.click(screen.getByLabelText('상단 고정'))
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
@@ -346,7 +314,7 @@ describe('글 작성 · 수정', () => {
   it('임시저장은 DRAFT 로 보낸다', async () => {
     post.mockResolvedValue({ data: { data: detail } })
     renderNew()
-    await screen.findByRole('button', { name: '문단 추가' })
+    await screen.findByLabelText('내용')
     await userEvent.type(screen.getByLabelText(/제목/), '초안')
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() =>
@@ -357,7 +325,7 @@ describe('글 작성 · 수정', () => {
   it('저장 실패를 알리고 화면에 남는다', async () => {
     post.mockRejectedValue(new Error('x'))
     renderNew()
-    await screen.findByRole('button', { name: '문단 추가' })
+    await screen.findByLabelText('내용')
     await userEvent.type(screen.getByLabelText(/제목/), '초안')
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() => expect(toastError).toHaveBeenCalled())
@@ -368,7 +336,7 @@ describe('글 작성 · 수정', () => {
     mockApi({ detail })
     patch.mockResolvedValue({ data: { data: detail } })
     renderEdit()
-    expect(await screen.findByLabelText('문단 1')).toHaveValue('기존 내용')
+    expect(await screen.findByLabelText('내용')).toHaveValue(JSON.stringify(detail.body))
     await userEvent.click(screen.getByRole('button', { name: '비공개로 저장' }))
     await waitFor(() =>
       expect(patch.mock.lastCall?.[1]).toMatchObject({ status: 'PRIVATE', title: '휴진 안내' }),
@@ -379,7 +347,7 @@ describe('글 작성 · 수정', () => {
     setRole('TENANT_VIEWER')
     mockApi({ detail })
     renderEdit()
-    await screen.findByLabelText('문단 1')
+    await screen.findByLabelText('내용')
     expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
   })
 })

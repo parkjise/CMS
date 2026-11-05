@@ -240,6 +240,7 @@ cms-project/                          ← 프로젝트 루트 (여기서 모든 
 | 클라이언트 상태 | zustand | 5.x |
 | 글꼴 (홈페이지 공통) | @fontsource/noto-sans-kr | 5.x — 빌드가 구글에 의존하지 않게, `next/font/google` 금지 (T-135) |
 | 드래그앤드롭 | @dnd-kit/core · @dnd-kit/sortable | 6.x · 10.x |
+| 글 본문 편집기 (관리자) | @tiptap/react · starter-kit 등 | 3.x — 저장은 HTML 아닌 노드 JSON (T-143) |
 | HTTP 클라이언트 | axios | 1.x |
 | 폼 관리 | react-hook-form | 7.x |
 | 유효성 검사 | zod | 3.x |

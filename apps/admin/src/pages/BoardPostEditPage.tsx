@@ -1,14 +1,9 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
-import type { BoardField, Post, PostStatus } from '@cms/types'
+import type { BoardField, BodyNode, Post, PostStatus } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
-import {
-  BodyBlockEditor,
-  type DraftBlock,
-  fromDraft,
-  toDraft,
-} from '@/components/boards/BodyBlockEditor'
+import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -39,7 +34,7 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
   const updatePost = useUpdatePost(boardId)
   const [title, setTitle] = useState(post?.title ?? '')
   const [isPinned, setIsPinned] = useState(post?.is_pinned ?? false)
-  const [blocks, setBlocks] = useState<DraftBlock[]>(() => toDraft(post?.body ?? []))
+  const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
   const custom = useForm<CustomValues>({
     defaultValues: initialCustomValues(fields ?? [], post ? post.custom_data : null),
@@ -70,7 +65,7 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
     }
     const payload = {
       title: title.trim(),
-      body: fromDraft(blocks),
+      body,
       is_pinned: isPinned,
       status: next,
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
@@ -123,7 +118,7 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
           )}
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">내용</p>
-            <BodyBlockEditor value={blocks} onChange={setBlocks} />
+            <RichTextEditor initial={post?.body ?? []} editable={canEdit} onChange={setBody} />
           </div>
           <Toggle
             label="상단 고정"

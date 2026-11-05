@@ -241,3 +241,25 @@ body.edit-mode .section-controls:focus-within {
     display: none !important;
   }
 }
+
+/* 글 본문 — 테마형 게시판 (T-143). 코드형은 템플릿 .board-view__content */
+.rich-body > * + * { margin-top: 1rem; }
+.rich-body p:empty::before { content: '\00a0'; }
+.rich-body h2 { font-size: 1.5em; font-weight: 700; line-height: 1.4; }
+.rich-body h3 { font-size: 1.25em; font-weight: 700; line-height: 1.4; }
+.rich-body ul { padding-left: 1.25rem; list-style: disc; }
+.rich-body ol { padding-left: 1.25rem; list-style: decimal; }
+.rich-body li + li { margin-top: 0.25rem; }
+.rich-body strong { font-weight: 700; }
+.rich-body em { font-style: italic; }
+.rich-body u { text-decoration: underline; }
+.rich-body s { text-decoration: line-through; }
+.rich-body a { color: var(--color-primary); text-decoration: underline; }
+.rich-body blockquote { padding-left: 1rem; border-left: 3px solid var(--color-border); color: var(--color-text-muted); }
+.rich-body hr { border: 0; border-top: 1px solid var(--color-border); }
+.rich-body figure { text-align: center; }
+.rich-body img { display: inline-block; max-width: 100%; height: auto; border-radius: 0.5rem; }
+.rich-body [data-table-scroll] { overflow-x: auto; }
+.rich-body table { width: 100%; border-collapse: collapse; }
+.rich-body th, .rich-body td { padding: 0.5rem 0.75rem; border: 1px solid var(--color-border); text-align: left; vertical-align: top; }
+.rich-body th { background: var(--color-surface); font-weight: 600; }

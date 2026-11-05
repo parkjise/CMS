@@ -159,7 +159,7 @@ class TestPostWrite:
             {"title": "제목", "body": [{"type": "p", "text": "x", "html": "<b>"}]},
             {"title": "제목", "body": [{"type": "ul", "items": []}]},
             {"title": "제목", "body": [{"type": "p", "text": "x" * 5001}]},
-            {"title": "제목", "body": [{"type": "p", "text": "x"}] * 101},
+            {"title": "제목", "body": [{"type": "p", "text": "x"}] * 501},
             {
                 "title": "제목",
                 "body": [{"type": "image", "src": "javascript:alert(1)", "alt": ""}],

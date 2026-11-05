@@ -32,8 +32,8 @@
 | **Phase 15: 방문자 인증** | **11** | **11** | **100%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **18** | **18** | **100%** |
 | **Phase 17: 기획서 대조 후속** | **15** | **15** | **100%** |
-| **Phase 18: 게시판 관리 모듈** | **7** | **7** | **100%** |
-| **합계** | **185** | **185** | **100%** |
+| **Phase 18: 게시판 관리 모듈** | **8** | **8** | **100%** |
+| **합계** | **186** | **186** | **100%** |
 
 ---
 
@@ -3089,10 +3089,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 | 4 | T-140-C | 글 통합 관리 · 사이트맵 · 감사 로그 | T-140-B | 완료 (PR #82) |
 | 5 | T-141 | 테마형 템플릿 게시판 화면 | T-140-B | 완료 (PR #83) |
 | 6 | T-142-A | 필드 정의 · 값 검증 (백엔드) | T-140-A | 완료 (PR #85) |
-| 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 · 게시판 상세 탭 (B-1, PR #86), 공개 표시 (B-2) | T-142-A | B-2 구현 완료 · PR 대기 |
+| 7 | T-142-B | 필드 빌더 · 자동 글쓰기 폼 · 게시판 상세 탭 (B-1, PR #86), 공개 표시 (B-2, PR #87) | T-142-A | 완료 |
+| 8 | T-143 | 글 본문 편집기 Tiptap — 제목 · 서식 · 글자 색 · 정렬 · 링크 · 표 | T-142-B | 구현 완료 · PR 대기 |
 
 **이미 정한 것 — 바꾸려면 먼저 사용자에게 묻는다:**
-- 실제 글은 `boards` · `board_posts` 에 저장한다. 본문은 HTML 이 아닌 블록 JSON(`p` · `ul` · `image`)이다.
+- 실제 글은 `boards` · `board_posts` 에 저장한다. 본문은 HTML 이 아닌 Tiptap 노드 JSON 이고, 서버가 허용 목록(`schemas/rich_body.py`)으로 다시 만든다. 이전 형식(`p` · `ul` · `image`)도 읽고 받는다 — 기존 글 · 샘플 (2026-11-05 T-143).
 - 샘플 글은 섹션 JSON(`items`)에 둔다. 글을 처음 공개하면 `'[]'` 로 비운다. **칸을 삭제하면 안 된다** — 화면(`resolvePageSections`)이 템플릿 샘플로 다시 채운다.
 - 상담 · 예약은 `inquiries` 에 그대로 둔다. 게시판으로 옮기지 않는다.
 - 요금제: FREE · BASIC 은 기본 게시판의 글만, STANDARD 는 게시판 5개 추가, PREMIUM 은 제한 없음. 내려도 있던 게시판 · 글은 유지한다.
@@ -3109,14 +3110,15 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 휴지통 보관 기간 · 자동 파기 (D-06) — 해지 데이터 파기(상위 기획서 10.2 #5)와 함께 결정. 정해지기 전에는 자동 파기를 만들지 않는다.
 - 방문자 글쓰기를 열기 전 법률 확인 — 병원 후기(의료법 제56조), 개인정보 고지, 게시 중단 절차 (기획서 11.3).
 
-**코드 지도 (T-142-A 기준):**
+**코드 지도 (T-143 기준):**
 
 | 영역 | 파일 |
 |---|---|
 | DB | `apps/backend/alembic/versions/0038_add_boards.py` · `0039_audit_logs_tenant.py` · `0040_add_board_fields.py`, `app/models/board.py` |
-| 백엔드 | `app/schemas/board.py`, `app/services/board.py` · `board_field.py`(필드 · 값 검증), `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
-| 관리자 | `apps/admin/src/pages/Board*.tsx` · `PostsOverviewPage.tsx`, `components/boards/BodyBlockEditor.tsx`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
+| 백엔드 | `app/schemas/board.py` · `rich_body.py`(본문 허용 목록), `app/services/board.py` · `board_field.py`(필드 · 값 검증), `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
+| 관리자 | `apps/admin/src/pages/Board*.tsx` · `PostsOverviewPage.tsx`, `components/boards/RichTextEditor.tsx` · `lib/richBody.ts`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
 | 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`), `app/[tenant_slug]/sitemap.xml/route.ts`, 공통 `lib/boardRoute.ts`, 테마형 `app/[tenant_slug]/b/[...path]/page.tsx` · `components/board/ThemeBoard.tsx` · `components/layout/Navbar.tsx` |
+| 본문 표시 | `apps/client/templates/shared/RichBody.tsx` (코드형 · 테마형 공통), 스타일은 `.board-view__content` · `.rich-body` |
 | 공통 타입 | `packages/types/src/board.ts` |
 | 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py` · `test_board_fields.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` · `themeBoard.test.tsx` · `menuSettings.test.tsx` · `middleware.test.ts` |
 
@@ -3125,7 +3127,9 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **Node 버전:** CI 는 Node 22 다. 프런트 테스트는 Node 22 로도 돌린다.
 - **E2E:** 로컬은 개발 DB 를 쓰므로 CI 와 결과가 다르다. 전체 E2E 는 CI 결과를 기준으로 한다.
 - **`pnpm build` 와 개발 서버:** client 를 빌드하면 실행 중인 개발 서버의 `.next` 를 덮어쓴다. 빌드 뒤 재시작한다.
-- **브라우저 시험 선택자:** 글 목록의 "제목 검색" 칸이 `/제목/` 에 먼저 맞는다. 글쓰기 제목은 `input[required]` 로 찾는다.
+- **브라우저 시험 선택자:** 글 목록의 "제목 검색" 칸이 `/제목/` 에 먼저 맞는다. 글쓰기 제목은 `input[required]` 로 찾는다. 본문은 `getByRole('textbox', { name: '내용' })`.
+- **서식을 늘릴 때:** 편집기(`RichTextEditor` EXTENSIONS) · 서버 허용 목록(`rich_body.py`) · 표시(`RichBody.tsx`) · 스타일 2곳을 함께 고친다. 하나라도 빠지면 저장이 거부되거나 화면에 안 나온다.
+- **시험 데이터 정리:** 사업체 전체를 지우지 말고 직접 만든 게시판만 지운다 (2026-11-05 사용자 글을 함께 지울 뻔한 일). 포트를 따로 띄우면 캐시 비우기가 3000번으로만 가서 최대 60초 늦다.
 - **개발 DB:** 글을 공개하면 샘플이 비워진다. 시험 전에 해당 `section_settings` 를 백업하고 시험 뒤 되돌린다.
 - **캐시:** 글 · 게시판을 바꾸면 `site_cache.purge_site` 를 호출한다. 공개 글 조회는 `site:{slug}` 태그를 쓴다.
 - **로그인:** 관리자 로그인에는 사이트 슬러그 칸도 필요하다.
@@ -3248,6 +3252,18 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **테스트:** 탭 이동 · 기존 주소 유지 / 필드 추가 뒤 폼 반영 / 필수 오류 표시 / 옵션 경고 / 기존 글 수정 / 보기 전용 계정
 - **완료 조건:** 관리자가 칸을 바꾸면 글쓰기 폼과 홈페이지에 반영되고 기존 글은 보존된다 (AC-03 ~ AC-06)
 - **범위 밖:** 병원 업종의 고객 후기 프리셋 (법률 확인 전 금지)
+
+### T-143: 글 본문 편집기 Tiptap ✅
+- **담당:** 풀스택
+- **선행:** T-142-B
+- **참조:** 기획서 10장, D-11(변경)
+- **작업 내용:**
+  - [x] 관리자 글쓰기를 Tiptap 3 으로: 큰 · 작은 제목, 굵게 · 기울임 · 밑줄 · 취소선, 글자 색, 정렬, 글머리 · 번호 목록, 인용, 구분선, 링크, 사진, 표(행 · 열 추가 · 삭제), 실행 취소
+  - [x] 저장은 HTML 이 아닌 노드 JSON — 서버가 허용 목록으로 다시 만든다. 위험한 링크 · 사진 주소 거부, 모르는 속성 버림
+  - [x] 코드형 · 테마형 공통 표시 `RichBody` — HTML 을 그대로 넣지 않고 태그로 그린다
+  - [x] 기존 글 · 샘플(p · ul · image)은 그대로 읽고, 고쳐 저장하면 새 형식이 된다. DB 변경 없음
+- **테스트:** backend 38 / admin 14 / client 12 / 실제 브라우저: 서식 전체 작성 · 공개 · 코드형 · 테마형 표시 · 다시 불러오기 · 옛 글 수정 · 사진 올리기 · 휴대폰 폭
+- **완료 조건:** 고객이 서식 있는 글을 쓰고, 홈페이지에 같은 모양으로 나온다 ✅
 
 ### 후속 후보 (번호 없음 — 시작할 때 사용자와 정하고 번호를 붙인다)
 - 필드 빌더에서 기본값 입력 (API 는 지원, 화면은 복잡해 뺌) · 글 목록에 칸 값 표시

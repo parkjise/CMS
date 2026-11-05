@@ -18,12 +18,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.board import Board, BoardField, BoardPost
-from app.schemas.board import (
-    SAFE_IMAGE_URL,
-    FieldCreate,
-    FieldOption,
-    FieldUpdate,
-)
+from app.schemas.board import FieldCreate, FieldOption, FieldUpdate
+from app.schemas.rich_body import SAFE_IMAGE_URL
 from app.services import site_cache
 
 MAX_FIELDS = 20

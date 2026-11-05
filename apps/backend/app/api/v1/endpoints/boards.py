@@ -631,7 +631,7 @@ async def get_public_post(
             title=post.title,
             is_pinned=post.is_pinned,
             published_at=post.published_at,  # type: ignore[arg-type]
-            body=post.body,  # type: ignore[arg-type]
+            body=post.body,
             fields=await field_service.public_fields(db, post),  # type: ignore[arg-type]
             prev_id=prev_id,
             next_id=next_id,
