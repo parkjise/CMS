@@ -12,6 +12,8 @@ interface CustomFieldInputsProps {
   clearError?: (key: string) => void
 }
 
+const INPUT_TYPES = { TEXT: 'text', NUMBER: 'number', DATE: 'date', PHONE: 'tel', EMAIL: 'email', URL: 'url' } as const
+
 const titleOf = (field: BoardField): string => (field.is_required ? `${field.label} (필수)` : field.label)
 
 function Hint({ field, error }: { field: BoardField; error?: string }) {
@@ -44,13 +46,16 @@ export function CustomFieldInputs({ fields, control, errors, clearError }: Custo
               case 'TEXT':
               case 'NUMBER':
               case 'DATE':
+              case 'PHONE':
+              case 'EMAIL':
+              case 'URL':
                 return (
                   <Input
                     label={titleOf(field)}
-                    type={field.field_type === 'TEXT' ? 'text' : field.field_type.toLowerCase()}
+                    type={INPUT_TYPES[field.field_type]}
                     min={field.min ?? undefined}
                     max={field.max ?? undefined}
-                    maxLength={field.field_type === 'TEXT' ? 200 : undefined}
+                    maxLength={field.field_type === 'NUMBER' || field.field_type === 'DATE' ? undefined : 500}
                     placeholder={field.placeholder}
                     helperText={field.help_text || undefined}
                     error={error}

@@ -12,9 +12,11 @@ export interface FieldInput {
   is_visible?: boolean
   help_text?: string
   placeholder?: string
+  default_value?: unknown
   options?: FieldOption[]
   min?: number | null
   max?: number | null
+  show_in_list?: boolean
 }
 
 const fieldsKey = (boardId: string) => ['boards', boardId, 'fields'] as const
