@@ -8,16 +8,30 @@ export type BodyBlock =
   | { type: 'ul'; items: string[] }
   | { type: 'image'; src: string; alt: string }
 
+export type BoardType = 'LIST' | 'GALLERY' | 'FAQ'
+export type BoardStatus = 'ACTIVE' | 'INACTIVE'
+
 export interface Board {
   id: string
   name: string
   slug: string
-  board_type: string
-  status: string
+  description: string
+  board_type: BoardType
+  status: BoardStatus
   system_key: string | null
   post_count: number
   /** 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지 */
   has_samples: boolean
+  deleted_at: string | null
+}
+
+/** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */
+export interface BoardLimits {
+  plan: string
+  limit: number | null
+  used: number
+  can_create: boolean
+  reason: string | null
 }
 
 export interface PostListItem {

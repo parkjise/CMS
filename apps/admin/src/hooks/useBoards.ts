@@ -1,5 +1,14 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { Board, BodyBlock, Post, PostList, PostStatus } from '@cms/types'
+import type {
+  Board,
+  BoardLimits,
+  BoardStatus,
+  BoardType,
+  BodyBlock,
+  Post,
+  PostList,
+  PostStatus,
+} from '@cms/types'
 import { api } from '@/lib/api'
 
 /** 게시판 관리 (T-139, 게시판 모듈 기획서 4 · 9장) */
@@ -27,6 +36,34 @@ export function useBoards() {
     queryKey: BOARDS_KEY,
     queryFn: async (): Promise<Board[]> => {
       const { data } = await api.get('/v1/boards')
+      return data.data
+    },
+  })
+}
+
+export interface BoardInput {
+  name?: string
+  description?: string
+  slug?: string
+  board_type?: BoardType
+  status?: BoardStatus
+}
+
+export function useBoardLimits() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'limits'],
+    queryFn: async (): Promise<BoardLimits> => {
+      const { data } = await api.get('/v1/boards/limits')
+      return data.data
+    },
+  })
+}
+
+export function useTrashedBoards() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'trash'],
+    queryFn: async (): Promise<Board[]> => {
+      const { data } = await api.get('/v1/boards', { params: { trash: true } })
       return data.data
     },
   })
@@ -60,6 +97,60 @@ export function usePost(boardId: string, postId: string | undefined) {
 const useInvalidateBoards = () => {
   const queryClient = useQueryClient()
   return () => queryClient.invalidateQueries({ queryKey: BOARDS_KEY })
+}
+
+export function useCreateBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (payload: BoardInput): Promise<Board> => {
+      const { data } = await api.post('/v1/boards', payload)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useUpdateBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async ({ id, payload }: { id: string; payload: BoardInput }): Promise<Board> => {
+      const { data } = await api.patch(`/v1/boards/${id}`, payload)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useDuplicateBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (id: string): Promise<Board> => {
+      const { data } = await api.post(`/v1/boards/${id}/duplicate`)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await api.delete(`/v1/boards/${id}`)
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useRestoreBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (id: string): Promise<{ board: Board; slug_changed: boolean }> => {
+      const { data } = await api.post(`/v1/boards/${id}/restore`)
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
 }
 
 export function useCreatePost(boardId: string) {
