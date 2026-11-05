@@ -73,6 +73,12 @@ export function BoardNewPage() {
             첫 글 쓰기
           </Link>
           <Link
+            to={`/admin/boards/${created.id}/fields`}
+            className="inline-flex h-10 items-center rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50"
+          >
+            칸 설정
+          </Link>
+          <Link
             to={`/admin/boards/${created.id}/settings`}
             className="inline-flex h-10 items-center rounded-md border border-slate-300 bg-white px-4 text-sm text-slate-700 hover:bg-slate-50"
           >
