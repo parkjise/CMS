@@ -96,26 +96,25 @@ describe('주소 이름 검사', () => {
 describe('게시판 목록', () => {
   const renderList = () => renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
 
-  it('한도 안이면 추가 버튼, 코드형 템플릿이면 표시 안내가 없다', async () => {
+  it('한도 안이면 추가 버튼', async () => {
     mockApi({})
     renderList()
     expect(await screen.findByRole('link', { name: '게시판 추가' })).toHaveAttribute('href', '/admin/boards/new')
-    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
-    expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: '병원 소식 설정' })).toHaveAttribute('href', '/admin/boards/b1/settings')
   })
 
-  it('테마형 템플릿에 새 게시판이 있으면 아직 표시되지 않는다고 안내', async () => {
-    mockApi({ mode: 'theme' })
+  it('테마형에서 공지 게시판은 지금 템플릿에 표시되지 않는다고 알린다', async () => {
+    mockApi({ boards: [notice, board], mode: 'theme' })
     renderList()
-    expect(await screen.findByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
+    expect(await screen.findAllByText('지금 템플릿에는 표시되지 않습니다')).toHaveLength(1)
   })
 
-  it('테마형이어도 기본 게시판만 있으면 표시 안내가 없다', async () => {
-    mockApi({ boards: [notice], mode: 'theme' })
+  it('코드형에서는 그 표시가 없다', async () => {
+    mockApi({ boards: [notice] })
     renderList()
     await screen.findByRole('link', { name: '공지사항 설정' })
-    expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
+    expect(screen.queryByText('지금 템플릿에는 표시되지 않습니다')).not.toBeInTheDocument()
   })
 
   it('한도를 넘으면 이유와 요금제 링크', async () => {
@@ -183,7 +182,6 @@ describe('게시판 추가 마법사', () => {
       '/admin/boards/new1/posts/new',
     )
     expect(screen.getByText(/상단 메뉴에 추가했습니다/)).toBeInTheDocument()
-    expect(screen.queryByText(/아직 홈페이지에 표시되지 않습니다/)).not.toBeInTheDocument()
   })
 
   const toLastStep = async () => {
@@ -218,16 +216,6 @@ describe('게시판 추가 마법사', () => {
     expect(await screen.findByText(/사용으로 바꾸면 홈페이지 상단 메뉴에 나옵니다/)).toBeInTheDocument()
   })
 
-  it('테마형은 [메뉴에 추가]가 없고 아직 표시되지 않는다고 안내', async () => {
-    mockApi({ mode: 'theme' })
-    post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
-    renderNew()
-    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
-    await toLastStep()
-    expect(screen.queryByRole('checkbox', { name: /상단 메뉴에 추가/ })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
-    expect(await screen.findByText(/아직 홈페이지에 표시되지 않습니다/)).toBeInTheDocument()
-  })
 
   it('이전으로 돌아가도 입력이 남는다', async () => {
     mockApi({})

@@ -38,13 +38,52 @@ describe('middleware — 템플릿별 라우트 분기', () => {
     )
   })
 
-  it('새 게시판 주소 /b/{게시판}[/{글}] 도 템플릿 라우트로, 더 깊은 주소는 통과 (T-140-B)', async () => {
+  describe('테마형 새 게시판 주소 — 없으면 실제 404 (T-141)', () => {
+    const apiResponse = (status: number) => (url: string) =>
+      Promise.resolve(
+        url.includes('/template') ? templateResponse(null, 'theme') : new Response('{}', { status }),
+      )
+    const MISSING = 'http://localhost:3000/clinic/b'
+
+    it('있는 게시판 · 글은 그대로 통과', async () => {
+      fetchMock.mockImplementation(apiResponse(200))
+      expect(rewriteOf(await run('/clinic/b/news'))).toBeNull()
+      expect(rewriteOf(await run('/clinic/b/news/p1'))).toBeNull()
+      expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('/boards/news/posts/p1')
+    })
+
+    it.each([404, 400, 422])('API 가 %s 이면 404 화면으로', async (status) => {
+      fetchMock.mockImplementation(apiResponse(status))
+      expect(rewriteOf(await run('/clinic/b/gone'))).toBe(MISSING)
+    })
+
+    it('공지 · 더 깊은 주소는 묻지 않고 404', async () => {
+      fetchMock.mockImplementation(apiResponse(200))
+      expect(rewriteOf(await run('/clinic/b/notice'))).toBe(MISSING)
+      expect(rewriteOf(await run('/clinic/b/news/p1/extra'))).toBe(MISSING)
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/boards/'))).toBe(false)
+    })
+
+    it('확인 실패(장애)면 통과 — 페이지가 안내', async () => {
+      fetchMock.mockImplementation(apiResponse(500))
+      expect(rewriteOf(await run('/clinic/b/news'))).toBeNull()
+      clearTemplateCache()
+      fetchMock.mockImplementation((url: string) =>
+        url.includes('/template') ? Promise.resolve(templateResponse(null, 'theme')) : Promise.reject(new Error('down')),
+      )
+      expect(rewriteOf(await run('/clinic/b/news'))).toBeNull()
+    })
+  })
+
+  it('새 게시판 주소 /b/{게시판}[/{글}] 도 템플릿 라우트로, 더 깊은 주소도 거기서 404 (T-140-B)', async () => {
     fetchMock.mockResolvedValue(templateResponse('TPL_HOSPITAL_A'))
     expect(rewriteOf(await run('/clinic/b/news'))).toBe('http://localhost:3000/tpl-hospital-a/clinic/b/news')
     expect(rewriteOf(await run('/clinic/b/news/post-1?q=a'))).toBe(
       'http://localhost:3000/tpl-hospital-a/clinic/b/news/post-1?q=a',
     )
-    expect(rewriteOf(await run('/clinic/b/news/post-1/extra'))).toBeNull()
+    expect(rewriteOf(await run('/clinic/b/news/post-1/extra'))).toBe(
+      'http://localhost:3000/tpl-hospital-a/clinic/b/news/post-1/extra',
+    )
     expect(rewriteOf(await run('/clinic/about/a/b'))).toBeNull()
   })
 

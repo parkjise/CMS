@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 import { serverApiBase } from './lib/apiBase'
-import { BOARD_PATH } from './lib/publicPosts'
+import { BOARD_PATH, NOTICE_BOARD } from './lib/publicPosts'
 import { CUSTOM_HOST_HEADER, hostnameFromHeader, isCustomHost } from './lib/siteHost'
 
 /**
@@ -57,6 +57,24 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
   }
   cache.set(slug, { ...route, expires: Date.now() + CACHE_TTL_MS })
   return route
+}
+
+/**
+ * 테마형 새 게시판 주소가 없는 곳인지 (T-141) — 페이지는 스트리밍이라 상태 코드를 못 바꾼다.
+ * 확인 실패(백엔드 장애)면 false — 페이지가 안내 화면을 그린다. 공지는 /notice 가 있어 /b/notice 도 404.
+ */
+async function isMissingBoardRoute(slug: string, [board, postId, ...extra]: string[]): Promise<boolean> {
+  if (!board || board === NOTICE_BOARD || extra.length > 0) return true
+  const posts = `${serverApiBase()}/public/site/${encodeURIComponent(slug)}/boards/${encodeURIComponent(board)}/posts`
+  try {
+    const res = await fetch(postId ? `${posts}/${encodeURIComponent(postId)}` : `${posts}?size=1`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(2000),
+    })
+    return res.status === 404 || res.status === 400 || res.status === 422
+  } catch {
+    return false
+  }
 }
 
 // 고객 도메인 → slug. 연결 · 해제는 자주 있지 않아 1분, 없는 도메인도 저장해 조회가 쌓이지 않게 (T-137)
@@ -141,10 +159,15 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
     }
     return pass()
   }
-  if (segments.length > (page === BOARD_PATH ? 4 : 3) || (page && RESERVED_PAGES.has(page))) return pass()
+  const isBoard = page === BOARD_PATH
+  if (!isBoard && (segments.length > 3 || (page && RESERVED_PAGES.has(page)))) return pass()
 
   const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
-  if (!key) return pass()
+  if (!key) {
+    // /{slug}/b 는 받는 화면이 없어 공통 404 화면 + 404 상태로 끝난다
+    if (isBoard && (await isMissingBoardRoute(slug, segments.slice(2)))) return rewriteTo(`/${slug}/${BOARD_PATH}`)
+    return pass()
+  }
   return rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)
 }
 

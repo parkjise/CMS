@@ -300,13 +300,76 @@ class TestBoardMenu:
 
         assert by_key[_key(board)]["visible"] is False
 
-    async def test_theme_template_has_no_board_candidates(
+    async def test_theme_template_lists_boards_after_sections(
         self, client, auth_headers, tenant
     ):
-        board = await _create(client, auth_headers, in_menu=False)
-        assert _key(board) not in [
-            i["key"] for i in await _menu_items(client, auth_headers)
+        section_id = str(uuid.uuid4())
+        await _sql(
+            "INSERT INTO sections (id, tenant_id, section_type, label, display_order,"
+            " is_active, page_key, created_at, updated_at)"
+            " VALUES (:id, :t, 'INTRO', '소개', 0, true, 'home', now(), now())",
+            id=section_id,
+            t=tenant["id"],
+        )
+        shown = await _create(client, auth_headers, name="보이는 게시판")
+        hidden = await _create(client, auth_headers, name="숨김", in_menu=False)
+
+        resp = await client.get(MENU, headers=auth_headers)
+        menu = resp.json()["data"]
+
+        assert menu["mode"] == "theme"
+        assert menu["reorderable"] is False
+        assert [i["key"] for i in menu["items"]] == [
+            section_id,
+            _key(shown),
+            _key(hidden),
         ]
+        assert [i["visible"] for i in menu["items"]] == [True, True, False]
+        await _sql("DELETE FROM sections WHERE id = :id", id=section_id)
+
+    async def test_template_switch_keeps_boards_and_menu(
+        self, client, auth_headers, tenant, monkeypatch
+    ):
+        """테마형 ↔ 코드형 — 글 · 주소 · 메뉴 숨김이 그대로다 (AC-18)."""
+        board = await _create(client, auth_headers, slug="news", in_menu=False)
+        await _publish(
+            client, auth_headers, board["id"], "글", [{"type": "p", "text": "본문"}]
+        )
+        template_id = str(uuid.uuid4())
+        await _sql(
+            "INSERT INTO templates (id, template_type, name, css_variables,"
+            " section_layouts, is_active, min_plan, renderer, code, created_at,"
+            " updated_at) VALUES (:id, 'HOSPITAL', '전환', '{}', '[]', true, 'BASIC',"
+            " 'code', :code, now(), now())",
+            id=template_id,
+            code=f"{_CODE}_{template_id[:8]}",
+        )
+        monkeypatch.setattr(
+            site_settings_service,
+            "load_menu",
+            lambda code: _PAGES if code.startswith(_CODE) else [],
+        )
+        await _sql(
+            "INSERT INTO tenant_template_overrides (id, tenant_id, template_id,"
+            " css_overrides, applied_at) VALUES (:id, :t, :tpl, '{}', now())",
+            id=str(uuid.uuid4()),
+            t=tenant["id"],
+            tpl=template_id,
+        )
+
+        async def state() -> tuple[bool, int]:
+            by_key = {i["key"]: i for i in await _menu_items(client, auth_headers)}
+            posts = await client.get(
+                f"/api/public/site/{tenant['slug']}/boards/news/posts"
+            )
+            return by_key[_key(board)]["visible"], posts.json()["data"]["total"]
+
+        assert await state() == (False, 1)
+        await _sql(
+            "DELETE FROM tenant_template_overrides WHERE tenant_id = :t", t=tenant["id"]
+        )
+        await _sql("DELETE FROM templates WHERE id = :id", id=template_id)
+        assert await state() == (False, 1)
 
     async def test_other_tenant_board_key_rejected(
         self, client, auth_headers, code_tenant

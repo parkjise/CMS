@@ -9,24 +9,20 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { countSampleSettings } from '@/lib/sampleCount'
-import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
+import { memberEnabled } from '@/lib/publicSite.types'
 import { themeHomeSections } from '@/lib/themeSections'
-import { codeTemplateKey } from '@/templates/manifests'
+import { usesCodeTemplate } from '@/templates/manifests'
 import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
 }
 
-/** 테넌트가 코드형 템플릿을 쓰는데 테마형 라우트로 들어왔는지 — 방금 템플릿을 바꾼 경우 */
-const isSwitching = (site: PublicSite): boolean =>
-  site.template?.renderer === 'code' && codeTemplateKey(site.template.code) !== null
-
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const site = await fetchPublicSite((await params).tenant_slug)
   // 전환 안내 화면은 검색엔진 색인 제외 (T-037-F)
   if (!site) return {}
-  return isSwitching(site) ? { robots: { index: false, follow: false } } : canonicalMeta(site)
+  return usesCodeTemplate(site) ? { robots: { index: false, follow: false } } : canonicalMeta(site)
 }
 
 export default async function TenantHomePage({ params }: Props) {
@@ -38,7 +34,7 @@ export default async function TenantHomePage({ params }: Props) {
   }
 
   // 방금 코드형 템플릿으로 바꿨는데 미들웨어가 아직 테마형으로 기억하는 중 — 곧 다시 불러온다 (T-037-F)
-  if (isSwitching(site)) {
+  if (usesCodeTemplate(site)) {
     return <TemplateSwitching />
   }
 
@@ -59,7 +55,7 @@ export default async function TenantHomePage({ params }: Props) {
       />
 
       <EditToolbar sampleCount={sampleCount} />
-      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} />
+      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} site={{ slug: tenant_slug, boards: site.boards }} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (
