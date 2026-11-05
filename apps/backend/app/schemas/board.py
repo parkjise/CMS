@@ -18,7 +18,7 @@ from app.schemas.rich_body import clean_body
 PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
 
 SLUG_MAX_LENGTH = 60
-BoardType = Literal["LIST", "GALLERY", "FAQ"]
+BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD"]
 BoardStatus = Literal["ACTIVE", "INACTIVE"]
 BoardSortOrder = Literal["LATEST", "OLDEST", "TITLE"]
 BoardPageSize = Literal[10, 20, 30]
@@ -40,6 +40,20 @@ PostTitle = Annotated[
 # Tiptap 노드 목록 (이전 p · ul · image 도 받음) — 허용 목록 검사는 schemas/rich_body.py
 BodyNode = dict[str, Any]
 PostBody = Annotated[list[Any], AfterValidator(clean_body)]
+
+
+class BoardDesign(BaseModel):
+    """게시판 디자인 (BM-08, T-148) — 유형에 맞는 값만 화면에 쓴다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    columns: Literal[2, 3, 4] = 3
+    image_ratio: Literal["1:1", "4:3", "16:9"] = "4:3"
+    show_date: bool = True
+    show_image: bool = True
+    show_summary: bool = True
+    faq_single_open: bool = False
+    faq_first_open: bool = False
 
 
 class BoardCreate(BaseModel):
@@ -65,6 +79,7 @@ class BoardUpdate(BaseModel):
     seo_title: str | None = Field(default=None, max_length=60)
     seo_description: str | None = Field(default=None, max_length=160)
     seo_index: bool | None = None
+    design: BoardDesign | None = None
 
 
 class BoardResponse(BaseModel):
@@ -84,6 +99,7 @@ class BoardResponse(BaseModel):
     seo_title: str
     seo_description: str
     seo_index: bool
+    design: BoardDesign
 
 
 class BoardRestoreResponse(BaseModel):
@@ -303,6 +319,16 @@ class PublicBoardResponse(BaseModel):
     seo_title: str
     seo_description: str
     seo_index: bool
+    design: BoardDesign
+
+
+class PublicFieldValue(BaseModel):
+    """글 상세에 보여 줄 칸 (T-142-B-2) — 선택지는 고객이 정한 이름으로."""
+
+    key: str
+    label: str
+    field_type: str
+    value: Any
 
 
 class PublicPostItem(BaseModel):
@@ -316,6 +342,9 @@ class PublicPostItem(BaseModel):
     thumbnail: str | None = None
     # FAQ 는 목록에서 답변을 펼치므로 본문까지, 그 밖에는 없음
     body: list[BodyNode] | None = None
+    # 카드형만 — 본문 앞부분 글자, 글 목록에 표시로 고른 칸
+    summary: str | None = None
+    card_fields: list[PublicFieldValue] | None = None
 
 
 class PublicPostListResponse(BaseModel):
@@ -325,15 +354,6 @@ class PublicPostListResponse(BaseModel):
     # 검색과 관계없이 공개 글이 하나라도 있는지 — 없으면 화면이 샘플을 보여 준다
     has_posts: bool
     items: list[PublicPostItem]
-
-
-class PublicFieldValue(BaseModel):
-    """글 상세에 보여 줄 칸 (T-142-B-2) — 선택지는 고객이 정한 이름으로."""
-
-    key: str
-    label: str
-    field_type: str
-    value: Any
 
 
 class PublicPostDetail(PublicPostItem):

@@ -140,6 +140,15 @@ class TestPublicSiteBoards:
                 "seo_title": "",
                 "seo_description": "",
                 "seo_index": True,
+                "design": {
+                    "columns": 3,
+                    "image_ratio": "4:3",
+                    "show_date": True,
+                    "show_image": True,
+                    "show_summary": True,
+                    "faq_single_open": False,
+                    "faq_first_open": False,
+                },
             }
         ]
 

@@ -271,3 +271,23 @@ def first_image(nodes: list[Any]) -> str | None:
         if found:
             return found
     return None
+
+
+def _plain_text(nodes: list[Any]) -> list[str]:
+    parts: list[str] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        if isinstance(node.get("text"), str):
+            parts.append(node["text"].replace("**", ""))
+        items = node.get("items")
+        if isinstance(items, list):
+            parts.extend(item for item in items if isinstance(item, str))
+        parts.extend(_plain_text(node.get("content") or []))
+    return parts
+
+
+def body_summary(nodes: list[Any], limit: int) -> str:
+    """본문 앞부분 글자 — 카드형 요약. 이전 형식(p · ul)도 읽는다."""
+    text = " ".join(" ".join(_plain_text(nodes)).split())
+    return text if len(text) <= limit else f"{text[:limit].rstrip()}…"
