@@ -112,6 +112,7 @@ class BoardUpdate(BaseModel):
 
 
 class BoardResponse(BaseModel):
+    updated_at: datetime
     id: UUID
     name: str
     slug: str

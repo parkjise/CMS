@@ -241,6 +241,7 @@ def is_member_only(board: Board) -> bool:
 
 def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
     return {
+        "updated_at": board.updated_at,
         "id": board.id,
         "name": board.name,
         "slug": board.slug,

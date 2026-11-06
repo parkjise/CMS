@@ -2,6 +2,7 @@
 
 import uuid
 from collections.abc import AsyncIterator
+from datetime import UTC, datetime
 
 import pytest
 from sqlalchemy import text
@@ -93,6 +94,51 @@ class TestCreate:
         assert board["system_key"] is None
         assert board["post_count"] == 0
         assert standard["id"] in purged
+
+    async def test_setting_timestamp_in_create_list_update_and_restore(
+        self, client, auth_headers, standard
+    ):
+        board = await _create(client, auth_headers)
+        assert datetime.fromisoformat(board["updated_at"]).tzinfo is not None
+        past = datetime(2020, 1, 2, 3, 4, 5, tzinfo=UTC)
+        await _sql(
+            "UPDATE boards SET updated_at = :stamp WHERE id = :id",
+            stamp=past,
+            id=board["id"],
+        )
+        listed = (await client.get(BOARDS, headers=auth_headers)).json()["data"]
+        assert (
+            datetime.fromisoformat(
+                next(b for b in listed if b["id"] == board["id"])["updated_at"]
+            )
+            == past
+        )
+        response = await client.patch(
+            f"{BOARDS}/{board['id']}", json={"name": "이름 수정"}, headers=auth_headers
+        )
+        assert response.status_code == 200, response.text
+        updated = datetime.fromisoformat(response.json()["data"]["updated_at"])
+        assert updated > past
+        rows = await _sql(
+            "SELECT updated_at FROM boards WHERE id = :id", id=board["id"]
+        )
+        assert rows[0][0] == updated
+        await client.delete(f"{BOARDS}/{board['id']}", headers=auth_headers)
+        trash = (
+            await client.get(BOARDS, params={"trash": True}, headers=auth_headers)
+        ).json()["data"]
+        removed = datetime.fromisoformat(
+            next(b for b in trash if b["id"] == board["id"])["updated_at"]
+        )
+        assert removed >= updated
+        restored = await client.post(
+            f"{BOARDS}/{board['id']}/restore", headers=auth_headers
+        )
+        assert restored.status_code == 200, restored.text
+        assert (
+            datetime.fromisoformat(restored.json()["data"]["board"]["updated_at"])
+            >= removed
+        )
 
     async def test_auto_slug_skips_used_and_trashed(
         self, client, auth_headers, standard

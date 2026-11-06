@@ -43,6 +43,7 @@ vi.mock('@cms/ui', async (original) => ({
 }))
 
 const board: Board = {
+  updated_at: '2026-11-05T00:00:00Z',
   id: 'b1',
   name: '공지사항',
   slug: 'notice',
@@ -97,13 +98,16 @@ const mockApi = ({
   boards = [board],
   posts = list(),
   detail,
+  mode = 'code',
 }: {
+  mode?: 'code' | 'theme'
   boards?: Board[]
   posts?: PostList
   detail?: Post
 }) => {
   get.mockImplementation((url: string) => {
     if (url.endsWith('/fields')) return Promise.resolve({ data: { data: [] } })
+    if (url === '/v1/site-settings/menu') return ok({ mode, items: [] })
     if (url === '/v1/boards') return ok(boards)
     if (url === '/v1/boards/limits') {
       return ok({ plan: 'BASIC', limit: 0, used: 0, can_create: false, reason: '한도' })
@@ -133,6 +137,7 @@ const setRole = (role: string) =>
 beforeEach(() => {
   vi.clearAllMocks()
   setRole('TENANT_ADMIN')
+  useAuthStore.setState({ tenantSlug: 'clinic' })
 })
 
 const EditTarget = () => {
@@ -147,6 +152,72 @@ describe('게시판 목록', () => {
     const link = await screen.findByRole('link', { name: /공지사항.*글 2개/ })
     expect(link).toHaveAttribute('href', '/admin/boards/b1/posts')
     expect(link).toHaveTextContent('글 2개')
+  })
+
+  it('기본 공지의 실제 주소와 설정 수정 시각을 보여 준다', async () => {
+    mockApi({})
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    const link = await screen.findByRole('link', { name: '공지사항 홈페이지 (새 창)' })
+    expect(link).toHaveAttribute('href', 'http://localhost:3000/clinic/notice')
+    expect(link).toHaveAttribute('target', '_blank')
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer')
+    const time = screen.getByTitle('게시판 설정 수정일')
+    expect(time).toHaveAttribute('datetime', board.updated_at)
+    expect(time).toHaveTextContent('설정 수정 2026.11.05')
+    expect(link.closest('a')?.parentElement?.closest('a')).toBeNull()
+  })
+
+  it('새 게시판은 /b/ 주소로 열고 보기 전용 계정도 확인한다', async () => {
+    setRole('TENANT_VIEWER')
+    mockApi({ boards: [{ ...board, system_key: null, slug: 'news' }] })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByRole('link', { name: '공지사항 홈페이지 (새 창)' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/clinic/b/news'
+    )
+  })
+
+  it('사용 안 함 게시판은 주소만 표시하고 열기 링크를 두지 않는다', async () => {
+    mockApi({ boards: [{ ...board, status: 'INACTIVE', system_key: null, slug: 'news' }] })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByText('주소 http://localhost:3000/clinic/b/news')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /홈페이지/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '공지사항 설정' })).toBeInTheDocument()
+  })
+
+  it('테마형의 기본 공지는 링크가 없고 새 게시판은 열린다', async () => {
+    mockApi({
+      mode: 'theme',
+      boards: [board, { ...board, id: 'b2', name: '소식', system_key: null, slug: 'news' }],
+    })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    await screen.findByText('지금 템플릿에는 표시되지 않습니다')
+    expect(
+      screen.queryByRole('link', { name: '공지사항 홈페이지 (새 창)' })
+    ).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '소식 홈페이지 (새 창)' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/clinic/b/news'
+    )
+  })
+
+  it('사업체 주소나 유효한 수정일이 없으면 현재 시각으로 대신하지 않는다', async () => {
+    useAuthStore.setState({ tenantSlug: null })
+    mockApi({ boards: [{ ...board, updated_at: 'invalid' }] })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByText('홈페이지 주소 확인 불가')).toBeInTheDocument()
+    expect(screen.getByText('설정 수정일 확인 불가')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /홈페이지/ })).not.toBeInTheDocument()
+  })
+
+  it('공유 주소의 경로 문자를 인코딩한다', async () => {
+    useAuthStore.setState({ tenantSlug: 'clinic name' })
+    mockApi({ boards: [{ ...board, system_key: null, slug: 'news' }] })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByRole('link', { name: '공지사항 홈페이지 (새 창)' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/clinic%20name/b/news'
+    )
   })
 
   it('게시판이 없는 템플릿은 안내한다', async () => {

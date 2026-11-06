@@ -102,6 +102,8 @@ export interface PermissionOptions {
 }
 
 export interface Board {
+  /** 게시판 자체 설정의 수정 시각 (글 수정 시각과 별개) */
+  updated_at: string
   id: string
   name: string
   slug: string
