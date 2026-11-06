@@ -123,6 +123,7 @@
 ├── 게시판 목록 (/admin/boards) — [게시판 추가] 버튼, 휴지통 링크
 ├── 게시판 생성 (/admin/boards/new) — 추가할 수 없는 요금제는 요금제 안내, 보기 전용 계정은 안내
 ├── 전체 글 (/admin/posts)
+├── 신고된 글 (/admin/posts/reports) — 처리하지 않은 신고가 있는 글 (T-151-B)
 └── 게시판 상세 (목록에서 게시판을 눌러 들어감) — 탭
     ├── 글 관리 (/admin/boards/:boardId/posts)
     ├── 기본 정보 (/settings) — 이름 · 설명 · 검색 노출 · 복제 · 휴지통
@@ -130,7 +131,7 @@
     ├── 게시판 디자인 (/design) — 표시 유형 · 유형별 표시 · 정렬 · 글 수 (T-148)
     ├── 카테고리 (/categories) — 1단계 분류 · 순서 · 숨김 · 삭제 시 글 옮기기, 새 게시판만 (T-149)
     ├── 권한 (/permissions) — 글 읽기 누구나 · 회원만 (T-150-A), 글쓰기 관리자만 · 회원도 (T-150-B), 새 게시판만
-    ├── 운영 설정 (/operation) — 비밀글 허용 · 새 글 알림 (T-151-A), 비회원 글쓰기 · 신고는 T-151-B, 새 게시판만
+    ├── 운영 설정 (/operation) — 비밀글 허용 · 새 글 알림 (T-151-A), 비회원 글쓰기 (T-151-B), 새 게시판만
     └── 홈페이지 연결 (/connection) — 주소 · 사용 여부 · 메뉴 표시
 ```
 
@@ -357,7 +358,14 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
   - 사이트맵 제외. 관리자는 관리자 화면에서 늘 내용을 본다
   - 허용을 꺼도 이미 쓴 비밀글은 비밀로 남는다. 그 글은 고칠 때 비밀을 풀 수는 있지만 새로 비밀로 바꿀 수는 없다(409)
 - **새 글 알림 (T-151-A):** 켜면 회원이 새 글을 쓸 때 관리자 화면에 실시간 알림(문의 알림과 같은 SSE 채널, 종류 `new_post`). 제목 · 게시판 이름만 보낸다. 알림이 실패해도 글은 저장된다. 고친 글은 알리지 않는다
-- **T-151-B 예정:** 비회원 글쓰기(이름 · 글 비밀번호 · reCAPTCHA · 요청 횟수 제한 · 개인정보 동의), 신고
+- **비회원 글쓰기 (T-151-B):** `operation.allow_guest`. 글쓰기 `회원도` 이고 글 읽기가 `누구나` 인 게시판에서만 열린다. 병원 업종 · 필수 칸이 있는 게시판은 켤 수 없다(409, 회원 글쓰기와 같은 이유). 업종을 병원으로 바꾸면 서버가 막는다(403)
+  - 폼: 이름(20자) · 글 비밀번호(4~50자) · 제목 · 내용 · 카테고리 · 비밀글 · 개인정보 수집 · 이용 동의(필수). reCAPTCHA v3, 같은 IP 1시간 5개(Redis, 장애 시 허용)
+  - 글 비밀번호는 bcrypt 해시로만 `board_posts.guest_password_hash`, 이름은 `guest_name` (마이그레이션 0045). IP 는 저장하지 않는다
+  - 고치기 · 지우기 · 비밀글 열기는 글 비밀번호로. 틀린 비밀번호는 같은 IP 10분 5번까지, 넘으면 맞아도 429. Redis 를 못 쓰면 거절(맞히기 차단 우선). 회원 글 · 관리자 글은 비밀번호로 열 수 없다(404). 응답 캐시 금지
+  - D-08 (비회원 게시글 수정 · 삭제 방식) → 글 비밀번호로 결정
+- **신고 (T-151-B):** 공개 글 상세에 [신고] — 스팸 · 광고 / 욕설 · 비방 / 개인정보 노출 / 기타 + 설명(200자). 같은 사람(회원 id 또는 IP 를 서버 비밀값으로 해시)은 한 글에 한 번(409). IP 해시별 1시간 10번. 처리하지 않은 신고가 3건이면 글을 자동 비공개
+  - 관리자 `신고된 글` — 신고 수 · 사유 · 설명, [신고 닫기] [다시 공개] [비공개로] [휴지통으로]. 처리하면 그 글의 신고가 닫히고 감사 로그 `POST_REPORTS_*`
+  - 표 `board_post_reports` (RLS, 원래 IP · 회원 id 는 남기지 않는다)
 
 ## 7. 게시판 유형과 템플릿
 
@@ -485,6 +493,8 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | DELETE | `/api/v1/boards/{board_id}/categories/{category_id}?move_to=` | 삭제 + 글 옮기기 (없으면 분류 없음) |
 | GET | `/api/v1/posts` | 전체 글 (게시판 · 상태 · 제목 · 휴지통, T-140-C) |
 | POST | `/api/v1/posts/bulk` | 일괄 공개 · 비공개 · 휴지통 · 복원 (T-140-C) |
+| GET | `/api/v1/posts/reports` | 신고된 글 (T-151-B) |
+| POST | `/api/v1/posts/{post_id}/reports/resolve` | 신고 처리 `DISMISS · PUBLISH · HIDE · DELETE` (T-151-B) |
 | GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?category_id=`, T-149). 회원 글은 `author_member_name` (T-150-B) |
 | GET | `/api/v1/boards/{board_id}/permission-options` | 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) |
 | POST | `/api/v1/boards/{board_id}/posts` | 게시글 작성 |
@@ -502,6 +512,9 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 | POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 회원 글쓰기 (`title` · `content` 글자 · `category_id`, 방문자 회원 토큰) — T-150-B | P1 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/mine` | 내가 쓴 글이면 고치기 값, 아니면 404 — T-150-B | P1 |
 | PATCH · DELETE | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}` | 자기 글 고치기 · 휴지통 — T-150-B | P1 |
+| POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/guest` | 비회원 글쓰기 (이름 · 글 비밀번호 · 동의 · reCAPTCHA) — T-151-B | P1 |
+| POST · PATCH | `.../posts/{post_id}/guest/verify` · `.../posts/{post_id}/guest` · `.../guest/delete` | 글 비밀번호로 열기 · 고치기 · 휴지통 — T-151-B | P1 |
+| POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/report` | 글 신고 — T-151-B | P1 |
 | GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형 · 사용 중인 분류 `categories`) — T-140-B · T-149 | 2 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}` | 공개 게시판 정보와 허용된 필드 — 필드가 생기는 4단계에서 필요하면 | 4 |
 
@@ -654,7 +667,7 @@ packages/types/src/board.ts
 | D-05 | 기존 상담을 범용 게시판으로 이전 여부 | ✅ 이전하지 않음 |
 | D-06 | 게시판·게시글 휴지통 보관 기간 | 미정 — 상위 기획서 10.2 #5 와 함께. 1단계는 자동 파기 없이 복원만 |
 | D-07 | 기본 시스템 필드 고정 범위 | ✅ 제목 · 본문 · 상태 · 식별자는 칸으로 만들 수 없음 (T-142-A) |
-| D-08 | 비회원 게시글 수정·삭제 방식 | 미정 (P1) |
+| D-08 | 비회원 게시글 수정·삭제 방식 | ✅ 글 비밀번호(bcrypt) — 틀린 횟수 제한, 회원 · 관리자 글에는 쓰지 않음 (T-151-B) |
 | D-09 | 게시판별 SEO·검색 인덱싱 | ✅ 비공개 글은 공개 주소가 404 라 색인되지 않음. 사이트맵은 공개 글만, 메뉴에서 숨긴 곳 제외 (T-140-C) |
 | D-10 | 다국어·AI·승인 워크플로 | P2 별도 상세 기획서 |
 | D-11 | 저장 방식 | ✅ 게시글 테이블 (상위 기획서 #27 변경), 본문은 노드 JSON — HTML 저장 안 함 (T-143 에서 블록 JSON 에서 변경, 이전 형식도 읽음) |
@@ -679,6 +692,7 @@ packages/types/src/board.ts
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | 1.0 | 2026-11-04 | 기존 CMS와 게시판 가이드 비교를 바탕으로 신규 게시판 관리 모듈 통합 기획 초안 작성 |
+| 1.1 | 2026-11-06 | T-151-B 반영: 비회원 글쓰기 · 글 비밀번호 (D-08 결정) · 신고 · 신고된 글 화면 |
 | 1.1 | 2026-11-06 | T-151-A 반영: 운영 설정 탭 (BM-11) — 비밀글 · 새 글 알림 |
 | 1.1 | 2026-11-06 | T-150-B 반영: 회원 글쓰기 · 자기 글 수정 · 삭제, 병원 업종 · 필수 칸 차단, 1시간 한도, 작성 회원 칸 |
 | 1.1 | 2026-11-06 | T-150-A 반영: 권한 탭 (BM-10), 회원만 읽기 · 서버 검사 · 캐시 · 사이트맵 · 검색 제외 |
