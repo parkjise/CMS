@@ -128,7 +128,7 @@
     ├── 기본 정보 (/settings) — 이름 · 설명 · 검색 노출 · 복제 · 휴지통
     ├── 필드 관리 (/fields) — 새 게시판만
     ├── 게시판 디자인 (/design) — 표시 유형 · 유형별 표시 · 정렬 · 글 수 (T-148)
-    ├── 카테고리 관리 (/categories) — T-149
+    ├── 카테고리 (/categories) — 1단계 분류 · 순서 · 숨김 · 삭제 시 글 옮기기, 새 게시판만 (T-149)
     ├── 게시판 권한 (/permissions) — T-150
     ├── 운영 설정 (/operation) — T-151
     └── 홈페이지 연결 (/connection) — 주소 · 사용 여부 · 메뉴 표시
@@ -315,6 +315,19 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - 유형을 바꿔도 글은 지워지지 않는다. 글이 있으면 사진 빈 칸 경고를 보여 준다
 - 모바일 줄 개수는 고정: 갤러리 2 · 카드 1
 
+### BM-09 카테고리 (`/admin/boards/:boardId/categories`) — T-149
+
+기획안 v2.2 의 BRD-005 중 1단계 분류만. 2단계(상위 · 하위) · 합치기 · 분류 검색 · 코드는 후속.
+
+- 추가 · 이름 바꾸기 · 홈페이지에서 숨기기 · 순서(끌기 · 위아래) · 삭제. 게시판당 30개, 이름은 30자이고 게시판 안에서 겹치지 않는다
+- 기본 게시판(공지)은 화면이 템플릿 페이지라 탭이 없고 API 도 막는다 (필드와 같음)
+- 삭제: 그 분류에 글이 있으면 옮길 곳(다른 분류 · 분류 없음)을 고른다. 휴지통 글도 함께 옮긴다. 분류는 소프트 삭제이고 같은 이름을 다시 쓸 수 있다
+- 숨긴 분류는 홈페이지 탭에서만 빠지고 글은 `전체` 에 그대로 보인다. 글쓰기에서는 `(숨김)` 을 붙여 고를 수 있다
+- 글쓰기 · 수정: 분류가 있는 게시판에만 `카테고리` 칸. 글 관리 목록: 분류 이름 표시 · 분류로 걸러 보기
+- 홈페이지: 분류가 있으면 목록 위에 `전체` + 분류 탭. 주소는 `?c={분류 id}` 이고 검색 · 페이지 이동에 유지된다. 없는 · 숨긴 분류 주소는 `전체` 로 보여 준다. 코드형(hospital-a) · 테마형 모두
+- 게시판 복제 때 분류도 복제한다 (글은 복제하지 않으니 이름 · 순서 · 숨김만)
+- 표 `board_categories`, 글의 `board_posts.category_id` (마이그레이션 0042). 다른 게시판 · 지운 분류는 글에 붙일 수 없다
+
 ## 7. 게시판 유형과 템플릿
 
 | 유형 | 기본 UI | 대표 기본 필드 | 특화 기능 |
@@ -359,7 +372,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | `boards` | `id`, `tenant_id`, `name`, `slug`, `type`, `status`, `system_key`(기본 게시판 — 삭제 보호), `settings`, `deleted_at` |
 | `board_fields` (4단계) | `id`, `tenant_id`, `board_id`, `field_key`, `label`, `field_type`, `field_options`, `is_required`, `display_order`, `deleted_at` |
 | `board_posts` | `id`, `tenant_id`, `board_id`, `title`, `body`(노드 JSONB), `status`, `is_pinned`, `custom_data`, `author_id`, `published_at`, `deleted_at` |
-| `board_categories` | 게시판별 분류, 정렬, 활성 여부 |
+| `board_categories` (T-149) | `id`, `tenant_id`, `board_id`, `name`, `is_active`, `display_order`, `deleted_at` — 이름은 지우지 않은 것 중 게시판 안에서 하나. 글은 `board_posts.category_id` |
 | `board_permissions` | 역할·행위별 읽기/쓰기/관리 정책 |
 | `post_files` | 게시글별 스토리지 객체 메타, 접근 레벨 |
 | `post_comments` | 댓글·대댓글, 상태 (P1) |
@@ -434,9 +447,14 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | DELETE | `/api/v1/boards/{board_id}/fields/{field_id}` | 필드 숨김/소프트 삭제 |
 | PATCH | `/api/v1/boards/{board_id}/fields/order` | 필드 정렬 |
 | POST | `/api/v1/boards/{board_id}/fields/{field_id}/restore` | 삭제한 필드 복원 (T-142-A) |
+| GET | `/api/v1/boards/{board_id}/categories` | 카테고리 목록 (글 수 `post_count`, T-149) |
+| POST | `/api/v1/boards/{board_id}/categories` | 카테고리 추가 |
+| PATCH | `/api/v1/boards/{board_id}/categories/{category_id}` | 이름 · 숨김 |
+| PATCH | `/api/v1/boards/{board_id}/categories/order` | 순서 |
+| DELETE | `/api/v1/boards/{board_id}/categories/{category_id}?move_to=` | 삭제 + 글 옮기기 (없으면 분류 없음) |
 | GET | `/api/v1/posts` | 전체 글 (게시판 · 상태 · 제목 · 휴지통, T-140-C) |
 | POST | `/api/v1/posts/bulk` | 일괄 공개 · 비공개 · 휴지통 · 복원 (T-140-C) |
-| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 |
+| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?category_id=`, T-149) |
 | POST | `/api/v1/boards/{board_id}/posts` | 게시글 작성 |
 | PATCH | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 수정 |
 | DELETE | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 휴지통 이동 |
@@ -447,9 +465,9 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 
 | Method | Path | 기능 | 단계 |
 |---|---|---|---|
-| GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 공개 글 목록 (`?q=` · `?p=` · `?size=`, 고정 글 먼저) | 1 |
+| GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 공개 글 목록 (`?q=` · `?p=` · `?size=` · `?category=`, 고정 글 먼저) | 1 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}` | 글 상세 + 이전 · 다음 글 + 표시할 칸 `fields` | 1 · 4 |
-| GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형) — T-140-B | 2 |
+| GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형 · 사용 중인 분류 `categories`) — T-140-B · T-149 | 2 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}` | 공개 게시판 정보와 허용된 필드 — 필드가 생기는 4단계에서 필요하면 | 4 |
 | POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 방문자 글쓰기(허용된 게시판만) | P1 |
 
@@ -626,6 +644,7 @@ packages/types/src/board.ts
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | 1.0 | 2026-11-04 | 기존 CMS와 게시판 가이드 비교를 바탕으로 신규 게시판 관리 모듈 통합 기획 초안 작성 |
+| 1.1 | 2026-11-06 | T-149 반영: 카테고리 탭 (BM-09), 글 분류 · 홈페이지 분류 탭, 표 `board_categories` |
 | 1.1 | 2026-11-06 | 기획안 v2.2 합침 (D-13), T-148 반영: 게시판 디자인 탭 · 카드형 · 유형별 표시, 정렬 · 글 수를 디자인 탭으로 |
 | 1.1 | 2026-11-06 | T-147 반영: 칸 기본값 입력, 글 목록에 표시, 연락처 · 이메일 · 링크 타입 |
 | 1.1 | 2026-11-06 | T-146 반영: 기본 정렬 · 페이지당 글 수 · 게시판 검색 노출, 왼쪽 메뉴 [게시판 생성] |
