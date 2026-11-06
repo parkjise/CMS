@@ -229,11 +229,56 @@ class FieldResponse(BaseModel):
     value_count: int = 0
 
 
+# ── 카테고리 (T-149) ─────────────────────────────────────────────────────
+
+CategoryName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)
+]
+
+
+class CategoryCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: CategoryName
+    is_active: bool = True
+
+
+class CategoryUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: CategoryName | None = None
+    is_active: bool | None = None
+
+
+class CategoryOrderRequest(BaseModel):
+    category_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+
+class CategoryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    board_id: UUID
+    name: str
+    is_active: bool
+    display_order: int
+    # 이 분류의 글 수 (휴지통 글 제외) — 목록에서만
+    post_count: int = 0
+
+
+class PublicCategory(BaseModel):
+    """홈페이지 분류 탭 — 사용 중인 분류만."""
+
+    id: UUID
+    name: str
+
+
 class PostCreate(BaseModel):
     title: PostTitle
     body: PostBody = []
     status: PostStatus = "DRAFT"
     is_pinned: bool = False
+    category_id: UUID | None = None
     # 필드 값 {field_key: 값} — 서버가 필드 정의로 검사한다
     custom_data: dict[str, Any] | None = None
 
@@ -243,6 +288,8 @@ class PostUpdate(BaseModel):
     body: PostBody | None = None
     status: PostStatus | None = None
     is_pinned: bool | None = None
+    # 보내면 바뀐다 — null 은 분류 없음
+    category_id: UUID | None = None
     # 보낸 칸만 바뀐다. 빈 값은 그 칸을 비운다
     custom_data: dict[str, Any] | None = None
 
@@ -260,6 +307,7 @@ class PostListItem(BaseModel):
     updated_at: datetime
     deleted_at: datetime | None
     custom_data: dict[str, Any]
+    category_id: UUID | None = None
 
 
 class PostResponse(PostListItem):
@@ -320,6 +368,8 @@ class PublicBoardResponse(BaseModel):
     seo_description: str
     seo_index: bool
     design: BoardDesign
+    # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
+    categories: list[PublicCategory] = []
 
 
 class PublicFieldValue(BaseModel):
@@ -345,6 +395,7 @@ class PublicPostItem(BaseModel):
     # 카드형만 — 본문 앞부분 글자, 글 목록에 표시로 고른 칸
     summary: str | None = None
     card_fields: list[PublicFieldValue] | None = None
+    category_id: UUID | None = None
 
 
 class PublicPostListResponse(BaseModel):
