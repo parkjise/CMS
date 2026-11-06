@@ -129,7 +129,7 @@
     ├── 필드 관리 (/fields) — 새 게시판만
     ├── 게시판 디자인 (/design) — 표시 유형 · 유형별 표시 · 정렬 · 글 수 (T-148)
     ├── 카테고리 (/categories) — 1단계 분류 · 순서 · 숨김 · 삭제 시 글 옮기기, 새 게시판만 (T-149)
-    ├── 권한 (/permissions) — 글 읽기 누구나 · 회원만 (T-150-A), 회원 글쓰기 (T-150-B), 새 게시판만
+    ├── 권한 (/permissions) — 글 읽기 누구나 · 회원만 (T-150-A), 글쓰기 관리자만 · 회원도 (T-150-B), 새 게시판만
     ├── 운영 설정 (/operation) — T-151
     └── 홈페이지 연결 (/connection) — 주소 · 사용 여부 · 메뉴 표시
 ```
@@ -139,7 +139,7 @@
 | 동작 | `TENANT_ADMIN` | `TENANT_VIEWER` | 방문자 |
 |---|---|---|---|
 | 게시판 · 글 조회 (관리자) | 가능 | 가능 | 불가 |
-| 게시판 · 글 쓰기 · 수정 · 삭제 | 가능 | 불가 (T-130 쓰기 차단 그대로) | 불가 (방문자 글쓰기는 P1) |
+| 게시판 · 글 쓰기 · 수정 · 삭제 | 가능 | 불가 (T-130 쓰기 차단 그대로) | 게시판이 `회원도` 쓰기면 로그인한 회원이 글쓰기 · 자기 글 수정 · 삭제 (T-150-B). 비회원 글쓰기는 T-151 |
 | 공개 글 읽기 | 가능 | 가능 | 가능 (게시판이 `회원만` 이면 로그인한 방문자 회원만, T-150) |
 
 **요금제 (D-01 결정):** FREE · BASIC 은 기본 게시판의 글만 관리, STANDARD 는 게시판 5개까지 추가, PREMIUM 은 제한 없음. 내려도 있던 게시판 · 글은 유지하고 새로 만들기만 막는다 (고객 도메인 T-137-C 와 같은 원칙). 글 수 제한은 두지 않고 저장 용량 한도를 그대로 쓴다.
@@ -340,7 +340,12 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - 방문자 회원 기능(`SITE_MEMBER`)이 꺼진 사업체는 `회원만` 을 고를 수 없다(409). 이미 `회원만` 인데 기능을 끄면 아무도 읽을 수 없고, 관리자 화면에 경고가 나온다
 - 기본 게시판(공지)은 화면이 템플릿 페이지라 권한 탭이 없고 바꿀 수 없다(409, 기본값 저장은 허용)
 - 바꾸면 `BOARD_UPDATED` 감사 로그에 이전 · 이후 권한이 남는다
-- **글쓰기 (T-150-B 예정):** 지금은 `관리자만`. 회원 글쓰기 · 본인 수정 · 삭제, 병원 업종 서버 차단은 T-150-B
+- **글쓰기 (T-150-B):** `관리자만`(기본) · `회원도`. `회원도` 면 홈페이지 목록에 [글쓰기], 주소 `/b/{게시판}/write` · `/b/{게시판}/{글}/edit` (검색 제외)
+  - 폼은 제목 · 내용(글자만) · 카테고리. 서버가 글자를 문단 노드로 만든다 — 서식 · 링크 · 사진 · 추가 칸 없음. 글은 바로 공개되고 `board_posts.author_member_id` 에 작성 회원이 남는다 (마이그레이션 0043)
+  - 자기 글만 고치고 지운다. 남의 글 · 관리자 글 · 휴지통 글은 404. 글쓰기를 꺼도 자기 글 삭제는 된다(고치기는 안 됨). 삭제는 휴지통으로
+  - 회원 한 명당 1시간 10개 (429). 관리자 글 관리 · 전체 글에 `회원 작성 · 이름`, 관리자는 비공개 · 삭제할 수 있다
+  - **켤 수 없는 경우 (409, 화면에 이유):** 병원 업종(`HOSPITAL`, D-14), 회원 기능 꺼짐, 필수 칸이 있는 게시판. 켠 뒤에는 필수 칸을 만들 수 없다. 업종을 병원으로 바꾸면 이미 켠 게시판도 서버가 글쓰기를 막는다(403)
+  - 관리자 화면은 `GET /boards/{id}/permission-options` 로 고를 수 없는 이유를 받는다
 
 ## 7. 게시판 유형과 템플릿
 
@@ -468,7 +473,8 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | DELETE | `/api/v1/boards/{board_id}/categories/{category_id}?move_to=` | 삭제 + 글 옮기기 (없으면 분류 없음) |
 | GET | `/api/v1/posts` | 전체 글 (게시판 · 상태 · 제목 · 휴지통, T-140-C) |
 | POST | `/api/v1/posts/bulk` | 일괄 공개 · 비공개 · 휴지통 · 복원 (T-140-C) |
-| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?category_id=`, T-149) |
+| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?category_id=`, T-149). 회원 글은 `author_member_name` (T-150-B) |
+| GET | `/api/v1/boards/{board_id}/permission-options` | 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) |
 | POST | `/api/v1/boards/{board_id}/posts` | 게시글 작성 |
 | PATCH | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 수정 |
 | DELETE | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 휴지통 이동 |
@@ -481,9 +487,11 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 |---|---|---|---|
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 공개 글 목록 (`?q=` · `?p=` · `?size=` · `?category=`, 고정 글 먼저). `회원만` 게시판은 방문자 회원 토큰 필요 (T-150) | 1 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}` | 글 상세 + 이전 · 다음 글 + 표시할 칸 `fields` | 1 · 4 |
+| POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 회원 글쓰기 (`title` · `content` 글자 · `category_id`, 방문자 회원 토큰) — T-150-B | P1 |
+| GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/mine` | 내가 쓴 글이면 고치기 값, 아니면 404 — T-150-B | P1 |
+| PATCH · DELETE | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}` | 자기 글 고치기 · 휴지통 — T-150-B | P1 |
 | GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형 · 사용 중인 분류 `categories`) — T-140-B · T-149 | 2 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}` | 공개 게시판 정보와 허용된 필드 — 필드가 생기는 4단계에서 필요하면 | 4 |
-| POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 방문자 글쓰기(허용된 게시판만) | P1 |
 
 - 글 목록 항목에는 `thumbnail`(본문의 첫 사진)이 있고, FAQ 게시판만 `body` 까지 준다.
 - `GET /api/public/site/{tenant_slug}/sitemap-posts` — 사이트맵용 공개 글 (최근 수정 순, 최대 5,000개, T-140-C).
@@ -659,6 +667,7 @@ packages/types/src/board.ts
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | 1.0 | 2026-11-04 | 기존 CMS와 게시판 가이드 비교를 바탕으로 신규 게시판 관리 모듈 통합 기획 초안 작성 |
+| 1.1 | 2026-11-06 | T-150-B 반영: 회원 글쓰기 · 자기 글 수정 · 삭제, 병원 업종 · 필수 칸 차단, 1시간 한도, 작성 회원 칸 |
 | 1.1 | 2026-11-06 | T-150-A 반영: 권한 탭 (BM-10), 회원만 읽기 · 서버 검사 · 캐시 · 사이트맵 · 검색 제외 |
 | 1.1 | 2026-11-06 | T-149 반영: 카테고리 탭 (BM-09), 글 분류 · 홈페이지 분류 탭, 표 `board_categories` |
 | 1.1 | 2026-11-06 | 기획안 v2.2 합침 (D-13), T-148 반영: 게시판 디자인 탭 · 카드형 · 유형별 표시, 정렬 · 글 수를 디자인 탭으로 |
