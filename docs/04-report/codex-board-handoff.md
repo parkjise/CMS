@@ -5,6 +5,7 @@
 ## 최신 기록: T-154 전체 글 카테고리 필터 (Codex)
 
 - 사용자 승인: T-154 제안 뒤 “진행해줘” 요청. 테마형 공지 페이지는 계속 스킵한다.
+- PR: [#104](https://github.com/parkjise/CMS/pull/104). 생성 시점 미병합이며 CI 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-154-post-category`, 폴더: `/private/tmp/cms-T-154`, 기준 main: `1f4a9f6`.
 - T-153 마무리: #101 · #102 · #103은 모두 MERGED. 최종 #103의 backend · frontend · e2e가 전부 통과했고, main에 보고서 · 인수인계 · T-153 커밋이 포함됐음을 확인했다. 병합 커밋은 `1f4a9f6`이다.
 - API: `GET /api/v1/posts?category_id={UUID}`를 추가했다. 기존 사업체 · 게시판 · 상태 · 제목 · 휴지통 조건과 같은 WHERE 절을 사용해 목록과 total을 함께 좁힌다. 다른 사업체나 게시판의 분류는 글을 노출하지 않고, 잘못된 UUID는 입력 오류가 된다. DB 스키마 · 권한 정책 변경 없음.
