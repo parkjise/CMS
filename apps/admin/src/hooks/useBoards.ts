@@ -15,6 +15,8 @@ import type {
   PostOverviewList,
   PermissionOptions,
   PostStatus,
+  ReportAction,
+  ReportedPost,
 } from '@cms/types'
 import { api } from '@/lib/api'
 import { MENU_KEY } from '@/hooks/useSiteSettings'
@@ -83,6 +85,30 @@ export function usePermissionOptions(boardId: string) {
       const { data } = await api.get(`/v1/boards/${boardId}/permission-options`)
       return data.data
     },
+  })
+}
+
+const REPORTS_KEY = [...BOARDS_KEY, 'reports'] as const
+
+/** 처리하지 않은 신고가 있는 글 (T-151-B) */
+export function useReportedPosts() {
+  return useQuery({
+    queryKey: REPORTS_KEY,
+    queryFn: async (): Promise<ReportedPost[]> => {
+      const { data } = await api.get('/v1/posts/reports')
+      return data.data
+    },
+  })
+}
+
+/** 신고 처리 — 그대로 두기 · 다시 공개 · 비공개 · 휴지통 */
+export function useResolveReports() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ postId, action }: { postId: string; action: ReportAction }): Promise<void> => {
+      await api.post(`/v1/posts/${postId}/reports/resolve`, { action })
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: BOARDS_KEY }),
   })
 }
 

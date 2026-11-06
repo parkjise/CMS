@@ -91,6 +91,8 @@ export interface BoardOperation {
   allow_secret: boolean
   /** 회원 새 글을 관리자 화면에 실시간으로 알린다 */
   notify_new_post: boolean
+  /** 비로그인 방문자도 이름 · 글 비밀번호로 쓴다 (T-151-B) */
+  allow_guest: boolean
 }
 
 /** 권한 탭 — 회원 값을 고를 수 없는 이유, 고를 수 있으면 null */
@@ -167,6 +169,8 @@ export interface PostListItem {
   /** 홈페이지에서 쓴 회원 (T-150-B) — 관리자 글은 null */
   author_member_id?: string | null
   author_member_name?: string | null
+  /** 비회원 글의 이름 (T-151-B) */
+  guest_name?: string | null
 }
 
 export interface Post extends PostListItem {
@@ -214,6 +218,8 @@ export interface PublicBoard {
   write_access?: BoardWriteAccess
   /** 회원 글쓰기 폼에 비밀글 체크 (T-151-A) */
   allow_secret?: boolean
+  /** 비회원 글쓰기 (T-151-B) */
+  allow_guest?: boolean
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
 }
@@ -229,6 +235,8 @@ export interface PublicPostItem {
   body?: BodyNode[] | null
   /** 비밀글이면 제목만 — 요약 · 사진 · 본문이 없다 (T-151-A) */
   is_secret?: boolean
+  /** 비회원 글 — 글 비밀번호로 고치거나 지운다 (T-151-B) */
+  is_guest?: boolean
   /** 카드형 목록에만 */
   summary?: string | null
   card_fields?: PublicFieldValue[] | null
@@ -277,4 +285,28 @@ export interface MemberPost {
   content: string
   category_id: string | null
   is_secret?: boolean
+}
+
+/** 비밀번호를 확인한 비회원 글 (T-151-B) */
+export interface GuestPost extends MemberPost {
+  guest_name: string
+  body: BodyNode[]
+  fields: PublicFieldValue[]
+}
+
+export type ReportReason = 'SPAM' | 'ABUSE' | 'PRIVACY' | 'OTHER'
+export type ReportAction = 'DISMISS' | 'PUBLISH' | 'HIDE' | 'DELETE'
+
+/** 신고된 글 한 줄 — 처리하지 않은 신고만 (T-151-B) */
+export interface ReportedPost {
+  post_id: string
+  board_id: string
+  board_name: string
+  title: string
+  status: PostStatus
+  deleted: boolean
+  report_count: number
+  reasons: Partial<Record<ReportReason, number>>
+  details: string[]
+  latest_at: string
 }

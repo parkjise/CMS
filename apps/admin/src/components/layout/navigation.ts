@@ -23,6 +23,7 @@ export const ADMIN_NAVIGATION = [
       { to: '/admin/boards', label: '게시판 목록' },
       { to: '/admin/boards/new', label: '게시판 생성' },
       { to: '/admin/posts', label: '전체 글' },
+      { to: '/admin/posts/reports', label: '신고된 글' },
     ],
   },
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의 관리' },
@@ -47,6 +48,8 @@ export function breadcrumbsFor(pathname: string) {
   const base = ADMIN_NAVIGATION.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
   if (pathname === '/admin/posts')
     return [{ label: '게시판 관리', to: '/admin/boards' }, { label: '전체 글' }]
+  if (pathname === '/admin/posts/reports')
+    return [{ label: '게시판 관리', to: '/admin/boards' }, { label: '신고된 글' }]
   if (!base) return [{ label: pathname === '/admin/403' ? '접근 권한 안내' : '관리자' }]
   const crumbs: { label: string; to?: string }[] = [{ label: base.label, to: base.to }]
   if (pathname !== base.to) {

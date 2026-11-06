@@ -203,6 +203,9 @@ export function PostsOverviewPage() {
                       {STATUS_LABELS[post.status]}
                     </span>
                   )}
+                  {post.guest_name && (
+                    <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700">비회원 · {post.guest_name}</span>
+                  )}
                   {post.author_member_id && (
                     <span className="rounded bg-violet-50 px-1.5 py-0.5 text-violet-700">
                       회원 작성{post.author_member_name ? ` · ${post.author_member_name}` : ''}
