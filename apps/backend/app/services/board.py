@@ -22,6 +22,7 @@ from app.schemas.board import (
     SLUG_MAX_LENGTH,
     BoardCreate,
     BoardDesign,
+    BoardOperation,
     BoardPermissions,
     BoardUpdate,
     PostBulkAction,
@@ -48,9 +49,11 @@ SEO_DESCRIPTION_KEY = "seo_description"
 SEO_INDEX_KEY = "seo_index"
 DESIGN_KEY = "design"
 PERMISSIONS_KEY = "permissions"
+OPERATION_KEY = "operation"
 READ_MEMBER = "MEMBER"
 OPTION_KEYS = {
     PERMISSIONS_KEY,
+    OPERATION_KEY,
     SORT_ORDER_KEY,
     PAGE_SIZE_KEY,
     SEO_TITLE_KEY,
@@ -220,7 +223,13 @@ def board_options(board: Board) -> dict:
         PERMISSIONS_KEY: BoardPermissions(
             **settings.get(PERMISSIONS_KEY, {})
         ).model_dump(),
+        OPERATION_KEY: BoardOperation(**settings.get(OPERATION_KEY, {})).model_dump(),
     }
+
+
+def operation_of(board: Board) -> BoardOperation:
+    """운영 설정 (T-151-A) — 비밀글 허용 · 새 글 알림."""
+    return BoardOperation(**(board.settings or {}).get(OPERATION_KEY, {}))
 
 
 def is_member_only(board: Board) -> bool:
@@ -635,6 +644,7 @@ async def create_post(
         body=data.body,
         status=data.status,
         is_pinned=data.is_pinned,
+        is_secret=data.is_secret,
         custom_data=custom_data,
         category_id=data.category_id,
     )
@@ -658,6 +668,8 @@ async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> Bo
         post.status = data.status
     if data.is_pinned is not None:
         post.is_pinned = data.is_pinned
+    if data.is_secret is not None:
+        post.is_secret = data.is_secret
     await _after_write(db, post)
     return post
 
@@ -823,6 +835,7 @@ def _public_board(board: Board, categories: list[dict]) -> dict:
         DESIGN_KEY: options[DESIGN_KEY],
         "read_access": options[PERMISSIONS_KEY]["read"],
         "write_access": options[PERMISSIONS_KEY]["write"],
+        "allow_secret": options[OPERATION_KEY]["allow_secret"],
         "categories": categories,
     }
 
@@ -858,7 +871,8 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
             BoardPost.deleted_at.is_(None),
             Board.status == "ACTIVE",
             Board.deleted_at.is_(None),
-            # 회원만 읽는 게시판의 글은 사이트맵에 넣지 않는다 (T-150)
+            # 비밀글 (T-151-A) · 회원만 읽는 게시판 (T-150) 의 글은 넣지 않는다
+            BoardPost.is_secret.is_(False),
             func.coalesce(Board.settings[PERMISSIONS_KEY]["read"].astext, "PUBLIC")
             != READ_MEMBER,
         )
@@ -880,9 +894,11 @@ def public_post_item(
     board: Board, post: BoardPost, card_fields: list[BoardField] | None = None
 ) -> dict:
     """공개 목록의 글 한 줄 — 유형별로 화면이 더 필요한 값까지."""
-    blocks = post.body or []
-    is_card = board.board_type == "CARD"
+    # 비밀글은 목록에 제목만 — 요약 · 사진 · 본문 · 칸은 내보내지 않는다 (T-151-A)
+    blocks = [] if post.is_secret else post.body or []
+    is_card = board.board_type == "CARD" and not post.is_secret
     return {
+        "is_secret": post.is_secret,
         "summary": body_summary(blocks, CARD_SUMMARY_LIMIT) if is_card else None,
         "card_fields": (
             field_service.field_values(card_fields or [], post.custom_data or {})
@@ -895,7 +911,7 @@ def public_post_item(
         "published_at": post.published_at,
         "category_id": post.category_id,
         "thumbnail": first_image(blocks),
-        "body": blocks if board.board_type == "FAQ" else None,
+        "body": blocks if board.board_type == "FAQ" and not post.is_secret else None,
     }
 
 

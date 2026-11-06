@@ -107,6 +107,20 @@ async def member_writer(
     return member
 
 
+async def optional_member(
+    db: AsyncSession,
+    board: Board,
+    credentials: HTTPAuthorizationCredentials | None,
+) -> SiteMember | None:
+    """로그인한 회원이면 그 회원, 아니면 None — 비밀글 작성자 확인용 (T-151-A)."""
+    if credentials is None:
+        return None
+    try:
+        return await ensure_member_reader(db, board, credentials)
+    except HTTPException:
+        return None
+
+
 async def post_owner(
     db: AsyncSession,
     board: Board,

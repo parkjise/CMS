@@ -67,6 +67,8 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
     )
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="DRAFT")
     is_pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    # 비밀글 (T-151-A) — 작성 회원과 관리자만 내용을 본다
+    is_secret: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     # 필드 빌더(4단계)의 값 자리
     custom_data: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, default=dict

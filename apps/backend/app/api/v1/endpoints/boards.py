@@ -94,6 +94,7 @@ def _board_audit(board: Board) -> dict:
         "page_size": options["page_size"],
         "seo_index": options["seo_index"],
         "permissions": options["permissions"],
+        "operation": options["operation"],
     }
 
 
@@ -845,15 +846,24 @@ async def get_public_post(
     if found is None:
         raise _not_found(MSG_POST_NOT_FOUND)
     post, prev_id, next_id = found
+    # 비밀글 (T-151-A) — 작성 회원이 아니면 제목만. 내용이 담긴 응답은 캐시하지 않는다
+    locked = False
+    if post.is_secret:
+        member = await board_access.optional_member(db, board, credentials)
+        locked = member is None or post.author_member_id != member.id
+        if not locked:
+            response.headers["Cache-Control"] = board_access.PRIVATE_CACHE
     return ApiResponse.ok(
         PublicPostDetail(
             id=post.id,
             title=post.title,
             is_pinned=post.is_pinned,
+            is_secret=post.is_secret,
+            locked=locked,
             published_at=post.published_at,  # type: ignore[arg-type]
             category_id=post.category_id,
-            body=post.body,
-            fields=await field_service.public_fields(db, post),  # type: ignore[arg-type]
+            body=[] if locked else post.body,
+            fields=[] if locked else await field_service.public_fields(db, post),  # type: ignore[arg-type]
             prev_id=prev_id,
             next_id=next_id,
         )
