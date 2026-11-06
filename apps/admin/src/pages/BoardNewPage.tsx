@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { Link } from 'react-router'
+import { Link, useSearchParams } from 'react-router'
 import type { Board, BoardStatus, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { useBoardLimits, useCreateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
+import { BOARD_EXAMPLES } from '@/lib/boardExamples'
 import { BOARD_TYPES, boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -14,11 +15,13 @@ export function BoardNewPage() {
   const canEdit = useCanEdit()
   const limitsQuery = useBoardLimits()
   const createBoard = useCreateBoard()
+  const [searchParams] = useSearchParams()
+  const example = BOARD_EXAMPLES.find((item) => item.id === searchParams.get('example'))
   const [step, setStep] = useState(0)
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
+  const [name, setName] = useState(example?.name ?? '')
+  const [description, setDescription] = useState(example?.description ?? '')
   const [slug, setSlug] = useState('')
-  const [boardType, setBoardType] = useState<BoardType>('LIST')
+  const [boardType, setBoardType] = useState<BoardType>(example?.board_type ?? 'LIST')
   const [status, setStatus] = useState<BoardStatus>('ACTIVE')
   const [inMenu, setInMenu] = useState(true)
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
@@ -119,6 +122,11 @@ export function BoardNewPage() {
         </div>
       ) : (
         <>
+          {example && (
+            <p className="rounded-md bg-blue-50 p-3 text-sm text-blue-800">
+              ‘{example.name}’ 예시에서 시작합니다. 이름, 설명, 모양을 바꿀 수 있습니다.
+            </p>
+          )}
           <ol className="flex gap-2 text-sm" aria-label="진행 단계">
             {STEPS.map((label, i) => (
               <li
@@ -170,7 +178,9 @@ export function BoardNewPage() {
 
             {step === 1 && (
               <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-medium text-slate-700">어떤 모양으로 보여 줄까요?</legend>
+                <legend className="mb-2 text-sm font-medium text-slate-700">
+                  어떤 모양으로 보여 줄까요?
+                </legend>
                 {BOARD_TYPES.map((type) => (
                   <label
                     key={type.value}
@@ -194,7 +204,9 @@ export function BoardNewPage() {
 
             {step === 2 && (
               <fieldset className="space-y-2">
-                <legend className="mb-2 text-sm font-medium text-slate-700">바로 사용할까요?</legend>
+                <legend className="mb-2 text-sm font-medium text-slate-700">
+                  바로 사용할까요?
+                </legend>
                 <label className="flex cursor-pointer items-center gap-3 rounded-md border border-slate-200 p-3">
                   <input
                     type="radio"
@@ -215,7 +227,11 @@ export function BoardNewPage() {
                 </label>
                 {status === 'ACTIVE' && (
                   <label className="flex cursor-pointer items-center gap-3 pt-2">
-                    <input type="checkbox" checked={inMenu} onChange={(e) => setInMenu(e.target.checked)} />
+                    <input
+                      type="checkbox"
+                      checked={inMenu}
+                      onChange={(e) => setInMenu(e.target.checked)}
+                    />
                     <span className="text-sm text-slate-900">홈페이지 상단 메뉴에 추가</span>
                   </label>
                 )}
