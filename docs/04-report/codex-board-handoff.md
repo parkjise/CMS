@@ -5,7 +5,7 @@
 ## 최신 기록: T-158 전체 글 사용자 필드 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 기존 `글 목록에 표시` 설정을 관리자 전체 글에 연결했다. BM-03 컬럼 설정은 공개 표시까지 설계가 필요해 별도 후속으로 유지했다.
-- PR: 생성 예정. 생성 시점 미병합이며 backend · frontend · e2e가 전부 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#108](https://github.com/parkjise/CMS/pull/108). 생성 시점 미병합이며 backend · frontend · e2e가 전부 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-158-overview-fields`, 폴더: `/private/tmp/cms-T-158`, 기준 main: `e56d153`.
 - 이전 T-157: #107의 세 CI 통과 뒤 병합했고 main 포함을 확인했다. 병합 커밋 `e56d153`.
 - 구현: `PostListFields.tsx`와 `PostsOverviewPage.tsx`. 기존 전체 글 응답의 `custom_data`, `useBoardFields`, `fieldValueLabel`을 재사용했다. 같은 게시판의 행은 기존 필드 캐시를 공유하며 한 페이지에서 값이 있는 게시판만 조회한다(최대 20개). 서버 API · DB · 로그인 · 권한 정책 변경 없음.
