@@ -4,6 +4,8 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
 import type { PostBulkAction, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
+import { PostListFields } from '@/components/boards/PostListFields'
+import { isEmptyValue } from '@/lib/customFields'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
@@ -312,6 +314,9 @@ export function PostsOverviewPage() {
                     수정 {dayjs(post.updated_at).format('YYYY.MM.DD')}
                   </time>
                 </div>
+                {Object.values(post.custom_data ?? {}).some((value) => !isEmptyValue(value)) && (
+                  <PostListFields boardId={post.board_id} values={post.custom_data ?? {}} />
+                )}
               </div>
             </li>
           ))}
