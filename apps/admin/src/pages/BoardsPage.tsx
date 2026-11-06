@@ -4,6 +4,7 @@ import { Copy, ExternalLink, FileText, Plus, Settings, Trash2 } from 'lucide-rea
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import type { Board } from '@cms/types'
 import { Button, toast } from '@cms/ui'
+import { BoardExamples } from '@/components/boards/BoardExamples'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards, useDeleteBoard, useDuplicateBoard } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
@@ -208,6 +209,9 @@ export function BoardsPage() {
         <div className="h-20 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
       )}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
+      {!boardsQuery.isError && boards && !boards.some((board) => board.system_key === null) && (
+        <BoardExamples canCreate={canEdit && canDuplicate} />
+      )}
       {boards?.length === 0 && (
         <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
           아직 게시판이 없습니다.
