@@ -241,6 +241,11 @@ export function BoardPostsPage() {
                   <span className={`rounded px-1.5 py-0.5 ${STATUS_STYLES[post.status]}`}>
                     {STATUS_LABELS[post.status]}
                   </span>
+                  {post.author_member_id && (
+                    <span className="rounded bg-violet-50 px-1.5 py-0.5 text-violet-700">
+                      회원 작성{post.author_member_name ? ` · ${post.author_member_name}` : ''}
+                    </span>
+                  )}
                   {post.category_id && categoryName.has(post.category_id) && (
                     <span className="rounded bg-blue-50 px-1.5 py-0.5 text-blue-700">
                       {categoryName.get(post.category_id)}

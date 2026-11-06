@@ -77,11 +77,18 @@ export interface BoardDesign {
   faq_first_open: boolean
 }
 
-/** 게시판 권한 (T-150) — 회원 글쓰기는 T-150-B */
+/** 게시판 권한 (T-150) — 글쓰기 MEMBER 는 로그인한 방문자 회원도 (T-150-B) */
 export type BoardReadAccess = 'PUBLIC' | 'MEMBER'
+export type BoardWriteAccess = 'ADMIN' | 'MEMBER'
 export interface BoardPermissions {
   read: BoardReadAccess
-  write: 'ADMIN'
+  write: BoardWriteAccess
+}
+
+/** 권한 탭 — 회원 값을 고를 수 없는 이유, 고를 수 있으면 null */
+export interface PermissionOptions {
+  member_read_blocked: string | null
+  member_write_blocked: string | null
 }
 
 export interface Board {
@@ -146,6 +153,9 @@ export interface PostListItem {
   custom_data?: Record<string, unknown>
   /** 분류 (T-149) — 없으면 null */
   category_id?: string | null
+  /** 홈페이지에서 쓴 회원 (T-150-B) — 관리자 글은 null */
+  author_member_id?: string | null
+  author_member_name?: string | null
 }
 
 export interface Post extends PostListItem {
@@ -189,6 +199,8 @@ export interface PublicBoard {
   design?: BoardDesign
   /** 회원만 읽기면 MEMBER — 글을 로그인 뒤 브라우저에서 읽는다 (T-150) */
   read_access?: BoardReadAccess
+  /** 회원도 쓰면 MEMBER — 홈페이지 회원 글쓰기 (T-150-B) */
+  write_access?: BoardWriteAccess
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
 }
@@ -238,4 +250,13 @@ export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   fields?: PublicFieldValue[]
   prev_id: string | null
   next_id: string | null
+}
+
+/** 홈페이지 회원이 쓴 글 — 고치기 화면 · 저장 결과 (T-150-B) */
+export interface MemberPost {
+  id: string
+  title: string
+  /** 글자만 — 빈 줄로 문단 */
+  content: string
+  category_id: string | null
 }
