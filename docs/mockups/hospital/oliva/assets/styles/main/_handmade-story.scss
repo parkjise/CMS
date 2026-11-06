@@ -1,0 +1,116 @@
+@use '../tokens' as *;
+
+.oliva-story {
+  width: 100%;
+  min-width: 1600px;
+  background-color: var(--color-bg-dark);
+
+  &__inner {
+    padding: 64px;
+    display: flex;
+    align-items: center;
+    gap: 80px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  &__visual {
+    width: 610px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__image-wrap {
+    width: 610px;
+    height: 454px;
+    overflow: hidden;
+    position: relative;
+    background-color: #242d20;
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  &__caption {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    color: var(--color-text-dark-sub);
+  }
+
+  &__caption-text {
+    font-family: var(--font-sans);
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+
+  &__caption-time {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 16px;
+  }
+
+  &__content {
+    flex: 1 0 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding-right: 24px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-weight: 400;
+    font-size: 39px;
+    line-height: 1.5;
+    letter-spacing: -1.5px;
+    color: var(--color-text-light);
+  }
+
+  &__desc {
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 2;
+    color: var(--color-text-dark-sub);
+  }
+
+  &__divider {
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-border-dark-sub);
+  }
+
+  &__principles {
+    display: flex;
+    gap: 30px;
+    width: 100%;
+  }
+}
+
+.oliva-principle {
+  flex: 1 0 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  &__label {
+    font-family: var(--font-serif-kr);
+    font-weight: 400;
+    font-size: 24px;
+    color: var(--color-text-light);
+  }
+
+  &__desc {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    color: var(--color-text-dark-sub);
+  }
+}

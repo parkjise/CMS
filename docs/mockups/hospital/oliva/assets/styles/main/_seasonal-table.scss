@@ -1,0 +1,75 @@
+@use '../tokens' as *;
+
+.oliva-seasonal {
+  width: 100%;
+  min-width: 1600px;
+  background-color: var(--color-bg-warm);
+
+  &__inner {
+    padding: 80px 88px;
+    display: flex;
+    align-items: center;
+    gap: 64px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  &__content {
+    flex: 1 0 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: flex-start;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-weight: 400;
+    font-size: 38px;
+    letter-spacing: -1.5px;
+    color: var(--color-text);
+  }
+
+  &__desc {
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.9;
+    color: var(--color-text-muted);
+  }
+
+  &__details {
+    display: flex;
+    align-items: baseline;
+    gap: 24px;
+    margin-top: 4px;
+    margin-bottom: 4px;
+  }
+
+  &__price {
+    font-family: var(--font-serif);
+    font-size: 30px;
+    color: var(--color-text);
+  }
+
+  &__price-sub {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-text-muted);
+  }
+
+  &__visual {
+    width: 470px;
+    height: 340px;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    background-color: #dcd5c4;
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}

@@ -1,0 +1,23 @@
+:root {
+  // Brand Colors
+  --color-bg: #f5f1e7;
+  --color-bg-dark: #303c2b;
+  --color-bg-warm: #ebe5d7;
+  --color-text: #303c2b;
+  --color-text-muted: #747767;
+  --color-text-light: #f5f1e7;
+  --color-text-light-sub: #d6d1c4;
+  --color-text-dark-sub: #d7d9c9;
+  --color-border: #cdcdbd;
+  --color-border-dark: #4b5248;
+  --color-border-dark-sub: #69705c;
+
+  // Typography
+  --font-serif: 'Cormorant Garamond', 'Noto Serif KR', Georgia, serif;
+  --font-serif-kr: 'Noto Serif KR', 'Cormorant Garamond', Georgia, serif;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  // Layout Specification: Minimum width 1600px
+  --canvas-min-width: 1600px;
+  --container-max-width: 1600px;
+}

@@ -1,0 +1,62 @@
+<section class="oliva-reservation" id="reservation">
+  <div class="oliva-reservation__inner">
+    <div class="oliva-reservation__header">
+      <p class="oliva-eyebrow">PRENOTA UN TAVOLO</p>
+      <h2 class="oliva-reservation__title">당신의 자리를 준비해둘게요.</h2>
+      <p class="oliva-reservation__sub">소중한 사람과 나눌 다음 식사, 올리바 카사에서 만나세요.</p>
+    </div>
+
+    <form class="oliva-reservation__form" onsubmit="event.preventDefault();">
+      <div class="oliva-reservation__fields">
+        <!-- Date -->
+        <div class="oliva-reservation__field">
+          <label class="oliva-reservation__field-label">방문 날짜</label>
+          <div class="oliva-reservation__field-select" tabindex="0" role="button" aria-haspopup="listbox" aria-label="방문 날짜 선택">
+            <img src="./assets/images/icon-calendar.svg" alt="" class="oliva-reservation__field-icon" aria-hidden="true" />
+            <span class="oliva-reservation__field-val">2026. 11. 14. (토)</span>
+            <img src="./assets/images/icon-chevron-down.svg" alt="" class="oliva-reservation__field-arrow" aria-hidden="true" />
+          </div>
+        </div>
+
+        <!-- Time -->
+        <div class="oliva-reservation__field">
+          <label class="oliva-reservation__field-label">방문 시간</label>
+          <div class="oliva-reservation__field-select" tabindex="0" role="button" aria-haspopup="listbox" aria-label="방문 시간 선택">
+            <img src="./assets/images/icon-clock.svg" alt="" class="oliva-reservation__field-icon" aria-hidden="true" />
+            <span class="oliva-reservation__field-val">오후 6:30</span>
+            <img src="./assets/images/icon-chevron-down.svg" alt="" class="oliva-reservation__field-arrow" aria-hidden="true" />
+          </div>
+        </div>
+
+        <!-- Guests -->
+        <div class="oliva-reservation__field">
+          <label class="oliva-reservation__field-label">방문 인원</label>
+          <div class="oliva-reservation__field-select" tabindex="0" role="button" aria-haspopup="listbox" aria-label="방문 인원 선택">
+            <img src="./assets/images/icon-users.svg" alt="" class="oliva-reservation__field-icon" aria-hidden="true" />
+            <span class="oliva-reservation__field-val">2명</span>
+            <img src="./assets/images/icon-chevron-down.svg" alt="" class="oliva-reservation__field-arrow" aria-hidden="true" />
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="button" class="oliva-btn oliva-btn--primary oliva-reservation__submit" data-action="check-reservation">
+          <span>예약 가능 시간 확인</span>
+          <img src="./assets/images/icon-arrow-up-right.svg" alt="" class="oliva-btn__icon" aria-hidden="true" />
+        </button>
+      </div>
+
+      <p class="oliva-reservation__notice">
+        온라인 예약은 2–6인까지 가능합니다. 7인 이상 모임, 어린이 동반 또는 음식 알레르기가 있으시면 전화로 알려주세요.
+      </p>
+
+      <div class="oliva-reservation__divider"></div>
+
+      <div class="oliva-reservation__help">
+        <p class="oliva-reservation__help-cancel">예약 변경·취소는 방문 하루 전까지 부탁드립니다.</p>
+        <a href="tel:02-332-0418" class="oliva-reservation__help-tel">전화로 예약하기 &nbsp;02–332–0418 &nbsp;↗</a>
+      </div>
+    </form>
+
+    <p class="oliva-reservation__tagline">Ci vediamo a tavola.</p>
+  </div>
+</section>

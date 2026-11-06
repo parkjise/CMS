@@ -1,0 +1,166 @@
+@use '../tokens' as *;
+
+.oliva-location {
+  width: 100%;
+  min-width: 1600px;
+  background-color: var(--color-bg-dark);
+
+  &__inner {
+    padding: 88px 104px 48px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  &__info {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 56px;
+    width: 100%;
+  }
+
+  &__col {
+    display: flex;
+    flex-direction: column;
+
+    &--address {
+      width: 401px;
+      gap: 22px;
+      flex-shrink: 0;
+    }
+
+    &--hours {
+      width: 384px;
+      gap: 32px;
+      flex-shrink: 0;
+    }
+
+    &--sns {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      flex-shrink: 0;
+    }
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-weight: 400;
+    font-size: 30px;
+    line-height: 1.65;
+    letter-spacing: -1px;
+    color: var(--color-text-light);
+  }
+
+  &__address {
+    font-family: var(--font-sans);
+    font-size: 13px;
+    line-height: 1.95;
+    color: var(--color-text-light-sub);
+  }
+
+  &__map-btn {
+    align-self: flex-start;
+  }
+
+  &__notice {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    line-height: 1.9;
+    color: var(--color-text-light-sub);
+  }
+
+  &__hours-group {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    width: 100%;
+  }
+
+  &__contact-divider {
+    width: 100%;
+    height: 1px;
+    background-color: var(--color-border-dark);
+  }
+
+  &__contact-group {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  &__phone {
+    font-family: var(--font-sans);
+    font-size: 17px;
+    color: var(--color-text-light);
+  }
+
+  &__instagram {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-text-light);
+    transition: opacity 160ms ease;
+
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+}
+
+.oliva-service-times {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+
+  &__closed {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-text-light-sub);
+    margin-top: 4px;
+  }
+}
+
+.oliva-service-time {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
+
+  &__label {
+    font-family: var(--font-serif);
+    font-size: 25px;
+    color: var(--color-text-light);
+  }
+
+  &__value {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    color: var(--color-text-light-sub);
+  }
+}
+
+.oliva-sns {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+
+  &__link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    transition: transform 160ms ease, opacity 160ms ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      opacity: 0.8;
+    }
+  }
+
+  &__icon {
+    width: 32px;
+    height: 32px;
+  }
+}
