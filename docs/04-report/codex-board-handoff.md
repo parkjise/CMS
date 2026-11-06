@@ -5,6 +5,7 @@
 ## 최신 기록: T-155 게시판 목록 주소 · 설정 수정일 (Codex)
 
 - 사용자 다음 작업 진행 요청에 따라 BM-01 후속 항목을 선택했다. 테마형 공지 페이지는 계속 보류한다.
+- PR: [#105](https://github.com/parkjise/CMS/pull/105). 생성 시점 미병합이며 원격 CI 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-155-board-list-details`, 폴더: `/private/tmp/cms-T-155`, 기준 main: `c4c1799`.
 - 이전 T-154: #104의 backend · frontend · e2e가 모두 통과한 뒤 병합했고 main 포함을 확인했다. 병합 커밋 `c4c1799`.
 - 화면: 게시판 목록에 공유 도메인 주소를 표시한다. 기존 홈페이지 연결 화면과 같은 `VITE_CLIENT_BASE_URL`을 쓰며 tenant slug · 게시판 경로를 인코딩한다. 기본 공지 `/notice`, 새 게시판 `/b/{slug}`. 고객 도메인 우선 처리는 추가하지 않았다.
