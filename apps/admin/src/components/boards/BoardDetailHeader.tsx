@@ -22,7 +22,12 @@ export function BoardDetailHeader({ boardId, actions }: BoardDetailHeaderProps) 
           { to: 'categories', label: '카테고리' },
         ]),
     { to: 'design', label: '게시판 디자인' },
-    ...(board?.system_key ? [] : [{ to: 'permissions', label: '권한' }]),
+    ...(board?.system_key
+      ? []
+      : [
+          { to: 'permissions', label: '권한' },
+          { to: 'operation', label: '운영 설정' },
+        ]),
     { to: 'connection', label: '홈페이지 연결' },
   ]
 

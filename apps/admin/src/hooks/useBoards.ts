@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
   BoardDesign,
+  BoardOperation,
   BoardPermissions,
   BoardSortOrder,
   Board,
@@ -34,6 +35,7 @@ export interface PostInput {
   body?: BodyNode[]
   status?: PostStatus
   is_pinned?: boolean
+  is_secret?: boolean
   /** 분류 (T-149) — null 은 분류 없음 */
   category_id?: string | null
 }
@@ -68,6 +70,7 @@ export interface BoardInput {
   seo_index?: boolean
   design?: BoardDesign
   permissions?: BoardPermissions
+  operation?: BoardOperation
   /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
   in_menu?: boolean
 }

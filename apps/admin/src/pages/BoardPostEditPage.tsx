@@ -9,7 +9,7 @@ import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useBoardFields } from '@/hooks/useBoardFields'
-import { useCreatePost, usePost, useUpdatePost } from '@/hooks/useBoards'
+import { useBoards, useCreatePost, usePost, useUpdatePost } from '@/hooks/useBoards'
 import {
   type CustomValues,
   customFieldOfError,
@@ -38,6 +38,10 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const [title, setTitle] = useState(post?.title ?? '')
   const [isPinned, setIsPinned] = useState(post?.is_pinned ?? false)
   const [categoryId, setCategoryId] = useState(post?.category_id ?? '')
+  const [isSecret, setIsSecret] = useState(post?.is_secret ?? false)
+  const board = useBoards().data?.find((b) => b.id === boardId)
+  // 비밀글을 허용한 게시판이거나 이미 비밀글일 때만 (T-151-A)
+  const secretChoice = Boolean(board?.operation?.allow_secret || post?.is_secret)
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
   const custom = useForm<CustomValues>({
@@ -71,6 +75,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       title: title.trim(),
       body,
       is_pinned: isPinned,
+      ...(secretChoice ? { is_secret: isSecret } : {}),
       status: next,
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
       ...(categories ? { category_id: categoryId || null } : {}),
@@ -147,6 +152,14 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
             checked={isPinned}
             onChange={(e) => setIsPinned(e.target.checked)}
           />
+          {secretChoice && (
+            <Toggle
+              label="비밀글"
+              description="홈페이지 목록에는 제목만 보이고, 내용은 쓴 회원과 관리자만 봅니다."
+              checked={isSecret}
+              onChange={(e) => setIsSecret(e.target.checked)}
+            />
+          )}
         </div>
       </ReadOnlyFieldset>
 
