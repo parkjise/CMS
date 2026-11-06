@@ -2,7 +2,7 @@
 
 - 회원 글쓰기(`write: MEMBER`)를 켜고 운영 설정에서 비회원 글쓰기를 허용한 게시판만.
   병원 업종 · 회원만 읽는 게시판은 막는다
-- 글 비밀번호는 bcrypt 해시로만 남긴다. 틀린 비밀번호는 IP 해시별로 10분에 5번까지 —
+- 글 비밀번호는 bcrypt 해시로만 남긴다. 틀린 비밀번호는 사업체 · IP 해시별 10분 5번 —
   Redis 를 못 쓰면 막는다(비밀번호 맞히기 차단이 먼저)
 - 글쓰기는 reCAPTCHA + IP 해시별 1시간 5개. Redis 를 못 쓰면 허용한다
 - 남의 글 · 회원 글 · 관리자 글 · 휴지통 글은 없는 글과 같다 (404)
@@ -35,6 +35,8 @@ MAX_POSTS_PER_HOUR = 5
 MAX_WRONG_PASSWORDS = 5
 WRONG_PASSWORD_WINDOW = 600
 STATUS_PUBLISHED = "PUBLISHED"
+# 홈페이지 폼이 토큰을 받을 때 쓰는 이름 — 다른 폼의 토큰은 받지 않는다
+RECAPTCHA_ACTION = "board_guest_write"
 
 MSG_GUEST_CLOSED = "이 게시판은 비회원 글쓰기를 받지 않습니다."
 MSG_TOO_MANY_POSTS = (
@@ -101,7 +103,7 @@ async def create_post(
     db: AsyncSession, board: Board, data: GuestPostCreate, ip: str | None
 ) -> BoardPost:
     await _ensure_open(db, board)
-    await recaptcha.verify(data.recaptcha_token)
+    await recaptcha.verify(data.recaptcha_token, action=RECAPTCHA_ACTION)
     await _ensure_post_rate(board, ip)
     member_post_service.check_secret(board, data.is_secret)
     await category_service.check_post_category(db, board.id, data.category_id)
@@ -169,7 +171,8 @@ async def guest_post(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=MSG_POST_NOT_FOUND
         )
-    key = f"board:guest-pw:{post.id}:{visitor_key('ip', ip)}"
+    # 글마다가 아니라 사업체 · IP 마다 센다 — 여러 글을 돌아가며 맞히지 못하게 (T-152)
+    key = f"board:guest-pw:{board.tenant_id}:{visitor_key('ip', ip)}"
     if await _wrong_count(key) >= MAX_WRONG_PASSWORDS:
         raise _too_many(MSG_TOO_MANY_TRIES)
     if not verify_password(password, post.guest_password_hash):

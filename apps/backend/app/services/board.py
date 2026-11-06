@@ -30,7 +30,7 @@ from app.schemas.board import (
     PostUpdate,
 )
 from app.schemas.rich_body import body_summary, first_image
-from app.services import board_access, site_cache
+from app.services import board_access, member_features, site_cache
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 
@@ -85,6 +85,8 @@ MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다.
 MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
+MSG_SYSTEM_OPERATION_LOCKED = "기본 게시판에는 운영 설정이 없습니다."
+MSG_SYSTEM_SECRET_LOCKED = "기본 게시판에는 비밀글을 쓸 수 없습니다."
 
 
 def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
@@ -460,8 +462,22 @@ async def _check_permissions(
         )
 
 
+def ensure_secret_allowed(board: Board, is_secret: bool | None) -> None:
+    """기본 게시판(공지)은 화면이 템플릿 페이지라 비밀글을 그리지 못한다 (T-152)."""
+    if is_secret and board.system_key is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "CONFLICT", "message": MSG_SYSTEM_SECRET_LOCKED},
+        )
+
+
 async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
     is_system = board.system_key is not None
+    if is_system and data.operation is not None and data.operation != BoardOperation():
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "CONFLICT", "message": MSG_SYSTEM_OPERATION_LOCKED},
+        )
     if is_system and data.slug is not None and data.slug != board.slug:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_SLUG_LOCKED
@@ -832,8 +848,23 @@ async def open_public_board(
     return result.scalar_one_or_none()
 
 
-def _public_board(board: Board, categories: list[dict]) -> dict:
+def _public_board(
+    board: Board, categories: list[dict], hospital: bool, member_on: bool
+) -> dict:
+    """홈페이지가 받는 게시판 — 쓰기 값은 지금 실제로 열리는지로 (T-152).
+
+    저장값이 회원도 · 비회원 허용이어도 병원 업종 · 회원 기능 꺼짐 · 회원만 읽기면
+    서버가 막으므로, 홈페이지가 [글쓰기] · 비회원 폼을 그리지 않게 꺼서 내보낸다.
+    """
     options = board_options(board)
+    permissions = options[PERMISSIONS_KEY]
+    member_write = permissions["write"] == READ_MEMBER and member_on and not hospital
+    guest_write = (
+        permissions["write"] == READ_MEMBER
+        and permissions["read"] != READ_MEMBER
+        and options[OPERATION_KEY]["allow_guest"]
+        and not hospital
+    )
     return {
         "id": board.id,
         "name": board.name,
@@ -845,10 +876,10 @@ def _public_board(board: Board, categories: list[dict]) -> dict:
         SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
         DESIGN_KEY: options[DESIGN_KEY],
-        "read_access": options[PERMISSIONS_KEY]["read"],
-        "write_access": options[PERMISSIONS_KEY]["write"],
+        "read_access": permissions["read"],
+        "write_access": READ_MEMBER if member_write or guest_write else "ADMIN",
         "allow_secret": options[OPERATION_KEY]["allow_secret"],
-        "allow_guest": options[OPERATION_KEY]["allow_guest"],
+        "allow_guest": guest_write,
         "categories": categories,
     }
 
@@ -867,7 +898,15 @@ async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
     )
     boards = list(result.scalars())
     categories = await category_service.public_categories(db, [b.id for b in boards])
-    return [_public_board(board, categories.get(board.id, [])) for board in boards]
+    tenant = await db.get(Tenant, tenant_id)
+    hospital = tenant is None or tenant.template_type == board_access.HOSPITAL
+    member_on = tenant is not None and (
+        (await member_features.flags_for(db, tenant)).enabled
+    )
+    return [
+        _public_board(board, categories.get(board.id, []), hospital, member_on)
+        for board in boards
+    ]
 
 
 async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] | None:
@@ -995,24 +1034,28 @@ async def list_public_posts(
 async def get_public_post(
     db: AsyncSession, board: Board, post_id: UUID
 ) -> tuple[BoardPost, UUID | None, UUID | None] | None:
-    """글과 목록 순서의 이전(더 오래된) · 다음(더 새로운) 글 id."""
-    ids = list(
-        (
-            await db.execute(
-                select(BoardPost.id)
-                .where(*_public_conditions(board))
-                .order_by(*_public_order())
-            )
+    """글과 목록 순서의 이전(더 오래된) · 다음(더 새로운) 글 id.
+
+    이웃 글은 DB 가 창 함수로 찾는다 — 게시판의 글 id 를 전부 읽어 오지 않는다 (T-152).
+    """
+    order = _public_order()
+    ordered = (
+        select(
+            BoardPost.id.label("id"),
+            func.lead(BoardPost.id).over(order_by=order).label("older"),
+            func.lag(BoardPost.id).over(order_by=order).label("newer"),
         )
-        .scalars()
-        .all()
+        .where(*_public_conditions(board))
+        .subquery()
     )
-    if post_id not in ids:
+    row = (
+        await db.execute(
+            select(ordered.c.older, ordered.c.newer).where(ordered.c.id == post_id)
+        )
+    ).one_or_none()
+    if row is None:
         return None
     post = await db.get(BoardPost, post_id)
     if post is None:
         return None
-    index = ids.index(post_id)
-    prev_id = ids[index + 1] if index + 1 < len(ids) else None
-    next_id = ids[index - 1] if index > 0 else None
-    return post, prev_id, next_id
+    return post, row.older, row.newer

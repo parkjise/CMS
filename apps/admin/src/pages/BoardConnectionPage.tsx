@@ -138,7 +138,7 @@ function ConnectionForm({ board }: { board: Board }) {
   )
 }
 
-/** 홈페이지 연결 — 유형 · 주소 · 사용 여부 · 메뉴 표시 (게시판 모듈 기획서 4장) */
+/** 홈페이지 연결 — 주소 · 사용 여부 · 메뉴 표시 (게시판 모듈 기획서 4장). 유형은 게시판 디자인 탭 (T-148) */
 export function BoardConnectionPage() {
   const { boardId = '' } = useParams()
   const boardsQuery = useBoards()
