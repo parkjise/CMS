@@ -77,6 +77,15 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 홈페이지에서 쓴 회원 (T-150-B) — 관리자 글은 비어 있다
+    author_member_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "site_members.id", name="fk_board_posts_author_member", ondelete="SET NULL"
+        ),
+        nullable=True,
+        index=True,
+    )
     # 카테고리 (T-149) — 비워 둘 수 있다. 같은 게시판의 분류인지는 서비스가 본다
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

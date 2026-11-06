@@ -16,7 +16,7 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
-import { resolveBoardRoute } from '@/lib/boardRoute'
+import { isFormScreen, resolveBoardRoute } from '@/lib/boardRoute'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
@@ -129,6 +129,8 @@ export async function codeRouteMetadata(
       ? { robots: { index: false, follow: false } }
       : {}),
     ...(resolved.board ? boardSeoMeta(resolved.board, resolved.site.tenant.name, resolved.postTitle) : {}),
+    // 회원 글쓰기 · 고치기 화면은 검색에 내지 않는다 (T-150-B)
+    ...(resolved.board && isFormScreen(resolved.detailId) ? { robots: { index: false, follow: false } } : {}),
   }
 }
 

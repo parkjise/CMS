@@ -64,10 +64,12 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
  * 확인 실패(백엔드 장애)면 false — 페이지가 안내 화면을 그린다. 공지는 /notice 가 있어 /b/notice 도 404.
  */
 async function isMissingBoardRoute(slug: string, [board, postId, ...extra]: string[]): Promise<boolean> {
-  if (!board || board === NOTICE_BOARD || extra.length > 0) return true
+  // 회원 글쓰기 · 고치기 (T-150-B) — 게시판만 확인하고, 쓸 수 있는지는 페이지가 본다
+  const form = (postId === 'write' && extra.length === 0) || (extra.length === 1 && extra[0] === 'edit')
+  if (!board || board === NOTICE_BOARD || (extra.length > 0 && !form)) return true
   const posts = `${serverApiBase()}/public/site/${encodeURIComponent(slug)}/boards/${encodeURIComponent(board)}/posts`
   try {
-    const res = await fetch(postId ? `${posts}/${encodeURIComponent(postId)}` : `${posts}?size=1`, {
+    const res = await fetch(postId && !form ? `${posts}/${encodeURIComponent(postId)}` : `${posts}?size=1`, {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(2000),
     })

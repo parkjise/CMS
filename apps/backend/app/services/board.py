@@ -29,9 +29,9 @@ from app.schemas.board import (
     PostUpdate,
 )
 from app.schemas.rich_body import body_summary, first_image
+from app.services import board_access, site_cache
 from app.services import board_category as category_service
 from app.services import board_field as field_service
-from app.services import member_features, site_cache
 
 NOTICE_KEY = "notice"
 STATUS_PUBLISHED = "PUBLISHED"
@@ -82,7 +82,6 @@ MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다.
 MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
-MSG_MEMBER_FEATURE_OFF = "방문자 회원 기능이 꺼져 있어 회원만 읽기로 바꿀 수 없습니다."
 
 
 def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
@@ -429,7 +428,8 @@ async def _check_permissions(
 ) -> None:
     """기본 게시판은 화면이 템플릿 페이지라 권한이 없다.
 
-    회원만 읽기는 방문자 회원 기능이 켜진 사업체만.
+    회원 권한은 방문자 회원 기능이 켜진 사업체만, 회원 글쓰기는 병원 업종 · 필수 칸이
+    있는 게시판이 아닐 때만 (board_access). 이미 켜 둔 값은 다시 저장할 수 있다.
     """
     if permissions == BoardPermissions():
         return
@@ -437,13 +437,18 @@ async def _check_permissions(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_PERMISSIONS_LOCKED
         )
-    if permissions.read == READ_MEMBER:
-        tenant = await db.get(Tenant, board.tenant_id)
-        if tenant is None or not (await member_features.flags_for(db, tenant)).enabled:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail={"code": "CONFLICT", "message": MSG_MEMBER_FEATURE_OFF},
-            )
+    current = board_access.permissions_of(board)
+    blocked = None
+    if permissions.read == READ_MEMBER and current.read != READ_MEMBER:
+        blocked = await board_access.member_read_blocked(db, board)
+    turning_on_write = permissions.write == READ_MEMBER and current.write != READ_MEMBER
+    if not blocked and turning_on_write:
+        blocked = await board_access.member_write_blocked(db, board)
+    if blocked:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "CONFLICT", "message": blocked},
+        )
 
 
 async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
@@ -604,6 +609,11 @@ async def _after_write(db: AsyncSession, post: BoardPost) -> None:
     await db.commit()
     await db.refresh(post)
     await site_cache.purge_site(db, post.tenant_id)
+
+
+async def after_member_write(db: AsyncSession, post: BoardPost) -> None:
+    """홈페이지 회원 글 저장 뒤 — 관리자 글과 같은 공개일 · 캐시 비우기 (T-150-B)."""
+    await _after_write(db, post)
 
 
 async def create_post(
@@ -812,6 +822,7 @@ def _public_board(board: Board, categories: list[dict]) -> dict:
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
         DESIGN_KEY: options[DESIGN_KEY],
         "read_access": options[PERMISSIONS_KEY]["read"],
+        "write_access": options[PERMISSIONS_KEY]["write"],
         "categories": categories,
     }
 

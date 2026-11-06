@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { BoardToolbar, type SearchTarget } from './BoardToolbar'
+import { MemberWriteLink } from './MemberWriteLink'
 import { NoticeWriteLink } from './NoticeWriteLink'
 import { Pagination } from './Pagination'
 
@@ -17,6 +18,8 @@ interface BoardListShellProps {
   searchLabel: string
   /** 검색창 위 카테고리 탭 (T-149) */
   tabs?: ReactNode
+  /** 회원 글쓰기 게시판의 [글쓰기] 주소 (T-150-B) */
+  memberWriteHref?: string
   children: ReactNode
 }
 
@@ -33,6 +36,7 @@ export function BoardListShell({
   searchTarget,
   searchLabel,
   tabs,
+  memberWriteHref,
   children,
 }: BoardListShellProps) {
   return (
@@ -43,6 +47,7 @@ export function BoardListShell({
         </h2>
         {description && <p className="board-list__desc">{description}</p>}
         {writeBoard && <NoticeWriteLink board={writeBoard} />}
+        {memberWriteHref && <MemberWriteLink href={memberWriteHref} />}
         {tabs}
         <BoardToolbar
           total={total}

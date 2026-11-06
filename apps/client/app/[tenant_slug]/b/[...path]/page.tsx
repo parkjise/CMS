@@ -3,10 +3,11 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { ThemeBoardDetail, ThemeBoardList } from '@/components/board/ThemeBoard'
 import { ThemeBoardMember } from '@/components/board/ThemeBoardMember'
+import { ThemeBoardWrite } from '@/components/board/ThemeBoardWrite'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
-import { isMemberOnly, resolveBoardRoute } from '@/lib/boardRoute'
+import { boardScreen, isFormScreen, isMemberOnly, resolveBoardRoute } from '@/lib/boardRoute'
 import { boardPageKey } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled } from '@/lib/publicSite.types'
@@ -42,6 +43,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     ...boardSeoMeta(route.board, site.tenant.name, route.post?.title),
     ...canonicalMeta(site, route.detailId ? `/${key}/${route.detailId}` : `/${key}`),
+    // 회원 글쓰기 · 고치기 화면은 검색에 내지 않는다 (T-150-B)
+    ...(isFormScreen(route.detailId) ? { robots: { index: false, follow: false } } : {}),
   }
 }
 
@@ -57,6 +60,7 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
   const { q, p, c } = await searchParams
   const noSlug = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
   const key = boardPageKey(route.board.slug)
+  const screen = boardScreen(route.detailId)
   const hrefFor = (extra?: { id?: string; q?: string; p?: number; c?: string }) =>
     pageHref(tenant_slug, key, undefined, { ...extra, noSlug })
 
@@ -71,7 +75,16 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
         site={{ slug: tenant_slug, boards: site.boards, subPage: true }}
       />
       <main className="flex-1">
-        {isMemberOnly(route.board) ? (
+        {screen.kind === 'write' || screen.kind === 'edit' ? (
+          <ThemeBoardWrite
+            board={route.board}
+            tenantSlug={tenant_slug}
+            postId={screen.kind === 'edit' ? screen.postId : undefined}
+            pageKey={key}
+            noSlug={noSlug}
+            memberEnabled={memberEnabled(site)}
+          />
+        ) : isMemberOnly(route.board) ? (
           // 회원만 읽는 게시판 — 서버는 글을 읽지 않는다 (T-150)
           <ThemeBoardMember
             board={route.board}
@@ -82,7 +95,12 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
             memberEnabled={memberEnabled(site)}
           />
         ) : route.post ? (
-          <ThemeBoardDetail board={route.board} post={route.post} hrefFor={hrefFor} />
+          <ThemeBoardDetail
+            board={route.board}
+            post={route.post}
+            hrefFor={hrefFor}
+            tenantSlug={tenant_slug}
+          />
         ) : (
           <ThemeBoardList
             board={route.board}

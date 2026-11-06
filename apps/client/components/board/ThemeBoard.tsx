@@ -1,9 +1,17 @@
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
-import { type BoardPage, boardDesign, loadBoardPage } from '@/lib/boardRoute'
+import {
+  type BoardPage,
+  EDIT_PAGE,
+  WRITE_PAGE,
+  boardDesign,
+  canMemberWrite,
+  loadBoardPage,
+} from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
+import { ThemeMemberPostActions, ThemeMemberWriteLink } from './ThemeMemberLinks'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
 const muted = 'text-[color:var(--color-text-muted)]'
@@ -68,10 +76,11 @@ interface DetailProps {
   board: PublicBoard
   post: PublicPost
   hrefFor: (extra?: HrefExtra) => string
+  tenantSlug: string
 }
 
 /** 글 상세 — 유형과 관계없이 같은 모양 */
-export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
+export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug }: DetailProps) {
   const navLink = `text-sm ${primary} hover:text-[color:var(--color-primary)]`
   return (
     <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
@@ -80,8 +89,17 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
       <time className={`mt-2 block text-sm ${muted}`} dateTime={postDate(post.published_at)}>
         {dotted(post.published_at)}
       </time>
-      <div className="mt-3 flex justify-end empty:hidden">
+      <div className="mt-3 flex justify-end gap-2 empty:hidden">
         <ThemeWriteLink board={board.slug} post={post.id} />
+        {canMemberWrite(board) && (
+          <ThemeMemberPostActions
+            board={board}
+            tenantSlug={tenantSlug}
+            postId={post.id}
+            editHref={hrefFor({ id: `${post.id}/${EDIT_PAGE}` })}
+            listHref={hrefFor()}
+          />
+        )}
       </div>
       <div className={`mt-6 border-t pt-6 ${line}`}>
         {post.fields && post.fields.length > 0 && (
@@ -188,7 +206,10 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
           <h1 className={`text-2xl font-bold md:text-3xl ${primary}`}>{board.name}</h1>
           {board.description && <p className={`mt-2 text-sm ${muted}`}>{board.description}</p>}
         </div>
-        <ThemeWriteLink board={board.slug} />
+        <div className="flex gap-2 empty:hidden">
+          <ThemeWriteLink board={board.slug} />
+          {canMemberWrite(board) && <ThemeMemberWriteLink href={hrefFor({ id: WRITE_PAGE })} />}
+        </div>
       </div>
 
       {categories.length > 0 && (

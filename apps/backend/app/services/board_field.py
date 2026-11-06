@@ -84,6 +84,9 @@ MSG_INVALID_IMAGE = "사진 주소가 올바르지 않습니다."
 MSG_INVALID_PHONE = "올바른 연락처가 아닙니다."
 MSG_INVALID_EMAIL = "올바른 이메일 주소가 아닙니다."
 MSG_INVALID_URL = "http:// 또는 https:// 로 시작하는 주소를 입력해주세요."
+MSG_REQUIRED_WITH_MEMBER_WRITE = (
+    "회원 글쓰기를 켠 게시판에는 필수 칸을 둘 수 없습니다. 권한 탭에서 먼저 꺼 주세요."
+)
 MSG_REQUIRED_IN_BULK = "필수 칸이 비어 있어 공개할 수 없는 글이 있습니다: {title}"
 
 
@@ -498,9 +501,17 @@ async def _ensure_room(db: AsyncSession, board_id: UUID) -> None:
         raise _conflict(MSG_TOO_MANY)
 
 
+def _ensure_required_allowed(board: Board, is_required: bool | None) -> None:
+    """회원 글쓰기 폼에는 추가 칸이 없어 필수 칸을 채울 수 없다 (T-150-B)."""
+    write = (board.settings or {}).get("permissions", {}).get("write")
+    if is_required and write == "MEMBER":
+        raise _conflict(MSG_REQUIRED_WITH_MEMBER_WRITE, "is_required")
+
+
 async def create_field(db: AsyncSession, board: Board, data: FieldCreate) -> BoardField:
     if board.system_key is not None:
         raise _conflict(MSG_SYSTEM_BOARD)
+    _ensure_required_allowed(board, data.is_required)
     await _ensure_room(db, board.id)
     used = await _used_keys(db, board.id)
     if data.field_key in RESERVED_KEYS:
@@ -548,6 +559,8 @@ async def update_field(
     db: AsyncSession, board: Board, field: BoardField, data: FieldUpdate
 ) -> BoardField:
     sent = data.model_fields_set
+    if not field.is_required:
+        _ensure_required_allowed(board, data.is_required)
     field_type = data.field_type or field.field_type
     if field_type != field.field_type and await _has_values(
         db, board.id, field.field_key

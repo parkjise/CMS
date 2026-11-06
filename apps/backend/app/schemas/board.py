@@ -57,8 +57,8 @@ class BoardDesign(BaseModel):
 
 
 BoardReadAccess = Literal["PUBLIC", "MEMBER"]
-# 회원 글쓰기(MEMBER)는 T-150-B
-BoardWriteAccess = Literal["ADMIN"]
+# MEMBER — 로그인한 방문자 회원도 홈페이지에서 쓴다 (T-150-B)
+BoardWriteAccess = Literal["ADMIN", "MEMBER"]
 
 
 class BoardPermissions(BaseModel):
@@ -122,6 +122,13 @@ class BoardRestoreResponse(BaseModel):
     board: BoardResponse
     # 원래 주소를 다른 게시판이 쓰고 있어 번호를 붙였는지
     slug_changed: bool
+
+
+class PermissionOptionsResponse(BaseModel):
+    """권한 탭 — 고를 수 없는 값과 이유 (T-150-B). None 이면 고를 수 있다."""
+
+    member_read_blocked: str | None
+    member_write_blocked: str | None
 
 
 class BoardLimitsResponse(BaseModel):
@@ -324,6 +331,9 @@ class PostListItem(BaseModel):
     deleted_at: datetime | None
     custom_data: dict[str, Any]
     category_id: UUID | None = None
+    # 홈페이지에서 쓴 회원 (T-150-B) — 관리자 글은 None
+    author_member_id: UUID | None = None
+    author_member_name: str | None = None
 
 
 class PostResponse(PostListItem):
@@ -386,6 +396,8 @@ class PublicBoardResponse(BaseModel):
     design: BoardDesign
     # 회원만 읽기면 MEMBER — 홈페이지가 로그인 뒤 브라우저에서 글을 읽는다 (T-150)
     read_access: BoardReadAccess = "PUBLIC"
+    # 회원도 쓰면 MEMBER — 홈페이지에 회원 글쓰기 버튼 (T-150-B)
+    write_access: BoardWriteAccess = "ADMIN"
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
 
@@ -431,3 +443,37 @@ class PublicPostDetail(PublicPostItem):
     fields: list[PublicFieldValue] = []
     prev_id: UUID | None
     next_id: UUID | None
+
+
+# ── 회원 글쓰기 (T-150-B) ────────────────────────────────────────────────
+
+# 서버가 문단 노드로 바꾼다 — 서식 · 링크 · 사진은 받지 않는다
+MemberPostContent = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=5000)
+]
+
+
+class MemberPostCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: PostTitle
+    content: MemberPostContent
+    category_id: UUID | None = None
+
+
+class MemberPostUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    title: PostTitle | None = None
+    content: MemberPostContent | None = None
+    # 보내면 바뀐다 — null 은 분류 없음
+    category_id: UUID | None = None
+
+
+class MemberPostResponse(BaseModel):
+    """회원이 쓴 글 — 고치기 화면 · 저장 결과."""
+
+    id: UUID
+    title: str
+    content: str
+    category_id: UUID | None

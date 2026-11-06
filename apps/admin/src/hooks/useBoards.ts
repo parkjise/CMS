@@ -12,6 +12,7 @@ import type {
   PostBulkAction,
   PostList,
   PostOverviewList,
+  PermissionOptions,
   PostStatus,
 } from '@cms/types'
 import { api } from '@/lib/api'
@@ -69,6 +70,17 @@ export interface BoardInput {
   permissions?: BoardPermissions
   /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
   in_menu?: boolean
+}
+
+/** 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) */
+export function usePermissionOptions(boardId: string) {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, boardId, 'permission-options'],
+    queryFn: async (): Promise<PermissionOptions> => {
+      const { data } = await api.get(`/v1/boards/${boardId}/permission-options`)
+      return data.data
+    },
+  })
 }
 
 export function useBoardLimits() {
