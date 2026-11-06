@@ -291,3 +291,43 @@ def body_summary(nodes: list[Any], limit: int) -> str:
     """본문 앞부분 글자 — 카드형 요약. 이전 형식(p · ul)도 읽는다."""
     text = " ".join(" ".join(_plain_text(nodes)).split())
     return text if len(text) <= limit else f"{text[:limit].rstrip()}…"
+
+
+def text_to_body(text: str) -> list[dict[str, Any]]:
+    """홈페이지 회원 글쓰기의 글자 → 본문 (T-150-B). 빈 줄로 문단, 줄바꿈은 그대로.
+
+    노드를 서버가 만들어 방문자가 서식 · 링크 · 사진을 넣을 수 없다.
+    """
+    paragraphs = [p.strip("\n") for p in text.replace("\r\n", "\n").split("\n\n")]
+    body: list[dict[str, Any]] = []
+    for paragraph in paragraphs:
+        if not paragraph.strip():
+            continue
+        content: list[dict[str, Any]] = []
+        for index, line in enumerate(paragraph.split("\n")):
+            if index:
+                content.append({"type": "hardBreak"})
+            if line:
+                content.append({"type": "text", "text": line})
+        body.append({"type": "paragraph", "content": content})
+    return body
+
+
+def body_to_text(nodes: list[Any]) -> str:
+    """회원 글 고치기 화면의 글자 — text_to_body 의 반대."""
+    paragraphs: list[str] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        parts: list[str] = []
+        for child in node.get("content") or []:
+            if not isinstance(child, dict):
+                continue
+            if child.get("type") == "hardBreak":
+                parts.append("\n")
+            elif isinstance(child.get("text"), str):
+                parts.append(child["text"])
+        if not parts:
+            parts = _plain_text([node])
+        paragraphs.append("".join(parts))
+    return "\n\n".join(paragraphs)

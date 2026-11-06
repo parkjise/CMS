@@ -133,7 +133,7 @@ class TestSettings:
         "permissions",
         [
             {"read": "EVERYONE"},
-            {"read": "MEMBER", "write": "MEMBER"},
+            {"read": "MEMBER", "write": "EVERYONE"},
             {"read": "MEMBER", "extra": True},
         ],
     )

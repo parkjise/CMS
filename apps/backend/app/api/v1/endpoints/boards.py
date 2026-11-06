@@ -33,6 +33,10 @@ from app.schemas.board import (
     FieldOrderRequest,
     FieldResponse,
     FieldUpdate,
+    MemberPostCreate,
+    MemberPostResponse,
+    MemberPostUpdate,
+    PermissionOptionsResponse,
     PostBulkRequest,
     PostBulkResponse,
     PostCreate,
@@ -53,6 +57,7 @@ from app.services import board as board_service
 from app.services import board_access
 from app.services import board_category as category_service
 from app.services import board_field as field_service
+from app.services import board_member_post as member_post_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
@@ -212,6 +217,39 @@ async def update_board(
     response = await board_service.board_response(db, updated)
     await _audit_board(db, current_user, "BOARD_UPDATED", updated, before=before)
     return ApiResponse.ok(response)
+
+
+@router.get(
+    "/{board_id}/permission-options",
+    response_model=ApiResponse[PermissionOptionsResponse],
+)
+async def get_permission_options(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    """권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없으면 그 이유 (T-150-B)."""
+    return ApiResponse.ok(
+        PermissionOptionsResponse(
+            member_read_blocked=await board_access.member_read_blocked(db, board),
+            member_write_blocked=await board_access.member_write_blocked(db, board),
+        )
+    )
+
+
+async def _with_member_names(db: AsyncSession, posts: list[BoardPost]) -> list[dict]:
+    """관리자 글 목록 — 홈페이지에서 쓴 글은 회원 이름을 붙인다 (T-150-B)."""
+    names = await member_post_service.member_names(
+        db, {p.author_member_id for p in posts if p.author_member_id}
+    )
+    return [
+        {
+            **PostListItem.model_validate(p).model_dump(),
+            "author_member_name": names.get(p.author_member_id)
+            if p.author_member_id
+            else None,
+        }
+        for p in posts
+    ]
 
 
 @router.post(
@@ -584,7 +622,9 @@ async def list_posts(
             total=total,
             page=page,
             size=size,
-            items=[PostListItem.model_validate(p) for p in posts],
+            items=[
+                PostListItem(**item) for item in await _with_member_names(db, posts)
+            ],
         )
     )
 
@@ -681,11 +721,12 @@ async def list_all_posts(
             page=page,
             size=size,
             items=[
-                PostOverviewItem(
-                    **PostListItem.model_validate(post).model_dump(),
-                    board_name=name,
+                PostOverviewItem(**item, board_name=name)
+                for item, (_post, name) in zip(
+                    await _with_member_names(db, [post for post, _name in rows]),
+                    rows,
+                    strict=True,
                 )
-                for post, name in rows
             ],
         )
     )
@@ -817,3 +858,98 @@ async def get_public_post(
             next_id=next_id,
         )
     )
+
+
+# ── 홈페이지 회원 글쓰기 (T-150-B) ───────────────────────────────────────
+
+
+async def _open_board(db: AsyncSession, tenant_slug: str, board_slug: str) -> Board:
+    board = await board_service.open_public_board(db, tenant_slug, board_slug)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    return board
+
+
+@public_router.post(
+    "/site/{tenant_slug}/boards/{board_slug}/posts",
+    response_model=ApiResponse[MemberPostResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_member_post(
+    tenant_slug: str,
+    board_slug: str,
+    data: MemberPostCreate,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+):
+    board = await _open_board(db, tenant_slug, board_slug)
+    member = await board_access.member_writer(db, board, credentials)
+    post = await member_post_service.create_post(db, board, member, data)
+    return ApiResponse.ok(
+        MemberPostResponse(**member_post_service.member_post_response(post))
+    )
+
+
+@public_router.get(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/mine",
+    response_model=ApiResponse[MemberPostResponse],
+)
+async def get_member_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    response: Response,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+):
+    """내가 쓴 글이면 고치기 화면 값, 아니면 404.
+
+    홈페이지가 [수정] [삭제] 를 보일지 이것으로 정한다.
+    """
+    response.headers["Cache-Control"] = board_access.PRIVATE_CACHE
+    board = await _open_board(db, tenant_slug, board_slug)
+    member = await board_access.post_owner(db, board, credentials)
+    post = await member_post_service.own_post(db, board, member, post_id)
+    return ApiResponse.ok(
+        MemberPostResponse(**member_post_service.member_post_response(post))
+    )
+
+
+@public_router.patch(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}",
+    response_model=ApiResponse[MemberPostResponse],
+)
+async def update_member_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    data: MemberPostUpdate,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+):
+    board = await _open_board(db, tenant_slug, board_slug)
+    member = await board_access.member_writer(db, board, credentials)
+    post = await member_post_service.own_post(db, board, member, post_id)
+    updated = await member_post_service.update_post(db, board, post, data)
+    return ApiResponse.ok(
+        MemberPostResponse(**member_post_service.member_post_response(updated))
+    )
+
+
+@public_router.delete(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}",
+    response_model=ApiResponse[dict],
+)
+async def delete_member_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+):
+    """자기 글은 회원 글쓰기를 꺼도 지울 수 있다."""
+    board = await _open_board(db, tenant_slug, board_slug)
+    member = await board_access.post_owner(db, board, credentials)
+    post = await member_post_service.own_post(db, board, member, post_id)
+    await member_post_service.delete_post(db, post)
+    return ApiResponse.ok({"deleted": True})

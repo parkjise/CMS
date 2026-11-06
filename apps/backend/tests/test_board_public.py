@@ -150,6 +150,7 @@ class TestPublicSiteBoards:
                     "faq_first_open": False,
                 },
                 "read_access": "PUBLIC",
+                "write_access": "ADMIN",
                 "categories": [],
             }
         ]
