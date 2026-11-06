@@ -1,6 +1,6 @@
 import type { PublicBoard } from '@cms/types'
-import { loadBoardPage } from '@/lib/boardRoute'
-import { fetchPublicPost, postDate } from '@/lib/publicPosts'
+import { boardDesign, loadBoardPage } from '@/lib/boardRoute'
+import { fetchPublicPost, fieldValueText, postDate } from '@/lib/publicPosts'
 import { BoardBody } from './BoardBody'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
@@ -49,6 +49,8 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
 
   const { posts, total, page: current, totalPages, keyword } = await loadBoardPage(tenantSlug, board, { page, q })
   const searchLabel = `${board.name} 검색`
+  const design = boardDesign(board)
+  const ratioClass = `--ratio-${design.image_ratio.replace(':', '-')}`
 
   if (board.board_type === 'LIST') {
     return (
@@ -71,6 +73,7 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
         hrefFor={hrefFor}
         searchTarget={searchTarget}
         canWrite
+        showDate={design.show_date}
       />
     )
   }
@@ -91,7 +94,7 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
       {posts.length === 0 ? (
         <BoardEmpty keyword={keyword} emptyText={EMPTY_TEXT} />
       ) : board.board_type === 'GALLERY' ? (
-        <ul className="board-gallery">
+        <ul className={`board-gallery board-gallery--cols-${design.columns} board-gallery${ratioClass}`}>
           {posts.map((post) => {
             const date = postDate(post.published_at)
             return (
@@ -105,9 +108,42 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
                   )}
                   {post.is_pinned && <span className="board-gallery__badge">공지</span>}
                   <span className="board-gallery__subject">{post.title}</span>
-                  <time className="board-gallery__date" dateTime={date}>
-                    {dotDate(date)}
-                  </time>
+                  {design.show_date && (
+                    <time className="board-gallery__date" dateTime={date}>
+                      {dotDate(date)}
+                    </time>
+                  )}
+                </a>
+              </li>
+            )
+          })}
+        </ul>
+      ) : board.board_type === 'CARD' ? (
+        <ul className={`board-card board-card--cols-${design.columns} board-card${ratioClass}`}>
+          {posts.map((post) => {
+            const date = postDate(post.published_at)
+            return (
+              <li className="board-card__item" key={post.id}>
+                <a className="board-card__link" href={hrefFor({ id: post.id })}>
+                  {design.show_image && post.thumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
+                    <img className="board-card__image" src={post.thumbnail} alt="" loading="lazy" />
+                  )}
+                  <span className="board-card__body">
+                    {post.is_pinned && <span className="board-card__badge">공지</span>}
+                    <span className="board-card__subject">{post.title}</span>
+                    {design.show_summary && post.summary && <span className="board-card__summary">{post.summary}</span>}
+                    {post.card_fields?.map((field) => (
+                      <span className="board-card__field" key={field.key}>
+                        {field.label}: {field.field_type === 'IMAGE' ? '사진' : fieldValueText(field)}
+                      </span>
+                    ))}
+                    {design.show_date && (
+                      <time className="board-card__date" dateTime={date}>
+                        {dotDate(date)}
+                      </time>
+                    )}
+                  </span>
                 </a>
               </li>
             )
@@ -115,8 +151,13 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
         </ul>
       ) : (
         <div className="board-faq">
-          {posts.map((post) => (
-            <details className="board-faq__item" key={post.id}>
+          {posts.map((post, index) => (
+            <details
+              className="board-faq__item"
+              key={post.id}
+              name={design.faq_single_open ? `faq-${board.slug}` : undefined}
+              open={design.faq_first_open && index === 0}
+            >
               <summary className="board-faq__question">{post.title}</summary>
               <BoardBody blocks={post.body ?? []} className="board-faq__answer" />
             </details>

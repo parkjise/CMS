@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import { ExternalLink } from 'lucide-react'
 import { useParams } from 'react-router'
-import type { Board, BoardType } from '@cms/types'
+import type { Board } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useSiteMenu, useUpdateSiteMenu } from '@/hooks/useSiteSettings'
-import { BOARD_TYPES, boardSlugError } from '@/lib/boardLabels'
+import { boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -51,13 +51,10 @@ function ConnectionForm({ board }: { board: Board }) {
   const updateBoard = useUpdateBoard()
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const [slug, setSlug] = useState(board.slug)
-  const [boardType, setBoardType] = useState<BoardType>(board.board_type)
   const [active, setActive] = useState(board.status === 'ACTIVE')
   const [slugError, setSlugError] = useState<string>()
 
   const isSystem = board.system_key !== null
-  // 사진 없는 글은 갤러리에서 빈 칸으로 보일 수 있다 (D-03)
-  const typeWarning = boardType !== board.board_type && board.post_count > 0
   const publicUrl =
     tenantSlug && !isSystem && board.status === 'ACTIVE'
       ? `${CLIENT_BASE_URL}/${tenantSlug}/b/${board.slug}`
@@ -70,7 +67,7 @@ function ConnectionForm({ board }: { board: Board }) {
     try {
       await updateBoard.mutateAsync({
         id: board.id,
-        payload: { slug, board_type: boardType, status: active ? 'ACTIVE' : 'INACTIVE' },
+        payload: { slug, status: active ? 'ACTIVE' : 'INACTIVE' },
       })
       toast.success('저장했습니다.')
     } catch (err) {
@@ -89,29 +86,6 @@ function ConnectionForm({ board }: { board: Board }) {
       >
         <ReadOnlyFieldset>
           <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-            <div>
-              <label htmlFor="board-type" className="mb-1.5 block text-sm font-medium text-slate-700">
-                유형
-              </label>
-              <select
-                id="board-type"
-                className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm disabled:bg-slate-50"
-                value={boardType}
-                disabled={isSystem}
-                onChange={(e) => setBoardType(e.target.value as BoardType)}
-              >
-                {BOARD_TYPES.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-              {typeWarning && (
-                <p className="mt-1.5 text-sm text-amber-700">
-                  이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수 있습니다.
-                </p>
-              )}
-            </div>
             <Input
               label="주소 이름"
               maxLength={60}

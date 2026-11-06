@@ -2,11 +2,24 @@
  * 새 게시판 화면의 공통 동작 (T-141) — 마크업은 템플릿마다 갖고, 찾기 · 읽기는 여기서.
  * 코드형(codeRoute · CustomBoard) · 테마형(app/[tenant_slug]/b)이 같이 쓴다.
  */
-import type { BoardType, PublicBoard, PublicPost, PublicPostItem } from '@cms/types'
+import type { BoardDesign, BoardType, PublicBoard, PublicPost, PublicPostItem } from '@cms/types'
 import { fetchPublicPost, fetchPublicPosts } from './publicPosts'
 import type { PublicSite } from './publicSite.types'
 
-export const BOARD_PAGE_SIZE: Record<BoardType, number> = { LIST: 10, GALLERY: 12, FAQ: 20 }
+export const BOARD_PAGE_SIZE: Record<BoardType, number> = { LIST: 10, GALLERY: 12, FAQ: 20, CARD: 12 }
+
+const DEFAULT_DESIGN: BoardDesign = {
+  columns: 3,
+  image_ratio: '4:3',
+  show_date: true,
+  show_image: true,
+  show_summary: true,
+  faq_single_open: false,
+  faq_first_open: false,
+}
+
+/** 게시판 디자인 (T-148) — 저장 전 게시판 · 캐시된 응답은 기본값 */
+export const boardDesign = (board: PublicBoard): BoardDesign => ({ ...DEFAULT_DESIGN, ...board.design })
 
 export interface ResolvedBoardRoute {
   board: PublicBoard

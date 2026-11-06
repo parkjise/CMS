@@ -214,7 +214,7 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
       />
       <Toggle
         label="글 목록에 표시"
-        description="관리자의 글 관리 목록에서 제목 아래에 값을 보여 줍니다."
+        description="관리자의 글 관리 목록에 값을 보여 줍니다. 카드형 게시판은 홈페이지 카드에도 나옵니다 (홈페이지에 표시를 켠 칸만)."
         checked={showInList}
         onChange={(e) => setShowInList(e.target.checked)}
       />

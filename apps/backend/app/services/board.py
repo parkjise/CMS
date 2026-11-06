@@ -15,18 +15,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
 from app.db.session import set_rls_context, set_super_admin_context
-from app.models.board import Board, BoardPost
+from app.models.board import Board, BoardField, BoardPost
 from app.models.section import Section, SectionSetting
 from app.models.tenant import Tenant
 from app.schemas.board import (
     SLUG_MAX_LENGTH,
     BoardCreate,
+    BoardDesign,
     BoardUpdate,
     PostBulkAction,
     PostCreate,
     PostUpdate,
 )
-from app.schemas.rich_body import first_image
+from app.schemas.rich_body import body_summary, first_image
 from app.services import board_field as field_service
 from app.services import site_cache
 
@@ -43,13 +44,16 @@ PAGE_SIZE_KEY = "page_size"
 SEO_TITLE_KEY = "seo_title"
 SEO_DESCRIPTION_KEY = "seo_description"
 SEO_INDEX_KEY = "seo_index"
+DESIGN_KEY = "design"
 OPTION_KEYS = {
     SORT_ORDER_KEY,
     PAGE_SIZE_KEY,
     SEO_TITLE_KEY,
     SEO_DESCRIPTION_KEY,
     SEO_INDEX_KEY,
+    DESIGN_KEY,
 }
+CARD_SUMMARY_LIMIT = 120
 DEFAULT_SORT_ORDER = "LATEST"
 DEFAULT_PUBLIC_PAGE_SIZE = 10
 AUTO_SLUG_PREFIX = "board"
@@ -206,6 +210,7 @@ def board_options(board: Board) -> dict:
         SEO_TITLE_KEY: settings.get(SEO_TITLE_KEY, ""),
         SEO_DESCRIPTION_KEY: settings.get(SEO_DESCRIPTION_KEY, ""),
         SEO_INDEX_KEY: settings.get(SEO_INDEX_KEY, True),
+        DESIGN_KEY: BoardDesign(**settings.get(DESIGN_KEY, {})).model_dump(),
     }
 
 
@@ -756,6 +761,7 @@ def _public_board(board: Board) -> dict:
         SEO_TITLE_KEY: options[SEO_TITLE_KEY],
         SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
+        DESIGN_KEY: options[DESIGN_KEY],
     }
 
 
@@ -803,10 +809,19 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
     ]
 
 
-def public_post_item(board: Board, post: BoardPost) -> dict:
+def public_post_item(
+    board: Board, post: BoardPost, card_fields: list[BoardField] | None = None
+) -> dict:
     """공개 목록의 글 한 줄 — 유형별로 화면이 더 필요한 값까지."""
     blocks = post.body or []
+    is_card = board.board_type == "CARD"
     return {
+        "summary": body_summary(blocks, CARD_SUMMARY_LIMIT) if is_card else None,
+        "card_fields": (
+            field_service.field_values(card_fields or [], post.custom_data or {})
+            if is_card
+            else None
+        ),
         "id": post.id,
         "title": post.title,
         "is_pinned": post.is_pinned,

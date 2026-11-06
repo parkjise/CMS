@@ -119,6 +119,7 @@ interface NoticeListViewProps {
   description?: string
   searchLabel?: string
   emptyText?: string
+  showDate?: boolean
 }
 
 /** 글 목록 — 목업 sub/board-list.html */
@@ -136,6 +137,7 @@ export function NoticeListView({
   description,
   searchLabel = '공지사항 검색',
   emptyText = '등록된 공지가 없습니다.',
+  showDate = true,
 }: NoticeListViewProps) {
   return (
     <BoardListShell
@@ -160,9 +162,11 @@ export function NoticeListView({
               <a className="board-list__link" href={hrefFor({ id: item.id })}>
                 {item.pinned && <span className="board-list__badge">공지</span>}
                 <span className="board-list__subject">{item.subject}</span>
-                <time className="board-list__date" dateTime={item.date}>
-                  {dotDate(item.date)}
-                </time>
+                {showDate && (
+                  <time className="board-list__date" dateTime={item.date}>
+                    {dotDate(item.date)}
+                  </time>
+                )}
               </a>
             </li>
           ))}

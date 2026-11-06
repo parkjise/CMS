@@ -217,3 +217,97 @@ class TestPublicList:
             "검색 설명",
         )
         assert found["seo_index"] is False
+
+
+class TestDesign:
+    """게시판 디자인 · 카드형 (T-148)."""
+
+    @pytest.mark.asyncio
+    async def test_default_and_save(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        assert board["design"]["columns"] == 3
+        assert board["design"]["image_ratio"] == "4:3"
+        design = {**board["design"], "columns": 4, "faq_single_open": True}
+        data = await _patch(client, auth_headers, board["id"], design=design)
+        assert data["design"] == design
+        kept = await _patch(client, auth_headers, board["id"], name="새 이름")
+        assert kept["design"] == design
+
+    @pytest.mark.parametrize(
+        "design",
+        [{"columns": 5}, {"image_ratio": "2:1"}, {"unknown": True}],
+    )
+    @pytest.mark.asyncio
+    async def test_rejects_bad_values(self, client, auth_headers, tenant, design):
+        board = await _board(client, auth_headers)
+        resp = await client.patch(
+            f"{BOARDS}/{board['id']}", json={"design": design}, headers=auth_headers
+        )
+        assert resp.status_code == 400, resp.text
+
+    @pytest.mark.asyncio
+    async def test_site_response_has_design(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        design = {**board["design"], "show_date": False}
+        await _patch(client, auth_headers, board["id"], design=design)
+        resp = await client.get(f"/api/public/site/{tenant['slug']}")
+        found = next(b for b in resp.json()["data"]["boards"] if b["id"] == board["id"])
+        assert found["design"] == design
+
+    @pytest.mark.asyncio
+    async def test_card_list_has_summary_and_chosen_fields(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers, board_type="CARD")
+        fields = f"{BOARDS}/{board['id']}/fields"
+
+        async def field(**body) -> str:
+            resp = await client.post(
+                fields, json={"field_type": "TEXT", **body}, headers=auth_headers
+            )
+            assert resp.status_code == 201, resp.text
+            return resp.json()["data"]["field_key"]
+
+        shown = await field(label="부서", show_in_list=True)
+        unlisted = await field(label="메모")
+        hidden = await field(label="내부", show_in_list=True, is_visible=False)
+        text = "가나다 " * 60
+        resp = await client.post(
+            f"{BOARDS}/{board['id']}/posts",
+            json={
+                "title": "채용",
+                "status": "PUBLISHED",
+                "body": [
+                    {
+                        "type": "paragraph",
+                        "content": [{"type": "text", "text": text}],
+                    }
+                ],
+                "custom_data": {shown: "개발팀", unlisted: "안보임", hidden: "비밀"},
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201, resp.text
+
+        listed = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        item = listed.json()["data"]["items"][0]
+        assert item["summary"].endswith("…")
+        assert len(item["summary"]) <= 121
+        assert [f["label"] for f in item["card_fields"]] == ["부서"]
+        assert item["card_fields"][0]["value"] == "개발팀"
+        assert "비밀" not in listed.text
+        assert "안보임" not in listed.text
+        assert item["body"] is None
+
+    @pytest.mark.asyncio
+    async def test_other_types_have_no_card_values(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        await _publish(client, auth_headers, board["id"], "글")
+        listed = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        item = listed.json()["data"]["items"][0]
+        assert item["summary"] is None
+        assert item["card_fields"] is None

@@ -57,6 +57,7 @@ export function breadcrumbsFor(pathname: string) {
       else if (tail.endsWith('/settings')) crumbs.push({ label: '게시판 설정' })
       else if (tail.endsWith('/connection')) crumbs.push({ label: '홈페이지 연결' })
       else if (tail.endsWith('/fields')) crumbs.push({ label: '필드 관리' })
+      else if (tail.endsWith('/design')) crumbs.push({ label: '게시판 디자인' })
       else {
         const boardPath = pathname.split('/posts')[0]
         crumbs.push({ label: '게시글 목록', to: `${boardPath}/posts` })

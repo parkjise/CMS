@@ -50,6 +50,15 @@ const board: Board = {
   seo_title: '',
   seo_description: '',
   seo_index: true,
+  design: {
+    columns: 3,
+    image_ratio: '4:3',
+    show_date: true,
+    show_image: true,
+    show_summary: true,
+    faq_single_open: false,
+    faq_first_open: false,
+  },
 }
 
 const item = {

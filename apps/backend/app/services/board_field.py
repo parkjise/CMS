@@ -304,13 +304,10 @@ def _public_value(field: BoardField, value: Any) -> Any:
     return value
 
 
-async def public_fields(db: AsyncSession, post: BoardPost) -> list[dict[str, Any]]:
-    """글 상세에 보여 줄 칸 — 숨긴 칸 · 삭제한 칸 · 빈 칸은 나가지 않는다."""
-    values = post.custom_data or {}
-    if not values:
-        return []
+def field_values(fields: list[BoardField], values: dict[str, Any]) -> list[dict]:
+    """공개 화면의 칸 값 — 숨긴 칸 · 빈 칸은 나가지 않는다."""
     shown = []
-    for field in await list_fields(db, post.board_id):
+    for field in fields:
         if not field.is_visible or field.field_key not in values:
             continue
         value = _public_value(field, values[field.field_key])
@@ -325,6 +322,22 @@ async def public_fields(db: AsyncSession, post: BoardPost) -> list[dict[str, Any
             }
         )
     return shown
+
+
+async def public_fields(db: AsyncSession, post: BoardPost) -> list[dict[str, Any]]:
+    """글 상세에 보여 줄 칸 — 삭제한 칸도 나가지 않는다."""
+    values = post.custom_data or {}
+    if not values:
+        return []
+    return field_values(await list_fields(db, post.board_id), values)
+
+
+async def card_fields(db: AsyncSession, board: Board) -> list[BoardField]:
+    """카드형 카드에 보여 줄 칸 — 글 목록에 표시로 고른 칸 (T-148)."""
+    if board.board_type != "CARD":
+        return []
+    fields = await list_fields(db, board.id)
+    return [f for f in fields if (f.field_options or {}).get(SHOW_IN_LIST_KEY)]
 
 
 async def ensure_publishable(

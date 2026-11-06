@@ -5,6 +5,7 @@ export const BOARD_TYPES: { value: BoardType; label: string; hint: string }[] = 
   { value: 'LIST', label: '목록형', hint: '공지 · 소식처럼 제목을 줄지어 보여 줍니다.' },
   { value: 'GALLERY', label: '갤러리형', hint: '사진 중심으로 카드처럼 보여 줍니다.' },
   { value: 'FAQ', label: 'FAQ형', hint: '질문을 누르면 답변이 펼쳐집니다.' },
+  { value: 'CARD', label: '카드형', hint: '채용공고 · 프로젝트처럼 요약과 칸 값을 카드로 보여 줍니다.' },
 ]
 
 export const boardTypeLabel = (value: string): string =>

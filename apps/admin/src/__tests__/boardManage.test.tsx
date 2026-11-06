@@ -6,6 +6,7 @@ import type { Board, BoardLimits } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { boardSlugError } from '@/lib/boardLabels'
 import { BoardConnectionPage } from '@/pages/BoardConnectionPage'
+import { BoardDesignPage } from '@/pages/BoardDesignPage'
 import { BoardNewPage } from '@/pages/BoardNewPage'
 import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
 import { BoardTrashPage } from '@/pages/BoardTrashPage'
@@ -43,6 +44,15 @@ const board: Board = {
   seo_title: '',
   seo_description: '',
   seo_index: true,
+  design: {
+    columns: 3,
+    image_ratio: '4:3',
+    show_date: true,
+    show_image: true,
+    show_summary: true,
+    faq_single_open: false,
+    faq_first_open: false,
+  },
 }
 const notice: Board = { ...board, id: 'n1', name: '공지사항', slug: 'notice', system_key: 'notice' }
 
@@ -283,8 +293,6 @@ describe('기본 정보 탭', () => {
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         name: '새 이름',
         description: '',
-        sort_order: 'LATEST',
-        page_size: null,
         seo_title: '',
         seo_description: '',
         seo_index: true,
@@ -292,13 +300,11 @@ describe('기본 정보 탭', () => {
     )
   })
 
-  it('정렬 · 글 수 · 검색 노출을 저장한다', async () => {
+  it('검색 노출을 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })
     renderSettings()
-    await userEvent.selectOptions(await screen.findByLabelText('기본 정렬'), '제목순')
-    await userEvent.selectOptions(screen.getByLabelText('페이지당 글 수'), '20개')
-    await userEvent.type(screen.getByLabelText(/검색 제목/), '  소식 모음 ')
+    await userEvent.type(await screen.findByLabelText(/검색 제목/), '  소식 모음 ')
     await userEvent.type(screen.getByLabelText(/검색 설명/), '병원 소식')
     await userEvent.click(screen.getByLabelText(/검색 결과에 표시/))
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
@@ -306,8 +312,6 @@ describe('기본 정보 탭', () => {
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         name: '병원 소식',
         description: '',
-        sort_order: 'TITLE',
-        page_size: 20,
         seo_title: '소식 모음',
         seo_description: '병원 소식',
         seo_index: false,
@@ -315,20 +319,11 @@ describe('기본 정보 탭', () => {
     )
   })
 
-  it('저장된 글 수를 자동으로 되돌리면 null 을 보낸다', async () => {
-    mockApi({ boards: [{ ...board, page_size: 30 }] })
-    patch.mockResolvedValue({ data: { data: board } })
-    renderSettings()
-    await userEvent.selectOptions(await screen.findByLabelText('페이지당 글 수'), '자동 (유형에 맞게)')
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
-    await waitFor(() => expect(patch.mock.calls[0][1]).toMatchObject({ page_size: null }))
-  })
-
-  it('기본 게시판은 검색 노출 칸이 없고 정렬 · 글 수만 저장한다', async () => {
+  it('기본 게시판은 검색 노출 칸이 없다', async () => {
     mockApi({ boards: [notice] })
     patch.mockResolvedValue({ data: { data: notice } })
     renderSettings('n1')
-    await screen.findByLabelText('기본 정렬')
+    await screen.findByLabelText(/게시판 이름/)
     expect(screen.queryByLabelText(/검색 제목/)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
     await waitFor(() => expect(patch).toHaveBeenCalled())
@@ -343,8 +338,9 @@ describe('기본 정보 탭', () => {
     expect(within(tabs).getAllByRole('link').map((a) => a.textContent)).toEqual([
       '글 관리',
       '기본 정보',
-      '홈페이지 연결',
       '필드 관리',
+      '게시판 디자인',
+      '홈페이지 연결',
     ])
     expect(within(tabs).getByRole('link', { name: '기본 정보' })).toHaveAttribute('aria-current', 'page')
     expect(within(tabs).getByRole('link', { name: '필드 관리' })).toHaveAttribute(
@@ -418,6 +414,79 @@ describe('기본 정보 탭', () => {
   })
 })
 
+describe('게시판 디자인 탭 (T-148)', () => {
+  const renderDesign = (id = 'b1') =>
+    renderAt(`/admin/boards/${id}/design`, <BoardDesignPage />, '/admin/boards/:boardId/design')
+
+  it('카드형을 고르면 카드 설정이 나오고 함께 저장한다', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderDesign()
+    await userEvent.click(await screen.findByRole('radio', { name: /카드형/ }))
+    await userEvent.selectOptions(screen.getByLabelText('PC 한 줄 개수'), '4개')
+    await userEvent.selectOptions(screen.getByLabelText('사진 비율'), '16:9')
+    await userEvent.click(screen.getByLabelText(/요약 표시/))
+    await userEvent.selectOptions(screen.getByLabelText('기본 정렬'), '제목순')
+    await userEvent.selectOptions(screen.getByLabelText('페이지당 글 수'), '20개')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
+        sort_order: 'TITLE',
+        page_size: 20,
+        board_type: 'CARD',
+        design: { ...board.design, columns: 4, image_ratio: '16:9', show_summary: false },
+      }),
+    )
+  })
+
+  it('유형마다 맞는 설정만 보인다', async () => {
+    mockApi({})
+    renderDesign()
+    await screen.findByRole('radio', { name: /목록형/ })
+    expect(screen.queryByLabelText('사진 비율')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/작성일 표시/)).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /FAQ형/ }))
+    expect(screen.getByLabelText(/한 번에 하나만 펼치기/)).toBeInTheDocument()
+    expect(screen.queryByLabelText(/작성일 표시/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /갤러리형/ }))
+    expect(screen.getByLabelText('사진 비율')).toBeInTheDocument()
+    expect(screen.queryByLabelText(/요약 표시/)).not.toBeInTheDocument()
+  })
+
+  it('글이 있는 게시판의 유형을 바꾸면 경고, 글이 없으면 없음', async () => {
+    mockApi({})
+    const first = renderDesign()
+    await userEvent.click(await screen.findByRole('radio', { name: /갤러리형/ }))
+    expect(screen.getByText(/빈 칸으로 보일 수 있습니다/)).toBeInTheDocument()
+    first.unmount()
+    mockApi({ boards: [{ ...board, post_count: 0 }] })
+    renderDesign()
+    await userEvent.click(await screen.findByRole('radio', { name: /갤러리형/ }))
+    expect(screen.queryByText(/빈 칸으로 보일 수 있습니다/)).not.toBeInTheDocument()
+  })
+
+  it('자동으로 되돌린 글 수는 null 을 보낸다', async () => {
+    mockApi({ boards: [{ ...board, page_size: 30 }] })
+    patch.mockResolvedValue({ data: { data: board } })
+    renderDesign()
+    await userEvent.selectOptions(await screen.findByLabelText('페이지당 글 수'), '자동 (유형에 맞게)')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() => expect(patch.mock.calls[0][1]).toMatchObject({ page_size: null }))
+  })
+
+  it('기본 게시판은 정렬 · 글 수만 저장한다', async () => {
+    mockApi({ boards: [notice] })
+    patch.mockResolvedValue({ data: { data: notice } })
+    renderDesign('n1')
+    await screen.findByLabelText('기본 정렬')
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/v1/boards/n1', { sort_order: 'LATEST', page_size: null }),
+    )
+  })
+})
+
 describe('홈페이지 연결 탭', () => {
   const renderConnection = (id = 'b1') =>
     renderAt(`/admin/boards/${id}/connection`, <BoardConnectionPage />, '/admin/boards/:boardId/connection')
@@ -439,41 +508,24 @@ describe('홈페이지 연결 탭', () => {
     )
   }
 
-  it('유형 · 주소 · 사용 여부를 저장한다', async () => {
+  it('주소 · 사용 여부를 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })
     renderConnection()
-    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
-    await userEvent.click(screen.getByLabelText(/게시판 사용/))
+    await userEvent.click(await screen.findByLabelText(/게시판 사용/))
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         slug: 'board-1',
-        board_type: 'GALLERY',
         status: 'INACTIVE',
       }),
     )
   })
 
-  it('글이 있는 게시판의 유형을 바꾸면 경고', async () => {
-    mockApi({})
-    renderConnection()
-    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
-    expect(screen.getByText(/빈 칸으로 보일 수 있습니다/)).toBeInTheDocument()
-  })
-
-  it('글이 없으면 유형 경고가 없다', async () => {
-    mockApi({ boards: [{ ...board, post_count: 0 }] })
-    renderConnection()
-    await userEvent.selectOptions(await screen.findByLabelText('유형'), 'GALLERY')
-    expect(screen.queryByText(/빈 칸으로 보일 수 있습니다/)).not.toBeInTheDocument()
-  })
-
-  it('기본 게시판은 주소 · 유형 잠금', async () => {
+  it('기본 게시판은 주소 잠금', async () => {
     mockApi({ boards: [notice] })
     renderConnection('n1')
     expect(await screen.findByLabelText('주소 이름')).toBeDisabled()
-    expect(screen.getByLabelText('유형')).toBeDisabled()
   })
 
   it('주소를 바꾸면 이전 주소가 열리지 않는다고 알리고, 잘못된 주소는 막는다', async () => {
@@ -514,7 +566,7 @@ describe('홈페이지 연결 탭', () => {
     setRole('TENANT_VIEWER')
     mockApi({})
     renderConnection()
-    expect(await screen.findByLabelText('유형')).toBeDisabled()
+    expect(await screen.findByLabelText('주소 이름')).toBeDisabled()
     expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
   })
 })
