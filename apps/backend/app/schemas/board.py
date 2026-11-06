@@ -56,6 +56,20 @@ class BoardDesign(BaseModel):
     faq_first_open: bool = False
 
 
+BoardReadAccess = Literal["PUBLIC", "MEMBER"]
+# 회원 글쓰기(MEMBER)는 T-150-B
+BoardWriteAccess = Literal["ADMIN"]
+
+
+class BoardPermissions(BaseModel):
+    """게시판 권한 (BM-10, T-150) — 서버가 공개 API 에서 강제한다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    read: BoardReadAccess = "PUBLIC"
+    write: BoardWriteAccess = "ADMIN"
+
+
 class BoardCreate(BaseModel):
     name: BoardName
     # 비우면 서버가 board-1 처럼 만든다 — 한글 이름은 주소로 쓰기 어렵다
@@ -80,6 +94,7 @@ class BoardUpdate(BaseModel):
     seo_description: str | None = Field(default=None, max_length=160)
     seo_index: bool | None = None
     design: BoardDesign | None = None
+    permissions: BoardPermissions | None = None
 
 
 class BoardResponse(BaseModel):
@@ -100,6 +115,7 @@ class BoardResponse(BaseModel):
     seo_description: str
     seo_index: bool
     design: BoardDesign
+    permissions: BoardPermissions
 
 
 class BoardRestoreResponse(BaseModel):
@@ -368,6 +384,8 @@ class PublicBoardResponse(BaseModel):
     seo_description: str
     seo_index: bool
     design: BoardDesign
+    # 회원만 읽기면 MEMBER — 홈페이지가 로그인 뒤 브라우저에서 글을 읽는다 (T-150)
+    read_access: BoardReadAccess = "PUBLIC"
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
 

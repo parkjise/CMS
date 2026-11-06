@@ -22,6 +22,7 @@ from app.schemas.board import (
     SLUG_MAX_LENGTH,
     BoardCreate,
     BoardDesign,
+    BoardPermissions,
     BoardUpdate,
     PostBulkAction,
     PostCreate,
@@ -30,7 +31,7 @@ from app.schemas.board import (
 from app.schemas.rich_body import body_summary, first_image
 from app.services import board_category as category_service
 from app.services import board_field as field_service
-from app.services import site_cache
+from app.services import member_features, site_cache
 
 NOTICE_KEY = "notice"
 STATUS_PUBLISHED = "PUBLISHED"
@@ -46,7 +47,10 @@ SEO_TITLE_KEY = "seo_title"
 SEO_DESCRIPTION_KEY = "seo_description"
 SEO_INDEX_KEY = "seo_index"
 DESIGN_KEY = "design"
+PERMISSIONS_KEY = "permissions"
+READ_MEMBER = "MEMBER"
 OPTION_KEYS = {
+    PERMISSIONS_KEY,
     SORT_ORDER_KEY,
     PAGE_SIZE_KEY,
     SEO_TITLE_KEY,
@@ -77,6 +81,8 @@ MSG_SLUG_TAKEN = "이미 쓰고 있는 주소입니다."
 MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다."
 MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
+MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
+MSG_MEMBER_FEATURE_OFF = "방문자 회원 기능이 꺼져 있어 회원만 읽기로 바꿀 수 없습니다."
 
 
 def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
@@ -212,7 +218,15 @@ def board_options(board: Board) -> dict:
         SEO_DESCRIPTION_KEY: settings.get(SEO_DESCRIPTION_KEY, ""),
         SEO_INDEX_KEY: settings.get(SEO_INDEX_KEY, True),
         DESIGN_KEY: BoardDesign(**settings.get(DESIGN_KEY, {})).model_dump(),
+        PERMISSIONS_KEY: BoardPermissions(
+            **settings.get(PERMISSIONS_KEY, {})
+        ).model_dump(),
     }
+
+
+def is_member_only(board: Board) -> bool:
+    """회원만 읽는 게시판 (T-150) — 공개 캐시 · 사이트맵 · 검색에서 뺀다."""
+    return board_options(board)[PERMISSIONS_KEY]["read"] == READ_MEMBER
 
 
 def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
@@ -410,6 +424,28 @@ def _merged_options(settings: dict, data: BoardUpdate) -> dict:
     return merged
 
 
+async def _check_permissions(
+    db: AsyncSession, board: Board, permissions: BoardPermissions
+) -> None:
+    """기본 게시판은 화면이 템플릿 페이지라 권한이 없다.
+
+    회원만 읽기는 방문자 회원 기능이 켜진 사업체만.
+    """
+    if permissions == BoardPermissions():
+        return
+    if board.system_key is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_PERMISSIONS_LOCKED
+        )
+    if permissions.read == READ_MEMBER:
+        tenant = await db.get(Tenant, board.tenant_id)
+        if tenant is None or not (await member_features.flags_for(db, tenant)).enabled:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "CONFLICT", "message": MSG_MEMBER_FEATURE_OFF},
+            )
+
+
 async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
     is_system = board.system_key is not None
     if is_system and data.slug is not None and data.slug != board.slug:
@@ -424,6 +460,8 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_TYPE_LOCKED
         )
+    if data.permissions is not None:
+        await _check_permissions(db, board, data.permissions)
     if data.slug is not None and data.slug != board.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, board.tenant_id, data.slug, exclude=board.id):
@@ -773,6 +811,7 @@ def _public_board(board: Board, categories: list[dict]) -> dict:
         SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
         DESIGN_KEY: options[DESIGN_KEY],
+        "read_access": options[PERMISSIONS_KEY]["read"],
         "categories": categories,
     }
 
@@ -808,6 +847,9 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
             BoardPost.deleted_at.is_(None),
             Board.status == "ACTIVE",
             Board.deleted_at.is_(None),
+            # 회원만 읽는 게시판의 글은 사이트맵에 넣지 않는다 (T-150)
+            func.coalesce(Board.settings[PERMISSIONS_KEY]["read"].astext, "PUBLIC")
+            != READ_MEMBER,
         )
         .order_by(BoardPost.updated_at.desc(), BoardPost.id.desc())
         .limit(SITEMAP_POST_LIMIT)
