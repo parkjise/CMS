@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Lock, Search } from 'lucide-react'
 import {
@@ -12,6 +13,7 @@ import {
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
+import { ThemeGuestPostActions, ThemeReportButton } from './ThemeGuestTools'
 import { ThemeMemberPostActions, ThemeMemberWriteLink, ThemeSecretNotice } from './ThemeMemberLinks'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
@@ -78,10 +80,12 @@ interface DetailProps {
   post: PublicPost
   hrefFor: (extra?: HrefExtra) => string
   tenantSlug: string
+  /** 잠긴 비밀글 안내를 바꿔 끼운다 — 비회원 비밀글은 비밀번호 칸 (T-151-B) */
+  secretActions?: ReactNode
 }
 
 /** 글 상세 — 유형과 관계없이 같은 모양 */
-export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug }: DetailProps) {
+export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug, secretActions }: DetailProps) {
   const navLink = `text-sm ${primary} hover:text-[color:var(--color-primary)]`
   return (
     <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
@@ -92,7 +96,16 @@ export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug }: DetailPro
       </time>
       <div className="mt-3 flex justify-end gap-2 empty:hidden">
         <ThemeWriteLink board={board.slug} post={post.id} />
-        {canMemberWrite(board) && (
+        {canMemberWrite(board) && !post.locked && post.is_guest && (
+          <ThemeGuestPostActions
+            board={board}
+            tenantSlug={tenantSlug}
+            postId={post.id}
+            editHref={hrefFor({ id: `${post.id}/${EDIT_PAGE}` })}
+            listHref={hrefFor()}
+          />
+        )}
+        {canMemberWrite(board) && !post.is_guest && (
           <ThemeMemberPostActions
             board={board}
             tenantSlug={tenantSlug}
@@ -128,7 +141,14 @@ export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug }: DetailPro
             ))}
           </dl>
         )}
-        {post.locked ? <ThemeSecretNotice tenantSlug={tenantSlug} /> : <Body blocks={post.body} />}
+        {post.locked ? (
+          (secretActions ?? <ThemeSecretNotice tenantSlug={tenantSlug} />)
+        ) : (
+          <>
+            <Body blocks={post.body} />
+            <ThemeReportButton board={board} tenantSlug={tenantSlug} postId={post.id} />
+          </>
+        )}
       </div>
       <nav
         className={`mt-10 flex items-center justify-between border-t pt-6 ${line}`}

@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import type { PublicBoard, PublicPost } from '@cms/types'
+import type { GuestPost, PublicBoard, PublicPost } from '@cms/types'
 import { fetchMemberPost } from '@/lib/memberBoard'
 import { useIsMember } from '@/lib/memberStore'
 import { pageHref } from '@/templates/shared/contracts'
 import { type HrefExtra, ThemeBoardDetail } from './ThemeBoard'
+import { ThemeGuestUnlock } from './ThemeGuestTools'
 
 interface ThemeBoardSecretProps {
   board: PublicBoard
@@ -23,7 +24,8 @@ export function ThemeBoardSecret({ board, tenantSlug, post, pageKey, noSlug }: T
   const hrefFor = (extra?: HrefExtra) => pageHref(tenantSlug, pageKey, undefined, { ...extra, noSlug })
 
   useEffect(() => {
-    if (!isMember) {
+    // 비회원 비밀글은 로그인과 관계없이 글 비밀번호로 연다 (T-151-B)
+    if (!isMember || post.is_guest) {
       setOpened(null)
       return
     }
@@ -34,7 +36,22 @@ export function ThemeBoardSecret({ board, tenantSlug, post, pageKey, noSlug }: T
     return () => {
       cancelled = true
     }
-  }, [isMember, tenantSlug, board.slug, post.id])
+  }, [isMember, tenantSlug, board.slug, post.id, post.is_guest])
 
-  return <ThemeBoardDetail board={board} post={opened ?? post} hrefFor={hrefFor} tenantSlug={tenantSlug} />
+  const openGuest = (guest: GuestPost) =>
+    setOpened({ ...post, title: guest.title, body: guest.body, fields: guest.fields, locked: false })
+
+  return (
+    <ThemeBoardDetail
+      board={board}
+      post={opened ?? post}
+      hrefFor={hrefFor}
+      tenantSlug={tenantSlug}
+      secretActions={
+        post.is_guest ? (
+          <ThemeGuestUnlock board={board} tenantSlug={tenantSlug} postId={post.id} onOpen={openGuest} />
+        ) : undefined
+      }
+    />
+  )
 }
