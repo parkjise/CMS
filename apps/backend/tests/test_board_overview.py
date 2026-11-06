@@ -93,6 +93,7 @@ async def other() -> AsyncIterator[dict]:
         "id": tenant_id,
         "slug": slug,
         "post_id": post_id,
+        "board_id": board_id,
         "headers": {"Authorization": f"Bearer {token}"},
     }
     await _sql("DELETE FROM audit_logs WHERE tenant_id = :t", t=tenant_id)
@@ -111,7 +112,7 @@ async def _board(client, headers, slug: str = "news", **fields) -> dict:
 
 
 async def _post(
-    client, headers, board_id: str, title: str, status: str = "PUBLISHED"
+    client, headers, board_id: str, title: str, status: str = "PUBLISHED", **fields
 ) -> dict:
     resp = await client.post(
         f"{BOARDS}/{board_id}/posts",
@@ -119,6 +120,7 @@ async def _post(
             "title": title,
             "status": status,
             "body": [{"type": "p", "text": SECRET_BODY}],
+            **fields,
         },
         headers=headers,
     )
@@ -224,6 +226,125 @@ class TestOverview:
         )
         await feature_service.invalidate_cache(tenant["id"])
         assert (await client.get(POSTS, headers=auth_headers)).status_code == 403
+
+
+class TestOverviewCategories:
+    async def category(self, client, headers, board_id, name="행사", **extra):
+        response = await client.post(
+            f"{BOARDS}/{board_id}/categories",
+            json={"name": name, **extra},
+            headers=headers,
+        )
+        assert response.status_code == 201, response.text
+        return response.json()["data"]["id"]
+
+    async def test_category_with_search_status_and_pagination(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers)
+        category = await self.category(client, auth_headers, board["id"])
+        for title, status, cat in [
+            ("소식 A", "DRAFT", category),
+            ("소식 B", "DRAFT", category),
+            ("다른 제목", "DRAFT", category),
+            ("소식 공개", "PUBLISHED", category),
+            ("소식 미분류", "DRAFT", None),
+        ]:
+            await _post(
+                client, auth_headers, board["id"], title, status, category_id=cat
+            )
+        params = {
+            "board_id": board["id"],
+            "category_id": category,
+            "q": "소식",
+            "status": "DRAFT",
+            "size": 1,
+        }
+        pages = []
+        for page in (1, 2):
+            response = await client.get(
+                POSTS, params={**params, "page": page}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            data = response.json()["data"]
+            assert data["total"] == 2
+            assert len(data["items"]) == 1
+            pages.append(data["items"][0]["title"])
+        assert set(pages) == {"소식 A", "소식 B"}
+
+    async def test_board_category_mismatch_returns_empty(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers)
+        second = await _board(client, auth_headers, "second")
+        category = await self.category(client, auth_headers, board["id"])
+        await _post(client, auth_headers, board["id"], "글", category_id=category)
+        for board_id, expected in [(second["id"], 0), (board["id"], 1)]:
+            data = (
+                await client.get(
+                    POSTS,
+                    params={"board_id": board_id, "category_id": category},
+                    headers=auth_headers,
+                )
+            ).json()["data"]
+            assert data["total"] == expected
+        data = (
+            await client.get(
+                POSTS, params={"category_id": str(uuid.uuid4())}, headers=auth_headers
+            )
+        ).json()["data"]
+        assert data["items"] == []
+        assert data["total"] == 0
+
+    async def test_hidden_category_and_trash(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        category = await self.category(
+            client, auth_headers, board["id"], is_active=False
+        )
+        kept = await _post(
+            client, auth_headers, board["id"], "남음", category_id=category
+        )
+        gone = await _post(
+            client, auth_headers, board["id"], "삭제", category_id=category
+        )
+        await client.delete(
+            f"{BOARDS}/{board['id']}/posts/{gone['id']}", headers=auth_headers
+        )
+        for trash, expected in [(False, kept["id"]), (True, gone["id"])]:
+            response = await client.get(
+                POSTS,
+                params={"category_id": category, "trash": trash},
+                headers=auth_headers,
+            )
+            data = response.json()["data"]
+            assert data["total"] == 1
+            assert [post["id"] for post in data["items"]] == [expected]
+
+    async def test_foreign_tenant_category_cannot_leak_posts(
+        self, client, auth_headers, tenant, other
+    ):
+        category = await self.category(client, other["headers"], other["board_id"])
+        await client.patch(
+            f"{BOARDS}/{other['board_id']}/posts/{other['post_id']}",
+            json={"category_id": category},
+            headers=other["headers"],
+        )
+        response = await client.get(
+            POSTS, params={"category_id": category}, headers=auth_headers
+        )
+        assert response.status_code == 200
+        assert response.json()["data"]["total"] == 0
+        assert response.json()["data"]["items"] == []
+        own = await client.get(
+            POSTS, params={"category_id": category}, headers=other["headers"]
+        )
+        assert own.json()["data"]["total"] == 1
+
+    async def test_malformed_category_is_rejected(self, client, auth_headers, tenant):
+        response = await client.get(
+            POSTS, params={"category_id": "not-a-uuid"}, headers=auth_headers
+        )
+        assert response.status_code in (400, 422)
 
 
 class TestBulk:
