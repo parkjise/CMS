@@ -56,6 +56,7 @@ const board: Board = {
     faq_single_open: false,
     faq_first_open: false,
   },
+  permissions: { read: 'PUBLIC', write: 'ADMIN' },
 }
 
 const fieldOf = (over: Partial<BoardField> & { id: string; field_key: string }): BoardField => ({

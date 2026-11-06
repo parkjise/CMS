@@ -59,6 +59,7 @@ const board: Board = {
     faq_single_open: false,
     faq_first_open: false,
   },
+  permissions: { read: 'PUBLIC', write: 'ADMIN' },
 }
 
 const item = {
