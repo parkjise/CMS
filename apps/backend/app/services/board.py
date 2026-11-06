@@ -723,6 +723,7 @@ async def list_all_posts(
     page: int,
     size: int,
     board_id: UUID | None = None,
+    category_id: UUID | None = None,
     status: str | None = None,
     q: str | None = None,
     trash: bool = False,
@@ -735,6 +736,8 @@ async def list_all_posts(
     ]
     if board_id:
         conditions.append(BoardPost.board_id == board_id)
+    if category_id:
+        conditions.append(BoardPost.category_id == category_id)
     if status:
         conditions.append(BoardPost.status == status)
     if q:
