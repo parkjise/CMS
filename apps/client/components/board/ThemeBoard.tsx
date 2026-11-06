@@ -1,6 +1,6 @@
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Search } from 'lucide-react'
-import { boardDesign, loadBoardPage } from '@/lib/boardRoute'
+import { type BoardPage, boardDesign, loadBoardPage } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
@@ -34,7 +34,10 @@ function Pager({ page, totalPages, hrefFor }: PagerProps) {
   const start = Math.max(1, Math.min(page - Math.floor(WINDOW / 2), totalPages - WINDOW + 1))
   const pages = Array.from({ length: Math.min(WINDOW, totalPages) }, (_, i) => start + i)
   return (
-    <nav className="mt-10 flex flex-wrap items-center justify-center gap-1" aria-label="페이지 이동">
+    <nav
+      className="mt-10 flex flex-wrap items-center justify-center gap-1"
+      aria-label="페이지 이동"
+    >
       {pages.map((p) => (
         <a
           key={p}
@@ -53,7 +56,7 @@ function Pager({ page, totalPages, hrefFor }: PagerProps) {
   )
 }
 
-interface HrefExtra {
+export interface HrefExtra {
   id?: string
   q?: string
   p?: number
@@ -84,12 +87,20 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
         {post.fields && post.fields.length > 0 && (
           <dl className={`mb-6 divide-y border-b ${line} divide-[color:var(--color-border)]`}>
             {post.fields.map((field) => (
-              <div key={field.key} className="grid grid-cols-[6rem_1fr] gap-3 py-2.5 md:grid-cols-[10rem_1fr]">
+              <div
+                key={field.key}
+                className="grid grid-cols-[6rem_1fr] gap-3 py-2.5 md:grid-cols-[10rem_1fr]"
+              >
                 <dt className={`text-sm font-medium ${muted}`}>{field.label}</dt>
                 <dd className={`min-w-0 whitespace-pre-line break-words text-sm ${primary}`}>
                   {field.field_type === 'IMAGE' ? (
                     // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 칸 사진
-                    <img src={String(field.value)} alt={field.label} loading="lazy" className="h-auto max-w-full rounded-lg" />
+                    <img
+                      src={String(field.value)}
+                      alt={field.label}
+                      loading="lazy"
+                      className="h-auto max-w-full rounded-lg"
+                    />
                   ) : (
                     <FieldValue field={field} />
                   )}
@@ -100,7 +111,10 @@ export function ThemeBoardDetail({ board, post, hrefFor }: DetailProps) {
         )}
         <Body blocks={post.body} />
       </div>
-      <nav className={`mt-10 flex items-center justify-between border-t pt-6 ${line}`} aria-label="게시글 이동">
+      <nav
+        className={`mt-10 flex items-center justify-between border-t pt-6 ${line}`}
+        aria-label="게시글 이동"
+      >
         {post.prev_id ? (
           <a className={navLink} href={hrefFor({ id: post.prev_id })}>
             이전 게시글
@@ -139,8 +153,30 @@ interface ListProps {
 }
 
 /** 고객이 추가한 게시판 — 테마형 (테마 CSS 변수로 6종이 함께 쓴다, T-141) */
-export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, searchAction }: ListProps) {
+export async function ThemeBoardList({
+  board,
+  tenantSlug,
+  q,
+  c,
+  page,
+  hrefFor,
+  searchAction,
+}: ListProps) {
   const list = await loadBoardPage(tenantSlug, board, { page, q, c })
+  return (
+    <ThemeBoardListView board={board} list={list} hrefFor={hrefFor} searchAction={searchAction} />
+  )
+}
+
+interface ListViewProps {
+  board: PublicBoard
+  list: BoardPage
+  hrefFor: (extra?: HrefExtra) => string
+  searchAction: string
+}
+
+/** 유형별 글 목록 — 서버(공개 게시판)와 브라우저(회원 게시판, T-150)가 같이 쓴다 */
+export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListViewProps) {
   const { posts, keyword, category } = list
   const categories = board.categories ?? []
   const design = boardDesign(board)
@@ -207,20 +243,36 @@ export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, s
           {keyword ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
         </p>
       ) : board.board_type === 'GALLERY' ? (
-        <ul className={`mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-6 ${COLUMN_CLASS[design.columns]}`}>
+        <ul
+          className={`mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-6 ${COLUMN_CLASS[design.columns]}`}
+        >
           {posts.map((post) => (
             <li key={post.id}>
               <a href={hrefFor({ id: post.id })} className="group block">
                 {post.thumbnail ? (
                   // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
-                  <img src={post.thumbnail} alt="" loading="lazy" className={`${ratio} w-full rounded-lg object-cover`} />
+                  <img
+                    src={post.thumbnail}
+                    alt=""
+                    loading="lazy"
+                    className={`${ratio} w-full rounded-lg object-cover`}
+                  />
                 ) : (
                   // 사진 없는 글 (D-03)
-                  <span data-empty-thumb className={`block ${ratio} w-full rounded-lg bg-[var(--color-surface)]`} aria-hidden />
+                  <span
+                    data-empty-thumb
+                    className={`block ${ratio} w-full rounded-lg bg-[var(--color-surface)]`}
+                    aria-hidden
+                  />
                 )}
-                <span className={`mt-3 block font-semibold group-hover:underline ${primary}`}>{post.title}</span>
+                <span className={`mt-3 block font-semibold group-hover:underline ${primary}`}>
+                  {post.title}
+                </span>
                 {design.show_date && (
-                  <time className={`mt-1 block text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                  <time
+                    className={`mt-1 block text-sm ${muted}`}
+                    dateTime={postDate(post.published_at)}
+                  >
                     {dotted(post.published_at)}
                   </time>
                 )}
@@ -232,16 +284,28 @@ export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, s
         <ul className={`mt-6 grid grid-cols-1 gap-5 md:gap-7 ${COLUMN_CLASS[design.columns]}`}>
           {posts.map((post) => (
             <li key={post.id} className="min-w-0">
-              <a href={hrefFor({ id: post.id })} className={`group flex h-full flex-col overflow-hidden rounded-xl border ${line}`}>
+              <a
+                href={hrefFor({ id: post.id })}
+                className={`group flex h-full flex-col overflow-hidden rounded-xl border ${line}`}
+              >
                 {design.show_image && post.thumbnail && (
                   // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
-                  <img src={post.thumbnail} alt="" loading="lazy" className={`${ratio} w-full object-cover`} />
+                  <img
+                    src={post.thumbnail}
+                    alt=""
+                    loading="lazy"
+                    className={`${ratio} w-full object-cover`}
+                  />
                 )}
                 <span className="flex flex-1 flex-col gap-2 p-5">
                   {post.is_pinned && (
-                    <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">공지</span>
+                    <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
+                      공지
+                    </span>
                   )}
-                  <span className={`font-semibold group-hover:underline ${primary}`}>{post.title}</span>
+                  <span className={`font-semibold group-hover:underline ${primary}`}>
+                    {post.title}
+                  </span>
                   {design.show_summary && post.summary && (
                     <span className={`line-clamp-3 text-sm ${muted}`}>{post.summary}</span>
                   )}
@@ -251,7 +315,10 @@ export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, s
                     </span>
                   ))}
                   {design.show_date && (
-                    <time className={`mt-auto pt-1 text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                    <time
+                      className={`mt-auto pt-1 text-sm ${muted}`}
+                      dateTime={postDate(post.published_at)}
+                    >
                       {dotted(post.published_at)}
                     </time>
                   )}
@@ -269,9 +336,14 @@ export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, s
               name={design.faq_single_open ? `faq-${board.slug}` : undefined}
               open={design.faq_first_open && index === 0}
             >
-              <summary className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}>
+              <summary
+                className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}
+              >
                 {post.title}
-                <ChevronDown className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`} aria-hidden />
+                <ChevronDown
+                  className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`}
+                  aria-hidden
+                />
               </summary>
               <div className="pb-6">
                 <Body blocks={post.body ?? []} />
@@ -289,7 +361,9 @@ export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, s
               >
                 <span className={`min-w-0 font-medium ${primary}`}>
                   {post.is_pinned && (
-                    <span className="mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">공지</span>
+                    <span className="mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
+                      공지
+                    </span>
                   )}
                   {post.title}
                 </span>

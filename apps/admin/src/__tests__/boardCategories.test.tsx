@@ -50,6 +50,7 @@ const board: Board = {
     faq_single_open: false,
     faq_first_open: false,
   },
+  permissions: { read: 'PUBLIC', write: 'ADMIN' },
 }
 
 const categoryOf = (over: Partial<BoardCategory> & { id: string; name: string }): BoardCategory => ({

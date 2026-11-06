@@ -77,6 +77,13 @@ export interface BoardDesign {
   faq_first_open: boolean
 }
 
+/** 게시판 권한 (T-150) — 회원 글쓰기는 T-150-B */
+export type BoardReadAccess = 'PUBLIC' | 'MEMBER'
+export interface BoardPermissions {
+  read: BoardReadAccess
+  write: 'ADMIN'
+}
+
 export interface Board {
   id: string
   name: string
@@ -96,6 +103,7 @@ export interface Board {
   seo_description: string
   seo_index: boolean
   design: BoardDesign
+  permissions: BoardPermissions
 }
 
 /** 게시판 카테고리 — 1단계 분류 (T-149) */
@@ -179,6 +187,8 @@ export interface PublicBoard {
   seo_description?: string
   seo_index?: boolean
   design?: BoardDesign
+  /** 회원만 읽기면 MEMBER — 글을 로그인 뒤 브라우저에서 읽는다 (T-150) */
+  read_access?: BoardReadAccess
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
 }

@@ -3,11 +3,13 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_action
 from app.core.deps import (
+    bearer,
     get_current_user,
     get_db,
     get_db_with_rls,
@@ -48,6 +50,7 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
+from app.services import board_access
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import site_settings as site_settings_service
@@ -85,6 +88,7 @@ def _board_audit(board: Board) -> dict:
         "sort_order": options["sort_order"],
         "page_size": options["page_size"],
         "seo_index": options["seo_index"],
+        "permissions": options["permissions"],
     }
 
 
@@ -719,6 +723,23 @@ async def list_sitemap_posts(tenant_slug: str, db: AsyncSession = Depends(get_db
     return ApiResponse.ok([PublicSitemapPost(**post) for post in posts])
 
 
+async def _open_readable_board(
+    db: AsyncSession,
+    tenant_slug: str,
+    board_slug: str,
+    credentials: HTTPAuthorizationCredentials | None,
+    response: Response,
+) -> Board:
+    """공개 게시판 — 회원만 읽기면 회원 토큰을 검사하고 캐시하지 않게 한다 (T-150)."""
+    board = await board_service.open_public_board(db, tenant_slug, board_slug)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    if board_service.is_member_only(board):
+        response.headers["Cache-Control"] = board_access.PRIVATE_CACHE
+        await board_access.ensure_member_reader(db, board, credentials)
+    return board
+
+
 @public_router.get(
     "/site/{tenant_slug}/boards/{board_slug}/posts",
     response_model=ApiResponse[PublicPostListResponse],
@@ -726,16 +747,18 @@ async def list_sitemap_posts(tenant_slug: str, db: AsyncSession = Depends(get_db
 async def list_public_posts(
     tenant_slug: str,
     board_slug: str,
+    response: Response,
     page: int = Query(default=1, ge=1),
     size: int | None = Query(default=None, ge=1, le=50),
     q: str | None = Query(default=None, max_length=100),
     order: Literal["default", "latest"] = "default",
     category: UUID | None = None,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ):
-    board = await board_service.open_public_board(db, tenant_slug, board_slug)
-    if board is None:
-        raise _not_found(MSG_BOARD_NOT_FOUND)
+    board = await _open_readable_board(
+        db, tenant_slug, board_slug, credentials, response
+    )
     # 크기를 안 보내면 게시판 설정대로 (T-146)
     size = size or board_service.public_page_size(board)
     posts, total, has_posts = await board_service.list_public_posts(
@@ -770,11 +793,13 @@ async def get_public_post(
     tenant_slug: str,
     board_slug: str,
     post_id: UUID,
+    response: Response,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
     db: AsyncSession = Depends(get_db),
 ):
-    board = await board_service.open_public_board(db, tenant_slug, board_slug)
-    if board is None:
-        raise _not_found(MSG_BOARD_NOT_FOUND)
+    board = await _open_readable_board(
+        db, tenant_slug, board_slug, credentials, response
+    )
     found = await board_service.get_public_post(db, board, post_id)
     if found is None:
         raise _not_found(MSG_POST_NOT_FOUND)

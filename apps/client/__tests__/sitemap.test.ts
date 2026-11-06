@@ -68,6 +68,14 @@ describe('사이트맵 (T-140-C)', () => {
     expect(new Set(urls).size).toBe(urls.length)
   })
 
+  it('회원만 읽는 게시판과 그 글은 넣지 않는다 (T-150)', async () => {
+    fetchPublicSite.mockResolvedValue(site({ boards: [news, { ...news, id: 'b2', slug: 'vip', read_access: 'MEMBER' }] } as never))
+    fetchSitemapPosts.mockResolvedValue([post('news', 'p1'), post('vip', 'v1')])
+    const { urls } = await locs()
+    expect(urls).toContain(`${BASE}/b/news/p1`)
+    expect(urls.some((url) => url.includes('/b/vip'))).toBe(false)
+  })
+
   it('글은 실제 수정일, 게시판은 가장 최근 글의 수정일', async () => {
     fetchSitemapPosts.mockResolvedValue([
       post('news', 'p2', false, '2026-11-03T00:00:00Z'),
