@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { PublicBoard, PublicPost } from '@cms/types'
 import {
   type BoardPage,
@@ -13,6 +14,7 @@ import { BoardCategoryTabs } from './BoardCategoryTabs'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { dotDate } from './format'
+import { GuestPostActions, ReportButton } from './GuestPostTools'
 import { MemberPostActions } from './MemberPostActions'
 import { SecretNotice } from './SecretNotice'
 import { NoticeDetailView, NoticeListView } from './NoticeBoard'
@@ -34,13 +36,17 @@ export function CustomBoardDetail({
   post,
   hrefFor,
   tenantSlug,
+  secretActions,
 }: {
   board: PublicBoard
   post: PublicPost | null
   hrefFor: BoardHrefFor
   tenantSlug: string
+  /** 잠긴 비밀글 안내를 바꿔 끼운다 — 비회원 비밀글은 비밀번호 칸 (T-151-B) */
+  secretActions?: ReactNode
 }) {
   if (!post) return <BoardMessage board={board} text="게시글을 찾을 수 없습니다." />
+  const editHref = hrefFor({ id: `${post.id}/${EDIT_PAGE}` })
   return (
     <NoticeDetailView
       badge={board.name}
@@ -54,16 +60,30 @@ export function CustomBoardDetail({
       listHref={hrefFor()}
       actions={
         post.locked ? (
-          <SecretNotice tenantSlug={tenantSlug} />
-        ) : canMemberWrite(board) ? (
-          <MemberPostActions
-            board={board}
-            tenantSlug={tenantSlug}
-            postId={post.id}
-            editHref={hrefFor({ id: `${post.id}/${EDIT_PAGE}` })}
-            listHref={hrefFor()}
-          />
-        ) : undefined
+          (secretActions ?? <SecretNotice tenantSlug={tenantSlug} />)
+        ) : (
+          <>
+            {canMemberWrite(board) && post.is_guest && (
+              <GuestPostActions
+                board={board}
+                tenantSlug={tenantSlug}
+                postId={post.id}
+                editHref={editHref}
+                listHref={hrefFor()}
+              />
+            )}
+            {canMemberWrite(board) && !post.is_guest && (
+              <MemberPostActions
+                board={board}
+                tenantSlug={tenantSlug}
+                postId={post.id}
+                editHref={editHref}
+                listHref={hrefFor()}
+              />
+            )}
+            <ReportButton board={board} tenantSlug={tenantSlug} postId={post.id} />
+          </>
+        )
       }
     />
   )

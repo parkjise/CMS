@@ -3,7 +3,13 @@
 import type { PublicBoard } from '@cms/types'
 import { Lock } from 'lucide-react'
 import { pageHref } from '@/templates/shared/contracts'
-import { CONTENT_MAX, TITLE_MAX, useMemberPostForm } from './useMemberPostForm'
+import {
+  CONTENT_MAX,
+  GUEST_NAME_MAX,
+  GUEST_PASSWORD_MAX,
+  TITLE_MAX,
+  useMemberPostForm,
+} from './useMemberPostForm'
 import { memberLoginHref } from './useMemberBoard'
 
 interface ThemeBoardWriteProps {
@@ -35,6 +41,60 @@ export function ThemeBoardWrite({
   )
   const heading = `${board.name} ${postId ? '글 수정' : '글쓰기'}`
   const categories = board.categories ?? []
+
+  if (form.state === 'password') {
+    // 비회원 글 고치기 — 글 비밀번호부터 (T-151-B)
+    return (
+      <section className="mx-auto max-w-3xl px-6 py-12 md:py-16">
+        <h1 className={`text-2xl font-bold md:text-3xl ${primary}`}>{heading}</h1>
+        <form
+          className="mt-8 space-y-4"
+          noValidate
+          onSubmit={(e) => {
+            e.preventDefault()
+            void form.unlock()
+          }}
+        >
+          <div>
+            <label htmlFor="tw-unlock" className={`mb-1.5 block text-sm font-medium ${primary}`}>
+              글 비밀번호
+            </label>
+            <input
+              id="tw-unlock"
+              type="password"
+              autoComplete="off"
+              maxLength={GUEST_PASSWORD_MAX}
+              className={`h-11 ${field}`}
+              value={form.values.password}
+              aria-invalid={form.errors.password ? true : undefined}
+              onChange={(e) => form.change({ password: e.target.value })}
+            />
+            <p className={`mt-1 text-sm ${form.errors.password ? 'text-red-600' : muted}`}>
+              {form.errors.password ?? '글을 쓸 때 정한 비밀번호를 입력해 주세요.'}
+            </p>
+          </div>
+          <p role="status" aria-live="polite" className="min-h-5 text-sm text-red-600">
+            {form.message}
+          </p>
+          <div className="flex justify-end gap-2">
+            <a
+              href={postId ? href(postId) : href()}
+              className={`rounded-full border border-[color:var(--color-border)] px-5 py-2.5 text-sm ${primary}`}
+            >
+              취소
+            </a>
+            <button
+              type="submit"
+              disabled={form.submitting}
+              className="rounded-full bg-[var(--color-primary)] px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              확인
+            </button>
+          </div>
+        </form>
+      </section>
+    )
+  }
 
   if (form.state !== 'ready') {
     const locked = form.state === 'login' || form.state === 'closed'
@@ -79,6 +139,46 @@ export function ThemeBoardWrite({
           void form.submit()
         }}
       >
+        {form.guest && !postId && (
+          // 비회원 글쓰기 (T-151-B) — 이름 · 글 비밀번호
+          <div className="grid gap-5 sm:grid-cols-2">
+            <div>
+              <label htmlFor="tw-name" className={`mb-1.5 block text-sm font-medium ${primary}`}>
+                이름 <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="tw-name"
+                autoComplete="name"
+                maxLength={GUEST_NAME_MAX}
+                className={`h-11 ${field}`}
+                placeholder="이름을 입력해 주세요."
+                value={form.values.name}
+                aria-invalid={form.errors.name ? true : undefined}
+                onChange={(e) => form.change({ name: e.target.value })}
+              />
+            </div>
+            <div>
+              <label htmlFor="tw-password" className={`mb-1.5 block text-sm font-medium ${primary}`}>
+                글 비밀번호 <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="tw-password"
+                type="password"
+                autoComplete="new-password"
+                maxLength={GUEST_PASSWORD_MAX}
+                className={`h-11 ${field}`}
+                placeholder="4자리 이상 입력해 주세요."
+                value={form.values.password}
+                aria-invalid={form.errors.password ? true : undefined}
+                aria-describedby="tw-password-help"
+                onChange={(e) => form.change({ password: e.target.value })}
+              />
+              <p id="tw-password-help" className={`mt-1 text-xs ${muted}`}>
+                글을 고치거나 지울 때 필요해요.
+              </p>
+            </div>
+          </div>
+        )}
         {categories.length > 0 && (
           <div>
             <label htmlFor="tw-category" className={`mb-1.5 block text-sm font-medium ${primary}`}>
@@ -131,6 +231,21 @@ export function ThemeBoardWrite({
             {form.values.content.length.toLocaleString()} / {CONTENT_MAX.toLocaleString()}자
           </p>
         </div>
+        {form.guest && !postId && (
+          <label className={`flex items-start gap-2 text-sm ${primary}`}>
+            <input
+              type="checkbox"
+              className="mt-0.5"
+              checked={form.values.agree}
+              aria-invalid={form.errors.agree ? true : undefined}
+              onChange={(e) => form.change({ agree: e.target.checked })}
+            />
+            <span>
+              개인정보 수집 · 이용 동의 <span className="text-red-600">*</span>{' '}
+              <span className={muted}>(이름은 글 관리에만 쓰이고 글과 함께 보관됩니다.)</span>
+            </span>
+          </label>
+        )}
         {form.secretChoice && (
           <label className={`flex items-center gap-2 text-sm ${primary}`}>
             <input

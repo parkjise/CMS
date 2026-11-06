@@ -73,3 +73,80 @@ button.board-list__write {
     font-size: 2rem;
   }
 }
+
+// 비회원 글 비밀번호 · 신고 (T-151-B)
+.board-list__actions--wrap {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.board-inline-form {
+  @include flex(center, flex-end, 8px);
+  flex-wrap: wrap;
+
+  // .board-form__input(width: 100%) 보다 앞서도록 두 클래스로
+  &__input.board-form__input {
+    flex: 0 1 180px;
+    width: 180px;
+    min-width: 0;
+    height: 44px;
+  }
+  &__error {
+    flex-basis: 100%;
+    font-size: 0.875rem;
+    color: #dc2626;
+    text-align: right;
+  }
+}
+.board-view__secret .board-inline-form {
+  justify-content: center;
+
+  .board-inline-form__error {
+    text-align: center;
+  }
+}
+.board-report {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+
+  &--open {
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+  }
+  &__toggle {
+    @include button-reset;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    @include focus-ring;
+
+    @include hover {
+      color: var(--color-text-primary);
+      text-decoration: underline;
+    }
+  }
+  &__reasons {
+    @include flex(center, flex-start, 8px 16px);
+    flex-wrap: wrap;
+    border: 0;
+    padding: 0;
+    margin: 0;
+  }
+  &__legend {
+    width: 100%;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  &__reason {
+    @include flex(center, flex-start, 6px);
+    font-size: 0.9375rem;
+  }
+  &__done {
+    margin-top: 16px;
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    text-align: right;
+  }
+}

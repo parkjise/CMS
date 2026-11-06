@@ -46,7 +46,7 @@ const board: Board = {
     faq_first_open: false,
   },
   permissions: { read: 'PUBLIC', write: 'ADMIN' },
-  operation: { allow_secret: false, notify_new_post: false },
+  operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
 }
 
 const OPEN: PermissionOptions = { member_read_blocked: null, member_write_blocked: null }

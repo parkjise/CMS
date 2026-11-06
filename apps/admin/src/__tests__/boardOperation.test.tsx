@@ -51,7 +51,7 @@ const board: Board = {
     faq_first_open: false,
   },
   permissions: { read: 'PUBLIC', write: 'MEMBER' },
-  operation: { allow_secret: false, notify_new_post: false },
+  operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
 }
 
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
@@ -96,14 +96,14 @@ describe('운영 설정 (T-151-A)', () => {
     await userEvent.click(save)
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
-        operation: { allow_secret: true, notify_new_post: true },
+        operation: { allow_secret: true, notify_new_post: true, allow_guest: false },
       }),
     )
     expect(toast.success).toHaveBeenCalled()
   })
 
   it('비밀글 허용을 끄면 이미 쓴 비밀글은 남는다고 알린다', async () => {
-    renderPage([{ ...board, operation: { allow_secret: true, notify_new_post: false } }])
+    renderPage([{ ...board, operation: { allow_secret: true, notify_new_post: false, allow_guest: false } }])
     await userEvent.click(await screen.findByText('비밀글 허용'))
     expect(screen.getByText(/이미 쓴 비밀글은 그대로/)).toBeInTheDocument()
   })
@@ -146,7 +146,7 @@ describe('비밀글 — 관리자 (T-151-A)', () => {
   })
 
   it('비밀글을 허용한 게시판은 글쓰기에서 고른다', async () => {
-    mockApi([{ ...board, operation: { allow_secret: true, notify_new_post: false } }])
+    mockApi([{ ...board, operation: { allow_secret: true, notify_new_post: false, allow_guest: false } }])
     post.mockResolvedValue({ data: { data: { id: 'p1' } } })
     renderAt('/admin/boards/b1/posts/new', '/admin/boards/:boardId/posts/new', <BoardPostEditPage />)
     await userEvent.type(await screen.findByLabelText(/제목/), '관리자 비밀')

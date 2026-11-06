@@ -4,7 +4,7 @@ import type { Board, BoardOperation } from '@cms/types'
 import { Button, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
+import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -15,9 +15,13 @@ function OperationForm({ board }: { board: Board }) {
   const updateBoard = useUpdateBoard()
   const [operation, setOperation] = useState<BoardOperation>(board.operation)
   const memberWrite = board.permissions.write === 'MEMBER'
+  // 비회원 글쓰기도 회원 글쓰기와 같은 이유로 막힌다 (병원 업종 · 필수 칸) — 서버가 다시 확인한다
+  const guestBlocked = usePermissionOptions(board.id).data?.member_write_blocked ?? null
+  const memberOnlyRead = board.permissions.read === 'MEMBER'
   const changed =
     operation.allow_secret !== board.operation.allow_secret ||
-    operation.notify_new_post !== board.operation.notify_new_post
+    operation.notify_new_post !== board.operation.notify_new_post ||
+    operation.allow_guest !== board.operation.allow_guest
   const change = (next: Partial<BoardOperation>) => setOperation((current) => ({ ...current, ...next }))
 
   const save = async () => {
@@ -56,8 +60,21 @@ function OperationForm({ board }: { board: Board }) {
         </div>
         <div className={`mt-5 ${CARD_CLASS}`}>
           <Toggle
+            label="비회원 글쓰기 허용"
+            description="로그인하지 않은 방문자도 이름과 글 비밀번호로 글을 씁니다. 개인정보 수집 동의와 자동 등록 방지(reCAPTCHA)를 거치고, 같은 곳에서 1시간에 5개까지 씁니다."
+            checked={operation.allow_guest}
+            disabled={Boolean(guestBlocked) && !board.operation.allow_guest}
+            onChange={(e) => change({ allow_guest: e.target.checked })}
+          />
+          {guestBlocked && <p className="text-sm text-amber-700">{guestBlocked}</p>}
+          {operation.allow_guest && memberOnlyRead && (
+            <p className="text-sm text-amber-700">글 읽기가 회원만이라 비회원은 글을 쓸 수 없습니다.</p>
+          )}
+        </div>
+        <div className={`mt-5 ${CARD_CLASS}`}>
+          <Toggle
             label="새 글 알림"
-            description="회원이 새 글을 쓰면 관리자 화면을 열어 둔 동안 알림이 뜹니다. 제목과 게시판 이름만 보냅니다."
+            description="회원 · 비회원이 새 글을 쓰면 관리자 화면을 열어 둔 동안 알림이 뜹니다. 제목과 게시판 이름만 보냅니다."
             checked={operation.notify_new_post}
             onChange={(e) => change({ notify_new_post: e.target.checked })}
           />

@@ -152,6 +152,7 @@ class TestPublicSiteBoards:
                 "read_access": "PUBLIC",
                 "write_access": "ADMIN",
                 "allow_secret": False,
+                "allow_guest": False,
                 "categories": [],
             }
         ]
