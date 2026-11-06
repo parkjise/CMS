@@ -43,7 +43,9 @@ export function ThemeBoardMember({
     )
   }
   if (state.kind === 'detail')
-    return <ThemeBoardDetail board={board} post={state.post} hrefFor={hrefFor} />
+    return (
+      <ThemeBoardDetail board={board} post={state.post} hrefFor={hrefFor} tenantSlug={tenantSlug} />
+    )
 
   const message =
     state.kind === 'checking'

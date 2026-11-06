@@ -1,8 +1,9 @@
 import type { PublicBoard } from '@cms/types'
-import { isMemberOnly, loadBoardPage } from '@/lib/boardRoute'
+import { boardScreen, isMemberOnly, loadBoardPage } from '@/lib/boardRoute'
 import { fetchPublicPost } from '@/lib/publicPosts'
 import type { SearchTarget } from './BoardToolbar'
 import { CustomBoardMember } from './CustomBoardMember'
+import { CustomBoardWrite } from './CustomBoardWrite'
 import {
   type BoardHrefFor,
   type BoardLink,
@@ -38,6 +39,19 @@ export async function CustomBoard({
   link,
   memberEnabled,
 }: CustomBoardProps) {
+  // 회원 글쓰기 · 고치기 (T-150-B) — 쓸 수 있는 게시판인지는 주소를 찾을 때 확인했다
+  const screen = boardScreen(detailId)
+  if (screen.kind === 'write' || screen.kind === 'edit') {
+    return (
+      <CustomBoardWrite
+        board={board}
+        tenantSlug={tenantSlug}
+        postId={screen.kind === 'edit' ? screen.postId : undefined}
+        link={link}
+        memberEnabled={memberEnabled}
+      />
+    )
+  }
   // 회원만 읽는 게시판은 서버가 글을 읽지 않는다 — 브라우저가 로그인을 확인하고 읽는다 (T-150)
   if (isMemberOnly(board)) {
     return (
@@ -53,7 +67,7 @@ export async function CustomBoard({
   }
   if (detailId) {
     const post = await fetchPublicPost(tenantSlug, board.slug, detailId)
-    return <CustomBoardDetail board={board} post={post} hrefFor={hrefFor} />
+    return <CustomBoardDetail board={board} post={post} hrefFor={hrefFor} tenantSlug={tenantSlug} />
   }
   const list = await loadBoardPage(tenantSlug, board, { page, q, c })
   return <CustomBoardList board={board} list={list} hrefFor={hrefFor} searchTarget={searchTarget} />

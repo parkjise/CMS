@@ -41,3 +41,18 @@
     @include focus-ring;
   }
 }
+
+// 회원 글 [수정] [삭제] · 회원 [글쓰기] (T-150-B) — 관리자 글쓰기 버튼과 같은 모양
+.board-list__actions {
+  gap: 8px;
+}
+button.board-list__write {
+  @include button-reset;
+  border: 1px solid var(--color-text-primary);
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+}

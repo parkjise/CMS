@@ -1,11 +1,18 @@
 import type { PublicBoard, PublicPost } from '@cms/types'
-import { type BoardPage, boardDesign } from '@/lib/boardRoute'
+import {
+  type BoardPage,
+  EDIT_PAGE,
+  WRITE_PAGE,
+  boardDesign,
+  canMemberWrite,
+} from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { BoardBody } from './BoardBody'
 import { BoardCategoryTabs } from './BoardCategoryTabs'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { dotDate } from './format'
+import { MemberPostActions } from './MemberPostActions'
 import { NoticeDetailView, NoticeListView } from './NoticeBoard'
 
 export type BoardHrefFor = (extra?: { id?: string; q?: string; p?: number; c?: string }) => string
@@ -24,10 +31,12 @@ export function CustomBoardDetail({
   board,
   post,
   hrefFor,
+  tenantSlug,
 }: {
   board: PublicBoard
   post: PublicPost | null
   hrefFor: BoardHrefFor
+  tenantSlug: string
 }) {
   if (!post) return <BoardMessage board={board} text="게시글을 찾을 수 없습니다." />
   return (
@@ -41,6 +50,17 @@ export function CustomBoardDetail({
       prevHref={post.prev_id ? hrefFor({ id: post.prev_id }) : null}
       nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}
       listHref={hrefFor()}
+      actions={
+        canMemberWrite(board) ? (
+          <MemberPostActions
+            board={board}
+            tenantSlug={tenantSlug}
+            postId={post.id}
+            editHref={hrefFor({ id: `${post.id}/${EDIT_PAGE}` })}
+            listHref={hrefFor()}
+          />
+        ) : undefined
+      }
     />
   )
 }
@@ -78,6 +98,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
       hrefFor={(id) => hrefFor({ c: id })}
     />
   )
+  const memberWriteHref = canMemberWrite(board) ? hrefFor({ id: WRITE_PAGE }) : undefined
   const searchLabel = `${board.name} 검색`
   const design = boardDesign(board)
   const ratioClass = `--ratio-${design.image_ratio.replace(':', '-')}`
@@ -105,6 +126,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
         canWrite
         showDate={design.show_date}
         tabs={tabs}
+        memberWriteHref={memberWriteHref}
       />
     )
   }
@@ -122,6 +144,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
       searchTarget={listSearch}
       searchLabel={searchLabel}
       tabs={tabs}
+      memberWriteHref={memberWriteHref}
     >
       {posts.length === 0 ? (
         <BoardEmpty keyword={keyword} emptyText={EMPTY_TEXT} />

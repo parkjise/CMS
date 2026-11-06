@@ -30,7 +30,6 @@ export interface NoticeBoardProps extends CodeSectionProps {
 
 export const NOTICE_PAGE_SIZE = 10
 
-
 /** 고정 글 먼저(입력 순서), 나머지는 최신순 */
 export function sortNotices(items: NoticeItem[]): NoticeItem[] {
   const pinned = items.filter((i) => i.pinned)
@@ -51,6 +50,8 @@ interface NoticeDetailViewProps {
   fields?: PublicFieldValue[]
   /** 실제 글이면 관리자에게 [수정] — 샘플 글에는 없음 */
   edit?: { board: string; post: string }
+  /** 회원이 쓴 글이면 [수정] [삭제] (T-150-B) */
+  actions?: ReactNode
 }
 
 /** 게시글 상세 — 목업 sub/board-view.html */
@@ -64,6 +65,7 @@ export function NoticeDetailView({
   badge = '공지사항',
   fields = [],
   edit,
+  actions,
 }: NoticeDetailViewProps) {
   return (
     <section className="board-view" aria-labelledby="board-view-title">
@@ -79,6 +81,7 @@ export function NoticeDetailView({
             </time>
           </header>
           {edit && <NoticeWriteLink board={edit.board} post={edit.post} />}
+          {actions}
           {fields.length > 0 && (
             <dl className="board-view__fields">
               {fields.map((field) => (
@@ -122,6 +125,8 @@ interface NoticeListViewProps {
   emptyText?: string
   showDate?: boolean
   tabs?: ReactNode
+  /** 회원 글쓰기 게시판의 [글쓰기] 주소 (T-150-B) */
+  memberWriteHref?: string
 }
 
 /** 글 목록 — 목업 sub/board-list.html */
@@ -141,6 +146,7 @@ export function NoticeListView({
   emptyText = '등록된 공지가 없습니다.',
   showDate = true,
   tabs,
+  memberWriteHref,
 }: NoticeListViewProps) {
   return (
     <BoardListShell
@@ -155,6 +161,7 @@ export function NoticeListView({
       searchTarget={searchTarget}
       searchLabel={searchLabel}
       tabs={tabs}
+      memberWriteHref={memberWriteHref}
     >
       {items.length > 0 ? (
         <ul className="board-list__list">
@@ -187,7 +194,15 @@ export function NoticeListView({
  * 설정 키: title · items [{ id, subject, date, pinned, body [블록] }]
  * 본문 블록: { type: 'p', text } (\n · **굵게**) · { type: 'ul', items } · { type: 'image', src, alt }
  */
-export function NoticeBoard({ section, editable, detailId, q, page, hrefFor, searchTarget }: NoticeBoardProps) {
+export function NoticeBoard({
+  section,
+  editable,
+  detailId,
+  q,
+  page,
+  hrefFor,
+  searchTarget,
+}: NoticeBoardProps) {
   const title = getPlainString(section.settings, 'title')
   const all = sortNotices(getJson<NoticeItem[]>(section.settings, 'items', []))
 

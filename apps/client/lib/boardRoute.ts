@@ -2,11 +2,23 @@
  * 새 게시판 화면의 공통 동작 (T-141) — 마크업은 템플릿마다 갖고, 찾기 · 읽기는 여기서.
  * 코드형(codeRoute · CustomBoard) · 테마형(app/[tenant_slug]/b)이 같이 쓴다.
  */
-import type { BoardDesign, BoardType, PublicBoard, PublicPost, PublicPostItem, PublicPostList } from '@cms/types'
+import type {
+  BoardDesign,
+  BoardType,
+  PublicBoard,
+  PublicPost,
+  PublicPostItem,
+  PublicPostList,
+} from '@cms/types'
 import { fetchPublicPost, fetchPublicPosts } from './publicPosts'
 import type { PublicSite } from './publicSite.types'
 
-export const BOARD_PAGE_SIZE: Record<BoardType, number> = { LIST: 10, GALLERY: 12, FAQ: 20, CARD: 12 }
+export const BOARD_PAGE_SIZE: Record<BoardType, number> = {
+  LIST: 10,
+  GALLERY: 12,
+  FAQ: 20,
+  CARD: 12,
+}
 
 const DEFAULT_DESIGN: BoardDesign = {
   columns: 3,
@@ -19,13 +31,43 @@ const DEFAULT_DESIGN: BoardDesign = {
 }
 
 /** 게시판 디자인 (T-148) — 저장 전 게시판 · 캐시된 응답은 기본값 */
-export const boardDesign = (board: PublicBoard): BoardDesign => ({ ...DEFAULT_DESIGN, ...board.design })
+export const boardDesign = (board: PublicBoard): BoardDesign => ({
+  ...DEFAULT_DESIGN,
+  ...board.design,
+})
 
 /**
  * 회원만 읽는 게시판 (T-150) — 서버는 글을 읽지 않는다(공개 캐시에 남지 않게).
  * 화면이 로그인을 확인하고 브라우저에서 회원 토큰으로 읽는다.
  */
 export const isMemberOnly = (board: PublicBoard): boolean => board.read_access === 'MEMBER'
+
+/** 로그인한 방문자 회원도 홈페이지에서 쓰는 게시판 (T-150-B) */
+export const canMemberWrite = (board: PublicBoard): boolean => board.write_access === 'MEMBER'
+
+export const WRITE_PAGE = 'write'
+export const EDIT_PAGE = 'edit'
+
+/** 게시판 안의 화면 — detailId 는 '{글 id}' · 'write' · '{글 id}/edit' */
+export type BoardScreen =
+  | { kind: 'list' }
+  | { kind: 'detail'; postId: string }
+  | { kind: 'write' }
+  | { kind: 'edit'; postId: string }
+
+export function boardScreen(detailId?: string): BoardScreen {
+  if (!detailId) return { kind: 'list' }
+  if (detailId === WRITE_PAGE) return { kind: 'write' }
+  const [postId, page] = detailId.split('/')
+  if (page === EDIT_PAGE) return { kind: 'edit', postId }
+  return { kind: 'detail', postId: detailId }
+}
+
+/** 글쓰기 · 고치기 화면 — 검색에 내지 않는다 */
+export const isFormScreen = (detailId?: string): boolean => {
+  const kind = boardScreen(detailId).kind
+  return kind === 'write' || kind === 'edit'
+}
 
 export interface ResolvedBoardRoute {
   board: PublicBoard
@@ -36,15 +78,27 @@ export interface ResolvedBoardRoute {
 /**
  * /b/{게시판}[/{글}] 의 게시판 · 글. 사용 중인 새 게시판만 — 없으면 null(404).
  * 없는 글 · 비공개 글도 화면을 그리기 전에 404. 공지는 /notice 가 있어 /b/notice 도 404.
+ * 회원 글쓰기 게시판은 /b/{게시판}/write · /b/{게시판}/{글}/edit 도 연다 (T-150-B).
  */
 export async function resolveBoardRoute(
   site: PublicSite,
   tenantSlug: string,
-  [boardSlug, postId, ...extra]: string[],
+  [boardSlug, postId, ...extra]: string[]
 ): Promise<ResolvedBoardRoute | null> {
-  if (!boardSlug || extra.length > 0) return null
+  if (!boardSlug || extra.length > 1) return null
   const board = site.boards?.find((b) => b.slug === boardSlug)
   if (!board) return null
+  const writing = postId === WRITE_PAGE && extra.length === 0
+  const editing = Boolean(postId) && extra.length === 1 && extra[0] === EDIT_PAGE
+  if (writing || editing) {
+    if (!canMemberWrite(board)) return null
+    return {
+      board,
+      detailId: writing ? WRITE_PAGE : `${decodeURIComponent(postId)}/${EDIT_PAGE}`,
+      post: null,
+    }
+  }
+  if (extra.length > 0) return null
   const detailId = postId ? decodeURIComponent(postId) : undefined
   if (isMemberOnly(board)) return { board, detailId, post: null }
   const post = detailId ? await fetchPublicPost(tenantSlug, board.slug, detailId) : null
@@ -69,7 +123,7 @@ export const boardCategory = (board: PublicBoard, c?: string): string | undefine
 export type PostsFetcher = (
   tenantSlug: string,
   board: string,
-  query: { page: number; size: number; q?: string; category?: string },
+  query: { page: number; size: number; q?: string; category?: string }
 ) => Promise<PublicPostList | null>
 
 /** 글 목록 한 페이지 — 지난 주소의 페이지가 사라졌으면 마지막 페이지로. 회원 게시판은 fetchPosts 를 바꿔 쓴다 */
@@ -77,7 +131,7 @@ export async function loadBoardPage(
   tenantSlug: string,
   board: PublicBoard,
   { page, q, c }: { page: number; q?: string; c?: string },
-  fetchPosts: PostsFetcher = fetchPublicPosts,
+  fetchPosts: PostsFetcher = fetchPublicPosts
 ): Promise<BoardPage> {
   const size = board.page_size ?? BOARD_PAGE_SIZE[board.board_type]
   const keyword = (q ?? '').trim()
@@ -88,5 +142,12 @@ export async function loadBoardPage(
   const total = list?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / size))
   if (page > totalPages) list = (await load(totalPages)) ?? list
-  return { posts: list?.items ?? [], total, page: Math.min(page, totalPages), totalPages, keyword, category }
+  return {
+    posts: list?.items ?? [],
+    total,
+    page: Math.min(page, totalPages),
+    totalPages,
+    keyword,
+    category,
+  }
 }
