@@ -32,8 +32,8 @@
 | **Phase 15: 방문자 인증** | **11** | **11** | **100%** |
 | **Phase 16: 코드형 템플릿 & 목업 이식** | **18** | **18** | **100%** |
 | **Phase 17: 기획서 대조 후속** | **15** | **15** | **100%** |
-| **Phase 18: 게시판 관리 모듈** | **11** | **11** | **100%** |
-| **합계** | **186** | **186** | **100%** |
+| **Phase 18: 게시판 관리 모듈** | **18** | **18** | **100%** |
+| **합계** | **193** | **193** | **100%** |
 
 ---
 
@@ -3099,7 +3099,8 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 | 14 | T-150-A | 권한 탭 · 회원만 읽기 (서버 검사, 캐시 · 사이트맵 · 검색 제외) | T-149 | 완료 (PR #96) |
 | 15 | T-150-B | 회원 글쓰기 · 자기 글 수정 · 삭제, 병원 업종 차단 | T-150-A | 완료 (PR #97) |
 | 16 | T-151-A | 운영 설정 탭 — 비밀글 · 새 글 알림 | T-150-B | 완료 (PR #98) |
-| 17 | T-151-B | 비회원 글쓰기 · 글 비밀번호 · 신고 | T-151-A | 완료 |
+| 17 | T-151-B | 비회원 글쓰기 · 글 비밀번호 · 신고 | T-151-A | 완료 (PR #99) |
+| 18 | T-152 | 게시판 마무리 — 갭 분석 보완 (쓰기 가능 여부 · 공지 보호 · 이웃 글 · 비밀번호 한도 · reCAPTCHA · 문서) | T-151-B | 완료 |
 
 **이미 정한 것 — 바꾸려면 먼저 사용자에게 묻는다:**
 - 실제 글은 `boards` · `board_posts` 에 저장한다. 본문은 HTML 이 아닌 Tiptap 노드 JSON 이고, 서버가 허용 목록(`schemas/rich_body.py`)으로 다시 만든다. 이전 형식(`p` · `ul` · `image`)도 읽고 받는다 — 기존 글 · 샘플 (2026-11-05 T-143).
@@ -3119,17 +3120,17 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 휴지통 보관 기간 · 자동 파기 (D-06) — 해지 데이터 파기(상위 기획서 10.2 #5)와 함께 결정. 정해지기 전에는 자동 파기를 만들지 않는다.
 - 방문자 글쓰기를 열기 전 법률 확인 — 병원 후기(의료법 제56조), 개인정보 고지, 게시 중단 절차 (기획서 11.3).
 
-**코드 지도 (T-143 기준):**
+**코드 지도 (T-152 기준):**
 
 | 영역 | 파일 |
 |---|---|
-| DB | `apps/backend/alembic/versions/0038_add_boards.py` · `0039_audit_logs_tenant.py` · `0040_add_board_fields.py`, `app/models/board.py` |
-| 백엔드 | `app/schemas/board.py` · `rich_body.py`(본문 허용 목록), `app/services/board.py` · `board_field.py`(필드 · 값 검증), `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
-| 관리자 | `apps/admin/src/pages/Board*.tsx` · `PostsOverviewPage.tsx`, `components/boards/RichTextEditor.tsx` · `lib/richBody.ts`, `hooks/useBoards.ts`, `lib/boardLabels.ts` |
-| 홈페이지 | `apps/client/lib/publicPosts.ts`, `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`), `app/[tenant_slug]/sitemap.xml/route.ts`, 공통 `lib/boardRoute.ts`, 테마형 `app/[tenant_slug]/b/[...path]/page.tsx` · `components/board/ThemeBoard.tsx` · `components/layout/Navbar.tsx` |
+| DB | `apps/backend/alembic/versions/0038_add_boards.py` ~ `0045_board_guest_posts_reports.py` (0041 카드형 · 0042 카테고리 · 0043 작성 회원 · 0044 비밀글 · 0045 비회원 · 신고), `app/models/board.py` |
+| 백엔드 | `app/schemas/board.py` · `rich_body.py`(본문 허용 목록 · 글자↔문단), `app/services/board.py`(게시판 · 글 · 공개) · `board_field.py`(필드 · 값 검증) · `board_category.py` · `board_access.py`(회원 읽기 · 쓰기 권한) · `board_member_post.py`(회원 글쓰기) · `board_guest_post.py`(비회원 글쓰기 · 글 비밀번호) · `board_report.py`(신고) · `board_notify.py`(새 글 알림) · `recaptcha.py`, `app/api/v1/endpoints/boards.py` (관리자 + 공개) |
+| 관리자 | `apps/admin/src/pages/Board*.tsx`(목록 · 생성 · 기본 정보 · 필드 · 카테고리 · 디자인 · 권한 · 운영 설정 · 홈페이지 연결 · 글) · `PostsOverviewPage.tsx` · `ReportedPostsPage.tsx`, `components/boards/RichTextEditor.tsx` · `lib/richBody.ts`, `hooks/useBoards.ts` · `useBoardFields.ts` · `useBoardCategories.ts` · `useSSENotifications.ts`(새 글 알림), `lib/boardLabels.ts` |
+| 홈페이지 | `apps/client/lib/publicPosts.ts` · `memberBoard.ts`(회원 읽기 · 글쓰기) · `guestBoard.ts`(비회원 · 신고), `components/board/useMemberBoard.ts` · `useMemberPostForm.ts`(공통 동작), `templates/hospital-a/components/board/CustomBoard.tsx`(새 게시판) · `CustomBoardViews.tsx` · `CustomBoardMember.tsx` · `CustomBoardWrite.tsx` · `CustomBoardSecret.tsx` · `GuestPostTools.tsx` · `BoardListShell.tsx` · `BoardBody.tsx` · `NoticeBoard.tsx` · `NoticeBoardLive.tsx`, `sections/NoticeLatest.tsx`, `templates/codeRoute.tsx`(`resolveBoard`), `app/[tenant_slug]/sitemap.xml/route.ts`, 공통 `lib/boardRoute.ts`, 테마형 `app/[tenant_slug]/b/[...path]/page.tsx` · `components/board/ThemeBoard.tsx` · `components/layout/Navbar.tsx` |
 | 본문 표시 | `apps/client/templates/shared/RichBody.tsx` (코드형 · 테마형 공통), 스타일은 `.board-view__content` · `.rich-body` |
 | 공통 타입 | `packages/types/src/board.ts` |
-| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py` · `test_board_fields.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` · `themeBoard.test.tsx` · `menuSettings.test.tsx` · `middleware.test.ts` |
+| 테스트 | `apps/backend/tests/test_boards.py` · `test_board_manage.py` · `test_board_public.py` · `test_board_overview.py` · `test_board_fields.py` · `test_board_options.py` · `test_board_categories.py` · `test_board_permissions.py` · `test_board_member_posts.py` · `test_board_operation.py` · `test_board_guest_posts.py` · `test_board_wrapup.py`, `apps/admin/src/__tests__/boards.test.tsx` · `boardManage.test.tsx` · `postsOverview.test.tsx`, `apps/client/__tests__/noticeBoardLive.test.tsx` · `customBoard.test.tsx` · `boardRoute.test.tsx` · `sitemap.test.ts` · `themeBoard.test.tsx` · `menuSettings.test.tsx` · `middleware.test.ts` |
 
 **자주 빠지는 함정 (T-139 에서 실제로 겪음):**
 - **타입 검사:** admin · superadmin 에서 `tsc --noEmit` 은 아무것도 검사하지 않고 통과한다 (`tsconfig.json` 이 `files: []`). 반드시 `pnpm type-check` 를 쓴다.
@@ -3151,7 +3152,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 
 **작업 규칙:**
 - 태스크 하나에 플랜 승인 · 브랜치(`feat/T-140-A`) · PR 하나씩. 플랜 승인 전에는 코드를 쓰지 않는다.
-- `main` 에 직접 커밋하지 않는다. PR 생성과 머지는 사용자가 하고, 정리 전에 머지를 `git merge-base --is-ancestor` 로 확인한다.
+- `main` 에 직접 커밋하지 않는다. PR 생성 · 머지는 Claude 가 한다(CLAUDE.md 12.8 — DB · 로그인 · 권한 · 결제 · 배포 설정은 머지 전에 사용자 확인). 정리 전에 머지를 `git merge-base --is-ancestor` 로 확인한다.
 - 끝나면 해당 태스크 `[x]`, 위 상태 표, 맨 위 진행 현황 표, 기획서 해당 장을 함께 고친다.
 - 범위 밖 기능을 발견하면 만들지 말고 맨 아래 **후속 후보** 에 적는다.
 
@@ -3381,6 +3382,20 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **후속:** 댓글 · 첨부(비공개 저장소), 초안 · 발행 · 버전, 승인, 편집자 역할, 조회수, 업종별 시작 구성(병원은 고객 후기 제외)
 - **법률 확인은 오픈 전 필수 (기획서 11.3, D-14):** 의료법 제56조에 따른 병원 차단 범위, 개인정보 수집 고지, 권리 침해 신고 · 게시 중단 절차
 
+### T-152: 게시판 마무리 — 갭 분석 보완 ✅
+- **담당:** 풀스택
+- **선행:** T-151-B
+- **참조:** 기획안 v2.2 대조 (조정 범위 약 93%), 기획서 BM-10 · BM-11 · 11장
+- **작업 내용:**
+  - [x] 공개 사이트의 `write_access` · `allow_guest` 를 실제로 열리는지로 (병원 업종 · 회원 기능 꺼짐 · 회원만 읽기면 끔) — 홈페이지가 막힐 [글쓰기] · 비회원 폼을 그리지 않게
+  - [x] 기본 게시판(공지)의 운영 설정 · 비밀글을 서버에서 막음 (409)
+  - [x] 공개 글 상세의 이전 · 다음 글을 DB 창 함수로 — 게시판 글 id 를 전부 읽지 않음
+  - [x] 틀린 글 비밀번호를 글마다가 아니라 사업체 · IP 마다 셈
+  - [x] reCAPTCHA: 비회원 글쓰기는 그 폼의 토큰만(action), Google 장애는 503 안내
+  - [x] TASK · 기획서 문서 드리프트 정리, BM-02 기본 필드는 후속으로 표시
+- **범위 밖:** 신고 자동 비공개 기준 조정 (후속 후보)
+- **완료 조건:** 갭 분석의 실제 갭 1~6 해소, 문서가 코드와 맞는다 ✅
+
 ### 후속 후보 (번호 없음 — 시작할 때 사용자와 정하고 번호를 붙인다)
 - 게시판 목록의 이름 · 유형 · 상태 검색, URL · 수정일 칸, 목록의 복제 · 삭제 동작, 예제 게시판 안내 (BM-01)
 - 게시판 설정의 목록 컬럼 (BM-03)
@@ -3393,8 +3408,9 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - 고객용 감사 로그 화면
 - 게시판 화면에 이름이 히어로와 목록 제목으로 두 번 나옴 — 제목을 빼거나 설명으로 대체 검토 (T-140-B)
 - 휴대폰 폭에서 상호가 길면 헤더의 로그인 · 회원가입 글자가 두 줄로 꺾임 — 메뉴와 무관한 기존 동작 (T-140-B 때 발견)
-- 방문자 글쓰기 · 비회원 수정 (먼저 기획서 11.3 법률 확인, D-08)
-- 댓글 · 신고 · 스팸 처리
+- 댓글, 금칙어 · 스팸 문구 필터 (방문자 글쓰기 · 비회원 수정 · 신고는 T-150-B · T-151-B 에서 완료. 오픈 전 법률 확인은 기획서 11.3)
+- 신고 자동 비공개 기준(지금 3건) 조정 또는 관리자 알림으로 바꾸기 — 서로 다른 IP 3곳이면 아무 글이나 숨길 수 있다 (T-151-B)
+- 새 게시판 유형별 기본 필드 미리 넣기 (BM-02)
 - 일반 파일 · 비공개 파일 첨부 (별도 버킷 + 서명 URL — 지금 버킷은 익명 읽기 공개)
 - 콘텐츠 운영자 역할 · 게시판별 세부 권한 (지금 역할은 `TENANT_ADMIN` · `TENANT_VIEWER` 뿐)
 - 예약 발행 · 자동 저장 · 버전 이력
@@ -3415,5 +3431,5 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 기존 구독 배지·권한·기능 플래그 유지 및 동작 테스트
 - [x] 최신 main 과 합치며 게시판 상세 탭(홈페이지 연결 · 필드 관리) 브레드크럼 추가
 
-*최종 업데이트: 2026-11-05*
-*총 185개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*
+*최종 업데이트: 2026-11-06*
+*총 193개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*

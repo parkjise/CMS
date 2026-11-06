@@ -3,7 +3,7 @@
 > **문서 버전:** v1.1 (코드 대조 · 결정 반영)  
 > **작성일:** 2026-11-04  
 > **프로젝트:** 멀티 테넌트 대응형 가변 CMS 관리자 시스템  
-> **문서 상태:** 1단계(T-139) · 2단계(T-140-A ~ C) · 3단계(T-141) · 4단계(T-142-A · B) · 편집기(T-143) · 마무리(T-144) 구현 완료 · 단계 · 저장 형식 · 요금제 결정 완료 (2026-11-05) / 2단계 이후 세부는 구현 전 재확인
+> **문서 상태:** 1~4단계(T-139 ~ T-144), 기획안 v2.2 반영분(T-146 ~ T-151-B: 설정 · 필드 마무리 · 디자인 · 카테고리 · 권한 · 회원 · 비회원 글쓰기 · 비밀글 · 신고)과 마무리 보완(T-152) 구현 완료 (2026-11-06). 기획안 v2.2 대조 조정 범위 약 93%
 > **작업 목록:** `TASK.md` Phase 18 — 처음이면 그 `시작 안내` 부터 읽는다
 > **상위 기획서:** `docs/CMS_Admin_Specification_v1.5.md` — 공통 규칙은 상위 기획서와 `CLAUDE.md` 를 따른다  
 > **대상:** 기획, UI/UX, 프론트엔드, 백엔드, QA
@@ -105,12 +105,13 @@
 | **2. 게시판 추가** | T-140-A ~ C | 게시판 생성 · 복제 · 휴지통, 목록 · 갤러리 · FAQ, `/b/` 경로, 메뉴 연결, 요금제 제한, 사이트맵, 글 일괄 처리 | 공지 외 게시판을 만든다 |
 | **3. 테마형 표시 ✅** | T-141 | 테마형 템플릿의 게시판 화면 | 모든 템플릿에서 보인다 |
 | **4. 필드 빌더** | T-142-A · B | 필드 정의 · 변경 정책 · 글쓰기 폼 자동 생성 · 평점 등 타입 | 입력 칸을 바꾼다 |
-| **후속 (P1)** | 미정 | 방문자 글쓰기, 댓글 · 신고, 일반 · 비공개 파일, 콘텐츠 운영자 역할, 예약 발행, 자동 저장, 버전 이력, Q&A | |
+| **기획안 v2.2 ✅** | T-146 ~ T-152 | 정렬 · 글 수 · 검색 노출, 필드 기본값 · 타입, 디자인 · 카드형, 카테고리, 권한(회원만 읽기 · 회원 글쓰기), 운영 설정(비밀글 · 새 글 알림 · 비회원 글쓰기 · 신고) | 방문자가 쓰고 고객이 운영한다 |
+| **후속 (P1)** | 미정 | 댓글, 일반 · 비공개 파일, 콘텐츠 운영자 역할, 예약 발행, 자동 저장, 버전 이력, Q&A | |
 | **후속 (P2)** | 미정 | 업종별 프리셋, AI 글쓰기, 승인 흐름, 다국어, 분석, 웹진 · 1:1 | |
 
 **전체 완료 기준:** 관리자가 게시판을 만들고 → 필드를 추가하고 → 글을 작성하고 → 홈페이지에서 조회하고 → 게시판/필드를 비활성화·복구할 수 있다.
 
-**현재 범위:** 게시판 생성 · 설정 · 휴지통(T-140-A), 코드형 템플릿(hospital-a)의 새 게시판 화면 · 메뉴(T-140-B), 전체 글 · 사이트맵 · 감사 로그(T-140-C), 테마형의 새 게시판 화면(T-141), 필드 빌더 · 자동 글쓰기 폼 · 공개 표시(T-142-A · B), 본문 편집기(T-143), 다른 사업체 계정 버튼 정리 · 고객 도메인 확인(T-144)까지 구현했다. 테마형에 공지 전용 페이지는 없다. 기본 게시판을 비활성화하면 샘플도 비우고, 공지 페이지는 빈 안내로 남는다 — 메뉴 숨김은 메뉴 설정에서 한다.
+**현재 범위:** 게시판 생성 · 설정 · 휴지통(T-140-A), 코드형 템플릿(hospital-a)의 새 게시판 화면 · 메뉴(T-140-B), 전체 글 · 사이트맵 · 감사 로그(T-140-C), 테마형의 새 게시판 화면(T-141), 필드 빌더 · 자동 글쓰기 폼 · 공개 표시(T-142-A · B), 본문 편집기(T-143), 다른 사업체 계정 버튼 정리 · 고객 도메인 확인(T-144), 기획안 v2.2 반영(T-146 ~ T-151-B: BM-08 ~ BM-11)과 마무리 보완(T-152)까지 구현했다. 테마형에 공지 전용 페이지는 없다. 기본 게시판을 비활성화하면 샘플도 비우고, 공지 페이지는 빈 안내로 남는다 — 메뉴 숨김은 메뉴 설정에서 한다.
 
 ---
 
@@ -212,7 +213,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | 단계 | 필드 | 검증 |
 |---|---|---|
 | 1. 기본 정보 | 이름, 설명, 슬러그(고급 설정 — 비우면 `board-1` 처럼 자동) | 필수·길이·중복·예약어 |
-| 2. 유형 | 게시판 타입, 기본 스키마 | 타입별 기본 필드 로딩 |
+| 2. 유형 | 게시판 타입, 기본 스키마 | 타입별 기본 필드 로딩 — 후속 (TASK 후속 후보, T-152 대조에서 확인) |
 | 3. 운영 설정 | 사용 여부 (T-140-A). 읽기·쓰기 권한, 댓글·첨부는 후속 | 잘못된 권한 조합 방지 |
 
 **후속 동작:** 생성 완료 화면에서 `첫 글 쓰기` / `칸 설정` / `게시판 설정`으로 이동 (T-144). `사이트에 배치` 버튼은 두지 않는다 — 마법사의 "홈페이지 상단 메뉴에 추가"가 그 일을 한다.
@@ -339,7 +340,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - **검색 제외:** 목록 · 상세 페이지 `noindex`, 사이트맵에서 게시판과 글 모두 제외(백엔드 · 홈페이지 양쪽)
 - 상단 메뉴에는 그대로 보인다. 공개 사이트 응답의 `boards[].read_access` 로 화면이 구분한다
 - 방문자 회원 기능(`SITE_MEMBER`)이 꺼진 사업체는 `회원만` 을 고를 수 없다(409). 이미 `회원만` 인데 기능을 끄면 아무도 읽을 수 없고, 관리자 화면에 경고가 나온다
-- 기본 게시판(공지)은 화면이 템플릿 페이지라 권한 탭이 없고 바꿀 수 없다(409, 기본값 저장은 허용)
+- 기본 게시판(공지)은 화면이 템플릿 페이지라 권한 · 운영 설정 탭이 없고, 서버도 권한 · 운영 설정 변경과 비밀글을 막는다(409, 기본값 저장은 허용, T-152)
 - 바꾸면 `BOARD_UPDATED` 감사 로그에 이전 · 이후 권한이 남는다
 - **글쓰기 (T-150-B):** `관리자만`(기본) · `회원도`. `회원도` 면 홈페이지 목록에 [글쓰기], 주소 `/b/{게시판}/write` · `/b/{게시판}/{글}/edit` (검색 제외)
   - 폼은 제목 · 내용(글자만) · 카테고리. 서버가 글자를 문단 노드로 만든다 — 서식 · 링크 · 사진 · 추가 칸 없음. 글은 바로 공개되고 `board_posts.author_member_id` 에 작성 회원이 남는다 (마이그레이션 0043)
@@ -359,9 +360,9 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
   - 허용을 꺼도 이미 쓴 비밀글은 비밀로 남는다. 그 글은 고칠 때 비밀을 풀 수는 있지만 새로 비밀로 바꿀 수는 없다(409)
 - **새 글 알림 (T-151-A):** 켜면 회원이 새 글을 쓸 때 관리자 화면에 실시간 알림(문의 알림과 같은 SSE 채널, 종류 `new_post`). 제목 · 게시판 이름만 보낸다. 알림이 실패해도 글은 저장된다. 고친 글은 알리지 않는다
 - **비회원 글쓰기 (T-151-B):** `operation.allow_guest`. 글쓰기 `회원도` 이고 글 읽기가 `누구나` 인 게시판에서만 열린다. 병원 업종 · 필수 칸이 있는 게시판은 켤 수 없다(409, 회원 글쓰기와 같은 이유). 업종을 병원으로 바꾸면 서버가 막는다(403)
-  - 폼: 이름(20자) · 글 비밀번호(4~50자) · 제목 · 내용 · 카테고리 · 비밀글 · 개인정보 수집 · 이용 동의(필수). reCAPTCHA v3, 같은 IP 1시간 5개(Redis, 장애 시 허용)
+  - 폼: 이름(20자) · 글 비밀번호(4~50자) · 제목 · 내용 · 카테고리 · 비밀글 · 개인정보 수집 · 이용 동의(필수). reCAPTCHA v3(이 폼의 action 토큰만, Google 장애는 503 안내 — T-152), 같은 IP 1시간 5개(Redis, 장애 시 허용)
   - 글 비밀번호는 bcrypt 해시로만 `board_posts.guest_password_hash`, 이름은 `guest_name` (마이그레이션 0045). IP 는 저장하지 않는다
-  - 고치기 · 지우기 · 비밀글 열기는 글 비밀번호로. 틀린 비밀번호는 같은 IP 10분 5번까지, 넘으면 맞아도 429. Redis 를 못 쓰면 거절(맞히기 차단 우선). 회원 글 · 관리자 글은 비밀번호로 열 수 없다(404). 응답 캐시 금지
+  - 고치기 · 지우기 · 비밀글 열기는 글 비밀번호로. 틀린 비밀번호는 사업체 안에서 같은 IP 10분 5번까지(여러 글을 돌아가며 시도해도 함께 센다, T-152), 넘으면 맞아도 429. Redis 를 못 쓰면 거절(맞히기 차단 우선). 회원 글 · 관리자 글은 비밀번호로 열 수 없다(404). 응답 캐시 금지
   - D-08 (비회원 게시글 수정 · 삭제 방식) → 글 비밀번호로 결정
 - **신고 (T-151-B):** 공개 글 상세에 [신고] — 스팸 · 광고 / 욕설 · 비방 / 개인정보 노출 / 기타 + 설명(200자). 같은 사람(회원 id 또는 IP 를 서버 비밀값으로 해시)은 한 글에 한 번(409). IP 해시별 1시간 10번. 처리하지 않은 신고가 3건이면 글을 자동 비공개
   - 관리자 `신고된 글` — 신고 수 · 사유 · 설명, [신고 닫기] [다시 공개] [비공개로] [휴지통으로]. 처리하면 그 글의 신고가 닫히고 감사 로그 `POST_REPORTS_*`
@@ -495,7 +496,10 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | POST | `/api/v1/posts/bulk` | 일괄 공개 · 비공개 · 휴지통 · 복원 (T-140-C) |
 | GET | `/api/v1/posts/reports` | 신고된 글 (T-151-B) |
 | POST | `/api/v1/posts/{post_id}/reports/resolve` | 신고 처리 `DISMISS · PUBLISH · HIDE · DELETE` (T-151-B) |
-| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?category_id=`, T-149). 회원 글은 `author_member_name` (T-150-B) |
+| GET | `/api/v1/boards/{board_id}/posts` | 게시판별 글 목록 (`?status=` · `?q=` · `?category_id=` · `?trash=`). 회원 글은 `author_member_name`, 비회원 글은 `guest_name` |
+| GET | `/api/v1/boards/{board_id}/posts/{post_id}` | 글 하나 (고치기 화면) |
+| POST | `/api/v1/boards/{board_id}/posts/{post_id}/restore` | 휴지통 글 복원 |
+| POST | `/api/v1/boards/clear-samples` | 공지 샘플 글 치우기 |
 | GET | `/api/v1/boards/{board_id}/permission-options` | 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) |
 | POST | `/api/v1/boards/{board_id}/posts` | 게시글 작성 |
 | PATCH | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 수정 |
@@ -507,7 +511,7 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 
 | Method | Path | 기능 | 단계 |
 |---|---|---|---|
-| GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 공개 글 목록 (`?q=` · `?p=` · `?size=` · `?category=`, 고정 글 먼저). `회원만` 게시판은 방문자 회원 토큰 필요 (T-150) | 1 |
+| GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 공개 글 목록 (`?q=` · `?page=` · `?size=` · `?category=` · `?order=latest`, 고정 글 먼저). `회원만` 게시판은 방문자 회원 토큰 필요 (T-150) | 1 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}` | 글 상세 + 이전 · 다음 글 + 표시할 칸 `fields` | 1 · 4 |
 | POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts` | 회원 글쓰기 (`title` · `content` 글자 · `category_id`, 방문자 회원 토큰) — T-150-B | P1 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/mine` | 내가 쓴 글이면 고치기 값, 아니면 404 — T-150-B | P1 |
@@ -515,7 +519,7 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 | POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/guest` | 비회원 글쓰기 (이름 · 글 비밀번호 · 동의 · reCAPTCHA) — T-151-B | P1 |
 | POST · PATCH | `.../posts/{post_id}/guest/verify` · `.../posts/{post_id}/guest` · `.../guest/delete` | 글 비밀번호로 열기 · 고치기 · 휴지통 — T-151-B | P1 |
 | POST | `/api/public/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/report` | 글 신고 — T-151-B | P1 |
-| GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형 · 사용 중인 분류 `categories`) — T-140-B · T-149 | 2 |
+| GET | `/api/public/site/{tenant_slug}` 의 `boards` | 사용 중인 새 게시판 (이름 · 슬러그 · 설명 · 유형 · 분류 `categories` · `read_access` · `write_access` · `allow_secret` · `allow_guest`) — `write_access` · `allow_guest` 는 저장값이 아니라 지금 실제로 열리는지(병원 업종 · 회원 기능 · 회원만 읽기 반영, T-152) | 2 |
 | GET | `/api/public/site/{tenant_slug}/boards/{board_slug}` | 공개 게시판 정보와 허용된 필드 — 필드가 생기는 4단계에서 필요하면 | 4 |
 
 - 글 목록 항목에는 `thumbnail`(본문의 첫 사진)이 있고, FAQ 게시판만 `body` 까지 준다.
@@ -538,16 +542,18 @@ v1.0 의 `/api/public/boards/{board_slug}` 는 슬러그가 테넌트별이라 �
 
 ```text
 apps/admin/src/
-├── pages/                 BoardsPage · BoardPostsPage · BoardPostEditPage · 설정 · 필드
-├── components/boards/     RichTextEditor · FieldBuilder
-├── hooks/useBoards.ts     TanStack Query
+├── pages/                 BoardsPage · BoardNewPage · BoardPostsPage · BoardPostEditPage · 기본 정보 · 필드 · 카테고리 · 디자인 · 권한 · 운영 설정 · 홈페이지 연결 · PostsOverviewPage · ReportedPostsPage
+├── components/boards/     RichTextEditor · FieldEditorForm · CustomFieldInputs · BoardDetailHeader
+├── hooks/                 useBoards · useBoardFields · useBoardCategories (TanStack Query), useSSENotifications (새 글 알림)
 apps/client/
-├── lib/publicPosts.ts     공개 글 API
-├── lib/boardRoute.ts      새 게시판 찾기 · 목록 읽기 (코드형 · 테마형 공통)
-├── app/[tenant_slug]/b/[...path]/page.tsx · components/board/ThemeBoard.tsx  (테마형)
+├── lib/publicPosts.ts     공개 글 API (서버 캐시)
+├── lib/memberBoard.ts · guestBoard.ts   회원 읽기 · 글쓰기, 비회원 글쓰기 · 글 비밀번호 · 신고 (브라우저, 캐시 없음)
+├── lib/boardRoute.ts      새 게시판 찾기 · 화면 구분(목록 · 상세 · write · edit) · 목록 읽기 (코드형 · 테마형 공통)
+├── components/board/      useMemberBoard · useMemberPostForm (공통 동작), ThemeBoard · ThemeBoardMember · ThemeBoardWrite · ThemeBoardSecret · ThemeGuestTools (테마형)
+├── app/[tenant_slug]/b/[...path]/page.tsx  (테마형)
 └── templates/hospital-a/components/board/
       NoticeBoardLive.tsx · sections/NoticeLatest.tsx  (실제 글 + 샘플 대체)
-      CustomBoard.tsx · BoardListShell.tsx · BoardBody.tsx  (새 게시판 — 유형별 목록 + 공통 상세)
+      CustomBoard.tsx(서버) · CustomBoardViews.tsx(서버 · 브라우저 공통 화면) · CustomBoardMember · CustomBoardWrite · CustomBoardSecret · GuestPostTools · BoardCategoryTabs · BoardGate
 packages/types/src/board.ts
 ```
 
@@ -589,7 +595,7 @@ packages/types/src/board.ts
 - 삭제 시 실제 파일 보존 및 정리 정책을 설정한다. 해지 고객 데이터 파기(상위 기획서 10.2 #5)가 정해지면 새 표도 포함한다.
 - 게시글/게시판 복원 시 이름·슬러그 충돌 처리와 참조 무결성을 확인한다.
 - 이력 로그에는 불필요한 민감한 본문이나 비밀번호를 저장하지 않는다.
-- **T-140-C 구현:** `audit_logs.tenant_id` + RLS(읽기는 자기 사업체 · 슈퍼 어드민, 수정 · 삭제는 슈퍼 어드민만, 쓰기는 비운 값 허용 — 로그인 전 요청). 기록: `BOARD_CREATED` · `UPDATED` · `DUPLICATED` · `DELETED` · `RESTORED`, `POST_DELETED` · `RESTORED`, `POST_BULK_*`. 값은 게시판 이름 · 슬러그 · 유형 · 상태, 글 제목 · 상태 · id 만. 일반 글 저장은 남기지 않는다. 필드 · 권한 변경은 해당 기능이 생길 때, 글 강제 삭제는 D-06 뒤.
+- **T-140-C 구현:** `audit_logs.tenant_id` + RLS(읽기는 자기 사업체 · 슈퍼 어드민, 수정 · 삭제는 슈퍼 어드민만, 쓰기는 비운 값 허용 — 로그인 전 요청). 기록: `BOARD_CREATED` · `UPDATED` · `DUPLICATED` · `DELETED` · `RESTORED`, `POST_DELETED` · `RESTORED`, `POST_BULK_*`. 값은 게시판 이름 · 슬러그 · 유형 · 상태, 글 제목 · 상태 · id 만. 일반 글 저장은 남기지 않는다. 이후 추가: `BOARD_FIELD_*` (T-142-A), `BOARD_CATEGORY_*` (T-149), 권한 · 운영 설정 변경은 `BOARD_UPDATED` 의 이전 · 이후 값 (T-150 · T-151), 신고 처리 `POST_REPORTS_*` (T-151-B). 글 강제 삭제는 D-06 뒤.
 
 ---
 
@@ -662,7 +668,7 @@ packages/types/src/board.ts
 |---|---|---|
 | D-01 | 게시판 수 요금제 제한 | ✅ FREE · BASIC 기본 게시판만, STANDARD 5개, PREMIUM 제한 없음. 필드 수는 4단계에서 |
 | D-02 | 게시판 복제 시 기존 글 복제 여부 | ✅ 설정·필드만 복제, 글은 복제하지 않음 (T-140-A) |
-| D-03 | 게시판 유형 변경 범위 | ✅ 글이 있어도 목록 · 갤러리 · FAQ 사이 변경 허용, 화면에서 경고. 기본 게시판은 변경 불가 (T-140-A) |
+| D-03 | 게시판 유형 변경 범위 | ✅ 글이 있어도 목록 · 갤러리 · FAQ · 카드형 사이 변경 허용, 화면에서 경고. 기본 게시판은 변경 불가 (T-140-A · T-148) |
 | D-04 | 기존 공지 게시글 이전 시점 | ✅ 삭제 — 오픈 전이라 옮길 글이 없음 (2.2) |
 | D-05 | 기존 상담을 범용 게시판으로 이전 여부 | ✅ 이전하지 않음 |
 | D-06 | 게시판·게시글 휴지통 보관 기간 | 미정 — 상위 기획서 10.2 #5 와 함께. 1단계는 자동 파기 없이 복원만 |
@@ -692,6 +698,7 @@ packages/types/src/board.ts
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | 1.0 | 2026-11-04 | 기존 CMS와 게시판 가이드 비교를 바탕으로 신규 게시판 관리 모듈 통합 기획 초안 작성 |
+| 1.1 | 2026-11-06 | T-152 반영: 기획안 v2.2 대조(조정 범위 약 93%) 보완 — 공개 쓰기 값은 실제 가능 여부, 공지 운영 설정 · 비밀글 서버 차단, 이웃 글 창 함수, 비밀번호 한도 사업체 · IP 단위, reCAPTCHA action · 장애, 문서 정리 |
 | 1.1 | 2026-11-06 | T-151-B 반영: 비회원 글쓰기 · 글 비밀번호 (D-08 결정) · 신고 · 신고된 글 화면 |
 | 1.1 | 2026-11-06 | T-151-A 반영: 운영 설정 탭 (BM-11) — 비밀글 · 새 글 알림 |
 | 1.1 | 2026-11-06 | T-150-B 반영: 회원 글쓰기 · 자기 글 수정 · 삭제, 병원 업종 · 필수 칸 차단, 1시간 한도, 작성 회원 칸 |
