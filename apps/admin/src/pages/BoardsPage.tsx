@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
 import dayjs from 'dayjs'
-import { ExternalLink, FileText, Plus, Settings, Trash2 } from 'lucide-react'
+import { Copy, ExternalLink, FileText, Plus, Settings, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
+import type { Board } from '@cms/types'
+import { Button, toast } from '@cms/ui'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useBoardLimits, useBoards } from '@/hooks/useBoards'
+import { useBoardLimits, useBoards, useDeleteBoard, useDuplicateBoard } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { BOARD_TYPES, boardTypeLabel } from '@/lib/boardLabels'
+import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 
 const CLIENT_BASE_URL = (import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000').replace(
@@ -23,7 +26,40 @@ export function BoardsPage() {
   const canEdit = useCanEdit()
   const boards = boardsQuery.data
   const limits = limitsQuery.data
+  const duplicateBoard = useDuplicateBoard()
+  const deleteBoard = useDeleteBoard()
+  const actionPending = duplicateBoard.isPending || deleteBoard.isPending
+  const canDuplicate = Boolean(limits?.can_create) && !limitsQuery.isError
   const navigate = useNavigate()
+  const duplicate = async (id: string) => {
+    if (!canEdit || actionPending || !canDuplicate) return
+    try {
+      const copy = await duplicateBoard.mutateAsync(id)
+      toast.success('설정과 칸을 복제했습니다. 글은 복제되지 않습니다.')
+      navigate(`/admin/boards/${copy.id}/settings`)
+    } catch (error) {
+      toast.error(pickErrorMessage(error, '복제하지 못했습니다.'))
+    }
+  }
+  const remove = async (board: Board) => {
+    if (!canEdit || actionPending || board.system_key !== null) return
+    const posts =
+      board.post_count > 0
+        ? `글 ${board.post_count.toLocaleString()}개도 함께 보이지 않게 되고, `
+        : ''
+    if (
+      !window.confirm(
+        `'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.`
+      )
+    )
+      return
+    try {
+      await deleteBoard.mutateAsync(board.id)
+      toast.success('휴지통으로 옮겼습니다.')
+    } catch (error) {
+      toast.error(pickErrorMessage(error, '삭제하지 못했습니다.'))
+    }
+  }
   const [searchParams, setSearchParams] = useSearchParams()
   const nameQuery = searchParams.get('q') ?? ''
   const typeQuery = searchParams.get('type') ?? ''
@@ -111,6 +147,11 @@ export function BoardsPage() {
         </p>
       )}
 
+      {canEdit && limitsQuery.isError && (
+        <p role="alert" className="text-sm text-red-600">
+          게시판 한도를 확인하지 못했습니다. 새로고침 후 다시 시도해 주세요.
+        </p>
+      )}
       <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
         <label className="min-w-48 flex-1 text-sm text-slate-600">
           게시판 이름
@@ -191,8 +232,11 @@ export function BoardsPage() {
               url && board.status === 'ACTIVE' && (!board.system_key || mode === 'code')
             const modified = board.updated_at ? dayjs(board.updated_at) : null
             return (
-              <li key={board.id} className="flex items-center gap-2 pr-2 hover:bg-slate-50">
-                <div className="min-w-0 flex-1">
+              <li
+                key={board.id}
+                className="flex flex-wrap items-center gap-2 pr-2 hover:bg-slate-50"
+              >
+                <div className="min-w-0 flex-1 basis-64">
                   <Link
                     to={`/admin/boards/${board.id}/posts`}
                     className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 p-4"
@@ -245,13 +289,54 @@ export function BoardsPage() {
                     )}
                   </div>
                 </div>
-                <Link
-                  to={`/admin/boards/${board.id}/settings`}
-                  aria-label={`${board.name} 설정`}
-                  className="rounded p-2 text-slate-500 hover:bg-slate-100"
+                <div
+                  role="group"
+                  aria-label={`${board.name} 작업`}
+                  className="ml-auto flex flex-wrap items-center gap-1 p-2"
                 >
-                  <Settings className="h-4 w-4" aria-hidden />
-                </Link>
+                  {canEdit && (
+                    <>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        aria-label={`${board.name} 복제`}
+                        title={
+                          canDuplicate
+                            ? '설정과 칸만 복제합니다. 글은 복제하지 않습니다.'
+                            : (limits?.reason ?? '게시판 한도를 확인한 뒤 복제할 수 있습니다.')
+                        }
+                        disabled={actionPending || !canDuplicate}
+                        loading={duplicateBoard.isPending && duplicateBoard.variables === board.id}
+                        onClick={() => void duplicate(board.id)}
+                      >
+                        <Copy className="h-4 w-4" aria-hidden />
+                        복제
+                      </Button>
+                      {board.system_key === null && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          aria-label={`${board.name} 휴지통으로`}
+                          disabled={actionPending}
+                          loading={deleteBoard.isPending && deleteBoard.variables === board.id}
+                          onClick={() => void remove(board)}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                          휴지통으로
+                        </Button>
+                      )}
+                    </>
+                  )}
+                  <Link
+                    to={`/admin/boards/${board.id}/settings`}
+                    aria-label={`${board.name} 설정`}
+                    className="rounded p-2 text-slate-500 hover:bg-slate-100"
+                  >
+                    <Settings className="h-4 w-4" aria-hidden />
+                  </Link>
+                </div>
               </li>
             )
           })}
