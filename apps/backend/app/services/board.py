@@ -476,6 +476,18 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         )
     if data.permissions is not None:
         await _check_permissions(db, board, data.permissions)
+    if (
+        data.operation is not None
+        and data.operation.allow_guest
+        and not operation_of(board).allow_guest
+    ):
+        # 비회원 글쓰기도 회원 글쓰기와 같은 이유로 막는다 (병원 · 필수 칸, T-151-B)
+        blocked = await board_access.member_write_blocked(db, board)
+        if blocked:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "CONFLICT", "message": blocked},
+            )
     if data.slug is not None and data.slug != board.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, board.tenant_id, data.slug, exclude=board.id):
@@ -836,6 +848,7 @@ def _public_board(board: Board, categories: list[dict]) -> dict:
         "read_access": options[PERMISSIONS_KEY]["read"],
         "write_access": options[PERMISSIONS_KEY]["write"],
         "allow_secret": options[OPERATION_KEY]["allow_secret"],
+        "allow_guest": options[OPERATION_KEY]["allow_guest"],
         "categories": categories,
     }
 
@@ -899,6 +912,7 @@ def public_post_item(
     is_card = board.board_type == "CARD" and not post.is_secret
     return {
         "is_secret": post.is_secret,
+        "is_guest": post.guest_password_hash is not None,
         "summary": body_summary(blocks, CARD_SUMMARY_LIMIT) if is_card else None,
         "card_fields": (
             field_service.field_values(card_fields or [], post.custom_data or {})

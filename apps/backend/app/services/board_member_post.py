@@ -33,7 +33,7 @@ MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
 MSG_SECRET_NOT_ALLOWED = "이 게시판은 비밀글을 쓸 수 없습니다."
 
 
-def _body(content: str) -> list[dict]:
+def body_from_text(content: str) -> list[dict]:
     try:
         return clean_body(text_to_body(content))
     except ValueError as e:
@@ -53,7 +53,7 @@ def member_post_response(post: BoardPost) -> dict:
     }
 
 
-def _check_secret(board: Board, wanted: bool, already: bool = False) -> None:
+def check_secret(board: Board, wanted: bool, already: bool = False) -> None:
     """비밀글은 운영 설정에서 허용한 게시판만 — 이미 비밀글이면 그대로 둘 수 있다."""
     if wanted and not already and not board_service.operation_of(board).allow_secret:
         raise HTTPException(
@@ -89,7 +89,7 @@ async def create_post(
     db: AsyncSession, board: Board, member: SiteMember, data: MemberPostCreate
 ) -> BoardPost:
     await _ensure_rate(db, member)
-    _check_secret(board, data.is_secret)
+    check_secret(board, data.is_secret)
     await category_service.check_post_category(db, board.id, data.category_id)
     # 회원 폼에는 추가 칸이 없다 — 기본값만 채운다. 필수 칸이 있으면 여기서 막힌다
     custom_data = await field_service.resolve_custom_data(
@@ -101,7 +101,7 @@ async def create_post(
         author_id=None,
         author_member_id=member.id,
         title=data.title,
-        body=_body(data.content),
+        body=body_from_text(data.content),
         status=STATUS_PUBLISHED,
         is_pinned=False,
         is_secret=data.is_secret,
@@ -144,12 +144,12 @@ async def update_post(
         await category_service.check_post_category(db, board.id, data.category_id)
         post.category_id = data.category_id
     if data.is_secret is not None:
-        _check_secret(board, data.is_secret, already=post.is_secret)
+        check_secret(board, data.is_secret, already=post.is_secret)
         post.is_secret = data.is_secret
     if data.title is not None:
         post.title = data.title
     if data.content is not None:
-        post.body = _body(data.content)
+        post.body = body_from_text(data.content)
     await board_service.after_member_write(db, post)
     return post
 

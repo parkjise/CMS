@@ -88,6 +88,9 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
         nullable=True,
         index=True,
     )
+    # 비회원 글 (T-151-B) — 이름과 글 비밀번호(bcrypt). 회원 · 관리자 글은 비어 있다
+    guest_name: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    guest_password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
     # 카테고리 (T-149) — 비워 둘 수 있다. 같은 게시판의 분류인지는 서비스가 본다
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
@@ -160,3 +163,33 @@ class BoardCategory(Base, TimestampMixin, SoftDeleteMixin):
     # 끄면 홈페이지 분류 탭에서만 빠진다 — 글은 '전체'에 그대로
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class BoardPostReport(Base, TimestampMixin, SoftDeleteMixin):
+    """글 신고 (T-151-B) — 신고자는 해시(reporter_key)만 남긴다."""
+
+    __tablename__ = "board_post_reports"
+    __table_args__ = (
+        UniqueConstraint(
+            "post_id", "reporter_key", name="uq_board_post_reports_reporter"
+        ),
+        Index("ix_board_post_reports_tenant_status", "tenant_id", "status"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    post_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("board_posts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    # SPAM | ABUSE | PRIVACY | OTHER
+    reason: Mapped[str] = mapped_column(String(20), nullable=False)
+    detail: Mapped[str] = mapped_column(String(200), nullable=False, default="")
+    reporter_key: Mapped[str] = mapped_column(String(64), nullable=False)
+    # OPEN | CLOSED
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="OPEN")

@@ -79,6 +79,8 @@ class BoardOperation(BaseModel):
     allow_secret: bool = False
     # 회원이 새 글을 쓰면 관리자 화면에 실시간 알림
     notify_new_post: bool = False
+    # 비로그인 방문자도 이름 · 글 비밀번호로 쓴다 (T-151-B) — 회원 글쓰기 게시판만
+    allow_guest: bool = False
 
 
 class BoardCreate(BaseModel):
@@ -350,6 +352,8 @@ class PostListItem(BaseModel):
     # 홈페이지에서 쓴 회원 (T-150-B) — 관리자 글은 None
     author_member_id: UUID | None = None
     author_member_name: str | None = None
+    # 비회원 글의 이름 (T-151-B)
+    guest_name: str | None = None
 
 
 class PostResponse(PostListItem):
@@ -416,6 +420,8 @@ class PublicBoardResponse(BaseModel):
     write_access: BoardWriteAccess = "ADMIN"
     # 회원 글쓰기 폼에 비밀글 체크 (T-151-A)
     allow_secret: bool = False
+    # 비회원 글쓰기 (T-151-B)
+    allow_guest: bool = False
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
 
@@ -438,6 +444,8 @@ class PublicPostItem(BaseModel):
     published_at: datetime
     # 비밀글이면 제목만 — 요약 · 사진 · 본문 · 칸은 비운다 (T-151-A)
     is_secret: bool = False
+    # 비회원 글 — 글 비밀번호로 고치거나 지우고, 비밀글이면 비밀번호로 연다 (T-151-B)
+    is_guest: bool = False
     # 갤러리 썸네일 — 본문의 첫 사진
     thumbnail: str | None = None
     # FAQ 는 목록에서 답변을 펼치므로 본문까지, 그 밖에는 없음
@@ -502,3 +510,82 @@ class MemberPostResponse(BaseModel):
     content: str
     category_id: UUID | None
     is_secret: bool = False
+
+
+# ── 비회원 글쓰기 · 신고 (T-151-B) ──────────────────────────────────────
+
+GuestName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20)
+]
+GuestPassword = Annotated[str, StringConstraints(min_length=4, max_length=50)]
+
+
+class GuestPostCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: GuestName
+    password: GuestPassword
+    title: PostTitle
+    content: MemberPostContent
+    category_id: UUID | None = None
+    is_secret: bool = False
+    # 개인정보 수집 · 이용 동의 — 반드시 true
+    agree: Literal[True]
+    recaptcha_token: str | None = Field(default=None, max_length=4000)
+
+
+class GuestPasswordRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password: GuestPassword
+
+
+class GuestPostUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    password: GuestPassword
+    title: PostTitle | None = None
+    content: MemberPostContent | None = None
+    category_id: UUID | None = None
+    is_secret: bool | None = None
+
+
+class GuestPostResponse(MemberPostResponse):
+    """비밀번호를 확인한 비회원 글 — 고치기 값과 상세 본문."""
+
+    guest_name: str
+    body: list[BodyNode]
+    fields: list[PublicFieldValue] = []
+
+
+ReportReason = Literal["SPAM", "ABUSE", "PRIVACY", "OTHER"]
+
+
+class ReportCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    reason: ReportReason
+    detail: str = Field(default="", max_length=200)
+
+
+class ReportedPostItem(BaseModel):
+    """신고된 글 한 줄 — 처리하지 않은 신고만 센다."""
+
+    post_id: UUID
+    board_id: UUID
+    board_name: str
+    title: str
+    status: str
+    deleted: bool
+    report_count: int
+    reasons: dict[str, int]
+    # 신고자가 적은 설명 (최근 것부터, 비어 있지 않은 것만)
+    details: list[str]
+    latest_at: datetime
+
+
+ReportAction = Literal["DISMISS", "PUBLISH", "HIDE", "DELETE"]
+
+
+class ReportResolveRequest(BaseModel):
+    action: ReportAction

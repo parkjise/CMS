@@ -1,7 +1,6 @@
 from datetime import date
 from uuid import UUID
 
-import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from slowapi import Limiter
 from sqlalchemy import select
@@ -36,7 +35,7 @@ from app.schemas.inquiry_board import (
 )
 from app.services import inquiry as inquiry_service
 from app.services import inquiry_board as board_service
-from app.services import inquiry_fields, member_activity
+from app.services import inquiry_fields, member_activity, recaptcha
 from app.services import member_reservation_admin as reservation_admin
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
@@ -49,23 +48,7 @@ _limiter = Limiter(key_func=rate_limit_key)
 
 
 async def _verify_recaptcha(token: str | None) -> None:
-    if not settings.recaptcha_secret_key:
-        return
-    if not token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="RECAPTCHA_REQUIRED"
-        )
-    async with httpx.AsyncClient(timeout=5) as client:
-        resp = await client.post(
-            "https://www.google.com/recaptcha/api/siteverify",
-            data={"secret": settings.recaptcha_secret_key, "response": token},
-        )
-    result = resp.json()
-    score_ok = result.get("score", 0) >= settings.recaptcha_min_score
-    if not result.get("success") or not score_ok:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="RECAPTCHA_FAILED"
-        )
+    await recaptcha.verify(token)
 
 
 # ── Public ──────────────────────────────────────────────────────────────────

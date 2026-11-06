@@ -3,11 +3,12 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_action
+from app.core.client_info import client_ip
 from app.core.deps import (
     bearer,
     get_current_user,
@@ -33,6 +34,10 @@ from app.schemas.board import (
     FieldOrderRequest,
     FieldResponse,
     FieldUpdate,
+    GuestPasswordRequest,
+    GuestPostCreate,
+    GuestPostResponse,
+    GuestPostUpdate,
     MemberPostCreate,
     MemberPostResponse,
     MemberPostUpdate,
@@ -51,13 +56,18 @@ from app.schemas.board import (
     PublicPostItem,
     PublicPostListResponse,
     PublicSitemapPost,
+    ReportCreate,
+    ReportedPostItem,
+    ReportResolveRequest,
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
 from app.services import board_access
 from app.services import board_category as category_service
 from app.services import board_field as field_service
+from app.services import board_guest_post as guest_post_service
 from app.services import board_member_post as member_post_service
+from app.services import board_report as report_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
@@ -754,6 +764,39 @@ async def bulk_update_posts(
     return ApiResponse.ok(PostBulkResponse(updated=len(ids)))
 
 
+# ── 신고된 글 (T-151-B) ──────────────────────────────────────────────────
+
+
+@posts_router.get("/reports", response_model=ApiResponse[list[ReportedPostItem]])
+async def list_reported_posts(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    items = await report_service.list_reported(db, tenant_id)
+    return ApiResponse.ok([ReportedPostItem(**item) for item in items])
+
+
+@posts_router.post("/{post_id}/reports/resolve", response_model=ApiResponse[dict])
+async def resolve_reports(
+    post_id: UUID,
+    data: ReportResolveRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    post = await report_service.resolve(db, tenant_id, post_id, data.action)
+    await log_action(
+        db,
+        current_user,
+        f"POST_REPORTS_{data.action}",
+        "board_post",
+        post.id,
+        after={"title": post.title, "status": post.status},
+        tenant_id=tenant_id,
+    )
+    return ApiResponse.ok({"resolved": True, "status": post.status})
+
+
 @public_router.get(
     "/site/{tenant_slug}/sitemap-posts",
     response_model=ApiResponse[list[PublicSitemapPost]],
@@ -859,6 +902,7 @@ async def get_public_post(
             title=post.title,
             is_pinned=post.is_pinned,
             is_secret=post.is_secret,
+            is_guest=post.guest_password_hash is not None,
             locked=locked,
             published_at=post.published_at,  # type: ignore[arg-type]
             category_id=post.category_id,
@@ -963,3 +1007,119 @@ async def delete_member_post(
     post = await member_post_service.own_post(db, board, member, post_id)
     await member_post_service.delete_post(db, post)
     return ApiResponse.ok({"deleted": True})
+
+
+# ── 비회원 글쓰기 · 신고 (T-151-B) ─────────────────────────────────────
+
+
+async def _guest_response(db: AsyncSession, post: BoardPost) -> GuestPostResponse:
+    return GuestPostResponse(**await guest_post_service.guest_post_response(db, post))
+
+
+@public_router.post(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/guest",
+    response_model=ApiResponse[GuestPostResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_guest_post(
+    tenant_slug: str,
+    board_slug: str,
+    data: GuestPostCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    board = await _open_board(db, tenant_slug, board_slug)
+    post = await guest_post_service.create_post(db, board, data, client_ip(request))
+    return ApiResponse.ok(await _guest_response(db, post))
+
+
+@public_router.post(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/guest/verify",
+    response_model=ApiResponse[GuestPostResponse],
+)
+async def verify_guest_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    data: GuestPasswordRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    """글 비밀번호 확인 — 맞으면 고치기 값과 본문(비밀글도). 캐시하지 않는다."""
+    response.headers["Cache-Control"] = board_access.PRIVATE_CACHE
+    board = await _open_board(db, tenant_slug, board_slug)
+    post = await guest_post_service.guest_post(
+        db, board, post_id, data.password, client_ip(request)
+    )
+    return ApiResponse.ok(await _guest_response(db, post))
+
+
+@public_router.patch(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/guest",
+    response_model=ApiResponse[GuestPostResponse],
+)
+async def update_guest_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    data: GuestPostUpdate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    board = await _open_board(db, tenant_slug, board_slug)
+    post = await guest_post_service.guest_post(
+        db, board, post_id, data.password, client_ip(request)
+    )
+    updated = await guest_post_service.update_post(db, board, post, data)
+    return ApiResponse.ok(await _guest_response(db, updated))
+
+
+@public_router.post(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/guest/delete",
+    response_model=ApiResponse[dict],
+)
+async def delete_guest_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    data: GuestPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    board = await _open_board(db, tenant_slug, board_slug)
+    post = await guest_post_service.guest_post(
+        db, board, post_id, data.password, client_ip(request)
+    )
+    await guest_post_service.delete_post(db, post)
+    return ApiResponse.ok({"deleted": True})
+
+
+@public_router.post(
+    "/site/{tenant_slug}/boards/{board_slug}/posts/{post_id}/report",
+    response_model=ApiResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+)
+async def report_post(
+    tenant_slug: str,
+    board_slug: str,
+    post_id: UUID,
+    data: ReportCreate,
+    request: Request,
+    response: Response,
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+    db: AsyncSession = Depends(get_db),
+):
+    """누구나 신고한다 — 회원만 읽는 게시판은 회원만. 같은 사람은 한 글에 한 번."""
+    board = await _open_readable_board(
+        db, tenant_slug, board_slug, credentials, response
+    )
+    member = await board_access.optional_member(db, board, credentials)
+    ip_key = guest_post_service.visitor_key("ip", client_ip(request))
+    reporter_key = (
+        guest_post_service.visitor_key("member", str(member.id)) if member else ip_key
+    )
+    hidden = await report_service.report_post(
+        db, board, post_id, data, reporter_key, ip_key
+    )
+    return ApiResponse.ok({"reported": True, "hidden": hidden})

@@ -112,7 +112,11 @@ class TestSettings:
             BOARDS, json={"name": "새", "slug": "new-one"}, headers=auth_headers
         )
         data = created.json()["data"]
-        assert data["operation"] == {"allow_secret": False, "notify_new_post": False}
+        assert data["operation"] == {
+            "allow_secret": False,
+            "notify_new_post": False,
+            "allow_guest": False,
+        }
         resp = await client.patch(
             f"{BOARDS}/{data['id']}",
             json={"operation": {"allow_secret": True, "notify_new_post": False}},
