@@ -85,6 +85,14 @@ export interface BoardPermissions {
   write: BoardWriteAccess
 }
 
+/** 운영 설정 (T-151-A) */
+export interface BoardOperation {
+  /** 회원이 비밀글을 쓸 수 있는지 — 꺼도 이미 쓴 비밀글은 그대로 비밀 */
+  allow_secret: boolean
+  /** 회원 새 글을 관리자 화면에 실시간으로 알린다 */
+  notify_new_post: boolean
+}
+
 /** 권한 탭 — 회원 값을 고를 수 없는 이유, 고를 수 있으면 null */
 export interface PermissionOptions {
   member_read_blocked: string | null
@@ -111,6 +119,7 @@ export interface Board {
   seo_index: boolean
   design: BoardDesign
   permissions: BoardPermissions
+  operation: BoardOperation
 }
 
 /** 게시판 카테고리 — 1단계 분류 (T-149) */
@@ -146,6 +155,8 @@ export interface PostListItem {
   title: string
   status: PostStatus
   is_pinned: boolean
+  /** 비밀글 (T-151-A) */
+  is_secret?: boolean
   published_at: string | null
   created_at: string
   updated_at: string
@@ -201,6 +212,8 @@ export interface PublicBoard {
   read_access?: BoardReadAccess
   /** 회원도 쓰면 MEMBER — 홈페이지 회원 글쓰기 (T-150-B) */
   write_access?: BoardWriteAccess
+  /** 회원 글쓰기 폼에 비밀글 체크 (T-151-A) */
+  allow_secret?: boolean
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
 }
@@ -214,6 +227,8 @@ export interface PublicPostItem {
   thumbnail?: string | null
   /** FAQ 게시판 목록에만 — 답변을 펼쳐 보여 준다 */
   body?: BodyNode[] | null
+  /** 비밀글이면 제목만 — 요약 · 사진 · 본문이 없다 (T-151-A) */
+  is_secret?: boolean
   /** 카드형 목록에만 */
   summary?: string | null
   card_fields?: PublicFieldValue[] | null
@@ -248,6 +263,8 @@ export interface PublicFieldValue {
 export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   body: BodyNode[]
   fields?: PublicFieldValue[]
+  /** 비밀글인데 작성 회원이 아니면 true — 본문 · 칸이 비어 있다 (T-151-A) */
+  locked?: boolean
   prev_id: string | null
   next_id: string | null
 }
@@ -259,4 +276,5 @@ export interface MemberPost {
   /** 글자만 — 빈 줄로 문단 */
   content: string
   category_id: string | null
+  is_secret?: boolean
 }

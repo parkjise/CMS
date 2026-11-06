@@ -70,6 +70,17 @@ class BoardPermissions(BaseModel):
     write: BoardWriteAccess = "ADMIN"
 
 
+class BoardOperation(BaseModel):
+    """운영 설정 (BM-11, T-151-A)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    # 회원이 비밀글을 쓸 수 있는지 — 꺼도 이미 쓴 비밀글은 그대로 비밀
+    allow_secret: bool = False
+    # 회원이 새 글을 쓰면 관리자 화면에 실시간 알림
+    notify_new_post: bool = False
+
+
 class BoardCreate(BaseModel):
     name: BoardName
     # 비우면 서버가 board-1 처럼 만든다 — 한글 이름은 주소로 쓰기 어렵다
@@ -95,6 +106,7 @@ class BoardUpdate(BaseModel):
     seo_index: bool | None = None
     design: BoardDesign | None = None
     permissions: BoardPermissions | None = None
+    operation: BoardOperation | None = None
 
 
 class BoardResponse(BaseModel):
@@ -116,6 +128,7 @@ class BoardResponse(BaseModel):
     seo_index: bool
     design: BoardDesign
     permissions: BoardPermissions
+    operation: BoardOperation
 
 
 class BoardRestoreResponse(BaseModel):
@@ -301,6 +314,7 @@ class PostCreate(BaseModel):
     body: PostBody = []
     status: PostStatus = "DRAFT"
     is_pinned: bool = False
+    is_secret: bool = False
     category_id: UUID | None = None
     # 필드 값 {field_key: 값} — 서버가 필드 정의로 검사한다
     custom_data: dict[str, Any] | None = None
@@ -311,6 +325,7 @@ class PostUpdate(BaseModel):
     body: PostBody | None = None
     status: PostStatus | None = None
     is_pinned: bool | None = None
+    is_secret: bool | None = None
     # 보내면 바뀐다 — null 은 분류 없음
     category_id: UUID | None = None
     # 보낸 칸만 바뀐다. 빈 값은 그 칸을 비운다
@@ -325,6 +340,7 @@ class PostListItem(BaseModel):
     title: str
     status: str
     is_pinned: bool
+    is_secret: bool = False
     published_at: datetime | None
     created_at: datetime
     updated_at: datetime
@@ -398,6 +414,8 @@ class PublicBoardResponse(BaseModel):
     read_access: BoardReadAccess = "PUBLIC"
     # 회원도 쓰면 MEMBER — 홈페이지에 회원 글쓰기 버튼 (T-150-B)
     write_access: BoardWriteAccess = "ADMIN"
+    # 회원 글쓰기 폼에 비밀글 체크 (T-151-A)
+    allow_secret: bool = False
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
 
@@ -418,6 +436,8 @@ class PublicPostItem(BaseModel):
     title: str
     is_pinned: bool
     published_at: datetime
+    # 비밀글이면 제목만 — 요약 · 사진 · 본문 · 칸은 비운다 (T-151-A)
+    is_secret: bool = False
     # 갤러리 썸네일 — 본문의 첫 사진
     thumbnail: str | None = None
     # FAQ 는 목록에서 답변을 펼치므로 본문까지, 그 밖에는 없음
@@ -439,6 +459,8 @@ class PublicPostListResponse(BaseModel):
 
 class PublicPostDetail(PublicPostItem):
     body: list[BodyNode]
+    # 비밀글인데 작성 회원이 아니면 True — 본문 · 칸 없이 제목만 (T-151-A)
+    locked: bool = False
     # 홈페이지에 표시하는 칸 중 값이 있는 것만, 정한 순서대로
     fields: list[PublicFieldValue] = []
     prev_id: UUID | None
@@ -459,6 +481,7 @@ class MemberPostCreate(BaseModel):
     title: PostTitle
     content: MemberPostContent
     category_id: UUID | None = None
+    is_secret: bool = False
 
 
 class MemberPostUpdate(BaseModel):
@@ -468,6 +491,7 @@ class MemberPostUpdate(BaseModel):
     content: MemberPostContent | None = None
     # 보내면 바뀐다 — null 은 분류 없음
     category_id: UUID | None = None
+    is_secret: bool | None = None
 
 
 class MemberPostResponse(BaseModel):
@@ -477,3 +501,4 @@ class MemberPostResponse(BaseModel):
     title: str
     content: str
     category_id: UUID | None
+    is_secret: bool = False

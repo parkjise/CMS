@@ -131,6 +131,16 @@ export function ThemeBoardWrite({
             {form.values.content.length.toLocaleString()} / {CONTENT_MAX.toLocaleString()}자
           </p>
         </div>
+        {form.secretChoice && (
+          <label className={`flex items-center gap-2 text-sm ${primary}`}>
+            <input
+              type="checkbox"
+              checked={form.values.isSecret}
+              onChange={(e) => form.change({ isSecret: e.target.checked })}
+            />
+            비밀글로 등록 <span className={muted}>(나와 관리자만 볼 수 있어요)</span>
+          </label>
+        )}
         <p role="status" aria-live="polite" className="min-h-5 text-sm text-red-600">
           {form.message}
         </p>

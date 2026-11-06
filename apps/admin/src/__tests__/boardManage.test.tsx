@@ -54,6 +54,7 @@ const board: Board = {
     faq_first_open: false,
   },
   permissions: { read: 'PUBLIC', write: 'ADMIN' },
+  operation: { allow_secret: false, notify_new_post: false },
 }
 const notice: Board = { ...board, id: 'n1', name: '공지사항', slug: 'notice', system_key: 'notice' }
 
@@ -343,6 +344,7 @@ describe('기본 정보 탭', () => {
       '카테고리',
       '게시판 디자인',
       '권한',
+      '운영 설정',
       '홈페이지 연결',
     ])
     expect(within(tabs).getByRole('link', { name: '기본 정보' })).toHaveAttribute('aria-current', 'page')
@@ -359,6 +361,7 @@ describe('기본 정보 탭', () => {
     expect(screen.queryByRole('link', { name: '필드 관리' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '카테고리' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '권한' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '운영 설정' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '휴지통으로' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '복제' })).toBeInTheDocument()
   })

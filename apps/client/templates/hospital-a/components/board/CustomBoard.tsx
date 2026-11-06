@@ -3,6 +3,7 @@ import { boardScreen, isMemberOnly, loadBoardPage } from '@/lib/boardRoute'
 import { fetchPublicPost } from '@/lib/publicPosts'
 import type { SearchTarget } from './BoardToolbar'
 import { CustomBoardMember } from './CustomBoardMember'
+import { CustomBoardSecret } from './CustomBoardSecret'
 import { CustomBoardWrite } from './CustomBoardWrite'
 import {
   type BoardHrefFor,
@@ -67,6 +68,8 @@ export async function CustomBoard({
   }
   if (detailId) {
     const post = await fetchPublicPost(tenantSlug, board.slug, detailId)
+    // 비밀글은 서버가 제목만 받는다 — 쓴 회원이면 브라우저가 다시 읽는다 (T-151-A)
+    if (post?.locked) return <CustomBoardSecret board={board} tenantSlug={tenantSlug} post={post} link={link} />
     return <CustomBoardDetail board={board} post={post} hrefFor={hrefFor} tenantSlug={tenantSlug} />
   }
   const list = await loadBoardPage(tenantSlug, board, { page, q, c })

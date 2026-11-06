@@ -1,7 +1,11 @@
 'use client'
 
 import type { PublicBoard } from '@cms/types'
+import { Lock } from 'lucide-react'
 import { canEditSite, useClientAuthStore } from '@/lib/authStore'
+import { SECRET_TEXT } from '@/lib/boardRoute'
+import { useIsMember } from '@/lib/memberStore'
+import { useMemberLoginHref } from './useMemberBoard'
 import { useMyPost } from './useMemberPostForm'
 
 const pill =
@@ -47,5 +51,22 @@ export function ThemeMemberPostActions({
         {deleting ? '삭제 중…' : '삭제'}
       </button>
     </>
+  )
+}
+
+/** 잠긴 비밀글 안내 — 테마형 (T-151-A). 로그인하지 않았으면 로그인 링크 */
+export function ThemeSecretNotice({ tenantSlug }: { tenantSlug: string }) {
+  const isMember = useIsMember(tenantSlug)
+  const loginHref = useMemberLoginHref(tenantSlug)
+  return (
+    <div className="flex flex-col items-center gap-3 py-12 text-center text-[color:var(--color-text-muted)]">
+      <Lock className="h-8 w-8" aria-hidden />
+      <p>{SECRET_TEXT}</p>
+      {!isMember && (
+        <a href={loginHref} className={pill}>
+          로그인
+        </a>
+      )}
+    </div>
   )
 }

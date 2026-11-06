@@ -21,6 +21,7 @@ const BoardFieldsPage = lazyPage(() => import('@/pages/BoardFieldsPage'), 'Board
 const BoardDesignPage = lazyPage(() => import('@/pages/BoardDesignPage'), 'BoardDesignPage')
 const BoardCategoriesPage = lazyPage(() => import('@/pages/BoardCategoriesPage'), 'BoardCategoriesPage')
 const BoardPermissionsPage = lazyPage(() => import('@/pages/BoardPermissionsPage'), 'BoardPermissionsPage')
+const BoardOperationPage = lazyPage(() => import('@/pages/BoardOperationPage'), 'BoardOperationPage')
 const PostsOverviewPage = lazyPage(() => import('@/pages/PostsOverviewPage'), 'PostsOverviewPage')
 const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
 const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
@@ -53,6 +54,7 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/boards\/[^/]+\/design\/?$/, BoardDesignPage],
   [/^\/admin\/boards\/[^/]+\/categories\/?$/, BoardCategoriesPage],
   [/^\/admin\/boards\/[^/]+\/permissions\/?$/, BoardPermissionsPage],
+  [/^\/admin\/boards\/[^/]+\/operation\/?$/, BoardOperationPage],
   [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
   [/^\/admin\/seo\/?$/, SeoPage],
@@ -154,6 +156,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/boards/:boardId/permissions',
             element: withFeature('BOARD_MANAGER', <BoardPermissionsPage />),
+          },
+          {
+            path: '/admin/boards/:boardId/operation',
+            element: withFeature('BOARD_MANAGER', <BoardOperationPage />),
           },
           {
             path: '/admin/boards/:boardId/posts',

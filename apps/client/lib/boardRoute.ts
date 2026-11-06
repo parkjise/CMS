@@ -42,6 +42,9 @@ export const boardDesign = (board: PublicBoard): BoardDesign => ({
  */
 export const isMemberOnly = (board: PublicBoard): boolean => board.read_access === 'MEMBER'
 
+/** 잠긴 비밀글 안내 (T-151-A) — 코드형 · 테마형 공통 */
+export const SECRET_TEXT = '비밀글입니다. 글을 쓴 회원만 볼 수 있습니다.'
+
 /** 로그인한 방문자 회원도 홈페이지에서 쓰는 게시판 (T-150-B) */
 export const canMemberWrite = (board: PublicBoard): boolean => board.write_access === 'MEMBER'
 

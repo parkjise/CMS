@@ -12,11 +12,29 @@ export interface NewInquiryEvent {
   inquiry_type: string
 }
 
+/** 회원이 홈페이지에서 쓴 새 글 (T-151-A) — 게시판 운영 설정에서 켠 곳만 */
+export interface NewPostEvent {
+  type: 'new_post'
+  board_id: string
+  board_name: string
+  post_id: string
+  title: string
+}
+
 interface ConnectedEvent {
   type: 'connected'
 }
 
-type SSEMessage = NewInquiryEvent | ConnectedEvent
+type SSEMessage = NewInquiryEvent | NewPostEvent | ConnectedEvent
+
+/** 브라우저 알림 권한이 있으면 시스템 알림, 없으면 화면 안 토스트 */
+function announce(title: string, body: string, fallback: string) {
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    new Notification(title, { body, icon: '/favicon.ico' })
+  } else {
+    toast.info(fallback)
+  }
+}
 
 interface UseSSENotificationsOptions {
   onNewInquiry?: (event: NewInquiryEvent) => void
@@ -91,19 +109,13 @@ export function useSSENotifications(
             setLastEvent(data)
             onNewInquiryRef.current?.(data)
 
-            // 브라우저 Notification
-            if (
-              typeof Notification !== 'undefined' &&
-              Notification.permission === 'granted'
-            ) {
-              new Notification('새 문의가 접수되었습니다', {
-                body: `${data.name}님 (${data.inquiry_type})`,
-                icon: '/favicon.ico',
-              })
-            } else {
-              // 권한 없으면 sonner toast로 대체
-              toast.info(`새 문의: ${data.name}님 (${data.inquiry_type})`)
-            }
+            announce(
+              '새 문의가 접수되었습니다',
+              `${data.name}님 (${data.inquiry_type})`,
+              `새 문의: ${data.name}님 (${data.inquiry_type})`,
+            )
+          } else if (data.type === 'new_post') {
+            announce('새 글이 올라왔습니다', `${data.board_name} — ${data.title}`, `새 글: ${data.board_name} — ${data.title}`)
           }
         } catch {
           // 잘못된 payload는 무시

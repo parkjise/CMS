@@ -1,8 +1,9 @@
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
-import { ChevronDown, Search } from 'lucide-react'
+import { ChevronDown, Lock, Search } from 'lucide-react'
 import {
   type BoardPage,
   EDIT_PAGE,
+  SECRET_TEXT,
   WRITE_PAGE,
   boardDesign,
   canMemberWrite,
@@ -11,7 +12,7 @@ import {
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
-import { ThemeMemberPostActions, ThemeMemberWriteLink } from './ThemeMemberLinks'
+import { ThemeMemberPostActions, ThemeMemberWriteLink, ThemeSecretNotice } from './ThemeMemberLinks'
 import { ThemeWriteLink } from './ThemeWriteLink'
 
 const muted = 'text-[color:var(--color-text-muted)]'
@@ -127,7 +128,7 @@ export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug }: DetailPro
             ))}
           </dl>
         )}
-        <Body blocks={post.body} />
+        {post.locked ? <ThemeSecretNotice tenantSlug={tenantSlug} /> : <Body blocks={post.body} />}
       </div>
       <nav
         className={`mt-10 flex items-center justify-between border-t pt-6 ${line}`}
@@ -287,6 +288,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                   />
                 )}
                 <span className={`mt-3 block font-semibold group-hover:underline ${primary}`}>
+                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
                   {post.title}
                 </span>
                 {design.show_date && (
@@ -325,6 +327,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     </span>
                   )}
                   <span className={`font-semibold group-hover:underline ${primary}`}>
+                    {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
                     {post.title}
                   </span>
                   {design.show_summary && post.summary && (
@@ -360,14 +363,21 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
               <summary
                 className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}
               >
-                {post.title}
+                <span>
+                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                  {post.title}
+                </span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`}
                   aria-hidden
                 />
               </summary>
               <div className="pb-6">
-                <Body blocks={post.body ?? []} />
+                {post.is_secret ? (
+                  <p className={`text-sm ${muted}`}>{SECRET_TEXT}</p>
+                ) : (
+                  <Body blocks={post.body ?? []} />
+                )}
               </div>
             </details>
           ))}
@@ -386,6 +396,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                       공지
                     </span>
                   )}
+                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
                   {post.title}
                 </span>
                 {design.show_date && (

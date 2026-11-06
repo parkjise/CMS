@@ -184,7 +184,7 @@ describe('테마형 게시판 목록 (T-141)', () => {
     const { container } = await renderPage(['news'])
     expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 20, q: undefined })
     const item = container.querySelector('details') as HTMLElement
-    expect(within(item).getByText('시간은?').tagName).toBe('SUMMARY')
+    expect(within(item).getByText('시간은?').closest('summary')).not.toBeNull()
     expect(item).toHaveTextContent('<script>x</script> 9시')
     expect(item.querySelector('script')).toBeNull()
   })

@@ -241,6 +241,7 @@ export function BoardPostsPage() {
                   <span className={`rounded px-1.5 py-0.5 ${STATUS_STYLES[post.status]}`}>
                     {STATUS_LABELS[post.status]}
                   </span>
+                  {post.is_secret && <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">비밀글</span>}
                   {post.author_member_id && (
                     <span className="rounded bg-violet-50 px-1.5 py-0.5 text-violet-700">
                       회원 작성{post.author_member_name ? ` · ${post.author_member_name}` : ''}

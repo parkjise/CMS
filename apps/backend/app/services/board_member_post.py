@@ -20,6 +20,7 @@ from app.schemas.rich_body import body_to_text, clean_body, text_to_body
 from app.services import board as board_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
+from app.services import board_notify
 
 MAX_POSTS_PER_HOUR = 10
 STATUS_PUBLISHED = "PUBLISHED"
@@ -29,6 +30,7 @@ MSG_TOO_MANY_POSTS = (
     "잠시 뒤 다시 시도해 주세요."
 )
 MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
+MSG_SECRET_NOT_ALLOWED = "이 게시판은 비밀글을 쓸 수 없습니다."
 
 
 def _body(content: str) -> list[dict]:
@@ -47,7 +49,21 @@ def member_post_response(post: BoardPost) -> dict:
         "title": post.title,
         "content": body_to_text(post.body or []),
         "category_id": post.category_id,
+        "is_secret": post.is_secret,
     }
+
+
+def _check_secret(board: Board, wanted: bool, already: bool = False) -> None:
+    """비밀글은 운영 설정에서 허용한 게시판만 — 이미 비밀글이면 그대로 둘 수 있다."""
+    if wanted and not already and not board_service.operation_of(board).allow_secret:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "CONFLICT",
+                "message": MSG_SECRET_NOT_ALLOWED,
+                "field": "is_secret",
+            },
+        )
 
 
 async def _ensure_rate(db: AsyncSession, member: SiteMember) -> None:
@@ -73,6 +89,7 @@ async def create_post(
     db: AsyncSession, board: Board, member: SiteMember, data: MemberPostCreate
 ) -> BoardPost:
     await _ensure_rate(db, member)
+    _check_secret(board, data.is_secret)
     await category_service.check_post_category(db, board.id, data.category_id)
     # 회원 폼에는 추가 칸이 없다 — 기본값만 채운다. 필수 칸이 있으면 여기서 막힌다
     custom_data = await field_service.resolve_custom_data(
@@ -87,11 +104,14 @@ async def create_post(
         body=_body(data.content),
         status=STATUS_PUBLISHED,
         is_pinned=False,
+        is_secret=data.is_secret,
         custom_data=custom_data,
         category_id=data.category_id,
     )
     db.add(post)
     await board_service.after_member_write(db, post)
+    if board_service.operation_of(board).notify_new_post:
+        await board_notify.notify_new_post(board, post)
     return post
 
 
@@ -123,6 +143,9 @@ async def update_post(
     if "category_id" in data.model_fields_set:
         await category_service.check_post_category(db, board.id, data.category_id)
         post.category_id = data.category_id
+    if data.is_secret is not None:
+        _check_secret(board, data.is_secret, already=post.is_secret)
+        post.is_secret = data.is_secret
     if data.title is not None:
         post.title = data.title
     if data.content is not None:

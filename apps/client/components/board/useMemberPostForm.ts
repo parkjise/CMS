@@ -21,9 +21,10 @@ export interface MemberPostValues {
   title: string
   content: string
   categoryId: string
+  isSecret: boolean
 }
 
-const EMPTY: MemberPostValues = { title: '', content: '', categoryId: '' }
+const EMPTY: MemberPostValues = { title: '', content: '', categoryId: '', isSecret: false }
 
 /** 로그인 상태 — 회원 기능이 꺼졌으면 closed */
 function useMemberReady(
@@ -56,6 +57,9 @@ export function useMemberPostForm(
   const [errors, setErrors] = useState<Partial<Record<'title' | 'content', string>>>({})
   const [message, setMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [wasSecret, setWasSecret] = useState(false)
+  // 비밀글 체크 — 허용한 게시판이거나 이미 비밀글이면 (T-151-A). 서버가 다시 확인한다
+  const secretChoice = Boolean(board.allow_secret) || wasSecret
 
   useEffect(() => {
     if (login !== 'member' || !postId) return
@@ -67,7 +71,13 @@ export function useMemberPostForm(
           setLoaded('missing')
           return
         }
-        setValues({ title: post.title, content: post.content, categoryId: post.category_id ?? '' })
+        setValues({
+          title: post.title,
+          content: post.content,
+          categoryId: post.category_id ?? '',
+          isSecret: Boolean(post.is_secret),
+        })
+        setWasSecret(Boolean(post.is_secret))
         setLoaded('ready')
       })
       .catch((error) => {
@@ -111,7 +121,12 @@ export function useMemberPostForm(
     }
     setSubmitting(true)
     setMessage('')
-    const input = { title, content, category_id: values.categoryId || null }
+    const input = {
+      title,
+      content,
+      category_id: values.categoryId || null,
+      ...(secretChoice ? { is_secret: values.isSecret } : {}),
+    }
     try {
       const saved = postId
         ? await updateMemberPost(tenantSlug, board.slug, postId, input)
@@ -129,7 +144,7 @@ export function useMemberPostForm(
     }
   }
 
-  return { state, values, errors, message, submitting, change, submit }
+  return { state, values, errors, message, submitting, secretChoice, change, submit }
 }
 
 /** 글 상세의 [수정] [삭제] — 로그인한 회원이 쓴 글일 때만 (서버가 확인한다) */

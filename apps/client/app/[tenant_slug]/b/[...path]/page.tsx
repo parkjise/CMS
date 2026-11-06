@@ -3,6 +3,7 @@ import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { ThemeBoardDetail, ThemeBoardList } from '@/components/board/ThemeBoard'
 import { ThemeBoardMember } from '@/components/board/ThemeBoardMember'
+import { ThemeBoardSecret } from '@/components/board/ThemeBoardSecret'
 import { ThemeBoardWrite } from '@/components/board/ThemeBoardWrite'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { Footer } from '@/components/layout/Footer'
@@ -93,6 +94,15 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
             pageKey={key}
             noSlug={noSlug}
             memberEnabled={memberEnabled(site)}
+          />
+        ) : route.post?.locked ? (
+          // 비밀글 — 서버는 제목만 받는다. 쓴 회원이면 브라우저가 다시 읽는다 (T-151-A)
+          <ThemeBoardSecret
+            board={route.board}
+            tenantSlug={tenant_slug}
+            post={route.post}
+            pageKey={key}
+            noSlug={noSlug}
           />
         ) : route.post ? (
           <ThemeBoardDetail
