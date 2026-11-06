@@ -237,17 +237,17 @@ class TestGuestWrite:
         assert (await _write(client, board)).status_code == 201
 
     async def test_recaptcha_checked(self, client, board, monkeypatch):
-        seen: list[str | None] = []
+        seen: list[tuple[str | None, str | None]] = []
 
-        async def fake_verify(token):
-            seen.append(token)
+        async def fake_verify(token, action=None):
+            seen.append((token, action))
             if token != "good":
                 raise HTTPException(status_code=400, detail="RECAPTCHA_FAILED")
 
         monkeypatch.setattr(recaptcha, "verify", fake_verify)
         assert (await _write(client, board, recaptcha_token="bad")).status_code == 400
         assert (await _write(client, board, recaptcha_token="good")).status_code == 201
-        assert seen == ["bad", "good"]
+        assert seen == [("bad", "board_guest_write"), ("good", "board_guest_write")]
 
 
 class TestGuestPassword:

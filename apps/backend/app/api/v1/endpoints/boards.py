@@ -651,6 +651,7 @@ async def create_post(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
+    board_service.ensure_secret_allowed(board, data.is_secret)
     post = await board_service.create_post(
         db, board.tenant_id, board.id, current_user.id, data
     )
@@ -665,11 +666,13 @@ async def get_post(post: BoardPost = Depends(_post_or_404)):
 @router.patch("/{board_id}/posts/{post_id}", response_model=ApiResponse[PostResponse])
 async def update_post(
     data: PostUpdate,
+    board: Board = Depends(_board_or_404),
     post: BoardPost = Depends(_post_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
 ):
     if post.deleted_at is not None:
         raise _not_found(MSG_POST_NOT_FOUND)
+    board_service.ensure_secret_allowed(board, data.is_secret)
     updated = await board_service.update_post(db, post, data)
     return ApiResponse.ok(PostResponse.model_validate(updated))
 
