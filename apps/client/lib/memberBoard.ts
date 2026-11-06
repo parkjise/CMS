@@ -62,6 +62,8 @@ export interface MemberPostInput {
   title: string
   content: string
   category_id: string | null
+  /** 비밀글 — 운영 설정에서 허용한 게시판만 (T-151-A) */
+  is_secret?: boolean
 }
 
 async function send<T>(

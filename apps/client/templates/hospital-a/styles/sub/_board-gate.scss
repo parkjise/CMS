@@ -56,3 +56,20 @@ button.board-list__write {
     cursor: default;
   }
 }
+
+// 비밀글 (T-151-A) — 목록 제목 옆 자물쇠, 잠긴 상세 안내
+.board-secret {
+  margin-right: 0.3em;
+  color: var(--color-text-secondary);
+  vertical-align: -0.1em;
+}
+.board-view__secret {
+  @include flex(center, center, 12px, column);
+  padding: 48px 20px;
+  color: var(--color-text-secondary);
+  text-align: center;
+
+  i {
+    font-size: 2rem;
+  }
+}

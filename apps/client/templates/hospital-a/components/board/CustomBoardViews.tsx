@@ -2,6 +2,7 @@ import type { PublicBoard, PublicPost } from '@cms/types'
 import {
   type BoardPage,
   EDIT_PAGE,
+  SECRET_TEXT,
   WRITE_PAGE,
   boardDesign,
   canMemberWrite,
@@ -13,6 +14,7 @@ import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { dotDate } from './format'
 import { MemberPostActions } from './MemberPostActions'
+import { SecretNotice } from './SecretNotice'
 import { NoticeDetailView, NoticeListView } from './NoticeBoard'
 
 export type BoardHrefFor = (extra?: { id?: string; q?: string; p?: number; c?: string }) => string
@@ -51,7 +53,9 @@ export function CustomBoardDetail({
       nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}
       listHref={hrefFor()}
       actions={
-        canMemberWrite(board) ? (
+        post.locked ? (
+          <SecretNotice tenantSlug={tenantSlug} />
+        ) : canMemberWrite(board) ? (
           <MemberPostActions
             board={board}
             tenantSlug={tenantSlug}
@@ -116,6 +120,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
           subject: p.title,
           date: postDate(p.published_at),
           pinned: p.is_pinned,
+          secret: p.is_secret,
         }))}
         total={total}
         page={current}
@@ -172,7 +177,10 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                     />
                   )}
                   {post.is_pinned && <span className="board-gallery__badge">공지</span>}
-                  <span className="board-gallery__subject">{post.title}</span>
+                  <span className="board-gallery__subject">
+                    {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                    {post.title}
+                  </span>
                   {design.show_date && (
                     <time className="board-gallery__date" dateTime={date}>
                       {dotDate(date)}
@@ -196,7 +204,10 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                   )}
                   <span className="board-card__body">
                     {post.is_pinned && <span className="board-card__badge">공지</span>}
-                    <span className="board-card__subject">{post.title}</span>
+                    <span className="board-card__subject">
+                      {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                      {post.title}
+                    </span>
                     {design.show_summary && post.summary && (
                       <span className="board-card__summary">{post.summary}</span>
                     )}
@@ -226,8 +237,15 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
               name={design.faq_single_open ? `faq-${board.slug}` : undefined}
               open={design.faq_first_open && index === 0}
             >
-              <summary className="board-faq__question">{post.title}</summary>
-              <BoardBody blocks={post.body ?? []} className="board-faq__answer" />
+              <summary className="board-faq__question">
+                {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                {post.title}
+              </summary>
+              {post.is_secret ? (
+                <p className="board-faq__answer">{SECRET_TEXT}</p>
+              ) : (
+                <BoardBody blocks={post.body ?? []} className="board-faq__answer" />
+              )}
             </details>
           ))}
         </div>

@@ -81,3 +81,13 @@ export const memberLoginHref = (tenantSlug: string): string => {
     typeof window === 'undefined' ? '' : `${window.location.pathname}${window.location.search}`
   return `${sitePath(tenantSlug, '/member/login')}${next ? `?next=${encodeURIComponent(next)}` : ''}`
 }
+
+/**
+ * 로그인 링크 — 서버 화면과 첫 그림이 같도록 돌아올 주소는 화면이 뜬 뒤 붙인다.
+ * 서버가 그리는 안내(비밀글 등)에 쓴다 (T-151-A)
+ */
+export function useMemberLoginHref(tenantSlug: string): string {
+  const [href, setHref] = useState(() => sitePath(tenantSlug, '/member/login'))
+  useEffect(() => setHref(memberLoginHref(tenantSlug)), [tenantSlug])
+  return href
+}

@@ -137,6 +137,20 @@ export function CustomBoardWrite({
                   {form.values.content.length.toLocaleString()} / {CONTENT_MAX.toLocaleString()}자
                 </p>
               </div>
+              {form.secretChoice && (
+                <div className="board-form__row board-form__row--check">
+                  <input
+                    className="board-form__checkbox"
+                    type="checkbox"
+                    id="mw-secret"
+                    checked={form.values.isSecret}
+                    onChange={(e) => form.change({ isSecret: e.target.checked })}
+                  />
+                  <label className="board-form__check" htmlFor="mw-secret">
+                    비밀글로 등록 <span className="board-form__help">(나와 관리자만 볼 수 있어요)</span>
+                  </label>
+                </div>
+              )}
             </div>
             <p className="board-form__status" role="status" aria-live="polite">
               {form.message}

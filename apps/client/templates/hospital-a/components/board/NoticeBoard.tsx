@@ -16,6 +16,8 @@ export interface NoticeItem {
   /** YYYY-MM-DD */
   date: string
   pinned?: boolean
+  /** 비밀글 — 제목 옆 자물쇠 (T-151-A) */
+  secret?: boolean
   body?: BodyBlock[]
 }
 
@@ -172,7 +174,10 @@ export function NoticeListView({
             >
               <a className="board-list__link" href={hrefFor({ id: item.id })}>
                 {item.pinned && <span className="board-list__badge">공지</span>}
-                <span className="board-list__subject">{item.subject}</span>
+                <span className="board-list__subject">
+                  {item.secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                  {item.subject}
+                </span>
                 {showDate && (
                   <time className="board-list__date" dateTime={item.date}>
                     {dotDate(item.date)}
