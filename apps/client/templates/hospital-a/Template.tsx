@@ -318,6 +318,8 @@ export default function HospitalATemplate({
               page={listPage}
               hrefFor={boardHref}
               searchTarget={searchTarget}
+              link={{ pageKey, previewQuery, noSlug }}
+              memberEnabled={memberEnabled(site)}
             />
           </>
         ) : (

@@ -31,6 +31,8 @@ const props = (board_type: BoardType, extra = {}) => ({
   page: 1,
   hrefFor: (x?: { id?: string; q?: string; p?: number; c?: string }) => pageHref('demo', 'b/news', undefined, x),
   searchTarget: { action: '/demo/b/news', hidden: [] as [string, string][] },
+  link: { pageKey: 'b/news' },
+  memberEnabled: true,
   ...extra,
 })
 

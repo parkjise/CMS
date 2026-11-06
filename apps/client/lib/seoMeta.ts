@@ -34,6 +34,9 @@ export function boardSeoMeta(
   return {
     title: `${postTitle ?? (board.seo_title || board.name)} | ${tenantName}`,
     ...(!postTitle && board.seo_description ? { description: board.seo_description } : {}),
-    ...(board.seo_index === false ? { robots: { index: false, follow: false } } : {}),
+    // 회원만 읽는 게시판은 검색에 내지 않는다 (T-150)
+    ...(board.seo_index === false || board.read_access === 'MEMBER'
+      ? { robots: { index: false, follow: false } }
+      : {}),
   }
 }

@@ -2,10 +2,11 @@ import type { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { notFound } from 'next/navigation'
 import { ThemeBoardDetail, ThemeBoardList } from '@/components/board/ThemeBoard'
+import { ThemeBoardMember } from '@/components/board/ThemeBoardMember'
 import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
-import { resolveBoardRoute } from '@/lib/boardRoute'
+import { isMemberOnly, resolveBoardRoute } from '@/lib/boardRoute'
 import { boardPageKey } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled } from '@/lib/publicSite.types'
@@ -21,7 +22,10 @@ interface Props {
   searchParams: Promise<{ q?: string; p?: string; c?: string }>
 }
 
-const NOT_FOUND_META: Metadata = { title: '페이지를 찾을 수 없습니다', robots: { index: false, follow: false } }
+const NOT_FOUND_META: Metadata = {
+  title: '페이지를 찾을 수 없습니다',
+  robots: { index: false, follow: false },
+}
 
 /**
  * 새 게시판 — 테마형 템플릿 (T-141). 코드형은 미들웨어가 템플릿 라우트로 보낸다.
@@ -67,7 +71,17 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
         site={{ slug: tenant_slug, boards: site.boards, subPage: true }}
       />
       <main className="flex-1">
-        {route.post ? (
+        {isMemberOnly(route.board) ? (
+          // 회원만 읽는 게시판 — 서버는 글을 읽지 않는다 (T-150)
+          <ThemeBoardMember
+            board={route.board}
+            tenantSlug={tenant_slug}
+            query={{ detailId: route.detailId, page: Math.max(1, Number(p) || 1), q, c }}
+            pageKey={key}
+            noSlug={noSlug}
+            memberEnabled={memberEnabled(site)}
+          />
+        ) : route.post ? (
           <ThemeBoardDetail board={route.board} post={route.post} hrefFor={hrefFor} />
         ) : (
           <ThemeBoardList

@@ -51,7 +51,7 @@ function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
     .map((page) => ({ path: `/${page.key}`, lastmod: now }))
   // 검색 노출을 끈 게시판은 글까지 뺀다 (T-146)
   const boards = (site.boards ?? []).filter(
-    (board) => !hidden.has(`board:${board.id}`) && board.seo_index !== false,
+    (board) => !hidden.has(`board:${board.id}`) && board.seo_index !== false && board.read_access !== 'MEMBER',
   )
   const newest = new Map<string, string>()
   const postUrls = posts.flatMap((post) => {

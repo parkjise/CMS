@@ -1,0 +1,43 @@
+// ── BOARD GATE — 회원만 읽는 게시판의 로그인 안내 (T-150) ──────────
+// components/board/CustomBoardMember.tsx
+@use '../mixins' as *;
+
+.board-gate {
+  @include flex(center, center, 16px, column);
+  margin-top: 40px;
+  padding: 64px 20px;
+  border-top: 1px solid var(--color-text-primary);
+  border-bottom: 1px solid var(--color-border);
+  text-align: center;
+  @include md {
+    margin-top: 80px;
+    padding: 96px 20px;
+  }
+
+  &__icon {
+    font-size: 2.5rem;
+    color: var(--color-text-secondary);
+  }
+  &__text {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    @include md {
+      font-size: 1.25rem;
+    }
+  }
+  &__hint {
+    color: var(--color-text-secondary);
+  }
+  &__button {
+    @include flex-center;
+    min-width: 160px;
+    height: 52px;
+    margin-top: 8px;
+    padding: 0 28px;
+    border-radius: 999px;
+    background: var(--color-primary);
+    color: #fff;
+    font-weight: 600;
+    @include focus-ring;
+  }
+}
