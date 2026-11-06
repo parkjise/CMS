@@ -2,23 +2,24 @@
 
 html {
   scroll-behavior: smooth;
-  min-width: 1600px;
+  min-width: 320px;
 }
 
 body.oliva-page {
-  min-width: 1600px;
+  min-width: 320px;
   width: 100%;
+  min-height: 100dvh;
   background-color: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-sans);
   font-size: 15px;
   line-height: 1.6;
-  overflow-x: auto;
+  overflow-x: hidden;
 }
 
 .oliva-main {
   width: 100%;
-  min-width: 1600px;
+  min-width: 0;
 }
 
 // ── Typography Helpers ──
@@ -102,6 +103,13 @@ body.oliva-page {
     &:hover {
       background-color: #ede7d8;
     }
+  }
+
+  @media (max-width: 640px) {
+    height: 50px;
+    gap: 16px;
+    padding: 0 20px;
+    font-size: 13px;
   }
 }
 

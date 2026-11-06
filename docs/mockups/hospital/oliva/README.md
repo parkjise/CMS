@@ -6,7 +6,7 @@
 
 - 로컬 서버 주소: `http://localhost:8080/hospital/oliva/index.html` (또는 라이브 서버 활용)
 - HTML partials는 `fetch`를 사용하므로 `file://` 대신 HTTP 로컬 서버 환경에서 실행해야 합니다.
-- **최소 가로 너비**: `min-width: 1600px` (데스크톱 최적화 레이아웃)
+- **반응형 지원**: 데스크톱(1600px~)부터 태블릿(820px~1180px), 모바일(320px~640px)까지 완벽 반응형 최적화
 
 ## 구조 (Structure)
 
@@ -16,12 +16,12 @@
   - `footer.html`: 하단 시그니처 및 법적 정보
   - `sections/`: 개별 섹션 (hero, daily-service, philosophy, signature-menu, handmade-story, seasonal-table, wine-selection, space-gallery, guest-review, reservation, location)
 - `assets/styles/`:
-  - `_tokens.scss`: 색상, 폰트, 규격 변수
+  - `_tokens.scss`: 색상, 폰트, 반응형 토큰
   - `_mixins.scss`: 공통 믹스인
   - `_reset.scss`: CSS 리셋
-  - `_base.scss`: 기본 레이아웃 및 공통 버튼/타이포그래피 (min-width: 1600px 정의)
-  - `_header.scss`, `_footer.scss`: 공통 헤더/푸터
-  - `main/_*.scss`: 각 섹션별 BEM 스타일
+  - `_base.scss`: 기본 레이아웃 및 공통 버튼/타이포그래피
+  - `_header.scss`, `_footer.scss`: 반응형 헤더/푸터
+  - `main/_*.scss`: 각 섹션별 반응형 BEM 스타일
   - `template.scss`: 전체 SCSS 통합 엔트리
 - `assets/css/template.css`: 컴파일된 최종 CSS
 - `assets/js/`:

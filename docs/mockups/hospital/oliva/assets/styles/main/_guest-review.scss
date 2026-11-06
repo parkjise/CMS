@@ -2,7 +2,6 @@
 
 .oliva-review {
   width: 100%;
-  min-width: 1600px;
   background-color: var(--color-bg);
 
   &__inner {
@@ -13,6 +12,19 @@
     gap: 25px;
     text-align: center;
     box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 60px 48px 80px;
+    }
+
+    @media (max-width: 820px) {
+      padding: 60px 32px 76px;
+    }
+
+    @media (max-width: 640px) {
+      padding: 58px 20px 72px;
+      gap: 20px;
+    }
   }
 
   &__quote {
@@ -21,6 +33,14 @@
     line-height: 1.85;
     letter-spacing: -0.8px;
     color: var(--color-text);
+    width: 100%;
+    max-width: 900px;
+
+    @media (max-width: 640px) {
+      font-size: 22px;
+      line-height: 1.7;
+      letter-spacing: -0.5px;
+    }
   }
 
   &__author {

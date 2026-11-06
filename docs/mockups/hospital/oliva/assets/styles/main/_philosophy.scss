@@ -2,7 +2,6 @@
 
 .oliva-philosophy {
   width: 100%;
-  min-width: 1600px;
   background-color: var(--color-bg);
 
   &__inner {
@@ -13,6 +12,19 @@
     padding: 100px 88px;
     text-align: center;
     box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 80px 48px;
+    }
+
+    @media (max-width: 820px) {
+      padding: 80px 32px;
+    }
+
+    @media (max-width: 640px) {
+      padding: 70px 20px;
+      gap: 20px;
+    }
   }
 
   &__motif {
@@ -30,6 +42,15 @@
     color: var(--color-text);
     width: 1000px;
     max-width: 100%;
+
+    @media (max-width: 820px) {
+      width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      font-size: clamp(24px, 7vw, 29px);
+      letter-spacing: -1px;
+    }
   }
 
   &__desc {
@@ -39,6 +60,15 @@
     color: var(--color-text-muted);
     width: 760px;
     max-width: 100%;
+
+    @media (max-width: 820px) {
+      width: 100%;
+    }
+
+    @media (max-width: 640px) {
+      font-size: 14px;
+      line-height: 1.85;
+    }
   }
 }
 

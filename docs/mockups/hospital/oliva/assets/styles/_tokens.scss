@@ -17,7 +17,7 @@
   --font-serif-kr: 'Noto Serif KR', 'Cormorant Garamond', Georgia, serif;
   --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  // Layout Specification: Minimum width 1600px
-  --canvas-min-width: 1600px;
+  // Layout Specification: Responsive (min 320px, max 1600px)
+  --canvas-min-width: 320px;
   --container-max-width: 1600px;
 }
