@@ -149,6 +149,7 @@ class TestPublicSiteBoards:
                     "faq_single_open": False,
                     "faq_first_open": False,
                 },
+                "categories": [],
             }
         ]
 
