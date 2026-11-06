@@ -1,16 +1,25 @@
 import { useEffect } from 'react'
-import { FileText, Plus, Settings, Trash2 } from 'lucide-react'
+import dayjs from 'dayjs'
+import { ExternalLink, FileText, Plus, Settings, Trash2 } from 'lucide-react'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { BOARD_TYPES, boardTypeLabel } from '@/lib/boardLabels'
+import { useAuthStore } from '@/stores/authStore'
+
+const CLIENT_BASE_URL = (import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000').replace(
+  /\/+$/,
+  ''
+)
 
 /** 게시판 목록 (BM-01, 게시판 모듈 기획서 4장) */
 export function BoardsPage() {
   const boardsQuery = useBoards()
   const limitsQuery = useBoardLimits()
-  const isTheme = useSiteMenu().data?.mode === 'theme'
+  const mode = useSiteMenu().data?.mode
+  const isTheme = mode === 'theme'
+  const tenantSlug = useAuthStore((state) => state.tenantSlug)
   const canEdit = useCanEdit()
   const boards = boardsQuery.data
   const limits = limitsQuery.data
@@ -171,41 +180,81 @@ export function BoardsPage() {
       )}
       {filteredBoards && filteredBoards.length > 0 && (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white shadow-sm">
-          {filteredBoards.map((board) => (
-            <li key={board.id} className="flex items-center gap-2 pr-2 hover:bg-slate-50">
-              <Link
-                to={`/admin/boards/${board.id}/posts`}
-                className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 p-4"
-              >
-                <span className="min-w-0">
-                  <span className="font-medium text-slate-900">{board.name}</span>
-                  <span className="ml-2 text-xs text-slate-500">
-                    {boardTypeLabel(board.board_type)}
-                  </span>
-                  {isTheme && board.system_key !== null && (
-                    <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
-                      지금 템플릿에는 표시되지 않습니다
+          {filteredBoards.map((board) => {
+            const path = board.system_key
+              ? encodeURIComponent(board.system_key)
+              : `b/${encodeURIComponent(board.slug)}`
+            const url = tenantSlug
+              ? `${CLIENT_BASE_URL}/${encodeURIComponent(tenantSlug)}/${path}`
+              : null
+            const canOpen =
+              url && board.status === 'ACTIVE' && (!board.system_key || mode === 'code')
+            const modified = board.updated_at ? dayjs(board.updated_at) : null
+            return (
+              <li key={board.id} className="flex items-center gap-2 pr-2 hover:bg-slate-50">
+                <div className="min-w-0 flex-1">
+                  <Link
+                    to={`/admin/boards/${board.id}/posts`}
+                    className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-3 p-4"
+                  >
+                    <span className="min-w-0">
+                      <span className="font-medium text-slate-900">{board.name}</span>
+                      <span className="ml-2 text-xs text-slate-500">
+                        {boardTypeLabel(board.board_type)}
+                      </span>
+                      {isTheme && board.system_key !== null && (
+                        <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
+                          지금 템플릿에는 표시되지 않습니다
+                        </span>
+                      )}
+                      {board.status === 'INACTIVE' && (
+                        <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
+                          사용 안 함
+                        </span>
+                      )}
                     </span>
-                  )}
-                  {board.status === 'INACTIVE' && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
-                      사용 안 함
+                    <span className="text-sm text-slate-500">
+                      글 {board.post_count.toLocaleString()}개
                     </span>
-                  )}
-                </span>
-                <span className="text-sm text-slate-500">
-                  글 {board.post_count.toLocaleString()}개
-                </span>
-              </Link>
-              <Link
-                to={`/admin/boards/${board.id}/settings`}
-                aria-label={`${board.name} 설정`}
-                className="rounded p-2 text-slate-500 hover:bg-slate-100"
-              >
-                <Settings className="h-4 w-4" aria-hidden />
-              </Link>
-            </li>
-          ))}
+                  </Link>
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-4 pb-4 text-xs text-slate-500">
+                    {url ? (
+                      canOpen ? (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${board.name} 홈페이지 (새 창)`}
+                          className="inline-flex min-w-0 items-start gap-1 break-all text-blue-600 hover:underline"
+                        >
+                          <span className="break-all">{url}</span>
+                          <ExternalLink className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+                        </a>
+                      ) : (
+                        <span className="break-all">주소 {url}</span>
+                      )
+                    ) : (
+                      <span>홈페이지 주소 확인 불가</span>
+                    )}
+                    {modified?.isValid() ? (
+                      <time dateTime={board.updated_at} title="게시판 설정 수정일">
+                        설정 수정 {modified.format('YYYY.MM.DD HH:mm')}
+                      </time>
+                    ) : (
+                      <span>설정 수정일 확인 불가</span>
+                    )}
+                  </div>
+                </div>
+                <Link
+                  to={`/admin/boards/${board.id}/settings`}
+                  aria-label={`${board.name} 설정`}
+                  className="rounded p-2 text-slate-500 hover:bg-slate-100"
+                >
+                  <Settings className="h-4 w-4" aria-hidden />
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

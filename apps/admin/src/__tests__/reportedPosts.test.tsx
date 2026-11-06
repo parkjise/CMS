@@ -25,6 +25,7 @@ vi.mock('@cms/ui', async (original) => ({
 }))
 
 const board: Board = {
+  updated_at: '2026-11-05T00:00:00Z',
   id: 'b1',
   name: '방명록',
   slug: 'guestbook',
