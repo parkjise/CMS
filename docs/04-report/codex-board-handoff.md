@@ -5,6 +5,7 @@
 ## 최신 기록: T-156 게시판 목록 복제 · 휴지통 (Codex)
 
 - 사용자 다음 작업 진행 요청에 따라 BM-01의 목록 복제 · 삭제 동선을 보완했다. 테마형 공지는 계속 스킵한다.
+- PR: [#106](https://github.com/parkjise/CMS/pull/106). 생성 시점 미병합이며 원격 CI 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-156-board-list-actions`, 폴더: `/private/tmp/cms-T-156`, 기준 main: `d976e1a`.
 - 이전 T-155: #105의 backend · frontend · e2e 통과 후 병합했고 main에 최종 구현 · 인수인계 커밋이 포함됨을 확인했다. 병합 커밋 `d976e1a`.
 - 구현 파일: `apps/admin/src/pages/BoardsPage.tsx`. 기존 `useDuplicateBoard`, `useDeleteBoard`, `useBoardLimits`, `useCanEdit`를 재사용했다. 서버 · DB · 공통 타입 · 권한 정책 변경 없음.
