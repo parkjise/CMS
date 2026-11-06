@@ -212,6 +212,43 @@ describe('테마형 게시판 목록 (T-141)', () => {
     expect(screen.getByRole('link', { name: /첫 글/ })).toHaveAttribute('href', '/b/news/p1')
     expect(screen.getByRole('search')).toHaveAttribute('action', '/b/news')
   })
+
+  describe('카테고리 탭 (T-149)', () => {
+    const withCategories = {
+      ...boardOf('LIST'),
+      categories: [
+        { id: 'c1', name: '진료' },
+        { id: 'c2', name: '행사' },
+      ],
+    }
+
+    it('분류가 없으면 탭이 없다', async () => {
+      await renderPage(['news'])
+      expect(screen.queryByRole('navigation', { name: '카테고리' })).not.toBeInTheDocument()
+    })
+
+    it('전체 · 분류 탭, 고른 분류로 읽고 검색 · 페이지 이동에 유지', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([withCategories]))
+      fetchPublicPosts.mockResolvedValue(listOf([post], 25))
+      await renderPage(['news'], { c: 'c2' })
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined, category: 'c2' })
+      const tabs = screen.getByRole('navigation', { name: '카테고리' })
+      expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('href', '/demo/b/news')
+      expect(within(tabs).getByRole('link', { name: '진료' })).toHaveAttribute('href', '/demo/b/news?c=c1')
+      expect(within(tabs).getByRole('link', { name: '행사' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('link', { name: '2' })).toHaveAttribute('href', '/demo/b/news?c=c2&p=2')
+      expect(screen.getByRole('search').querySelector('input[name="c"]')).toHaveValue('c2')
+    })
+
+    it('없는 · 숨긴 분류 주소는 전체로', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([withCategories]))
+      await renderPage(['news'], { c: 'gone' })
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined, category: undefined })
+      const tabs = screen.getByRole('navigation', { name: '카테고리' })
+      expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
+      expect(screen.getByRole('search').querySelector('input[name="c"]')).toBeNull()
+    })
+  })
 })
 
 describe('테마형 게시판 상세 · 주소', () => {

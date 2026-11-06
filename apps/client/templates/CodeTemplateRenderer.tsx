@@ -21,7 +21,7 @@ interface Props {
   /** 미리보기 안에서 페이지 이동 링크를 유지하기 위한 쿼리 ('tpl=…&content=…') */
   previewQuery?: string
   detailId?: string
-  query?: { q?: string; p?: string }
+  query?: { q?: string; p?: string; c?: string }
   member?: MemberRoute
   /** 지금 페이지가 새 게시판이면 그 게시판 (T-140-B) */
   board?: PublicBoard

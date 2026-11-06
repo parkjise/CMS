@@ -57,6 +57,8 @@ interface HrefExtra {
   id?: string
   q?: string
   p?: number
+  /** 카테고리 id (T-149) */
+  c?: string
 }
 
 interface DetailProps {
@@ -129,6 +131,7 @@ interface ListProps {
   board: PublicBoard
   tenantSlug: string
   q?: string
+  c?: string
   page: number
   hrefFor: (extra?: HrefExtra) => string
   /** 검색 폼이 보낼 주소 */
@@ -136,9 +139,10 @@ interface ListProps {
 }
 
 /** 고객이 추가한 게시판 — 테마형 (테마 CSS 변수로 6종이 함께 쓴다, T-141) */
-export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, searchAction }: ListProps) {
-  const list = await loadBoardPage(tenantSlug, board, { page, q })
-  const { posts, keyword } = list
+export async function ThemeBoardList({ board, tenantSlug, q, c, page, hrefFor, searchAction }: ListProps) {
+  const list = await loadBoardPage(tenantSlug, board, { page, q, c })
+  const { posts, keyword, category } = list
+  const categories = board.categories ?? []
   const design = boardDesign(board)
   const ratio = RATIO_CLASS[design.image_ratio]
   return (
@@ -151,9 +155,35 @@ export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, sear
         <ThemeWriteLink board={board.slug} />
       </div>
 
+      {categories.length > 0 && (
+        <nav aria-label="카테고리" className="mt-8">
+          <ul className="flex gap-2 overflow-x-auto pb-0.5 md:flex-wrap">
+            {[{ id: undefined, name: '전체' }, ...categories].map((tab) => {
+              const active = tab.id === category
+              return (
+                <li key={tab.id ?? 'all'} className="shrink-0">
+                  <a
+                    href={hrefFor({ c: tab.id })}
+                    aria-current={active ? 'page' : undefined}
+                    className={`block whitespace-nowrap rounded-full border px-4 py-1.5 text-sm ${
+                      active
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-semibold text-white'
+                        : `${line} ${muted} hover:text-[color:var(--color-text-primary)]`
+                    }`}
+                  >
+                    {tab.name}
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        </nav>
+      )}
+
       <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
         <p className={`text-sm ${muted}`}>총 {list.total.toLocaleString()}건</p>
         <form role="search" action={searchAction} method="get" className="relative w-full sm:w-64">
+          {category && <input type="hidden" name="c" value={category} />}
           <label className="sr-only" htmlFor="board-search">
             {board.name} 검색
           </label>
@@ -277,7 +307,7 @@ export async function ThemeBoardList({ board, tenantSlug, q, page, hrefFor, sear
       <Pager
         page={list.page}
         totalPages={list.totalPages}
-        hrefFor={(p) => hrefFor({ q: keyword || undefined, p })}
+        hrefFor={(p) => hrefFor({ q: keyword || undefined, p, c: category })}
       />
     </section>
   )

@@ -1,0 +1,61 @@
+// ── BOARD TABS — 새 게시판 카테고리 탭 (T-149) ─────────────────────
+// components/board/BoardCategoryTabs.tsx  /  현재 탭: [aria-current='page']
+@use '../mixins' as *;
+
+.board-tabs {
+  margin-top: 24px;
+  @include md {
+    margin-top: 40px;
+  }
+
+  &__list {
+    @include flex(center, flex-start, 8px);
+    @include hide-scrollbar;
+    overflow-x: auto;
+    padding-bottom: 2px; // 포커스 링이 잘리지 않게
+    @include md {
+      flex-wrap: wrap;
+      overflow-x: visible;
+    }
+  }
+  &__item {
+    flex-shrink: 0;
+  }
+  &__link {
+    display: block;
+    padding: 8px 18px;
+    border: 1px solid var(--color-border);
+    border-radius: 999px;
+    font-size: 14px;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    transition:
+      color 0.2s,
+      border-color 0.2s,
+      background-color 0.2s;
+    @include md {
+      padding: 10px 22px;
+      font-size: 15px;
+    }
+    @include focus-ring;
+
+    &:hover {
+      border-color: var(--color-text-primary);
+      color: var(--color-text-primary);
+    }
+    &[aria-current='page'] {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 600;
+    }
+  }
+}
+
+// 탭 아래 총 건수 | 검색 — 제목 바로 아래일 때보다 덜 띄운다
+.board-tabs + .board-list__toolbar {
+  margin-top: 32px;
+  @include md {
+    margin-top: 48px;
+  }
+}

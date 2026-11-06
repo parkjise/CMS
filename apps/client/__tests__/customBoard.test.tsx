@@ -29,7 +29,7 @@ const props = (board_type: BoardType, extra = {}) => ({
   board: boardOf(board_type),
   tenantSlug: 'demo',
   page: 1,
-  hrefFor: (x?: { id?: string; q?: string; p?: number }) => pageHref('demo', 'b/news', undefined, x),
+  hrefFor: (x?: { id?: string; q?: string; p?: number; c?: string }) => pageHref('demo', 'b/news', undefined, x),
   searchTarget: { action: '/demo/b/news', hidden: [] as [string, string][] },
   ...extra,
 })
@@ -101,6 +101,41 @@ describe('목록형', () => {
     expect(screen.getByRole('link', { name: '글쓰기' }).getAttribute('href')).toMatch(
       /\/admin\/boards\?write=news$/,
     )
+  })
+})
+
+describe('카테고리 탭 (T-149)', () => {
+  const categories = [
+    { id: 'c1', name: '진료' },
+    { id: 'c2', name: '행사' },
+  ]
+
+  it('분류가 없으면 탭이 없다', async () => {
+    fetchPublicPosts.mockResolvedValue(listOf([post]))
+    render(await CustomBoard(props('LIST')))
+    expect(screen.queryByRole('navigation', { name: '카테고리' })).not.toBeInTheDocument()
+  })
+
+  it.each(['LIST', 'CARD'] as BoardType[])('%s: 고른 분류로 읽고 검색 · 페이지 · 탭 주소', async (type) => {
+    fetchPublicPosts.mockResolvedValue(listOf([post], 25))
+    const board = { ...boardOf(type), categories }
+    render(await CustomBoard(props(type, { board, c: 'c1' })))
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', expect.objectContaining({ category: 'c1' }))
+    const tabs = screen.getByRole('navigation', { name: '카테고리' })
+    expect(within(tabs).getByRole('link', { name: '진료' })).toHaveAttribute('aria-current', 'page')
+    expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('href', '/demo/b/news')
+    expect(within(tabs).getByRole('link', { name: '행사' })).toHaveAttribute('href', '/demo/b/news?c=c2')
+    expect(screen.getByRole('link', { name: /첫 글/ })).toHaveAttribute('href', '/demo/b/news/p1')
+    expect(screen.getByRole('link', { name: '2' })).toHaveAttribute('href', '/demo/b/news?c=c1&p=2')
+    expect(screen.getByRole('search').querySelector('input[name="c"]')).toHaveValue('c1')
+  })
+
+  it('없는 분류 주소는 전체로', async () => {
+    fetchPublicPosts.mockResolvedValue(listOf([post]))
+    render(await CustomBoard(props('LIST', { board: { ...boardOf('LIST'), categories }, c: 'gone' })))
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', expect.objectContaining({ category: undefined }))
+    const tabs = screen.getByRole('navigation', { name: '카테고리' })
+    expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
   })
 })
 

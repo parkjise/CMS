@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import type { BodyBlock, BodyNode, PublicFieldValue } from '@cms/types'
 import { FieldValue } from '@/components/board/FieldValue'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
@@ -120,6 +121,7 @@ interface NoticeListViewProps {
   searchLabel?: string
   emptyText?: string
   showDate?: boolean
+  tabs?: ReactNode
 }
 
 /** 글 목록 — 목업 sub/board-list.html */
@@ -138,6 +140,7 @@ export function NoticeListView({
   searchLabel = '공지사항 검색',
   emptyText = '등록된 공지가 없습니다.',
   showDate = true,
+  tabs,
 }: NoticeListViewProps) {
   return (
     <BoardListShell
@@ -151,6 +154,7 @@ export function NoticeListView({
       hrefFor={hrefFor}
       searchTarget={searchTarget}
       searchLabel={searchLabel}
+      tabs={tabs}
     >
       {items.length > 0 ? (
         <ul className="board-list__list">
