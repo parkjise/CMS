@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
-import type { BoardField, BodyNode, Post, PostStatus } from '@cms/types'
+import type { BoardCategory, BoardField, BodyNode, Post, PostStatus } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
+import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useBoardFields } from '@/hooks/useBoardFields'
 import { useCreatePost, usePost, useUpdatePost } from '@/hooks/useBoards'
 import {
@@ -25,15 +26,18 @@ interface PostFormProps {
   post?: Post
   /** 칸 정의 — 불러오지 못했으면 null, 칸 값을 보내지 않아 있던 값이 그대로 남는다 */
   fields: BoardField[] | null
+  /** 분류 — 불러오지 못했으면 null, 분류를 보내지 않아 그대로 남는다 */
+  categories: BoardCategory[] | null
 }
 
-function PostForm({ boardId, post, fields }: PostFormProps) {
+function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const navigate = useNavigate()
   const canEdit = useCanEdit()
   const createPost = useCreatePost(boardId)
   const updatePost = useUpdatePost(boardId)
   const [title, setTitle] = useState(post?.title ?? '')
   const [isPinned, setIsPinned] = useState(post?.is_pinned ?? false)
+  const [categoryId, setCategoryId] = useState(post?.category_id ?? '')
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
   const custom = useForm<CustomValues>({
@@ -69,6 +73,7 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
       is_pinned: isPinned,
       status: next,
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
+      ...(categories ? { category_id: categoryId || null } : {}),
     }
     try {
       const saved = post
@@ -105,6 +110,23 @@ function PostForm({ boardId, post, fields }: PostFormProps) {
             error={titleError}
             onChange={(e) => setTitle(e.target.value)}
           />
+          {categories && categories.length > 0 && (
+            <label className="block text-sm">
+              <span className="mb-1.5 block font-medium text-slate-700">카테고리</span>
+              <select
+                className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm sm:w-64"
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+              >
+                <option value="">분류 없음</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.is_active ? c.name : `${c.name} (숨김)`}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           {/* 홈페이지와 같은 순서 — 제목, 추가 칸, 내용 */}
           {fields && fields.length > 0 && (
             <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-4">
@@ -166,6 +188,7 @@ export function BoardPostEditPage() {
   const { boardId = '', postId } = useParams()
   const postQuery = usePost(boardId, postId)
   const fieldsQuery = useBoardFields(boardId)
+  const categoriesQuery = useBoardCategories(boardId)
 
   return (
     <div className="mx-auto max-w-3xl space-y-5 p-6 md:p-8">
@@ -187,12 +210,18 @@ export function BoardPostEditPage() {
           추가 칸을 불러오지 못했습니다. 제목과 내용만 저장되고, 추가 칸의 값은 그대로 남습니다.
         </p>
       )}
-      {(!postId || postQuery.data) && !fieldsQuery.isLoading && (
+      {categoriesQuery.isError && (
+        <p className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+          카테고리를 불러오지 못했습니다. 저장해도 글의 카테고리는 그대로 남습니다.
+        </p>
+      )}
+      {(!postId || postQuery.data) && !fieldsQuery.isLoading && !categoriesQuery.isLoading && (
         <PostForm
           key={postId ?? 'new'}
           boardId={boardId}
           post={postQuery.data}
           fields={fieldsQuery.data ?? null}
+          categories={categoriesQuery.data ?? null}
         />
       )}
     </div>

@@ -107,7 +107,7 @@ export default function HospitalATemplate({
   const siteBase = noSlug ? '' : `/${tenantSlug}`
   const hrefFor = (key: string) => pageHref(tenantSlug, key, previewQuery, { noSlug })
   // 게시판 페이지 주소 (상세 id · 검색 q · 페이지 p) — 미리보기면 미리보기 주소 유지
-  const boardHref = (extra?: { id?: string; q?: string; p?: number }) =>
+  const boardHref = (extra?: { id?: string; q?: string; p?: number; c?: string }) =>
     pageHref(tenantSlug, pageKey, previewQuery, { ...extra, noSlug })
   const searchTarget: SearchTarget = previewQuery
     ? {
@@ -314,6 +314,7 @@ export default function HospitalATemplate({
               tenantSlug={tenantSlug}
               detailId={detailId}
               q={query?.q}
+              c={query?.c}
               page={listPage}
               hrefFor={boardHref}
               searchTarget={searchTarget}

@@ -28,6 +28,7 @@ from app.schemas.board import (
     PostUpdate,
 )
 from app.schemas.rich_body import body_summary, first_image
+from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import site_cache
 
@@ -452,6 +453,7 @@ async def duplicate_board(db: AsyncSession, board: Board) -> Board:
     """설정만 복제하고 글은 복제하지 않는다 (D-02). 복제본은 기본 게시판이 아니다."""
     await _ensure_can_create(db, board.tenant_id)
     fields = await field_service.list_fields(db, board.id)
+    categories = await category_service.list_categories(db, board.id)
     copy = Board(
         id=uuid4(),
         tenant_id=board.tenant_id,
@@ -463,6 +465,7 @@ async def duplicate_board(db: AsyncSession, board: Board) -> Board:
     )
     db.add(copy)
     db.add_all(field_service.copies_of(fields, copy.id))
+    db.add_all(category_service.copies_of(categories, copy.id))
     await _commit_board(db)
     await db.refresh(copy)
     await site_cache.purge_site(db, board.tenant_id)
@@ -510,6 +513,7 @@ async def list_posts(
     status: str | None = None,
     q: str | None = None,
     trash: bool = False,
+    category_id: UUID | None = None,
 ) -> tuple[list[BoardPost], int]:
     conditions: list[ColumnElement[bool]] = [
         BoardPost.tenant_id == tenant_id,
@@ -518,6 +522,8 @@ async def list_posts(
     ]
     if status:
         conditions.append(BoardPost.status == status)
+    if category_id:
+        conditions.append(BoardPost.category_id == category_id)
     if q:
         conditions.append(_title_contains(BoardPost.title, q))
     total = (
@@ -572,6 +578,7 @@ async def create_post(
     custom_data = await field_service.resolve_custom_data(
         db, board_id, None, data.custom_data, data.status
     )
+    await category_service.check_post_category(db, board_id, data.category_id)
     post = BoardPost(
         tenant_id=tenant_id,
         board_id=board_id,
@@ -581,6 +588,7 @@ async def create_post(
         status=data.status,
         is_pinned=data.is_pinned,
         custom_data=custom_data,
+        category_id=data.category_id,
     )
     db.add(post)
     await _after_write(db, post)
@@ -591,6 +599,9 @@ async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> Bo
     post.custom_data = await field_service.resolve_custom_data(
         db, post.board_id, post, data.custom_data, data.status or post.status
     )
+    if "category_id" in data.model_fields_set:
+        await category_service.check_post_category(db, post.board_id, data.category_id)
+        post.category_id = data.category_id
     if data.title is not None:
         post.title = data.title
     if data.body is not None:
@@ -749,7 +760,7 @@ async def open_public_board(
     return result.scalar_one_or_none()
 
 
-def _public_board(board: Board) -> dict:
+def _public_board(board: Board, categories: list[dict]) -> dict:
     options = board_options(board)
     return {
         "id": board.id,
@@ -762,6 +773,7 @@ def _public_board(board: Board) -> dict:
         SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
         DESIGN_KEY: options[DESIGN_KEY],
+        "categories": categories,
     }
 
 
@@ -777,7 +789,9 @@ async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
         )
         .order_by(Board.created_at, Board.id)
     )
-    return [_public_board(board) for board in result.scalars()]
+    boards = list(result.scalars())
+    categories = await category_service.public_categories(db, [b.id for b in boards])
+    return [_public_board(board, categories.get(board.id, [])) for board in boards]
 
 
 async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] | None:
@@ -826,6 +840,7 @@ def public_post_item(
         "title": post.title,
         "is_pinned": post.is_pinned,
         "published_at": post.published_at,
+        "category_id": post.category_id,
         "thumbnail": first_image(blocks),
         "body": blocks if board.board_type == "FAQ" else None,
     }
@@ -872,12 +887,15 @@ async def list_public_posts(
     size: int,
     q: str | None = None,
     latest: bool = False,
+    category_id: UUID | None = None,
 ) -> tuple[list[BoardPost], int, bool]:
     public = _public_conditions(board)
     has_posts = (
         await db.execute(select(BoardPost.id).where(*public).limit(1))
     ).first() is not None
     conditions = [*public, _title_contains(BoardPost.title, q)] if q else public
+    if category_id:
+        conditions = [*conditions, BoardPost.category_id == category_id]
     total = (
         await db.execute(select(func.count()).select_from(BoardPost).where(*conditions))
     ).scalar_one()

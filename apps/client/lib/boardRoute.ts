@@ -51,20 +51,28 @@ export interface BoardPage {
   page: number
   totalPages: number
   keyword: string
+  /** 지금 고른 카테고리 — 이 게시판의 사용 중인 분류일 때만 (T-149) */
+  category?: string
 }
+
+/** 주소의 카테고리(c)가 이 게시판의 사용 중인 분류인지 — 아니면 '전체' */
+export const boardCategory = (board: PublicBoard, c?: string): string | undefined =>
+  c && board.categories?.some((cat) => cat.id === c) ? c : undefined
 
 /** 글 목록 한 페이지 — 지난 주소의 페이지가 사라졌으면 마지막 페이지로 */
 export async function loadBoardPage(
   tenantSlug: string,
   board: PublicBoard,
-  { page, q }: { page: number; q?: string },
+  { page, q, c }: { page: number; q?: string; c?: string },
 ): Promise<BoardPage> {
   const size = board.page_size ?? BOARD_PAGE_SIZE[board.board_type]
   const keyword = (q ?? '').trim()
-  const load = (p: number) => fetchPublicPosts(tenantSlug, board.slug, { page: p, size, q: keyword || undefined })
+  const category = boardCategory(board, c)
+  const load = (p: number) =>
+    fetchPublicPosts(tenantSlug, board.slug, { page: p, size, q: keyword || undefined, category })
   let list = await load(page)
   const total = list?.total ?? 0
   const totalPages = Math.max(1, Math.ceil(total / size))
   if (page > totalPages) list = (await load(totalPages)) ?? list
-  return { posts: list?.items ?? [], total, page: Math.min(page, totalPages), totalPages, keyword }
+  return { posts: list?.items ?? [], total, page: Math.min(page, totalPages), totalPages, keyword, category }
 }

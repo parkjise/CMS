@@ -15,6 +15,8 @@ interface BoardListShellProps {
   hrefFor: (extra?: { id?: string; q?: string; p?: number }) => string
   searchTarget: SearchTarget
   searchLabel: string
+  /** 검색창 위 카테고리 탭 (T-149) */
+  tabs?: ReactNode
   children: ReactNode
 }
 
@@ -30,6 +32,7 @@ export function BoardListShell({
   hrefFor,
   searchTarget,
   searchLabel,
+  tabs,
   children,
 }: BoardListShellProps) {
   return (
@@ -40,6 +43,7 @@ export function BoardListShell({
         </h2>
         {description && <p className="board-list__desc">{description}</p>}
         {writeBoard && <NoticeWriteLink board={writeBoard} />}
+        {tabs}
         <BoardToolbar
           total={total}
           q={keyword}

@@ -18,7 +18,7 @@ import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
 
 interface Props {
   params: Promise<{ tenant_slug: string; path: string[] }>
-  searchParams: Promise<{ q?: string; p?: string }>
+  searchParams: Promise<{ q?: string; p?: string; c?: string }>
 }
 
 const NOT_FOUND_META: Metadata = { title: '페이지를 찾을 수 없습니다', robots: { index: false, follow: false } }
@@ -50,10 +50,10 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
   const route = await resolveBoardRoute(site, tenant_slug, path)
   if (!route) notFound()
 
-  const { q, p } = await searchParams
+  const { q, p, c } = await searchParams
   const noSlug = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
   const key = boardPageKey(route.board.slug)
-  const hrefFor = (extra?: { id?: string; q?: string; p?: number }) =>
+  const hrefFor = (extra?: { id?: string; q?: string; p?: number; c?: string }) =>
     pageHref(tenant_slug, key, undefined, { ...extra, noSlug })
 
   return (
@@ -74,6 +74,7 @@ export default async function ThemeBoardPage({ params, searchParams }: Props) {
             board={route.board}
             tenantSlug={tenant_slug}
             q={q}
+            c={c}
             page={Math.max(1, Number(p) || 1)}
             hrefFor={hrefFor}
             searchAction={hrefFor()}

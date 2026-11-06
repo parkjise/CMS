@@ -11,6 +11,7 @@ from sqlalchemy import (
     Integer,
     String,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -76,6 +77,15 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
     published_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 카테고리 (T-149) — 비워 둘 수 있다. 같은 게시판의 분류인지는 서비스가 본다
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey(
+            "board_categories.id", name="fk_board_posts_category", ondelete="SET NULL"
+        ),
+        nullable=True,
+        index=True,
+    )
 
 
 class BoardField(Base, TimestampMixin, SoftDeleteMixin):
@@ -108,4 +118,34 @@ class BoardField(Base, TimestampMixin, SoftDeleteMixin):
     field_options: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, default=dict
     )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+
+
+class BoardCategory(Base, TimestampMixin, SoftDeleteMixin):
+    """게시판 카테고리 — 1단계 분류 (T-149, BM-09)."""
+
+    __tablename__ = "board_categories"
+    __table_args__ = (
+        Index("ix_board_categories_tenant_id", "tenant_id"),
+        Index(
+            "uq_board_categories_name",
+            "board_id",
+            "name",
+            unique=True,
+            postgresql_where=text("deleted_at IS NULL"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    board_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
+    )
+    name: Mapped[str] = mapped_column(String(30), nullable=False)
+    # 끄면 홈페이지 분류 탭에서만 빠진다 — 글은 '전체'에 그대로
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)

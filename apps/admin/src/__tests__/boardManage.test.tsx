@@ -330,7 +330,7 @@ describe('기본 정보 탭', () => {
     expect(patch.mock.calls[0][1]).not.toHaveProperty('seo_title')
   })
 
-  it('탭 — 새 게시판은 필드 관리까지, 현재 탭 표시', async () => {
+  it('탭 — 새 게시판은 필드 관리 · 카테고리까지, 현재 탭 표시', async () => {
     mockApi({})
     renderSettings()
     const tabs = await screen.findByRole('navigation', { name: '게시판 상세' })
@@ -339,6 +339,7 @@ describe('기본 정보 탭', () => {
       '글 관리',
       '기본 정보',
       '필드 관리',
+      '카테고리',
       '게시판 디자인',
       '홈페이지 연결',
     ])
@@ -349,11 +350,12 @@ describe('기본 정보 탭', () => {
     )
   })
 
-  it('기본 게시판은 필드 관리 탭 · 삭제 버튼 없음', async () => {
+  it('기본 게시판은 필드 관리 · 카테고리 탭 · 삭제 버튼 없음', async () => {
     mockApi({ boards: [notice] })
     renderSettings('n1')
     await screen.findByLabelText(/게시판 이름/)
     expect(screen.queryByRole('link', { name: '필드 관리' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '카테고리' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '휴지통으로' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: '복제' })).toBeInTheDocument()
   })

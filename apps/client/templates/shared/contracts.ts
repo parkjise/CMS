@@ -48,8 +48,8 @@ export interface CodeTemplateProps {
   latestNotices?: PublicPostList | null
   /** 게시판 상세·글쓰기 ('{글 id}' | 'write') — /{slug}/{page}/{id} */
   detailId?: string
-  /** 목록 검색어(q) · 페이지(p) */
-  query?: { q?: string; p?: string }
+  /** 목록 검색어(q) · 페이지(p) · 카테고리(c) */
+  query?: { q?: string; p?: string; c?: string }
   /**
    * 방문자 회원 화면 (/{slug}/member/{page}, T-124) — 있으면 페이지 섹션 대신
    * 템플릿 디자인의 회원 화면을 헤더 · 서브 히어로 · 푸터 안에 그린다
@@ -68,6 +68,8 @@ export interface HrefExtra {
   id?: string
   q?: string
   p?: number | string
+  /** 게시판 카테고리 id (T-149) */
+  c?: string
   /** 고객 도메인 — 주소에 slug 를 넣지 않는다 (T-137) */
   noSlug?: boolean
 }
@@ -83,6 +85,7 @@ export function pageHref(
   extra: HrefExtra = {},
 ): string {
   const params = new URLSearchParams()
+  if (extra.c) params.set('c', extra.c)
   if (extra.q) params.set('q', extra.q)
   if (extra.p && Number(extra.p) > 1) params.set('p', String(extra.p))
   if (previewQuery) {

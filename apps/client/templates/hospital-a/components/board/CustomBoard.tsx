@@ -2,6 +2,7 @@ import type { PublicBoard } from '@cms/types'
 import { boardDesign, loadBoardPage } from '@/lib/boardRoute'
 import { fetchPublicPost, fieldValueText, postDate } from '@/lib/publicPosts'
 import { BoardBody } from './BoardBody'
+import { BoardCategoryTabs } from './BoardCategoryTabs'
 import { BoardEmpty, BoardListShell } from './BoardListShell'
 import type { SearchTarget } from './BoardToolbar'
 import { dotDate } from './format'
@@ -12,15 +13,26 @@ interface CustomBoardProps {
   tenantSlug: string
   detailId?: string
   q?: string
+  /** 주소의 카테고리 id (T-149) */
+  c?: string
   page: number
-  hrefFor: (extra?: { id?: string; q?: string; p?: number }) => string
+  hrefFor: (extra?: { id?: string; q?: string; p?: number; c?: string }) => string
   searchTarget: SearchTarget
 }
 
 const EMPTY_TEXT = '등록된 글이 없습니다.'
 
 /** 고객이 추가한 게시판 — 유형별 목록 + 공통 상세 (게시판 모듈 기획서 5.3 · 7장, T-140-B) */
-export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFor, searchTarget }: CustomBoardProps) {
+export async function CustomBoard({
+  board,
+  tenantSlug,
+  detailId,
+  q,
+  c,
+  page,
+  hrefFor,
+  searchTarget,
+}: CustomBoardProps) {
   if (detailId) {
     const post = await fetchPublicPost(tenantSlug, board.slug, detailId)
     if (!post) {
@@ -47,7 +59,23 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
     )
   }
 
-  const { posts, total, page: current, totalPages, keyword } = await loadBoardPage(tenantSlug, board, { page, q })
+  const { posts, total, page: current, totalPages, keyword, category } = await loadBoardPage(tenantSlug, board, {
+    page,
+    q,
+    c,
+  })
+  // 검색 · 페이지 이동은 고른 카테고리 안에서 (T-149)
+  const listHref: CustomBoardProps['hrefFor'] = (extra) => hrefFor(extra?.id ? extra : { ...extra, c: category })
+  const listSearch: SearchTarget = category
+    ? { ...searchTarget, hidden: [...searchTarget.hidden, ['c', category]] }
+    : searchTarget
+  const tabs = (
+    <BoardCategoryTabs
+      categories={board.categories ?? []}
+      current={category}
+      hrefFor={(id) => hrefFor({ c: id })}
+    />
+  )
   const searchLabel = `${board.name} 검색`
   const design = boardDesign(board)
   const ratioClass = `--ratio-${design.image_ratio.replace(':', '-')}`
@@ -70,10 +98,11 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
         page={current}
         totalPages={totalPages}
         keyword={keyword}
-        hrefFor={hrefFor}
-        searchTarget={searchTarget}
+        hrefFor={listHref}
+        searchTarget={listSearch}
         canWrite
         showDate={design.show_date}
+        tabs={tabs}
       />
     )
   }
@@ -87,9 +116,10 @@ export async function CustomBoard({ board, tenantSlug, detailId, q, page, hrefFo
       page={current}
       totalPages={totalPages}
       keyword={keyword}
-      hrefFor={hrefFor}
-      searchTarget={searchTarget}
+      hrefFor={listHref}
+      searchTarget={listSearch}
       searchLabel={searchLabel}
+      tabs={tabs}
     >
       {posts.length === 0 ? (
         <BoardEmpty keyword={keyword} emptyText={EMPTY_TEXT} />

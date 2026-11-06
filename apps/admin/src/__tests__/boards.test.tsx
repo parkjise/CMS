@@ -168,6 +168,7 @@ describe('글 관리', () => {
       if (url.endsWith('/fields')) {
         return ok([field({}), field({ id: 'f2', field_key: 'memo', label: '메모', show_in_list: false })])
       }
+      if (url.endsWith('/categories')) return ok([])
       return ok(list({ items: [{ ...item, custom_data: { grade: 'opt_1', memo: '숨은 값' } }] }))
     })
     renderPosts()

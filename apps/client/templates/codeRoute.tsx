@@ -164,7 +164,7 @@ export async function CodeRoutePage({
         onCustomDomain={onCustomDomain}
         pageKey={pageKey}
         detailId={detailId}
-        query={{ q: searchParams.q, p: searchParams.p }}
+        query={{ q: searchParams.q, p: searchParams.p, c: searchParams.c }}
         member={memberPage ? { page: memberPage, query: searchParams } : undefined}
         board={board}
       />

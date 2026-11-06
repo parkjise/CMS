@@ -24,6 +24,7 @@ export interface PostFilters {
   status?: PostStatus
   q?: string
   trash?: boolean
+  category_id?: string
 }
 
 export interface PostInput {
@@ -31,6 +32,8 @@ export interface PostInput {
   body?: BodyNode[]
   status?: PostStatus
   is_pinned?: boolean
+  /** 분류 (T-149) — null 은 분류 없음 */
+  category_id?: string | null
 }
 
 export interface PostOverviewFilters extends PostFilters {

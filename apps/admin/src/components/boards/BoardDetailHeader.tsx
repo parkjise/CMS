@@ -14,8 +14,13 @@ export function BoardDetailHeader({ boardId, actions }: BoardDetailHeaderProps) 
   const tabs = [
     { to: 'posts', label: '글 관리' },
     { to: 'settings', label: '기본 정보' },
-    // 기본 게시판에는 칸을 추가할 수 없다
-    ...(board?.system_key ? [] : [{ to: 'fields', label: '필드 관리' }]),
+    // 기본 게시판에는 칸 · 카테고리를 만들 수 없다
+    ...(board?.system_key
+      ? []
+      : [
+          { to: 'fields', label: '필드 관리' },
+          { to: 'categories', label: '카테고리' },
+        ]),
     { to: 'design', label: '게시판 디자인' },
     { to: 'connection', label: '홈페이지 연결' },
   ]

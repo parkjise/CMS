@@ -14,7 +14,7 @@ from app.core.deps import (
     get_tenant_id,
     require_feature,
 )
-from app.models.board import Board, BoardField, BoardPost
+from app.models.board import Board, BoardCategory, BoardField, BoardPost
 from app.models.user import User
 from app.schemas.board import (
     BoardCreate,
@@ -22,6 +22,10 @@ from app.schemas.board import (
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
+    CategoryCreate,
+    CategoryOrderRequest,
+    CategoryResponse,
+    CategoryUpdate,
     FieldCreate,
     FieldOption,
     FieldOrderRequest,
@@ -44,12 +48,14 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
+from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
 MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
 MSG_FIELD_NOT_FOUND = "칸을 찾을 수 없습니다."
+MSG_CATEGORY_NOT_FOUND = "카테고리를 찾을 수 없습니다."
 
 router = APIRouter(
     prefix="/boards",
@@ -416,12 +422,144 @@ async def restore_field(
     return ApiResponse.ok(response)
 
 
+# ── 카테고리 (T-149) ─────────────────────────────────────────────────────
+
+
+async def _audit_category(
+    db: AsyncSession,
+    user: User,
+    action: str,
+    category: BoardCategory,
+    before: dict | None = None,
+    extra: dict | None = None,
+) -> None:
+    await log_action(
+        db,
+        user,
+        action,
+        "board_category",
+        category.id,
+        before=before,
+        after={
+            "board_id": str(category.board_id),
+            "name": category.name,
+            "is_active": category.is_active,
+            **(extra or {}),
+        },
+        tenant_id=category.tenant_id,
+    )
+
+
+async def _category_or_404(
+    category_id: UUID,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+) -> BoardCategory:
+    category = await category_service.get_category(db, board.id, category_id)
+    if category is None:
+        raise _not_found(MSG_CATEGORY_NOT_FOUND)
+    return category
+
+
+@router.get(
+    "/{board_id}/categories", response_model=ApiResponse[list[CategoryResponse]]
+)
+async def list_categories(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    categories = await category_service.list_categories(db, board.id)
+    counts = await category_service.post_counts(db, board.id)
+    return ApiResponse.ok(
+        [
+            CategoryResponse.model_validate(c).model_copy(
+                update={"post_count": counts.get(c.id, 0)}
+            )
+            for c in categories
+        ]
+    )
+
+
+@router.post(
+    "/{board_id}/categories",
+    response_model=ApiResponse[CategoryResponse],
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_category(
+    data: CategoryCreate,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    category = await category_service.create_category(db, board, data)
+    response = CategoryResponse.model_validate(category)
+    await _audit_category(db, current_user, "BOARD_CATEGORY_CREATED", category)
+    return ApiResponse.ok(response)
+
+
+@router.patch(
+    "/{board_id}/categories/order",
+    response_model=ApiResponse[list[CategoryResponse]],
+)
+async def reorder_categories(
+    data: CategoryOrderRequest,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    categories = await category_service.reorder_categories(db, board, data.category_ids)
+    return ApiResponse.ok([CategoryResponse.model_validate(c) for c in categories])
+
+
+@router.patch(
+    "/{board_id}/categories/{category_id}",
+    response_model=ApiResponse[CategoryResponse],
+)
+async def update_category(
+    data: CategoryUpdate,
+    board: Board = Depends(_board_or_404),
+    category: BoardCategory = Depends(_category_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    before = {"name": category.name, "is_active": category.is_active}
+    updated = await category_service.update_category(db, board, category, data)
+    response = CategoryResponse.model_validate(updated)
+    await _audit_category(
+        db, current_user, "BOARD_CATEGORY_UPDATED", updated, before=before
+    )
+    return ApiResponse.ok(response)
+
+
+@router.delete("/{board_id}/categories/{category_id}", response_model=ApiResponse[dict])
+async def delete_category(
+    move_to: UUID | None = None,
+    board: Board = Depends(_board_or_404),
+    category: BoardCategory = Depends(_category_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """move_to — 이 분류의 글을 옮길 분류. 없으면 분류 없음."""
+    moved = await category_service.delete_category(db, board, category, move_to)
+    await _audit_category(
+        db,
+        current_user,
+        "BOARD_CATEGORY_DELETED",
+        category,
+        extra={
+            "moved_posts": moved,
+            "move_to": str(move_to) if move_to else None,
+        },
+    )
+    return ApiResponse.ok({"deleted": True, "moved": moved})
+
+
 @router.get("/{board_id}/posts", response_model=ApiResponse[PostListResponse])
 async def list_posts(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     post_status: PostStatus | None = Query(default=None, alias="status"),
     q: str | None = Query(default=None, max_length=100),
+    category_id: UUID | None = None,
     trash: bool = False,
     board: Board = Depends(_board_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
@@ -435,6 +573,7 @@ async def list_posts(
         status=post_status,
         q=q,
         trash=trash,
+        category_id=category_id,
     )
     return ApiResponse.ok(
         PostListResponse(
@@ -591,6 +730,7 @@ async def list_public_posts(
     size: int | None = Query(default=None, ge=1, le=50),
     q: str | None = Query(default=None, max_length=100),
     order: Literal["default", "latest"] = "default",
+    category: UUID | None = None,
     db: AsyncSession = Depends(get_db),
 ):
     board = await board_service.open_public_board(db, tenant_slug, board_slug)
@@ -599,7 +739,13 @@ async def list_public_posts(
     # 크기를 안 보내면 게시판 설정대로 (T-146)
     size = size or board_service.public_page_size(board)
     posts, total, has_posts = await board_service.list_public_posts(
-        db, board, page=page, size=size, q=q, latest=order == "latest"
+        db,
+        board,
+        page=page,
+        size=size,
+        q=q,
+        latest=order == "latest",
+        category_id=category,
     )
     card_fields = await field_service.card_fields(db, board)
     return ApiResponse.ok(
@@ -639,6 +785,7 @@ async def get_public_post(
             title=post.title,
             is_pinned=post.is_pinned,
             published_at=post.published_at,  # type: ignore[arg-type]
+            category_id=post.category_id,
             body=post.body,
             fields=await field_service.public_fields(db, post),  # type: ignore[arg-type]
             prev_id=prev_id,

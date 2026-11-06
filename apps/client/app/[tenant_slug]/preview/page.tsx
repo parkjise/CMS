@@ -12,7 +12,7 @@ import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string; content?: string; page?: string; id?: string; q?: string; p?: string }>
+  searchParams: Promise<{ tpl?: string; content?: string; page?: string; id?: string; q?: string; p?: string; c?: string }>
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -26,7 +26,7 @@ export default async function TemplatePreviewPage({
   searchParams,
 }: Props) {
   const { tenant_slug } = await params
-  const { tpl, content, page, id, q, p } = await searchParams
+  const { tpl, content, page, id, q, p, c } = await searchParams
 
   if (!tpl) {
     notFound()
@@ -60,7 +60,7 @@ export default async function TemplatePreviewPage({
           contentSource={content === 'mine' ? 'tenant' : 'sample'}
           previewQuery={previewQuery}
           detailId={id}
-          query={{ q, p }}
+          query={{ q, p, c }}
           board={board}
         />
       </>

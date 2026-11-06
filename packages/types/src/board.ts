@@ -98,6 +98,24 @@ export interface Board {
   design: BoardDesign
 }
 
+/** 게시판 카테고리 — 1단계 분류 (T-149) */
+export interface BoardCategory {
+  id: string
+  board_id: string
+  name: string
+  /** 끄면 홈페이지 분류 탭에서만 빠진다 */
+  is_active: boolean
+  display_order: number
+  /** 이 분류의 글 수 (휴지통 글 제외) */
+  post_count: number
+}
+
+/** 홈페이지 분류 탭 — 사용 중인 분류만 */
+export interface PublicCategory {
+  id: string
+  name: string
+}
+
 /** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */
 export interface BoardLimits {
   plan: string
@@ -118,6 +136,8 @@ export interface PostListItem {
   updated_at: string
   deleted_at: string | null
   custom_data?: Record<string, unknown>
+  /** 분류 (T-149) — 없으면 null */
+  category_id?: string | null
 }
 
 export interface Post extends PostListItem {
@@ -159,6 +179,8 @@ export interface PublicBoard {
   seo_description?: string
   seo_index?: boolean
   design?: BoardDesign
+  /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
+  categories?: PublicCategory[]
 }
 
 export interface PublicPostItem {
@@ -173,6 +195,7 @@ export interface PublicPostItem {
   /** 카드형 목록에만 */
   summary?: string | null
   card_fields?: PublicFieldValue[] | null
+  category_id?: string | null
 }
 
 export interface PublicPostList {

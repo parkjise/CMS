@@ -5,6 +5,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useBoardFields } from '@/hooks/useBoardFields'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
@@ -55,7 +56,9 @@ export function BoardPostsPage() {
       ? `${CLIENT_BASE_URL}/${tenantSlug}/${board.system_key ?? `b/${board.slug}`}/${publishedId}`
       : null
   const postsQuery = usePosts(boardId, filters)
-  // 기본 게시판에는 칸이 없다
+  // 기본 게시판에는 칸 · 분류가 없다
+  const categories = useBoardCategories(boardId, { enabled: Boolean(board && !board.system_key) }).data ?? []
+  const categoryName = new Map(categories.map((c) => [c.id, c.name]))
   const listFields = (useBoardFields(boardId, { enabled: Boolean(board && !board.system_key) }).data ?? []).filter(
     (field) => field.show_in_list,
   )
@@ -187,6 +190,21 @@ export function BoardPostsPage() {
           ))}
           <option value="TRASH">휴지통</option>
         </select>
+        {categories.length > 0 && (
+          <select
+            aria-label="카테고리"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            value={filters.category_id ?? ''}
+            onChange={(e) => setFilters({ ...filters, page: 1, category_id: e.target.value || undefined })}
+          >
+            <option value="">모든 카테고리</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        )}
         <Button type="submit" variant="secondary">
           검색
         </Button>
@@ -223,6 +241,11 @@ export function BoardPostsPage() {
                   <span className={`rounded px-1.5 py-0.5 ${STATUS_STYLES[post.status]}`}>
                     {STATUS_LABELS[post.status]}
                   </span>
+                  {post.category_id && categoryName.has(post.category_id) && (
+                    <span className="rounded bg-blue-50 px-1.5 py-0.5 text-blue-700">
+                      {categoryName.get(post.category_id)}
+                    </span>
+                  )}
                   <time dateTime={post.published_at ?? post.created_at}>
                     {dayjs(post.published_at ?? post.created_at).format('YYYY.MM.DD')}
                   </time>
