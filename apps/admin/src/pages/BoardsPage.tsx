@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardLimits, useBoards } from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
-import { boardTypeLabel } from '@/lib/boardLabels'
+import { BOARD_TYPES, boardTypeLabel } from '@/lib/boardLabels'
 
 /** 게시판 목록 (BM-01, 게시판 모듈 기획서 4장) */
 export function BoardsPage() {
@@ -15,7 +15,39 @@ export function BoardsPage() {
   const boards = boardsQuery.data
   const limits = limitsQuery.data
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const nameQuery = searchParams.get('q') ?? ''
+  const typeQuery = searchParams.get('type') ?? ''
+  const statusQuery = searchParams.get('status') ?? ''
+  const selectedType = BOARD_TYPES.some((type) => type.value === typeQuery) ? typeQuery : ''
+  const selectedStatus = ['ACTIVE', 'INACTIVE'].includes(statusQuery) ? statusQuery : ''
+  const filteredBoards = boards?.filter(
+    (board) =>
+      board.name.toLocaleLowerCase().includes(nameQuery.trim().toLocaleLowerCase()) &&
+      (!selectedType || board.board_type === selectedType) &&
+      (!selectedStatus || board.status === selectedStatus)
+  )
+  const updateFilter = (key: string, value: string) => {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        if (value) next.set(key, value)
+        else next.delete(key)
+        return next
+      },
+      { replace: true }
+    )
+  }
+  const resetFilters = () => {
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous)
+        for (const key of ['q', 'type', 'status']) next.delete(key)
+        return next
+      },
+      { replace: true }
+    )
+  }
   // 홈페이지의 [글쓰기] → ?write=notice, 글 상세의 [수정] → ?write=notice&post={글 id}
   const writeKey = searchParams.get('write')
   const postKey = searchParams.get('post')
@@ -70,21 +102,76 @@ export function BoardsPage() {
         </p>
       )}
 
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-slate-200 bg-white p-4">
+        <label className="min-w-48 flex-1 text-sm text-slate-600">
+          게시판 이름
+          <input
+            type="search"
+            value={nameQuery}
+            onChange={(event) => updateFilter('q', event.target.value)}
+            placeholder="게시판 이름 검색"
+            className="mt-1 block h-10 w-full rounded-md border border-slate-300 px-3 text-slate-900"
+          />
+        </label>
+        <label className="text-sm text-slate-600">
+          게시판 유형
+          <select
+            value={selectedType}
+            onChange={(event) => updateFilter('type', event.target.value)}
+            className="mt-1 block h-10 rounded-md border border-slate-300 bg-white px-3 text-slate-900"
+          >
+            <option value="">전체 유형</option>
+            {BOARD_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-slate-600">
+          사용 상태
+          <select
+            value={selectedStatus}
+            onChange={(event) => updateFilter('status', event.target.value)}
+            className="mt-1 block h-10 rounded-md border border-slate-300 bg-white px-3 text-slate-900"
+          >
+            <option value="">전체 상태</option>
+            <option value="ACTIVE">사용 중</option>
+            <option value="INACTIVE">사용 안 함</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          onClick={resetFilters}
+          className="h-10 rounded-md px-3 text-sm text-slate-600 hover:bg-slate-100"
+        >
+          검색 초기화
+        </button>
+      </div>
+      {!boardsQuery.isError && boards && (
+        <p role="status" className="text-sm text-slate-500">
+          전체 {boards.length}개 중 {filteredBoards?.length ?? 0}개
+        </p>
+      )}
+
       {boardsQuery.isLoading && (
         <div className="h-20 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
       )}
-      {boardsQuery.isError && (
-        <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>
-      )}
+      {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
       {boards?.length === 0 && (
         <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
           아직 게시판이 없습니다.
         </p>
       )}
 
-      {boards && boards.length > 0 && (
+      {boards && boards.length > 0 && filteredBoards?.length === 0 && (
+        <p className="rounded-lg border border-dashed border-slate-200 p-8 text-center text-sm text-slate-500">
+          검색 조건에 맞는 게시판이 없습니다.
+        </p>
+      )}
+      {filteredBoards && filteredBoards.length > 0 && (
         <ul className="divide-y divide-slate-100 rounded-lg border border-slate-200 bg-white shadow-sm">
-          {boards.map((board) => (
+          {filteredBoards.map((board) => (
             <li key={board.id} className="flex items-center gap-2 pr-2 hover:bg-slate-50">
               <Link
                 to={`/admin/boards/${board.id}/posts`}
@@ -92,17 +179,23 @@ export function BoardsPage() {
               >
                 <span className="min-w-0">
                   <span className="font-medium text-slate-900">{board.name}</span>
-                  <span className="ml-2 text-xs text-slate-500">{boardTypeLabel(board.board_type)}</span>
+                  <span className="ml-2 text-xs text-slate-500">
+                    {boardTypeLabel(board.board_type)}
+                  </span>
                   {isTheme && board.system_key !== null && (
                     <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
                       지금 템플릿에는 표시되지 않습니다
                     </span>
                   )}
                   {board.status === 'INACTIVE' && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">사용 안 함</span>
+                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
+                      사용 안 함
+                    </span>
                   )}
                 </span>
-                <span className="text-sm text-slate-500">글 {board.post_count.toLocaleString()}개</span>
+                <span className="text-sm text-slate-500">
+                  글 {board.post_count.toLocaleString()}개
+                </span>
               </Link>
               <Link
                 to={`/admin/boards/${board.id}/settings`}

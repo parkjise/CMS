@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes, useParams } from 'react-router'
+import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router'
 import type { Board, Post, PostList } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { BoardPostEditPage } from '@/pages/BoardPostEditPage'
@@ -19,11 +19,19 @@ const { get, post, patch, del, toastError } = vi.hoisted(() => ({
 
 // 실제 편집기는 richTextEditor.test.tsx — 여기는 글쓰기 흐름만
 vi.mock('@/components/boards/RichTextEditor', () => ({
-  RichTextEditor: ({ initial, onChange }: { initial: unknown[]; onChange: (v: unknown[]) => void }) => (
+  RichTextEditor: ({
+    initial,
+    onChange,
+  }: {
+    initial: unknown[]
+    onChange: (v: unknown[]) => void
+  }) => (
     <textarea
       aria-label="내용"
       defaultValue={initial.length ? JSON.stringify(initial) : ''}
-      onChange={(e) => onChange([{ type: 'paragraph', content: [{ type: 'text', text: e.target.value }] }])}
+      onChange={(e) =>
+        onChange([{ type: 'paragraph', content: [{ type: 'text', text: e.target.value }] }])
+      }
     />
   ),
 }))
@@ -85,7 +93,15 @@ const list = (overrides: Partial<PostList> = {}): PostList => ({
 
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
 
-const mockApi = ({ boards = [board], posts = list(), detail }: { boards?: Board[]; posts?: PostList; detail?: Post }) => {
+const mockApi = ({
+  boards = [board],
+  posts = list(),
+  detail,
+}: {
+  boards?: Board[]
+  posts?: PostList
+  detail?: Post
+}) => {
   get.mockImplementation((url: string) => {
     if (url.endsWith('/fields')) return Promise.resolve({ data: { data: [] } })
     if (url === '/v1/boards') return ok(boards)
@@ -106,11 +122,13 @@ const renderAt = (path: string, page: React.ReactElement, route: string) =>
         <Route path={route} element={page} />
         <Route path="*" element={<Where />} />
       </Routes>
-    </MemoryRouter>,
+    </MemoryRouter>
   )
 
 const setRole = (role: string) =>
-  useAuthStore.setState({ user: { role } } as unknown as Parameters<typeof useAuthStore.setState>[0])
+  useAuthStore.setState({ user: { role } } as unknown as Parameters<
+    typeof useAuthStore.setState
+  >[0])
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -143,6 +161,100 @@ describe('게시판 목록', () => {
     expect(await screen.findByText('게시판을 불러오지 못했습니다.')).toBeInTheDocument()
   })
 
+  const searchBoards: Board[] = [
+    board,
+    { ...board, id: 'b2', name: '채용 NEWS', slug: 'jobs', system_key: null, board_type: 'CARD' },
+    {
+      ...board,
+      id: 'b3',
+      name: '지난 NEWS',
+      slug: 'old',
+      system_key: null,
+      board_type: 'CARD',
+      status: 'INACTIVE',
+    },
+    { ...board, id: 'b4', name: '사진', slug: 'photos', system_key: null, board_type: 'GALLERY' },
+    { ...board, id: 'b5', name: '질문', slug: 'faq', system_key: null, board_type: 'FAQ' },
+  ]
+
+  it('이름은 공백과 영문 대소문자를 무시하고 유형 · 상태와 함께 좁힌다', async () => {
+    const user = userEvent.setup()
+    mockApi({ boards: searchBoards })
+    renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
+    await screen.findByRole('link', { name: /공지사항.*글 2개/ })
+    await user.type(screen.getByRole('searchbox', { name: '게시판 이름' }), ' news ')
+    expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 2개')
+    await user.selectOptions(screen.getByRole('combobox', { name: '게시판 유형' }), 'CARD')
+    await user.selectOptions(screen.getByRole('combobox', { name: '사용 상태' }), 'INACTIVE')
+    expect(screen.getByRole('link', { name: /지난 NEWS.*글 2개/ })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: /채용 NEWS.*글 2개/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 1개')
+    await user.click(screen.getByRole('button', { name: '검색 초기화' }))
+    expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 5개')
+    expect(screen.getByRole('searchbox')).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: '게시판 유형' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('')
+  })
+
+  it.each(['LIST', 'GALLERY', 'FAQ', 'CARD'])('URL의 %s 유형 조건을 복원한다', async (type) => {
+    mockApi({ boards: searchBoards })
+    renderAt(`/admin/boards?type=${type}`, <BoardsPage />, '/admin/boards')
+    await screen.findByRole('status')
+    expect(screen.getByRole('combobox', { name: '게시판 유형' })).toHaveValue(type)
+    const count = searchBoards.filter((entry) => entry.board_type === type).length
+    expect(screen.getByRole('status')).toHaveTextContent(`전체 5개 중 ${count}개`)
+  })
+
+  it('URL에서 이름 · 상태도 복원하고 결과 없음을 안내한다', async () => {
+    mockApi({ boards: searchBoards })
+    renderAt('/admin/boards?q=NEWS&type=GALLERY&status=INACTIVE', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByText('검색 조건에 맞는 게시판이 없습니다.')).toBeInTheDocument()
+    expect(screen.getByRole('searchbox')).toHaveValue('NEWS')
+    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('INACTIVE')
+    expect(screen.queryByText('아직 게시판이 없습니다.')).not.toBeInTheDocument()
+  })
+
+  it('알 수 없는 URL 필터는 전체로 취급하고 보기 전용도 검색할 수 있다', async () => {
+    setRole('TENANT_VIEWER')
+    mockApi({ boards: searchBoards })
+    renderAt('/admin/boards?type=UNKNOWN&status=UNKNOWN', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByRole('status')).toHaveTextContent('전체 5개 중 5개')
+    expect(screen.getByRole('combobox', { name: '게시판 유형' })).toHaveValue('')
+    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('')
+    expect(screen.queryByRole('link', { name: '게시판 추가' })).not.toBeInTheDocument()
+  })
+
+  it('조건을 URL에 저장하고 초기화할 때 관련 없는 쿼리는 보존한다', async () => {
+    const user = userEvent.setup()
+    const Location = () => <span data-testid="location">{useLocation().search}</span>
+    mockApi({ boards: searchBoards })
+    renderAt(
+      '/admin/boards?source=dashboard',
+      <>
+        <BoardsPage />
+        <Location />
+      </>,
+      '/admin/boards'
+    )
+    await screen.findByRole('status')
+    await user.type(screen.getByRole('searchbox'), 'NEWS')
+    await user.selectOptions(screen.getByRole('combobox', { name: '게시판 유형' }), 'CARD')
+    await user.selectOptions(screen.getByRole('combobox', { name: '사용 상태' }), 'ACTIVE')
+    const params = new URLSearchParams(screen.getByTestId('location').textContent ?? '')
+    expect(params.get('q')).toBe('NEWS')
+    expect(params.get('type')).toBe('CARD')
+    expect(params.get('status')).toBe('ACTIVE')
+    expect(params.get('source')).toBe('dashboard')
+    await user.click(screen.getByRole('button', { name: '검색 초기화' }))
+    expect(screen.getByTestId('location')).toHaveTextContent('?source=dashboard')
+  })
+
+  it('목록 필터가 기존 글쓰기 바로가기를 가리지 않는다', async () => {
+    mockApi({ boards: searchBoards })
+    renderAt('/admin/boards?write=notice&q=없는이름&type=CARD', <BoardsPage />, '/admin/boards')
+    expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
+  })
+
   it('홈페이지 [글쓰기] 주소는 글쓰기 화면으로 바로 간다', async () => {
     mockApi({})
     renderAt('/admin/boards?write=notice', <BoardsPage />, '/admin/boards')
@@ -168,7 +280,10 @@ describe('글 관리', () => {
     get.mockImplementation((url: string) => {
       if (url === '/v1/boards') return ok([custom])
       if (url.endsWith('/fields')) {
-        return ok([field({}), field({ id: 'f2', field_key: 'memo', label: '메모', show_in_list: false })])
+        return ok([
+          field({}),
+          field({ id: 'f2', field_key: 'memo', label: '메모', show_in_list: false }),
+        ])
       }
       if (url.endsWith('/categories')) return ok([])
       return ok(list({ items: [{ ...item, custom_data: { grade: 'opt_1', memo: '숨은 값' } }] }))
@@ -187,7 +302,7 @@ describe('글 관리', () => {
 
     await userEvent.click(await screen.findByRole('button', { name: '비공개로' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/v1/boards/b1/posts/p1', { status: 'PRIVATE' }),
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1/posts/p1', { status: 'PRIVATE' })
     )
 
     await userEvent.click(screen.getByRole('button', { name: '삭제' }))
@@ -218,7 +333,7 @@ describe('글 관리', () => {
     await screen.findByText('휴진 안내')
     await userEvent.selectOptions(screen.getByLabelText('상태'), 'TRASH')
     await waitFor(() =>
-      expect(get.mock.lastCall?.[1].params).toMatchObject({ trash: true, page: 1 }),
+      expect(get.mock.lastCall?.[1].params).toMatchObject({ trash: true, page: 1 })
     )
     await userEvent.type(screen.getByLabelText('제목 검색'), '휴진')
     await userEvent.click(screen.getByRole('button', { name: '검색' }))
@@ -264,7 +379,7 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
           <Route path="/admin/boards" element={<BoardsPage />} />
           <Route path="/admin/boards/:boardId/posts/:postId/edit" element={<EditTarget />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     )
     expect(await screen.findByText('수정 화면: p9')).toBeInTheDocument()
   })
@@ -277,7 +392,7 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
         <Routes>
           <Route path="/admin/boards/:boardId/posts" element={<BoardPostsPage />} />
         </Routes>
-      </MemoryRouter>,
+      </MemoryRouter>
     )
   }
 
@@ -285,7 +400,7 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
     renderPublished({ publishedId: 'p9' })
     expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
       'href',
-      'http://localhost:3000/demo/notice/p9',
+      'http://localhost:3000/demo/notice/p9'
     )
   })
 
@@ -293,7 +408,7 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
     renderPublished({ publishedId: 'p9' }, [{ ...board, system_key: null, slug: 'news' }])
     expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
       'href',
-      'http://localhost:3000/demo/b/news/p9',
+      'http://localhost:3000/demo/b/news/p9'
     )
   })
 
@@ -306,14 +421,18 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
 
 describe('글 작성 · 수정', () => {
   const renderNew = () =>
-    renderAt('/admin/boards/b1/posts/new', <BoardPostEditPage />, '/admin/boards/:boardId/posts/new')
+    renderAt(
+      '/admin/boards/b1/posts/new',
+      <BoardPostEditPage />,
+      '/admin/boards/:boardId/posts/new'
+    )
 
   const detail: Post = { ...item, body: [{ type: 'p', text: '기존 내용' }], custom_data: {} }
   const renderEdit = () =>
     renderAt(
       '/admin/boards/b1/posts/p1/edit',
       <BoardPostEditPage />,
-      '/admin/boards/:boardId/posts/:postId/edit',
+      '/admin/boards/:boardId/posts/:postId/edit'
     )
 
   it('제목 없이는 저장하지 않는다', async () => {
@@ -337,7 +456,7 @@ describe('글 작성 · 수정', () => {
         body: [{ type: 'paragraph', content: [{ type: 'text', text: '안내드립니다' }] }],
         is_pinned: false,
         status: 'PUBLISHED',
-      }),
+      })
     )
     expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
   })
@@ -359,7 +478,7 @@ describe('글 작성 · 수정', () => {
     await userEvent.type(screen.getByLabelText(/제목/), '초안')
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() =>
-      expect(post.mock.lastCall?.[1]).toMatchObject({ title: '초안', status: 'DRAFT' }),
+      expect(post.mock.lastCall?.[1]).toMatchObject({ title: '초안', status: 'DRAFT' })
     )
   })
 
@@ -380,7 +499,7 @@ describe('글 작성 · 수정', () => {
     expect(await screen.findByLabelText('내용')).toHaveValue(JSON.stringify(detail.body))
     await userEvent.click(screen.getByRole('button', { name: '비공개로 저장' }))
     await waitFor(() =>
-      expect(patch.mock.lastCall?.[1]).toMatchObject({ status: 'PRIVATE', title: '휴진 안내' }),
+      expect(patch.mock.lastCall?.[1]).toMatchObject({ status: 'PRIVATE', title: '휴진 안내' })
     )
   })
 
