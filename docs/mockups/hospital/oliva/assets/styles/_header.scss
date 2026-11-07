@@ -1,10 +1,28 @@
 @use 'tokens' as *;
 
 .oliva-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   width: 100%;
   background-color: var(--color-bg);
-  position: relative;
-  z-index: 100;
+  z-index: 900;
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+
+  &.oliva-header--scrolled,
+  &.is-scrolled {
+    background-color: #ffffff;
+    border-bottom: 1px solid rgba(48, 60, 43, 0.08);
+    box-shadow: 0 4px 24px rgba(48, 60, 43, 0.06);
+
+    @supports (backdrop-filter: blur(12px)) or (-webkit-backdrop-filter: blur(12px)) {
+      background-color: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+  }
 
   &__inner {
     height: 96px;

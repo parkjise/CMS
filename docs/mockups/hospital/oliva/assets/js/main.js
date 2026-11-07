@@ -6,6 +6,7 @@ document.addEventListener('includes:loaded', () => {
   initActionButtons();
   initReservationFields();
   initMobileDrawer();
+  initHeaderScroll();
   initGSAPAnimations();
 });
 
@@ -110,6 +111,21 @@ function initMobileDrawer() {
   });
 }
 
+// ── 헤더 스크롤 시 화이트 배경 & 픽스 효과 ──
+function initHeaderScroll() {
+  const header = document.getElementById('header') || document.querySelector('.oliva-header');
+  if (!header) return;
+
+  const onScroll = () => {
+    const isScrolled = window.scrollY > 20;
+    header.classList.toggle('oliva-header--scrolled', isScrolled);
+    header.classList.toggle('is-scrolled', isScrolled);
+  };
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // 초기 로드 시 스크롤 위치 반영
+}
+
 // ══════════════════════════════════════════════════════════════════
 // GSAP & ScrollTrigger Animations
 // ══════════════════════════════════════════════════════════════════
@@ -152,6 +168,7 @@ function initHeroAnimations(gsap) {
       opacity: 0,
       y: -15,
       duration: 0.9,
+      clearProps: 'transform',
     });
   }
 
