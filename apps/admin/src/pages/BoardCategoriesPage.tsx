@@ -16,10 +16,11 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Pencil, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Merge, Pencil, Trash2 } from 'lucide-react'
 import { useParams } from 'react-router'
 import type { BoardCategory } from '@cms/types'
 import { Button, Input, Modal, toast } from '@cms/ui'
+import { MergeCategoryDialog } from '@/components/boards/MergeCategoryDialog'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoards } from '@/hooks/useBoards'
 import {
@@ -44,9 +45,12 @@ interface CategoryRowProps {
   canEdit: boolean
   onMove: (delta: -1 | 1) => void
   onDelete: () => void
+  onMerge: () => void
 }
 
-function CategoryRow({ boardId, category, index, count, canEdit, onMove, onDelete }: CategoryRowProps) {
+function CategoryRow({
+  boardId, category, index, count, canEdit, onMove, onDelete, onMerge,
+}: CategoryRowProps) {
   const updateCategory = useUpdateCategory(boardId)
   const { attributes, listeners, setNodeRef, transform, transition } = useSortable({
     id: category.id,
@@ -170,6 +174,16 @@ function CategoryRow({ boardId, category, index, count, canEdit, onMove, onDelet
             onClick={() => setEditing(true)}
           >
             <Pencil className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            aria-label={`${category.name} 합치기`}
+            className={iconButton}
+            disabled={count < 2}
+            onClick={onMerge}
+            title="다른 카테고리에 합치기"
+          >
+            <Merge className="h-4 w-4" aria-hidden />
           </button>
           <button type="button" aria-label={`${category.name} 삭제`} className={iconButton} onClick={onDelete}>
             <Trash2 className="h-4 w-4" aria-hidden />
@@ -299,6 +313,7 @@ function CategoryManager({ boardId }: { boardId: string }) {
   const reorder = useReorderCategories(boardId)
   const [categories, setCategories] = useState<BoardCategory[]>([])
   const [deleting, setDeleting] = useState<BoardCategory | null>(null)
+  const [merging, setMerging] = useState<BoardCategory | null>(null)
 
   useEffect(() => {
     if (categoriesQuery.data) setCategories(categoriesQuery.data)
@@ -355,6 +370,7 @@ function CategoryManager({ boardId }: { boardId: string }) {
                     canEdit={canEdit}
                     onMove={(delta) => applyOrder(arrayMove(categories, index, index + delta))}
                     onDelete={() => setDeleting(category)}
+                    onMerge={() => setMerging(category)}
                   />
                 ))}
               </ul>
@@ -367,6 +383,15 @@ function CategoryManager({ boardId }: { boardId: string }) {
         </p>
       )}
       <DeleteDialog boardId={boardId} target={deleting} categories={categories} onClose={() => setDeleting(null)} />
+      {merging && (
+        <MergeCategoryDialog
+          key={merging.id}
+          boardId={boardId}
+          source={merging}
+          categories={categories}
+          onClose={() => setMerging(null)}
+        />
+      )}
     </div>
   )
 }
