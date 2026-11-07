@@ -5,7 +5,7 @@
 ## 최신 기록: T-160 갤러리 · FAQ 추가 정보 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 T-159의 기존 필드 선택/공개 표시를 남은 갤러리 · FAQ로 확장했다.
-- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#110](https://github.com/parkjise/CMS/pull/110). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-160-gallery-faq-fields`, 폴더: `/private/tmp/cms-T-160`, 기준 main: `f456d1f`.
 - 이전 T-159: #109 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `f456d1f`.
 - 관리자: BoardDesignPage의 필드 선택을 모든 추가 게시판 유형에 제공한다. BoardListFieldSettings의 필드별 즉시 저장 · 뷰어 잠금 · 오류 처리/캐시 무효화는 그대로 재사용한다. 기본 공지는 선택/조회하지 않는다.
