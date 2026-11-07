@@ -720,6 +720,8 @@ async def list_all_posts(
     trash: bool = False,
     created_from: AwareDatetime | None = None,
     created_before: AwareDatetime | None = None,
+    updated_from: AwareDatetime | None = None,
+    updated_before: AwareDatetime | None = None,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
@@ -735,6 +737,8 @@ async def list_all_posts(
         trash=trash,
         created_from=created_from,
         created_before=created_before,
+        updated_from=updated_from,
+        updated_before=updated_before,
     )
     return ApiResponse.ok(
         PostOverviewListResponse(

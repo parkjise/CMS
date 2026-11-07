@@ -34,6 +34,8 @@ export function PostsOverviewPage() {
   const [keyword, setKeyword] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [dateField, setDateField] = useState<'created' | 'updated'>('created')
+  const dateLabel = dateField === 'updated' ? '수정일' : '작성일'
   const [dateError, setDateError] = useState('')
   const [selected, setSelected] = useState<string[]>([])
 
@@ -85,9 +87,23 @@ export function PostsOverviewPage() {
     try {
       const dates = postDateFilters(startDate, endDate)
       setDateError('')
-      changeFilters({ q: keyword.trim() || undefined, ...dates })
+      changeFilters({
+        q: keyword.trim() || undefined,
+        ...(dateField === 'created'
+          ? { ...dates, updated_from: undefined, updated_before: undefined }
+          : {
+              created_from: undefined,
+              created_before: undefined,
+              updated_from: dates.created_from,
+              updated_before: dates.created_before,
+            }),
+      })
     } catch (error) {
-      setDateError(error instanceof Error ? error.message : '작성일을 확인해주세요.')
+      setDateError(
+        error instanceof Error
+          ? error.message.replaceAll('작성일', dateLabel)
+          : `${dateLabel}을 확인해주세요.`
+      )
     }
   }
 
@@ -209,8 +225,22 @@ export function PostsOverviewPage() {
             maxLength={100}
             onChange={(e) => setKeyword(e.target.value)}
           />
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">날짜 기준</span>
+            <select
+              className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+              value={dateField}
+              onChange={(event) => {
+                setDateField(event.target.value === 'updated' ? 'updated' : 'created')
+                setDateError('')
+              }}
+            >
+              <option value="created">작성일</option>
+              <option value="updated">수정일</option>
+            </select>
+          </label>
           <Input
-            label="작성일 시작"
+            label={`${dateLabel} 시작`}
             type="date"
             value={startDate}
             onChange={(event) => {
@@ -219,7 +249,7 @@ export function PostsOverviewPage() {
             }}
           />
           <Input
-            label="작성일 종료"
+            label={`${dateLabel} 종료`}
             type="date"
             value={endDate}
             onChange={(event) => {
@@ -233,12 +263,24 @@ export function PostsOverviewPage() {
           <Button
             type="button"
             variant="ghost"
-            disabled={!startDate && !endDate && !filters.created_from && !filters.created_before}
+            disabled={
+              !startDate &&
+              !endDate &&
+              !filters.created_from &&
+              !filters.created_before &&
+              !filters.updated_from &&
+              !filters.updated_before
+            }
             onClick={() => {
               setStartDate('')
               setEndDate('')
               setDateError('')
-              changeFilters({ created_from: undefined, created_before: undefined })
+              changeFilters({
+                created_from: undefined,
+                created_before: undefined,
+                updated_from: undefined,
+                updated_before: undefined,
+              })
             }}
           >
             기간 초기화
@@ -255,7 +297,8 @@ export function PostsOverviewPage() {
       </div>
 
       <p className="text-xs text-slate-500">
-        작성일은 최초 저장일이며 브라우저 시간대 기준입니다. 종료일을 포함합니다.
+        작성일은 최초 저장일, 수정일은 마지막 갱신 시각입니다. 처음 만든 글도 수정일이 있습니다.
+        브라우저 시간대 기준이며 종료일을 포함합니다. 날짜 기준과 기간은 검색을 눌러 적용합니다.
       </p>
       {dateError && (
         <p role="alert" className="text-sm text-red-600">

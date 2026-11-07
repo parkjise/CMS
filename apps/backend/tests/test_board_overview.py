@@ -867,3 +867,170 @@ class TestCreationDateFilter:
     async def test_invalid_date_range(self, client, auth_headers, tenant, params):
         response = await client.get(POSTS, params=params, headers=auth_headers)
         assert response.status_code == 400, response.text
+
+
+async def _updated_posts(client, auth_headers):
+    board, posts = await _dated_posts(client, auth_headers)
+    for post in posts:
+        await _sql(
+            "UPDATE board_posts SET updated_at=created_at, "
+            "created_at='2030-01-01T00:00:00Z' WHERE id=:i",
+            i=post["id"],
+        )
+    return board, posts
+
+
+class TestModificationDateFilter:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "params, expected",
+        [
+            ({"updated_from": "2026-11-07T00:00:00+09:00"}, {1, 2, 3}),
+            ({"updated_before": "2026-11-08T00:00:00+09:00"}, {0, 1, 2}),
+            (
+                {
+                    "updated_from": "2026-11-07T00:00:00+09:00",
+                    "updated_before": "2026-11-08T00:00:00+09:00",
+                },
+                {1, 2},
+            ),
+        ],
+    )
+    async def test_modification_boundaries_not_creation_or_publication(
+        self, client, auth_headers, tenant, params, expected
+    ):
+        _board_row, posts = await _updated_posts(client, auth_headers)
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        assert data["total"] == len(expected)
+        assert {p["id"] for p in data["items"]} == {
+            posts[index]["id"] for index in expected
+        }
+
+    @pytest.mark.asyncio
+    async def test_filters_total_pagination_and_tenant(
+        self, client, auth_headers, tenant, other
+    ):
+        board, posts = await _updated_posts(client, auth_headers)
+        await _sql(
+            "UPDATE board_posts SET updated_at='2026-11-07T00:00:00Z' WHERE id=:i",
+            i=other["post_id"],
+        )
+        params = {
+            "updated_from": "2026-11-06T15:00:00Z",
+            "updated_before": "2026-11-07T15:00:00Z",
+            "board_id": board["id"],
+            "status": "PUBLISHED",
+            "q": "행사",
+            "size": 1,
+        }
+        pages = []
+        for page in [1, 2]:
+            response = await client.get(
+                POSTS, params={**params, "page": page}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["data"]["total"] == 2
+            pages.extend(response.json()["data"]["items"])
+        assert {p["id"] for p in pages} == {posts[1]["id"], posts[2]["id"]}
+        # 게시판 조건 없이도 타 사업체 글이 섞이지 않는다.
+        response = await client.get(
+            POSTS,
+            params={
+                "updated_from": params["updated_from"],
+                "updated_before": params["updated_before"],
+            },
+            headers=auth_headers,
+        )
+        assert response.json()["data"]["total"] == 2
+        assert other["post_id"] not in response.text
+
+    @pytest.mark.asyncio
+    async def test_trash_uses_current_modification(self, client, auth_headers, tenant):
+        board, posts = await _updated_posts(client, auth_headers)
+        for post in [posts[0], posts[1]]:
+            response = await client.delete(
+                f"{BOARDS}/{board['id']}/posts/{post['id']}", headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+        # 휴지통 이동도 수정 시각을 바꾸므로 현재 값을 기준으로 조회한다.
+        await _sql(
+            "UPDATE board_posts SET updated_at='2026-11-06T14:59:59Z' WHERE id=:i",
+            i=posts[0]["id"],
+        )
+        await _sql(
+            "UPDATE board_posts SET updated_at='2026-11-07T00:00:00Z' WHERE id=:i",
+            i=posts[1]["id"],
+        )
+        response = await client.get(
+            POSTS,
+            params={
+                "trash": True,
+                "updated_from": "2026-11-07T00:00:00+09:00",
+                "updated_before": "2026-11-08T00:00:00+09:00",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[1]["id"]
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"updated_from": "invalid"},
+            {"updated_before": "2026-11-07T00:00:00"},
+            {
+                "updated_from": "2026-11-07T00:00:00Z",
+                "updated_before": "2026-11-07T00:00:00Z",
+            },
+            {
+                "updated_from": "2026-11-08T00:00:00Z",
+                "updated_before": "2026-11-07T00:00:00Z",
+            },
+        ],
+    )
+    async def test_invalid_date_range(self, client, auth_headers, tenant, params):
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 400, response.text
+
+    async def test_both_date_ranges_intersect(self, client, auth_headers, tenant):
+        board, posts = await _updated_posts(client, auth_headers)
+        await _sql(
+            "UPDATE board_posts SET created_at='2025-01-01T00:00:00Z' WHERE id=:i",
+            i=posts[1]["id"],
+        )
+        response = await client.get(
+            POSTS,
+            params={
+                "created_before": "2026-01-01T00:00:00Z",
+                "updated_from": "2026-11-06T15:00:00Z",
+                "updated_before": "2026-11-07T15:00:00Z",
+                "board_id": board["id"],
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[1]["id"]
+
+    async def test_viewer_can_filter(self, client, auth_headers, tenant, test_user):
+        _board_row, posts = await _updated_posts(client, auth_headers)
+        await _sql(
+            "UPDATE users SET role='TENANT_VIEWER' WHERE id=:i", i=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        response = await client.get(
+            POSTS,
+            params={"updated_before": "2026-11-07T00:00:00+09:00"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[0]["id"]

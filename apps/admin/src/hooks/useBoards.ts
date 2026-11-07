@@ -46,6 +46,8 @@ export interface PostOverviewFilters extends PostFilters {
   board_id?: string
   created_from?: string
   created_before?: string
+  updated_from?: string
+  updated_before?: string
 }
 
 const BOARDS_KEY = ['boards'] as const
