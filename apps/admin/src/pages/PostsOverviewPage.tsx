@@ -34,8 +34,8 @@ export function PostsOverviewPage() {
   const [keyword, setKeyword] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
-  const [dateField, setDateField] = useState<'created' | 'updated'>('created')
-  const dateLabel = dateField === 'updated' ? '수정일' : '작성일'
+  const [dateField, setDateField] = useState<'created' | 'updated' | 'published'>('created')
+  const dateLabel = { created: '작성일', updated: '수정일', published: '공개일' }[dateField]
   const [dateError, setDateError] = useState('')
   const [selected, setSelected] = useState<string[]>([])
 
@@ -89,14 +89,12 @@ export function PostsOverviewPage() {
       setDateError('')
       changeFilters({
         q: keyword.trim() || undefined,
-        ...(dateField === 'created'
-          ? { ...dates, updated_from: undefined, updated_before: undefined }
-          : {
-              created_from: undefined,
-              created_before: undefined,
-              updated_from: dates.created_from,
-              updated_before: dates.created_before,
-            }),
+        created_from: dateField === 'created' ? dates.created_from : undefined,
+        created_before: dateField === 'created' ? dates.created_before : undefined,
+        updated_from: dateField === 'updated' ? dates.created_from : undefined,
+        updated_before: dateField === 'updated' ? dates.created_before : undefined,
+        published_from: dateField === 'published' ? dates.created_from : undefined,
+        published_before: dateField === 'published' ? dates.created_before : undefined,
       })
     } catch (error) {
       setDateError(
@@ -231,12 +229,14 @@ export function PostsOverviewPage() {
               className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
               value={dateField}
               onChange={(event) => {
-                setDateField(event.target.value === 'updated' ? 'updated' : 'created')
+                const value = event.target.value
+                setDateField(value === 'updated' || value === 'published' ? value : 'created')
                 setDateError('')
               }}
             >
               <option value="created">작성일</option>
               <option value="updated">수정일</option>
+              <option value="published">공개일</option>
             </select>
           </label>
           <Input
@@ -269,7 +269,9 @@ export function PostsOverviewPage() {
               !filters.created_from &&
               !filters.created_before &&
               !filters.updated_from &&
-              !filters.updated_before
+              !filters.updated_before &&
+              !filters.published_from &&
+              !filters.published_before
             }
             onClick={() => {
               setStartDate('')
@@ -280,6 +282,8 @@ export function PostsOverviewPage() {
                 created_before: undefined,
                 updated_from: undefined,
                 updated_before: undefined,
+                published_from: undefined,
+                published_before: undefined,
               })
             }}
           >
@@ -298,7 +302,9 @@ export function PostsOverviewPage() {
 
       <p className="text-xs text-slate-500">
         작성일은 최초 저장일, 수정일은 마지막 갱신 시각입니다. 처음 만든 글도 수정일이 있습니다.
-        브라우저 시간대 기준이며 종료일을 포함합니다. 날짜 기준과 기간은 검색을 눌러 적용합니다.
+        공개일은 최초 공개 시각이며, 기간 검색에서는 한 번도 공개하지 않은 글을 제외합니다. 현재
+        공개 중인 글만 찾으려면 상태도 공개로 선택해 주세요. 브라우저 시간대 기준이며 종료일을
+        포함합니다. 날짜 기준과 기간은 검색을 눌러 적용합니다.
       </p>
       {dateError && (
         <p role="alert" className="text-sm text-red-600">

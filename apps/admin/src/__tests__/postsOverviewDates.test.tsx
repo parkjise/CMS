@@ -229,6 +229,138 @@ describe('전체 글 수정일 필터', () => {
   })
 })
 
+describe('전체 글 공개일 필터', () => {
+  it('수정일에서 공개일로 적용하면 수정일 범위를 제거한다', async () => {
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'updated')
+    fireEvent.change(screen.getByLabelText('수정일 시작'), { target: { value: '2026-11-07' } })
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() => expect(lastParams().updated_from).toBeDefined())
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        created_from: undefined,
+        created_before: undefined,
+        updated_from: undefined,
+        updated_before: undefined,
+        published_from: postDateFilters('2026-11-07', '').created_from,
+      })
+    )
+    expect(screen.getByText(/공개일은 최초 공개 시각/)).toBeInTheDocument()
+  })
+  it('기준 변경만으로 조회하지 않고 검색 시 이전 작성일 조건을 없앤다', async () => {
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    dates('2026-11-01', '2026-11-07')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() => expect(lastParams().created_from).toBeDefined())
+    const requests = get.mock.calls.filter(([url]) => url === '/v1/posts').length
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    expect(get.mock.calls.filter(([url]) => url === '/v1/posts')).toHaveLength(requests)
+    expect(screen.getByLabelText('공개일 시작')).toHaveValue('2026-11-01')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    const range = postDateFilters('2026-11-01', '2026-11-07')
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        created_from: undefined,
+        created_before: undefined,
+        published_from: range.created_from,
+        published_before: range.created_before,
+      })
+    )
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'created')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        ...range,
+        published_from: undefined,
+        published_before: undefined,
+      })
+    )
+  })
+  it('공개일 적용은 페이지/선택을 비우고 게시판/상태/제목을 유지한다', async () => {
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    await userEvent.selectOptions(screen.getByLabelText('게시판'), 'b1')
+    await userEvent.selectOptions(screen.getByLabelText('상태'), 'PRIVATE')
+    await userEvent.click(screen.getByRole('button', { name: '다음 페이지' }))
+    await waitFor(() => expect(lastParams().page).toBe(2))
+    await userEvent.click(screen.getByRole('checkbox', { name: '첫 글 선택' }))
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    fireEvent.change(screen.getByLabelText('공개일 종료'), { target: { value: '2026-11-07' } })
+    await userEvent.type(screen.getByLabelText('제목 검색'), ' 행사 ')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        page: 1,
+        board_id: 'b1',
+        status: 'PRIVATE',
+        q: '행사',
+        published_from: undefined,
+        published_before: postDateFilters('', '2026-11-07').created_before,
+      })
+    )
+    expect(screen.getByRole('checkbox', { name: '첫 글 선택' })).not.toBeChecked()
+  })
+  it('역전된 공개일은 기존 조회와 선택을 유지하고 공개일 오류로 안내한다', async () => {
+    renderPage()
+    await userEvent.click(await screen.findByRole('checkbox', { name: '첫 글 선택' }))
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    fireEvent.change(screen.getByLabelText('공개일 시작'), { target: { value: '2026-11-08' } })
+    fireEvent.change(screen.getByLabelText('공개일 종료'), { target: { value: '2026-11-07' } })
+    const requests = get.mock.calls.filter(([url]) => url === '/v1/posts').length
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      '공개일 시작은 종료일보다 늦을 수 없습니다.'
+    )
+    expect(get.mock.calls.filter(([url]) => url === '/v1/posts')).toHaveLength(requests)
+    expect(screen.getByRole('checkbox', { name: '첫 글 선택' })).toBeChecked()
+  })
+  it('휴지통에서 공개일 조건을 유지하고 초기화하면 양쪽 기간을 지운다', async () => {
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    fireEvent.change(screen.getByLabelText('공개일 시작'), { target: { value: '2026-11-01' } })
+    await userEvent.type(screen.getByLabelText('제목 검색'), '행사')
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await userEvent.click(screen.getByRole('button', { name: '휴지통 보기' }))
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        trash: true,
+        published_from: postDateFilters('2026-11-01', '').created_from,
+      })
+    )
+    // 아직 적용하지 않은 기준으로 바꿔도 현재 공개일 범위를 해제한다.
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'created')
+    await userEvent.click(screen.getByRole('button', { name: '기간 초기화' }))
+    await waitFor(() =>
+      expect(lastParams()).toMatchObject({
+        trash: true,
+        q: '행사',
+        created_from: undefined,
+        created_before: undefined,
+        published_from: undefined,
+        published_before: undefined,
+      })
+    )
+    expect(screen.getByLabelText('작성일 시작')).toHaveValue('')
+  })
+  it('보기 전용도 공개일로 조회할 수 있다', async () => {
+    useAuthStore.setState({ user: { role: 'TENANT_VIEWER' } } as never)
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    await userEvent.selectOptions(screen.getByLabelText('날짜 기준'), 'published')
+    fireEvent.change(screen.getByLabelText('공개일 시작'), { target: { value: '2026-11-07' } })
+    await userEvent.click(screen.getByRole('button', { name: '검색' }))
+    await waitFor(() =>
+      expect(lastParams().published_from).toBe(postDateFilters('2026-11-07', '').created_from)
+    )
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+  })
+})
+
 describe('달력 날짜 변환', () => {
   it('하루와 윤년/월말의 종료 다음 날 자정까지 조회한다', () => {
     const filters = postDateFilters('2024-02-29', '2024-02-29')
