@@ -132,6 +132,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
     return (
       <NoticeListView
         title={board.name}
+        hideTitle
         description={board.description}
         boardSlug={board.slug}
         searchLabel={searchLabel}
@@ -161,6 +162,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
   return (
     <BoardListShell
       title={board.name}
+      hideTitle
       description={board.description}
       writeBoard={board.slug}
       total={total}
