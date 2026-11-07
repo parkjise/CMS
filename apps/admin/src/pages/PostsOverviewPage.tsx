@@ -14,6 +14,7 @@ import {
   useBulkPosts,
   usePostOverview,
 } from '@/hooks/useBoards'
+import { postDateFilters } from '@/lib/postDateFilters'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { STATUS_LABELS, STATUS_STYLES } from '@/pages/BoardPostsPage'
 
@@ -31,6 +32,9 @@ export function PostsOverviewPage() {
   const canEdit = useCanEdit()
   const [filters, setFilters] = useState<PostOverviewFilters>({ page: 1, size: PAGE_SIZE })
   const [keyword, setKeyword] = useState('')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [dateError, setDateError] = useState('')
   const [selected, setSelected] = useState<string[]>([])
 
   const boardsQuery = useBoards()
@@ -65,7 +69,13 @@ export function PostsOverviewPage() {
 
   const search = (event: FormEvent) => {
     event.preventDefault()
-    changeFilters({ q: keyword.trim() || undefined })
+    try {
+      const dates = postDateFilters(startDate, endDate)
+      setDateError('')
+      changeFilters({ q: keyword.trim() || undefined, ...dates })
+    } catch (error) {
+      setDateError(error instanceof Error ? error.message : '작성일을 확인해주세요.')
+    }
   }
 
   const run = (action: PostBulkAction) => {
@@ -179,15 +189,46 @@ export function PostsOverviewPage() {
             </select>
           </div>
         )}
-        <form className="flex items-end gap-2" onSubmit={search} role="search">
+        <form className="flex flex-wrap items-end gap-2" onSubmit={search} role="search">
           <Input
             label="제목 검색"
             value={keyword}
             maxLength={100}
             onChange={(e) => setKeyword(e.target.value)}
           />
+          <Input
+            label="작성일 시작"
+            type="date"
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value)
+              setDateError('')
+            }}
+          />
+          <Input
+            label="작성일 종료"
+            type="date"
+            value={endDate}
+            onChange={(event) => {
+              setEndDate(event.target.value)
+              setDateError('')
+            }}
+          />
           <Button type="submit" variant="secondary">
             검색
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={!startDate && !endDate && !filters.created_from && !filters.created_before}
+            onClick={() => {
+              setStartDate('')
+              setEndDate('')
+              setDateError('')
+              changeFilters({ created_from: undefined, created_before: undefined })
+            }}
+          >
+            기간 초기화
           </Button>
         </form>
         <Button
@@ -199,6 +240,15 @@ export function PostsOverviewPage() {
           {inTrash ? '휴지통 닫기' : '휴지통 보기'}
         </Button>
       </div>
+
+      <p className="text-xs text-slate-500">
+        작성일은 최초 저장일이며 브라우저 시간대 기준입니다. 종료일을 포함합니다.
+      </p>
+      {dateError && (
+        <p role="alert" className="text-sm text-red-600">
+          {dateError}
+        </p>
+      )}
 
       {canEdit && selected.length > 0 && (
         <div

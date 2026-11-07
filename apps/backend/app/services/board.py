@@ -39,6 +39,7 @@ STATUS_PUBLISHED = "PUBLISHED"
 STATUS_PRIVATE = "PRIVATE"
 SAMPLE_ITEMS_KEY = "items"
 EMPTY_ITEMS = "[]"
+MSG_DATE_RANGE = "작성일 시작은 종료 범위보다 빨라야 합니다."
 MSG_BULK_MISMATCH = "처리할 수 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
 SITEMAP_POST_LIMIT = 5000
 DESCRIPTION_KEY = "description"
@@ -728,8 +729,12 @@ async def list_all_posts(
     status: str | None = None,
     q: str | None = None,
     trash: bool = False,
+    created_from: datetime | None = None,
+    created_before: datetime | None = None,
 ) -> tuple[list[tuple[BoardPost, str]], int]:
-    """여러 게시판의 글. 휴지통에 있는 게시판의 글은 나오지 않는다."""
+    """여러 게시판의 글. 작성일 범위는 시작 포함 · 끝 제외다."""
+    if created_from and created_before and created_from >= created_before:
+        raise HTTPException(status_code=400, detail=MSG_DATE_RANGE)
     conditions: list[ColumnElement[bool]] = [
         BoardPost.tenant_id == tenant_id,
         Board.deleted_at.is_(None),
@@ -743,6 +748,10 @@ async def list_all_posts(
         conditions.append(BoardPost.status == status)
     if q:
         conditions.append(_title_contains(BoardPost.title, q))
+    if created_from:
+        conditions.append(BoardPost.created_at >= created_from)
+    if created_before:
+        conditions.append(BoardPost.created_at < created_before)
     joined = select(BoardPost, Board.name).join(Board, Board.id == BoardPost.board_id)
     total = (
         await db.execute(

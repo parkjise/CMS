@@ -5,6 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
 from fastapi.security import HTTPAuthorizationCredentials
+from pydantic import AwareDatetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.audit import log_action
@@ -717,6 +718,8 @@ async def list_all_posts(
     post_status: PostStatus | None = Query(default=None, alias="status"),
     q: str | None = Query(default=None, max_length=100),
     trash: bool = False,
+    created_from: AwareDatetime | None = None,
+    created_before: AwareDatetime | None = None,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
@@ -730,6 +733,8 @@ async def list_all_posts(
         status=post_status,
         q=q,
         trash=trash,
+        created_from=created_from,
+        created_before=created_before,
     )
     return ApiResponse.ok(
         PostOverviewListResponse(
