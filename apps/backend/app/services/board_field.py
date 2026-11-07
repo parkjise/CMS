@@ -336,9 +336,7 @@ async def public_fields(db: AsyncSession, post: BoardPost) -> list[dict[str, Any
 
 
 async def list_display_fields(db: AsyncSession, board: Board) -> list[BoardField]:
-    """목록형 · 카드형에 보여 줄 칸 — 글 목록에 표시로 고른 칸."""
-    if board.board_type not in {"CARD", "LIST"}:
-        return []
+    """공개 목록에 보여 줄 칸 — 글 목록에 표시로 고른 칸."""
     fields = await list_fields(db, board.id)
     return [f for f in fields if (f.field_options or {}).get(SHOW_IN_LIST_KEY)]
 

@@ -7,7 +7,7 @@ interface ListFieldValuesProps {
   itemClassName: string
 }
 
-/** 목록 링크 안의 추가 정보 — 중첩 링크나 외부 이미지 요청 없이 글자로 표시한다. */
+/** 목록의 추가 정보 — 중첩 링크나 외부 이미지 요청 없이 글자로 표시한다. */
 export const ListFieldValues = ({ fields, className, itemClassName }: ListFieldValuesProps) => {
   if (!fields?.length) return null
   return (

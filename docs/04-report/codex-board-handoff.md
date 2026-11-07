@@ -2,7 +2,19 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-159 목록 표시 필드 선택 (Codex)
+## 최신 기록: T-160 갤러리 · FAQ 추가 정보 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-07)에 따라 T-159의 기존 필드 선택/공개 표시를 남은 갤러리 · FAQ로 확장했다.
+- PR: [#110](https://github.com/parkjise/CMS/pull/110). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- 브랜치: `codex/T-160-gallery-faq-fields`, 폴더: `/private/tmp/cms-T-160`, 기준 main: `f456d1f`.
+- 이전 T-159: #109 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `f456d1f`.
+- 관리자: BoardDesignPage의 필드 선택을 모든 추가 게시판 유형에 제공한다. BoardListFieldSettings의 필드별 즉시 저장 · 뷰어 잠금 · 오류 처리/캐시 무효화는 그대로 재사용한다. 기본 공지는 선택/조회하지 않는다.
+- API: 기존 list_fields를 LIST/GALLERY/FAQ에서 제공한다. CARD는 기존 card_fields. list_display_fields/field_values로 홈페이지·목록 표시 플래그, 삭제/빈 값 제외, 선택지 이름 처리를 공유한다. 비밀글은 모든 유형에서 두 배열 모두 null이다. DB · 로그인 · 권한 정책 변경 없음.
+- 홈페이지: 기존 ListFieldValues를 코드형/테마형 갤러리 제목 아래와 FAQ 질문 아래에 연결했다. FAQ를 펼치기 전에도 볼 수 있다. 사진/링크는 글자, 긴 값 줄바꿈, 비밀글은 화면에서도 제외한다. 기존 사진/날짜/FAQ 답변과 펼침 설정은 유지한다.
+- 최종 로컬 검증: 관리자 65개 파일 · 529개 시험(추가 5개), 홈페이지 64개 파일 · 752개 시험(추가 12개), 서버 options/operation/permissions 63개 시험(비밀글 매개변수 추가 3개, 기존 유형별 선별 시험도 확장) 통과. 전용 cms_test_db의 cms_app RLS로 검증했다. 전체 프런트 타입 검사, 관리자/홈페이지 빌드, SCSS lint, 백엔드 app Ruff lint/format · mypy 174개 파일 통과. lint 오류 0(기존 관리자 경고 5개/홈페이지 3개), 변경 코드 포맷 · git diff --check 통과. 기존 FAQ 시험의 직접 SUMMARY 태그 가정은 질문이 summary 안에 있는지로 고쳤고 홈페이지 전체를 다시 통과했다. 실제 브라우저 화면 검증은 수행하지 않았다. 로컬 Node 25.2.1, Node 22는 원격 CI에서 검증한다.
+- 후속: 독립 표 열/너비/순서, 카테고리 확장 등. 테마형 공지 · 자동 파기 · 백업 · 법률 확인의 보류 결정을 유지한다.
+
+## 이전 기록: T-159 목록 표시 필드 선택 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-03 목록 표시 선택을 기존 필드 플래그와 연결했다. 임의의 독립 표 열을 추가한 것이 아니라 제목 아래 추가 정보를 선택하는 범위다.
 - PR: [#109](https://github.com/parkjise/CMS/pull/109). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.

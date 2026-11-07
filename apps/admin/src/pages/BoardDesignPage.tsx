@@ -177,9 +177,7 @@ function BoardDesignForm({ board }: { board: Board }) {
           </div>
         )}
 
-        {!isSystem && (boardType === 'LIST' || boardType === 'CARD') && (
-          <BoardListFieldSettings boardId={board.id} />
-        )}
+        {!isSystem && <BoardListFieldSettings boardId={board.id} />}
 
         <div className={CARD_CLASS}>
           <h2 className="text-sm font-semibold text-slate-900">목록 표시</h2>

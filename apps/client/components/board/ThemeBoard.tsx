@@ -312,6 +312,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                   {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
                   {post.title}
                 </span>
+                {!post.is_secret && (
+                  <ListFieldValues
+                    fields={post.list_fields}
+                    className={`mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm ${muted}`}
+                    itemClassName="min-w-0 break-words [overflow-wrap:anywhere]"
+                  />
+                )}
                 {design.show_date && (
                   <time
                     className={`mt-1 block text-sm ${muted}`}
@@ -384,9 +391,16 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
               <summary
                 className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}
               >
-                <span>
+                <span className="min-w-0">
                   {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
                   {post.title}
+                  {!post.is_secret && (
+                    <ListFieldValues
+                      fields={post.list_fields}
+                      className={`mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm font-normal ${muted}`}
+                      itemClassName="min-w-0 break-words [overflow-wrap:anywhere]"
+                    />
+                  )}
                 </span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`}

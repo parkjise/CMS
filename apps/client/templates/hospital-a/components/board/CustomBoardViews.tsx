@@ -1,3 +1,4 @@
+import { ListFieldValues } from '@/components/board/ListFieldValues'
 import type { ReactNode } from 'react'
 import type { PublicBoard, PublicPost } from '@cms/types'
 import {
@@ -202,6 +203,13 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                     {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
                     {post.title}
                   </span>
+                  {!post.is_secret && (
+                    <ListFieldValues
+                      fields={post.list_fields}
+                      className="board-gallery__fields"
+                      itemClassName="board-gallery__field"
+                    />
+                  )}
                   {design.show_date && (
                     <time className="board-gallery__date" dateTime={date}>
                       {dotDate(date)}
@@ -259,8 +267,17 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
               open={design.faq_first_open && index === 0}
             >
               <summary className="board-faq__question">
-                {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
-                {post.title}
+                <span className="board-faq__heading">
+                  {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                  {post.title}
+                  {!post.is_secret && (
+                    <ListFieldValues
+                      fields={post.list_fields}
+                      className="board-faq__fields"
+                      itemClassName="board-faq__field"
+                    />
+                  )}
+                </span>
               </summary>
               {post.is_secret ? (
                 <p className="board-faq__answer">{SECRET_TEXT}</p>
