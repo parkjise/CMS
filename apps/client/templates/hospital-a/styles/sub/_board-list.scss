@@ -93,7 +93,7 @@ $badge-bg: #f1f5f9;
     }
   }
   // 배지 없는 글은 제목이 왼쪽 끝부터
-  &__item:not(&__item--pinned) &__subject {
+  &__item:not(&__item--pinned) &__content {
     grid-column: 1 / 3;
   }
   &__badge {
@@ -108,8 +108,24 @@ $badge-bg: #f1f5f9;
       font-size: 1rem;
     }
   }
-  &__subject {
+  &__content {
     grid-area: subject;
+    min-width: 0;
+  }
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    color: $muted;
+  }
+  &__field {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  &__subject {
+    display: block;
     min-width: 0;
     @include fluid-type(1.0625rem, 1.4375rem);
     font-weight: 600;

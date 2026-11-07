@@ -2,7 +2,19 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-158 전체 글 사용자 필드 (Codex)
+## 최신 기록: T-159 목록 표시 필드 선택 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-03 목록 표시 선택을 기존 필드 플래그와 연결했다. 임의의 독립 표 열을 추가한 것이 아니라 제목 아래 추가 정보를 선택하는 범위다.
+- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- 브랜치: `codex/T-159-list-field-selection`, 폴더: `/private/tmp/cms-T-159`, 기준 main: `8b11a18`.
+- 이전 T-158: #108의 backend · frontend · e2e 성공 후 병합, main 포함 확인. 병합 커밋 `8b11a18`.
+- 관리자: 신규 `BoardListFieldSettings.tsx`, `BoardDesignPage.tsx`. 기본 게시판 제외 LIST/CARD에서 기존 useBoardFields/useUpdateField로 show_in_list만 필드별 즉시 저장한다. 디자인 저장 버튼과 독립이며 D-13 유지. 조회 오류/재시도, 저장 실패 유지, 처리 중 중복 변경 방지, 뷰어 잠금. 홈페이지 비표시 칸도 관리자 표시 선택 가능하되 안내한다. 순서/이름/홈페이지 표시는 필드 관리로 연결한다.
+- API: `PublicPostItem.list_fields`(선택 필드 표시용 배열 또는 null)를 추가했다. `list_display_fields`는 LIST/CARD의 기존 show_in_list를 선별하고 field_values가 is_visible · 삭제/빈 값 · 선택지 이름을 처리한다. 비밀글은 무조건 null. raw custom_data는 공개하지 않는다. 카드형 card_fields/요약과 다른 유형 동작을 유지한다. DB · 로그인 · 권한 정책 변경 없음.
+- 홈페이지: `ListFieldValues.tsx`를 코드형 NoticeListView와 테마형 목록에서 공유한다. 제목 아래 여러 값이 줄바꿈되고 사진/URL은 중첩 이미지/링크 없이 글자다. 비밀글은 화면에서도 숨긴다. 코드형 공지 샘플과 이전 API 응답은 필드가 없으면 기존대로 표시한다. 작성일 설정 유지.
+- 최종 로컬 검증: 관리자 65개 파일 · 524개 시험(신규 7개), 홈페이지 64개 파일 · 740개 시험(신규 6개), 서버 options/operation/permissions 60개 시험(신규 5개) 통과. 전용 cms_test_db의 cms_app RLS로 검증했다. 전체 프런트 타입 검사, 관리자/홈페이지 빌드, SCSS lint, 백엔드 app Ruff lint/format · mypy 174개 파일 통과. 관리자 lint 오류 0(기존 경고 5개), 홈페이지 오류 0(기존 경고 3개), 신규 소스 포맷 · git diff --check 통과. 실제 브라우저 화면 검증은 수행하지 않았다. 로컬 Node 25.2.1, Node 22는 원격 CI에서 검증한다.
+- 반영: TASK T-159 · BM-03/04 및 변경 이력. 후속은 독립 표 열/너비/순서, 공개 GALLERY/FAQ 필드 표시, 카테고리 확장 등이다. 테마형 공지 · 자동 파기 · 백업 · 법률 확인의 보류 결정을 유지한다.
+
+## 이전 기록: T-158 전체 글 사용자 필드 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 기존 `글 목록에 표시` 설정을 관리자 전체 글에 연결했다. BM-03 컬럼 설정은 공개 표시까지 설계가 필요해 별도 후속으로 유지했다.
 - PR: [#108](https://github.com/parkjise/CMS/pull/108). 생성 시점 미병합이며 backend · frontend · e2e가 전부 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.

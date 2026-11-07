@@ -242,6 +242,8 @@ export interface PublicPostItem {
   /** 카드형 목록에만 */
   summary?: string | null
   card_fields?: PublicFieldValue[] | null
+  /** 목록형에서 제목 아래에 표시할 칸 (T-159) */
+  list_fields?: PublicFieldValue[] | null
   category_id?: string | null
 }
 

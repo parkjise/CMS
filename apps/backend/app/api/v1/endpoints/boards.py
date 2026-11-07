@@ -860,7 +860,7 @@ async def list_public_posts(
         latest=order == "latest",
         category_id=category,
     )
-    card_fields = await field_service.card_fields(db, board)
+    list_fields = await field_service.list_display_fields(db, board)
     return ApiResponse.ok(
         PublicPostListResponse(
             total=total,
@@ -868,7 +868,7 @@ async def list_public_posts(
             size=size,
             has_posts=has_posts,
             items=[
-                PublicPostItem(**board_service.public_post_item(board, p, card_fields))
+                PublicPostItem(**board_service.public_post_item(board, p, list_fields))
                 for p in posts
             ],
         )

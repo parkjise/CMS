@@ -454,6 +454,8 @@ class PublicPostItem(BaseModel):
     # 카드형만 — 본문 앞부분 글자, 글 목록에 표시로 고른 칸
     summary: str | None = None
     card_fields: list[PublicFieldValue] | None = None
+    # 목록형에서 제목 아래에 표시할 칸 (T-159)
+    list_fields: list[PublicFieldValue] | None = None
     category_id: UUID | None = None
 
 

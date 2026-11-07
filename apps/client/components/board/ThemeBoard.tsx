@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { ListFieldValues } from './ListFieldValues'
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
 import { ChevronDown, Lock, Search } from 'lucide-react'
 import {
@@ -410,14 +411,23 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                 href={hrefFor({ id: post.id })}
                 className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-4 hover:bg-[var(--color-surface)] md:px-2"
               >
-                <span className={`min-w-0 font-medium ${primary}`}>
-                  {post.is_pinned && (
-                    <span className="mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
-                      공지
-                    </span>
+                <span className="min-w-0 flex-1">
+                  <span className={`font-medium ${primary}`}>
+                    {post.is_pinned && (
+                      <span className="mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
+                        공지
+                      </span>
+                    )}
+                    {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                    {post.title}
+                  </span>
+                  {!post.is_secret && (
+                    <ListFieldValues
+                      fields={post.list_fields}
+                      className={`mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm ${muted}`}
+                      itemClassName="min-w-0 break-words [overflow-wrap:anywhere]"
+                    />
                   )}
-                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
-                  {post.title}
                 </span>
                 {design.show_date && (
                   <time className={`text-sm ${muted}`} dateTime={postDate(post.published_at)}>
