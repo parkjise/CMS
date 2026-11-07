@@ -1034,3 +1034,186 @@ class TestModificationDateFilter:
         assert response.status_code == 200, response.text
         assert response.json()["data"]["total"] == 1
         assert response.json()["data"]["items"][0]["id"] == posts[0]["id"]
+
+
+async def _published_posts(client, auth_headers):
+    board, posts = await _dated_posts(client, auth_headers)
+    for post in posts:
+        await _sql(
+            "UPDATE board_posts SET published_at=created_at, "
+            "created_at='2030-01-01T00:00:00Z', "
+            "updated_at='2031-01-01T00:00:00Z' WHERE id=:i",
+            i=post["id"],
+        )
+    return board, posts
+
+
+class TestPublicationDateFilter:
+    @pytest.mark.parametrize(
+        "params, expected",
+        [
+            ({"published_from": "2026-11-07T00:00:00+09:00"}, {1, 2, 3}),
+            ({"published_before": "2026-11-08T00:00:00+09:00"}, {0, 1, 2}),
+            (
+                {
+                    "published_from": "2026-11-07T00:00:00+09:00",
+                    "published_before": "2026-11-08T00:00:00+09:00",
+                },
+                {1, 2},
+            ),
+        ],
+    )
+    async def test_boundaries_not_creation_or_modification(
+        self, client, auth_headers, tenant, params, expected
+    ):
+        board, posts = await _published_posts(client, auth_headers)
+        await _post(client, auth_headers, board["id"], "미공개 초안", status="DRAFT")
+        await _post(
+            client, auth_headers, board["id"], "미공개 비공개", status="PRIVATE"
+        )
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        assert data["total"] == len(expected)
+        assert {p["id"] for p in data["items"]} == {posts[i]["id"] for i in expected}
+
+    async def test_filters_total_pages_category_and_tenant(
+        self, client, auth_headers, tenant, other
+    ):
+        board, posts = await _published_posts(client, auth_headers)
+        category = await client.post(
+            f"{BOARDS}/{board['id']}/categories",
+            json={"name": "행사"},
+            headers=auth_headers,
+        )
+        assert category.status_code == 201, category.text
+        category_id = category.json()["data"]["id"]
+        for post in posts:
+            await _sql(
+                "UPDATE board_posts SET category_id=:c WHERE id=:i",
+                c=category_id,
+                i=post["id"],
+            )
+        await _sql(
+            "UPDATE board_posts SET published_at='2026-11-07T00:00:00Z' WHERE id=:i",
+            i=other["post_id"],
+        )
+        params = {
+            "published_from": "2026-11-06T15:00:00Z",
+            "published_before": "2026-11-07T15:00:00Z",
+            "board_id": board["id"],
+            "category_id": category_id,
+            "status": "PUBLISHED",
+            "q": "행사",
+            "size": 1,
+        }
+        found = []
+        for page in [1, 2]:
+            response = await client.get(
+                POSTS, params={**params, "page": page}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["data"]["total"] == 2
+            found.extend(p["id"] for p in response.json()["data"]["items"])
+        assert set(found) == {posts[1]["id"], posts[2]["id"]}
+        response = await client.get(
+            POSTS,
+            params={
+                "published_from": params["published_from"],
+                "published_before": params["published_before"],
+            },
+            headers=auth_headers,
+        )
+        assert response.json()["data"]["total"] == 2
+        assert other["post_id"] not in response.text
+
+    @pytest.mark.parametrize("trash", [False, True])
+    async def test_first_publication_survives_private_republish_and_trash(
+        self, client, auth_headers, tenant, trash
+    ):
+        board, posts = await _published_posts(client, auth_headers)
+        url = f"{BOARDS}/{board['id']}/posts/{posts[1]['id']}"
+        for status in ["PRIVATE", "PUBLISHED", "PRIVATE"]:
+            response = await client.patch(
+                url, json={"status": status}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["data"]["published_at"].startswith(
+                "2026-11-06T15:00:00"
+            )
+        if trash:
+            response = await client.delete(url, headers=auth_headers)
+            assert response.status_code == 200, response.text
+        response = await client.get(
+            POSTS,
+            params={
+                "published_from": "2026-11-06T15:00:00Z",
+                "published_before": "2026-11-07T15:00:00Z",
+                "status": "PRIVATE",
+                "trash": trash,
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[1]["id"]
+
+    @pytest.mark.parametrize(
+        "params",
+        [
+            {"published_from": "invalid"},
+            {"published_before": "2026-11-07T00:00:00"},
+            {
+                "published_from": "2026-11-07T00:00:00Z",
+                "published_before": "2026-11-07T00:00:00Z",
+            },
+            {
+                "published_from": "2026-11-08T00:00:00Z",
+                "published_before": "2026-11-07T00:00:00Z",
+            },
+        ],
+    )
+    async def test_invalid_range(self, client, auth_headers, tenant, params):
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 400, response.text
+
+    async def test_three_date_ranges_intersect(self, client, auth_headers, tenant):
+        board, posts = await _published_posts(client, auth_headers)
+        await _sql(
+            "UPDATE board_posts SET updated_at='2032-01-01T00:00:00Z' WHERE id=:i",
+            i=posts[1]["id"],
+        )
+        response = await client.get(
+            POSTS,
+            params={
+                "board_id": board["id"],
+                "created_from": "2030-01-01T00:00:00Z",
+                "created_before": "2031-01-01T00:00:00Z",
+                "updated_from": "2032-01-01T00:00:00Z",
+                "published_from": "2026-11-06T15:00:00Z",
+                "published_before": "2026-11-07T15:00:00Z",
+            },
+            headers=auth_headers,
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[1]["id"]
+
+    async def test_viewer_can_filter(self, client, auth_headers, tenant, test_user):
+        _board_row, posts = await _published_posts(client, auth_headers)
+        await _sql(
+            "UPDATE users SET role='TENANT_VIEWER' WHERE id=:i", i=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        response = await client.get(
+            POSTS,
+            params={"published_before": "2026-11-07T00:00:00+09:00"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert response.json()["data"]["items"][0]["id"] == posts[0]["id"]

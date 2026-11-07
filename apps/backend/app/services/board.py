@@ -41,6 +41,7 @@ SAMPLE_ITEMS_KEY = "items"
 EMPTY_ITEMS = "[]"
 MSG_DATE_RANGE = "작성일 시작은 종료 범위보다 빨라야 합니다."
 MSG_UPDATED_DATE_RANGE = "수정일 시작은 종료 범위보다 빨라야 합니다."
+MSG_PUBLISHED_DATE_RANGE = "공개일 시작은 종료 범위보다 빨라야 합니다."
 MSG_BULK_MISMATCH = "처리할 수 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
 SITEMAP_POST_LIMIT = 5000
 DESCRIPTION_KEY = "description"
@@ -734,12 +735,16 @@ async def list_all_posts(
     created_before: datetime | None = None,
     updated_from: datetime | None = None,
     updated_before: datetime | None = None,
+    published_from: datetime | None = None,
+    published_before: datetime | None = None,
 ) -> tuple[list[tuple[BoardPost, str]], int]:
     """여러 게시판의 글. 날짜 범위는 시작 포함 · 끝 제외다."""
     if created_from and created_before and created_from >= created_before:
         raise HTTPException(status_code=400, detail=MSG_DATE_RANGE)
     if updated_from and updated_before and updated_from >= updated_before:
         raise HTTPException(status_code=400, detail=MSG_UPDATED_DATE_RANGE)
+    if published_from and published_before and published_from >= published_before:
+        raise HTTPException(status_code=400, detail=MSG_PUBLISHED_DATE_RANGE)
     conditions: list[ColumnElement[bool]] = [
         BoardPost.tenant_id == tenant_id,
         Board.deleted_at.is_(None),
@@ -761,6 +766,10 @@ async def list_all_posts(
         conditions.append(BoardPost.updated_at >= updated_from)
     if updated_before:
         conditions.append(BoardPost.updated_at < updated_before)
+    if published_from:
+        conditions.append(BoardPost.published_at >= published_from)
+    if published_before:
+        conditions.append(BoardPost.published_at < published_before)
     joined = select(BoardPost, Board.name).join(Board, Board.id == BoardPost.board_id)
     total = (
         await db.execute(
