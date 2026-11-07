@@ -132,7 +132,7 @@ describe('달력 날짜 변환', () => {
       expect(() => postDateFilters(date, '')).toThrow()
     }
   )
-  it.skipIf(new Date('2026-03-08T00:00:00').getTimezoneOffset() !== 300)(
+  it.skipIf(Intl.DateTimeFormat().resolvedOptions().timeZone !== 'America/New_York')(
     '서머타임 시작/종료일도 다음 자정을 사용한다 (뉴욕 TZ에서 실행)',
     () => {
       expect(postDateFilters('2026-03-08', '2026-03-08')).toEqual({
