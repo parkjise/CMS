@@ -5,7 +5,7 @@
 ## 최신 기록: T-161 전체 글 작성일 필터 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-05에서 날짜 검색만 분리했다. 본문/작성자 검색은 개인정보/검색 방식 검토가 필요해 별도 후속으로 유지한다.
-- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#111](https://github.com/parkjise/CMS/pull/111). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-161-post-date-filter`, 폴더: `/private/tmp/cms-T-161`, 기준 main: `f4addf1`.
 - 이전 T-160: #110 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `f4addf1`.
 - API: GET /api/v1/posts에 created_from/created_before(AwareDatetime)를 추가했다. 서비스에서 from >= before를 거부하고 created_at >= from, created_at < before를 기존 사업체/게시판/분류/상태/제목/휴지통 WHERE에 더한다. 목록과 total을 함께 좁히며 최초 저장 시각 기준이다. DB · 로그인 · 권한 정책 변경 없음.
