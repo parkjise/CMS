@@ -6,6 +6,8 @@ import { Pagination } from './Pagination'
 
 interface BoardListShellProps {
   title: string
+  /** 상위 히어로에 제목이 있으면 목록 이름은 스크린리더용으로 유지한다. */
+  hideTitle?: boolean
   description?: string
   /** 관리자에게 [글쓰기]를 보여 줄 게시판 슬러그 — 샘플 미리보기면 없음 */
   writeBoard?: string
@@ -26,6 +28,7 @@ interface BoardListShellProps {
 /** 게시판 목록 공통 틀 — 제목 · 글쓰기 · 검색 · 페이지 이동. 글 모양은 유형별로 (T-140-B) */
 export function BoardListShell({
   title,
+  hideTitle = false,
   description,
   writeBoard,
   total,
@@ -42,7 +45,7 @@ export function BoardListShell({
   return (
     <section className="board-list" aria-labelledby="board-list-title">
       <div className="page-container">
-        <h2 className="board-list__title" id="board-list-title">
+        <h2 className={hideTitle ? 'sr-only' : 'board-list__title'} id="board-list-title">
           {title}
         </h2>
         {description && <p className="board-list__desc">{description}</p>}

@@ -113,6 +113,7 @@ export function NoticeDetailView({
 
 interface NoticeListViewProps {
   title: string
+  hideTitle?: boolean
   items: NoticeItem[]
   total: number
   page: number
@@ -136,6 +137,7 @@ interface NoticeListViewProps {
 /** 글 목록 — 목업 sub/board-list.html */
 export function NoticeListView({
   title,
+  hideTitle = false,
   items,
   total,
   page,
@@ -155,6 +157,7 @@ export function NoticeListView({
   return (
     <BoardListShell
       title={title}
+      hideTitle={hideTitle}
       description={description}
       writeBoard={canWrite ? boardSlug : undefined}
       total={total}
