@@ -141,6 +141,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
           date: postDate(p.published_at),
           pinned: p.is_pinned,
           secret: p.is_secret,
+          listFields: p.list_fields,
         }))}
         total={total}
         page={current}

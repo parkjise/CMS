@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import type { Board, BoardDesign, BoardSortOrder, BoardType } from '@cms/types'
 import { Button, Toggle, toast } from '@cms/ui'
+import { BoardListFieldSettings } from '@/components/boards/BoardListFieldSettings'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
@@ -90,7 +91,8 @@ function BoardDesignForm({ board }: { board: Board }) {
             </fieldset>
             {typeWarning && (
               <p className="text-sm text-amber-700">
-                이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수 있습니다.
+                이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수
+                있습니다.
               </p>
             )}
 
@@ -104,7 +106,9 @@ function BoardDesignForm({ board }: { board: Board }) {
                     id="board-columns"
                     className={SELECT_CLASS}
                     value={design.columns}
-                    onChange={(e) => change({ columns: Number(e.target.value) as BoardDesign['columns'] })}
+                    onChange={(e) =>
+                      change({ columns: Number(e.target.value) as BoardDesign['columns'] })
+                    }
                   >
                     {COLUMNS.map((count) => (
                       <option key={count} value={count}>
@@ -121,7 +125,9 @@ function BoardDesignForm({ board }: { board: Board }) {
                     id="board-ratio"
                     className={SELECT_CLASS}
                     value={design.image_ratio}
-                    onChange={(e) => change({ image_ratio: e.target.value as BoardDesign['image_ratio'] })}
+                    onChange={(e) =>
+                      change({ image_ratio: e.target.value as BoardDesign['image_ratio'] })
+                    }
                   >
                     {RATIOS.map((ratio) => (
                       <option key={ratio} value={ratio}>
@@ -145,9 +151,7 @@ function BoardDesignForm({ board }: { board: Board }) {
                   checked={design.show_summary}
                   onChange={(e) => change({ show_summary: e.target.checked })}
                 />
-                <p className="text-xs text-slate-500">
-                  필드 관리에서 글 목록에 표시를 켠 칸의 값도 카드에 나옵니다.
-                </p>
+                <p className="text-xs text-slate-500">아래에서 고른 추가 정보도 카드에 나옵니다.</p>
               </div>
             )}
             {boardType === 'FAQ' ? (
@@ -171,6 +175,10 @@ function BoardDesignForm({ board }: { board: Board }) {
               />
             )}
           </div>
+        )}
+
+        {!isSystem && (boardType === 'LIST' || boardType === 'CARD') && (
+          <BoardListFieldSettings boardId={board.id} />
         )}
 
         <div className={CARD_CLASS}>
@@ -240,7 +248,9 @@ export function BoardDesignPage() {
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
       )}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
-      {boardsQuery.isSuccess && !board && <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>}
+      {boardsQuery.isSuccess && !board && (
+        <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>
+      )}
       {board && <BoardDesignForm key={board.id} board={board} />}
     </div>
   )

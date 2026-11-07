@@ -311,3 +311,116 @@ class TestDesign:
         item = listed.json()["data"]["items"][0]
         assert item["summary"] is None
         assert item["card_fields"] is None
+
+
+class TestListFieldSelection:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("board_type", ["LIST", "CARD", "GALLERY", "FAQ"])
+    async def test_selected_public_values_only(
+        self, client, auth_headers, tenant, board_type
+    ):
+        board = await _board(client, auth_headers, board_type=board_type)
+        fields_url = f"{BOARDS}/{board['id']}/fields"
+
+        async def add(label, **extra):
+            response = await client.post(
+                fields_url,
+                json={
+                    "label": label,
+                    "field_type": "TEXT",
+                    "show_in_list": True,
+                    **extra,
+                },
+                headers=auth_headers,
+            )
+            assert response.status_code == 201, response.text
+            return response.json()["data"]
+
+        selected = await add(
+            "부서",
+            field_type="SELECT",
+            options=[{"value": "internal", "label": "개발팀"}],
+        )
+        zero = await add("인원", field_type="NUMBER")
+        boolean = await add("접수", field_type="BOOLEAN")
+        hidden = await add("내부", is_visible=False)
+        off = await add("목록 제외", show_in_list=False)
+        deleted = await add("삭제할 칸")
+        empty = await add("빈 칸")
+        data = {
+            selected["field_key"]: "internal",
+            zero["field_key"]: 0,
+            boolean["field_key"]: False,
+            hidden["field_key"]: "HIDDEN_VALUE",
+            off["field_key"]: "UNLISTED_VALUE",
+            deleted["field_key"]: "DELETED_VALUE",
+            empty["field_key"]: None,
+        }
+        created = await client.post(
+            f"{BOARDS}/{board['id']}/posts",
+            json={
+                "title": "글",
+                "body": [],
+                "status": "PUBLISHED",
+                "custom_data": data,
+            },
+            headers=auth_headers,
+        )
+        assert created.status_code == 201, created.text
+        removed = await client.delete(
+            f"{fields_url}/{deleted['id']}", headers=auth_headers
+        )
+        assert removed.status_code == 200, removed.text
+        url = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        listed = await client.get(url)
+        assert listed.status_code == 200, listed.text
+        item = listed.json()["data"]["items"][0]
+        if board_type in {"LIST", "CARD"}:
+            key = "list_fields" if board_type == "LIST" else "card_fields"
+            assert [f["value"] for f in item[key]] == ["개발팀", 0, False]
+            assert [f["label"] for f in item[key]] == ["부서", "인원", "접수"]
+            changed = await client.patch(
+                f"{fields_url}/{selected['id']}",
+                json={"show_in_list": False},
+                headers=auth_headers,
+            )
+            assert changed.status_code == 200, changed.text
+            after = (await client.get(url)).json()["data"]["items"][0]
+            assert "부서" not in str(after[key])
+        else:
+            assert item["list_fields"] is None
+            assert item["card_fields"] is None
+        assert "custom_data" not in item
+        for value in ["HIDDEN_VALUE", "UNLISTED_VALUE", "DELETED_VALUE", "internal"]:
+            assert value not in listed.text
+
+    @pytest.mark.asyncio
+    async def test_secret_list_never_returns_values(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        await _patch(
+            client, auth_headers, board["id"], operation={"allow_secret": True}
+        )
+        response = await client.post(
+            f"{BOARDS}/{board['id']}/fields",
+            json={"label": "메모", "field_type": "TEXT", "show_in_list": True},
+            headers=auth_headers,
+        )
+        field = response.json()["data"]
+        created = await client.post(
+            f"{BOARDS}/{board['id']}/posts",
+            json={
+                "title": "비밀",
+                "body": [],
+                "status": "PUBLISHED",
+                "is_secret": True,
+                "custom_data": {field["field_key"]: "SECRET_VALUE"},
+            },
+            headers=auth_headers,
+        )
+        assert created.status_code == 201, created.text
+        listed = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        assert listed.status_code == 200, listed.text
+        assert listed.json()["data"]["items"][0]["list_fields"] is None
+        assert "SECRET_VALUE" not in listed.text

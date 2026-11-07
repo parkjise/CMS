@@ -947,7 +947,7 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
 
 
 def public_post_item(
-    board: Board, post: BoardPost, card_fields: list[BoardField] | None = None
+    board: Board, post: BoardPost, list_fields: list[BoardField] | None = None
 ) -> dict:
     """공개 목록의 글 한 줄 — 유형별로 화면이 더 필요한 값까지."""
     # 비밀글은 목록에 제목만 — 요약 · 사진 · 본문 · 칸은 내보내지 않는다 (T-151-A)
@@ -958,8 +958,13 @@ def public_post_item(
         "is_guest": post.guest_password_hash is not None,
         "summary": body_summary(blocks, CARD_SUMMARY_LIMIT) if is_card else None,
         "card_fields": (
-            field_service.field_values(card_fields or [], post.custom_data or {})
+            field_service.field_values(list_fields or [], post.custom_data or {})
             if is_card
+            else None
+        ),
+        "list_fields": (
+            field_service.field_values(list_fields or [], post.custom_data or {})
+            if board.board_type == "LIST" and not post.is_secret
             else None
         ),
         "id": post.id,
