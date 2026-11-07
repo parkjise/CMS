@@ -6,6 +6,8 @@
         <span class="oliva-brand__sub">ITALIAN TABLE · SEOUL</span>
       </a>
     </div>
+
+    <!-- 데스크톱 네비게이션 -->
     <nav class="oliva-header__nav" aria-label="주요 메뉴">
       <ul class="oliva-nav-list">
         <li class="oliva-nav-list__item"><a href="#philosophy" class="oliva-nav-link">우리의 이야기</a></li>
@@ -18,6 +20,83 @@
         <img src="./assets/images/icon-arrow-up-right.svg" alt="" class="oliva-btn__icon" aria-hidden="true" />
       </a>
     </nav>
-  </div>
-</header>
 
+    <!-- 모바일/태블릿 헤더 액션 (예약 버튼 + 햄버거 토글) -->
+    <div class="oliva-header__mobile-actions">
+      <a href="#reservation" class="oliva-btn oliva-btn--primary oliva-header__btn oliva-header__btn--mobile" data-action="scroll" data-target="#reservation">
+        <span>예약</span>
+        <img src="./assets/images/icon-arrow-up-right.svg" alt="" class="oliva-btn__icon" aria-hidden="true" />
+      </a>
+      <button
+        type="button"
+        class="oliva-header__toggle"
+        id="mobileMenuToggle"
+        aria-label="전체 메뉴 열기"
+        aria-expanded="false"
+        aria-controls="mobileDrawer"
+      >
+        <span class="oliva-header__toggle-bar"></span>
+        <span class="oliva-header__toggle-bar"></span>
+        <span class="oliva-header__toggle-bar"></span>
+      </button>
+    </div>
+  </div>
+
+  <!-- 모바일 메뉴 드로어 & 딤 배경 -->
+  <div class="oliva-drawer-backdrop" id="mobileDrawerBackdrop" aria-hidden="true"></div>
+  <nav class="oliva-drawer" id="mobileDrawer" aria-label="모바일 전체 메뉴" aria-hidden="true">
+    <div class="oliva-drawer__header">
+      <div class="oliva-drawer__brand">
+        <span class="oliva-drawer__brand-name">OLIVA CASA</span>
+        <span class="oliva-drawer__brand-sub">ITALIAN TABLE · SEOUL</span>
+      </div>
+      <button type="button" class="oliva-drawer__close" id="mobileDrawerClose" aria-label="메뉴 닫기">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="oliva-drawer__body">
+      <ul class="oliva-drawer__list">
+        <li class="oliva-drawer__item">
+          <a href="#philosophy" class="oliva-drawer__link">
+            <span class="oliva-drawer__link-it">La Filosofia</span>
+            <span class="oliva-drawer__link-kr">우리의 이야기</span>
+          </a>
+        </li>
+        <li class="oliva-drawer__item">
+          <a href="#menu" class="oliva-drawer__link">
+            <span class="oliva-drawer__link-it">Il Menu</span>
+            <span class="oliva-drawer__link-kr">메뉴</span>
+          </a>
+        </li>
+        <li class="oliva-drawer__item">
+          <a href="#space" class="oliva-drawer__link">
+            <span class="oliva-drawer__link-it">Lo Spazio</span>
+            <span class="oliva-drawer__link-kr">공간</span>
+          </a>
+        </li>
+        <li class="oliva-drawer__item">
+          <a href="#location" class="oliva-drawer__link">
+            <span class="oliva-drawer__link-it">Come Arrivare</span>
+            <span class="oliva-drawer__link-kr">오시는 길</span>
+          </a>
+        </li>
+      </ul>
+
+      <div class="oliva-drawer__action">
+        <a href="#reservation" class="oliva-btn oliva-btn--primary oliva-drawer__btn" data-action="scroll" data-target="#reservation">
+          <span>테이블 예약하기</span>
+          <img src="./assets/images/icon-arrow-up-right.svg" alt="" class="oliva-btn__icon" aria-hidden="true" />
+        </a>
+      </div>
+
+      <div class="oliva-drawer__footer">
+        <p class="oliva-drawer__hours">화–일 11:30–22:00 (월요일 휴무)</p>
+        <p class="oliva-drawer__tel">전화 문의 02-332-0418</p>
+      </div>
+    </div>
+  </nav>
+</header>
