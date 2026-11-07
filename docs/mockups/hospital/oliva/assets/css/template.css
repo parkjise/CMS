@@ -685,30 +685,92 @@ body.menu-open {
     flex: none;
   }
 }
-.oliva-hero__image-wrap {
+.oliva-hero__slider {
   height: 625px;
   width: 100%;
   border-radius: 280px 280px 0 0;
   overflow: hidden;
   position: relative;
   background-color: #e5ded0;
+  box-shadow: 0 16px 40px rgba(48, 60, 43, 0.08);
 }
 @media (max-width: 820px) {
-  .oliva-hero__image-wrap {
+  .oliva-hero__slider {
     height: min(72vw, 590px);
   }
 }
 @media (max-width: 640px) {
-  .oliva-hero__image-wrap {
+  .oliva-hero__slider {
     height: 106vw;
     border-radius: 200px 200px 0 0;
   }
+}
+.oliva-hero__slides {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+.oliva-hero__slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  will-change: transform, opacity;
+}
+.oliva-hero__slide.is-active {
+  opacity: 1;
+  visibility: visible;
 }
 .oliva-hero__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: inherit;
+  transform-origin: center center;
+}
+.oliva-hero__nav {
+  position: absolute;
+  bottom: 22px;
+  right: 24px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(30, 38, 28, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+@media (max-width: 640px) {
+  .oliva-hero__nav {
+    bottom: 16px;
+    right: 16px;
+    padding: 5px 10px;
+    gap: 6px;
+  }
+}
+.oliva-hero__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: width 0.32s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.32s ease, border-radius 0.32s ease;
+}
+.oliva-hero__dot:hover {
+  background-color: #ffffff;
+}
+.oliva-hero__dot.is-active {
+  width: 22px;
+  border-radius: 8px;
+  background-color: #ffffff;
 }
 .oliva-hero__caption {
   display: flex;
@@ -728,6 +790,7 @@ body.menu-open {
   font-style: italic;
   font-size: 23px;
   color: var(--color-text);
+  transition: opacity 0.3s ease;
 }
 @media (max-width: 640px) {
   .oliva-hero__quote {

@@ -3,12 +3,12 @@
     <div class="oliva-hero__content">
       <p class="oliva-eyebrow oliva-hero__eyebrow">YEONHUI, SEOUL — EST. 2024</p>
       <h1 class="oliva-hero__title-en">
-        <span>A casa,</span>
-        <span>con amore.</span>
+        <span class="oliva-reveal-line">A casa,</span>
+        <span class="oliva-reveal-line">con amore.</span>
       </h1>
       <h2 class="oliva-hero__title-kr">
-        <span>좋은 날은,</span>
-        <span>좋은 식탁에서.</span>
+        <span class="oliva-reveal-line">좋은 날은,</span>
+        <span class="oliva-reveal-line">좋은 식탁에서.</span>
       </h2>
       <p class="oliva-hero__desc">
         제철의 맛, 손으로 빚은 파스타, 그리고 와인 한 잔.<br />
@@ -24,15 +24,37 @@
         </a>
       </div>
     </div>
+
     <div class="oliva-hero__visual">
-      <div class="oliva-hero__image-wrap">
-        <img src="./assets/images/dining-room.png" alt="햇살이 비치는 올리바 카사의 다이닝 홀" class="oliva-hero__image" />
+      <!-- 아치형 히어로 슬라이더 -->
+      <div class="oliva-hero__slider" id="heroSlider" aria-roledescription="carousel" aria-label="올리바 카사 갤러리">
+        <div class="oliva-hero__slides">
+          <!-- Slide 1 -->
+          <div class="oliva-hero__slide is-active" data-index="0" data-quote="A little Italy, a little closer.">
+            <img src="./assets/images/dining-room.png" alt="햇살이 비치는 올리바 카사의 다이닝 홀" class="oliva-hero__image" />
+          </div>
+          <!-- Slide 2 -->
+          <div class="oliva-hero__slide" data-index="1" data-quote="Warm candlelight, quiet conversations.">
+            <img src="./assets/images/candlelit-table.png" alt="촛불이 켜진 아늑한 코너 테이블" class="oliva-hero__image" />
+          </div>
+          <!-- Slide 3 -->
+          <div class="oliva-hero__slide" data-index="2" data-quote="Handmade pasta every single morning.">
+            <img src="./assets/images/pasta-making.png" alt="매일 아침 정성으로 빚는 생면" class="oliva-hero__image" />
+          </div>
+        </div>
+
+        <!-- 슬라이더 컨트롤러 (닷 네비게이션) -->
+        <div class="oliva-hero__nav" aria-label="슬라이드 선택">
+          <button type="button" class="oliva-hero__dot is-active" data-slide="0" aria-label="1번 슬라이드 보기"></button>
+          <button type="button" class="oliva-hero__dot" data-slide="1" aria-label="2번 슬라이드 보기"></button>
+          <button type="button" class="oliva-hero__dot" data-slide="2" aria-label="3번 슬라이드 보기"></button>
+        </div>
       </div>
+
       <div class="oliva-hero__caption">
-        <span class="oliva-hero__quote">A little Italy, a little closer.</span>
+        <span class="oliva-hero__quote" id="heroQuote">A little Italy, a little closer.</span>
         <span class="oliva-hero__hint">천천히, 아래로 ↓</span>
       </div>
     </div>
   </div>
 </section>
-
