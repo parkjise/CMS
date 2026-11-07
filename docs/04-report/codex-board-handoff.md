@@ -2,7 +2,18 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-160 갤러리 · FAQ 추가 정보 (Codex)
+## 최신 기록: T-161 전체 글 작성일 필터 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-05에서 날짜 검색만 분리했다. 본문/작성자 검색은 개인정보/검색 방식 검토가 필요해 별도 후속으로 유지한다.
+- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- 브랜치: `codex/T-161-post-date-filter`, 폴더: `/private/tmp/cms-T-161`, 기준 main: `f4addf1`.
+- 이전 T-160: #110 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `f4addf1`.
+- API: GET /api/v1/posts에 created_from/created_before(AwareDatetime)를 추가했다. 서비스에서 from >= before를 거부하고 created_at >= from, created_at < before를 기존 사업체/게시판/분류/상태/제목/휴지통 WHERE에 더한다. 목록과 total을 함께 좁히며 최초 저장 시각 기준이다. DB · 로그인 · 권한 정책 변경 없음.
+- UI: PostsOverviewPage와 useBoards의 필터 타입, 신규 lib/postDateFilters.ts. 검색 버튼에서 제목과 날짜를 적용한다. 브라우저 달력 자정을 UTC로 바꾸고 종료 다음 날 자정까지 포함한다. 24시간을 더하지 않아 서머타임 전환일도 처리한다. 시작/종료 한쪽만, 같은 날, 기간만 초기화 지원. 기간 적용/초기화 시 기존 페이지/선택 초기화 로직을 재사용하고 다른 조건은 유지한다. 잘못된 기간은 기존 선택/조회 결과를 바꾸지 않는다.
+- 최종 로컬 검증: 관리자 66개 파일 539개 통과/시간대 전용 1개 스킵, 별도 TZ=America/New_York 실행으로 신규 날짜 시험 11개(서머타임 시작/종료일 포함) 모두 통과. 관련 서버 test_board_overview.py 48개(추가 9개)를 전용 cms_test_db의 cms_app RLS로 검증했다. 전체 프런트 타입 검사, 관리자 빌드, lint 오류 0(기존 react-refresh 경고 5개), 백엔드 app Ruff lint/format · mypy 174개 파일, 변경 소스 포맷 · git diff --check 통과. 실제 브라우저 화면 검증은 수행하지 않았다. 로컬 Node 25.2.1, Node 22와 서버 전체 회귀는 원격 CI에서 검증한다.
+- 후속: 내용/작성자 검색, 수정일/공개일 필터, 독립 표 열/너비/순서, 카테고리 확장 등. 테마형 공지 · 자동 파기 · 백업 · 법률 확인의 보류 결정을 유지한다.
+
+## 이전 기록: T-160 갤러리 · FAQ 추가 정보 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 T-159의 기존 필드 선택/공개 표시를 남은 갤러리 · FAQ로 확장했다.
 - PR: [#110](https://github.com/parkjise/CMS/pull/110). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
