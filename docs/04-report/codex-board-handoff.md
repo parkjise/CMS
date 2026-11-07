@@ -5,7 +5,7 @@
 ## 최신 기록: T-159 목록 표시 필드 선택 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-03 목록 표시 선택을 기존 필드 플래그와 연결했다. 임의의 독립 표 열을 추가한 것이 아니라 제목 아래 추가 정보를 선택하는 범위다.
-- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#109](https://github.com/parkjise/CMS/pull/109). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-159-list-field-selection`, 폴더: `/private/tmp/cms-T-159`, 기준 main: `8b11a18`.
 - 이전 T-158: #108의 backend · frontend · e2e 성공 후 병합, main 포함 확인. 병합 커밋 `8b11a18`.
 - 관리자: 신규 `BoardListFieldSettings.tsx`, `BoardDesignPage.tsx`. 기본 게시판 제외 LIST/CARD에서 기존 useBoardFields/useUpdateField로 show_in_list만 필드별 즉시 저장한다. 디자인 저장 버튼과 독립이며 D-13 유지. 조회 오류/재시도, 저장 실패 유지, 처리 중 중복 변경 방지, 뷰어 잠금. 홈페이지 비표시 칸도 관리자 표시 선택 가능하되 안내한다. 순서/이름/홈페이지 표시는 필드 관리로 연결한다.
