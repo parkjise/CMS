@@ -5,7 +5,7 @@
 ## 최신 기록: T-163 코드형 목록 중복 제목 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 T-140-B 후속 후보였던 히어로/목록의 이름 반복을 정리했다.
-- PR: 생성 예정. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#113](https://github.com/parkjise/CMS/pull/113). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-163-board-heading`, 폴더: `/private/tmp/cms-T-163`, 기준 main: `f17d014`.
 - 이전 T-162: #112 세 CI 성공 뒤 병합, main 포함 확인. 병합 커밋 `f17d014`.
 - 구현: BoardListShell에 기본 false인 hideTitle, NoticeListView에 전달 옵션을 추가하고 코드형 CustomBoardList의 네 유형에서만 켠다. 상단 Template의 SubHero 이름은 그대로이며 목록 h2는 기존 sr-only 유틸리티로 숨긴다. h2/aria-labelledby를 유지해 접근성 영역 이름이 사라지지 않는다. 설명/검색/분류/글쓰기/페이지 이동은 유지한다.
