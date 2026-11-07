@@ -5,7 +5,7 @@
 ## 최신 기록: T-166 전체 글 공개일 필터 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-05 후속의 공개일 기간 검색을 구현했다. 기존 최초 공개 시각을 조회하고 날짜 기준 전환/초기화와 상태 조합을 확인하는 플랜으로 진행했다.
-- PR: 생성 후 번호 연결. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#116](https://github.com/parkjise/CMS/pull/116). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-166-post-published-filter`, 폴더: `/private/tmp/cms-T-166`, 기준 main: `9f3b27c`.
 - 이전 T-165: #115 backend · frontend · e2e 성공 뒤 병합, 최종 커밋 main 포함 확인. 병합 커밋 `9f3b27c`.
 - API: GET /api/v1/posts에 published_from/published_before(AwareDatetime)를 추가했다. 기존 BoardPost.published_at에 시작 이상/끝 미만 조건을 적용하며 같은/역전 경계는 400이다. 작성/수정일과 함께 보내면 교집합. 목록과 total의 공통 WHERE 및 사업체/게시판/분류/상태/제목/휴지통 조건은 유지한다. 공개일에 created_at을 대신 쓰지 않아 경계가 있으면 NULL 공개일인 미공개 글은 제외한다. 날짜 경계가 없으면 날짜로 제한하지 않는다.
