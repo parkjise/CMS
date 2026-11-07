@@ -99,7 +99,7 @@ describe('DeferredStylesheets', () => {
     expect(css).not.toMatch(/font-display:\s*(auto|block)/)
     expect(css.match(/font-display:swap/g)).toHaveLength(2)
     expect(css).toContain('@import url("https://p.typekit.net/p.css")')
-    expect(fetchMock).toHaveBeenCalledWith(TYPEKIT, { mode: 'cors' })
+    expect(fetchMock).toHaveBeenCalledWith(TYPEKIT, { mode: 'cors', signal: expect.any(AbortSignal) })
     expect(document.head.querySelector(`link[href="${GOOGLE}"]`)).not.toBeNull()
   })
 

@@ -21,25 +21,27 @@ const appendLink = (href: string) => {
   document.head.appendChild(link)
 }
 
-const appendSwapped = async (href: string) => {
+const appendSwapped = async (href: string, signal: AbortSignal) => {
   try {
-    const res = await fetch(href, { mode: 'cors' })
+    const res = await fetch(href, { mode: 'cors', signal })
+    if (signal.aborted) return
     if (!res.ok) throw new Error(String(res.status))
     const css = (await res.text()).replace(FONT_DISPLAY_BLOCKING, 'font-display:swap')
+    if (signal.aborted) return
     const style = document.createElement('style')
     style.dataset.href = href
     style.textContent = css
     document.head.appendChild(style)
   } catch {
-    appendLink(href)
+    if (!signal.aborted) appendLink(href)
   }
 }
 
 const isAttached = (href: string) =>
   Boolean(
     document.querySelector(
-      `link[rel="stylesheet"][href="${CSS.escape(href)}"], style[data-href="${CSS.escape(href)}"]`,
-    ),
+      `link[rel="stylesheet"][href="${CSS.escape(href)}"], style[data-href="${CSS.escape(href)}"]`
+    )
   )
 
 /**
@@ -50,11 +52,13 @@ const isAttached = (href: string) =>
  */
 const DeferredStylesheets = ({ hrefs, swapFontDisplay = [] }: DeferredStylesheetsProps) => {
   useEffect(() => {
+    const controller = new AbortController()
     for (const href of hrefs) {
       if (isAttached(href)) continue
-      if (swapFontDisplay.includes(href)) void appendSwapped(href)
+      if (swapFontDisplay.includes(href)) void appendSwapped(href, controller.signal)
       else appendLink(href)
     }
+    return () => controller.abort()
   }, [hrefs, swapFontDisplay])
 
   return null
