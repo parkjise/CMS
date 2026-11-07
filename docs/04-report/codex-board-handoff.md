@@ -5,7 +5,7 @@
 ## 최신 기록: T-165 전체 글 수정일 필터 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-05 후속 중 수정일 기간 검색을 구현했다. 기존 작성일 변환을 재사용하고, 검색 적용 시 기준 전환/기존 조건 제거를 검증하는 플랜으로 진행했다.
-- PR: 생성 후 번호 연결. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#115](https://github.com/parkjise/CMS/pull/115). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-165-post-updated-filter`, 폴더: `/private/tmp/cms-T-165`, 기준 main: `5f9af13`.
 - 이전 T-164: #114 backend · frontend · e2e 성공 뒤 병합, 최종 커밋 main 포함 확인. 병합 커밋 `5f9af13`.
 - API: GET /api/v1/posts에 updated_from/updated_before(AwareDatetime)를 추가했다. 기존 BoardPost.updated_at에 시작 이상/끝 미만 조건을 적용하고 역전/같은 경계는 400으로 거부한다. 기존 작성일 API는 유지하며 함께 보낼 경우 교집합이다. 목록과 total의 공통 WHERE, 사업체/게시판/분류/상태/제목/휴지통 조건을 유지한다. DB · 로그인 · 권한 정책 변경 없음.
