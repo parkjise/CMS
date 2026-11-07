@@ -1,0 +1,674 @@
+@use '../tokens' as *;
+
+// ── Space Hero & Panorama ──
+.oliva-sub-hero--space {
+  .oliva-sub-hero__panorama {
+    width: 100%;
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .oliva-sub-hero__panorama-wrap {
+    width: 100%;
+    height: 620px;
+    overflow: hidden;
+
+    @media (max-width: 1024px) {
+      height: 420px;
+    }
+
+    @media (max-width: 820px) {
+      height: 260px;
+    }
+  }
+}
+
+// ── 01. Atmosphere and Materials ──
+.oliva-space-materials {
+  width: 100%;
+  background-color: var(--color-bg);
+  padding: 96px 0 104px;
+  box-sizing: border-box;
+
+  @media (max-width: 820px) {
+    padding: 64px 0;
+  }
+
+  &__inner {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 104px;
+    display: flex;
+    align-items: center;
+    gap: 100px;
+    box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 0 40px;
+      gap: 60px;
+    }
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      padding: 0 20px;
+      gap: 40px;
+    }
+  }
+
+  &__visual {
+    width: 548px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+
+    @media (max-width: 1180px) {
+      width: 48%;
+    }
+
+    @media (max-width: 900px) {
+      width: 100%;
+    }
+  }
+
+  &__img-wrap {
+    width: 100%;
+    height: 590px;
+    overflow: hidden;
+
+    @media (max-width: 820px) {
+      height: 320px;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__caption {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    &-it {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 25px;
+      color: var(--color-text);
+    }
+
+    &-kr {
+      font-size: 11px;
+      color: var(--color-text-muted);
+    }
+  }
+
+  &__narrative {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 26px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.6;
+    letter-spacing: -1.5px;
+    color: var(--color-text);
+    margin: 0;
+
+    @media (max-width: 820px) {
+      font-size: 28px;
+    }
+  }
+
+  &__desc {
+    font-size: 15px;
+    line-height: 2;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+.oliva-material-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  margin-top: 8px;
+}
+
+.oliva-material-item {
+  border-top: 1px solid var(--color-border);
+  padding: 18px 0;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+
+  &__it {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--color-text);
+    width: 80px;
+    flex-shrink: 0;
+  }
+
+  &__info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__kr {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+// ── 02. Seating Perspectives (Warm Background) ──
+.oliva-space-perspectives {
+  width: 100%;
+  background-color: var(--color-bg-warm);
+  padding: 88px 0;
+  box-sizing: border-box;
+
+  &__inner {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 56px;
+    box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 0 40px;
+    }
+
+    @media (max-width: 820px) {
+      padding: 0 20px;
+      gap: 36px;
+    }
+  }
+
+  &__intro {
+    display: flex;
+    align-items: flex-end;
+    gap: 120px;
+
+    @media (max-width: 1024px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+  }
+
+  &__heading {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -1.5px;
+    color: var(--color-text);
+    margin: 0;
+
+    @media (max-width: 820px) {
+      font-size: 28px;
+    }
+  }
+
+  &__desc {
+    width: 480px;
+    flex-shrink: 0;
+    font-size: 14px;
+    line-height: 2;
+    color: var(--color-text-muted);
+    margin: 0;
+
+    @media (max-width: 1024px) {
+      width: 100%;
+    }
+  }
+
+  &__grid {
+    display: flex;
+    gap: 56px;
+    align-items: flex-start;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      gap: 40px;
+    }
+  }
+
+  &__footer {
+    border-top: 1px solid var(--color-border);
+    padding-top: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  &__capacity {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  &__inquiry-note {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+.oliva-seat-card {
+  width: 58%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
+
+  &--offset {
+    width: 42%;
+    padding-top: 72px;
+
+    @media (max-width: 900px) {
+      width: 100%;
+      padding-top: 0;
+    }
+
+    .oliva-seat-card__visual {
+      height: 390px;
+
+      @media (max-width: 820px) {
+        height: 240px;
+      }
+    }
+  }
+
+  &__visual {
+    width: 100%;
+    height: 480px;
+    overflow: hidden;
+
+    @media (max-width: 820px) {
+      height: 260px;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 25px;
+    font-weight: 400;
+    letter-spacing: -0.8px;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  &__it-title {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 24px;
+    color: var(--color-text);
+  }
+
+  &__desc {
+    font-size: 14px;
+    line-height: 1.95;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}
+
+// ── 03. Light and Time (Dark Section) ──
+.oliva-space-time {
+  width: 100%;
+  background-color: var(--color-bg-dark);
+  color: var(--color-text-light);
+  padding: 88px 0;
+  box-sizing: border-box;
+
+  &__inner {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 0 40px;
+    }
+
+    @media (max-width: 820px) {
+      padding: 0 20px;
+      gap: 36px;
+    }
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 32px;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+  }
+
+  &__lead {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -1.5px;
+    color: var(--color-text-light);
+    margin: 0;
+
+    @media (max-width: 820px) {
+      font-size: 28px;
+    }
+  }
+
+  &__it-sub {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 52px;
+    color: var(--color-text-dark-sub);
+    margin: 0;
+
+    @media (max-width: 820px) {
+      font-size: 32px;
+    }
+  }
+
+  &__grid {
+    display: flex;
+    gap: 56px;
+    align-items: flex-start;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      gap: 40px;
+    }
+  }
+}
+
+.oliva-time-card {
+  width: 44%;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
+
+  &--evening {
+    flex: 1 1 0;
+    width: auto;
+
+    .oliva-time-card__visual {
+      height: 460px;
+
+      @media (max-width: 820px) {
+        height: 260px;
+      }
+    }
+  }
+
+  &__visual {
+    width: 100%;
+    height: 330px;
+    overflow: hidden;
+
+    @media (max-width: 820px) {
+      height: 220px;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__it {
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 30px;
+    color: var(--color-text-light);
+  }
+
+  &__kr {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--color-text-dark-sub);
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: 14px;
+    line-height: 2;
+    color: var(--color-text-dark-sub);
+    margin: 0;
+  }
+}
+
+// ── 04. Space Photo Gallery ──
+.oliva-space-gallery {
+  width: 100%;
+  background-color: var(--color-bg);
+  padding: 96px 0;
+  box-sizing: border-box;
+
+  &__inner {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    padding: 0 88px;
+    display: flex;
+    flex-direction: column;
+    gap: 48px;
+    box-sizing: border-box;
+
+    @media (max-width: 1180px) {
+      padding: 0 40px;
+    }
+
+    @media (max-width: 820px) {
+      padding: 0 20px;
+      gap: 32px;
+    }
+  }
+
+  &__intro {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 40px;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 16px;
+    }
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 38px;
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -1.5px;
+    color: var(--color-text);
+    margin: 0;
+
+    @media (max-width: 820px) {
+      font-size: 28px;
+    }
+  }
+
+  &__desc {
+    max-width: 360px;
+    font-size: 14px;
+    line-height: 2;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+
+  &__collection {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+
+    @media (max-width: 900px) {
+      flex-direction: column;
+      gap: 32px;
+    }
+  }
+
+  &__closing {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    &-it {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 29px;
+      color: var(--color-text);
+    }
+
+    &-kr {
+      font-size: 12px;
+      color: var(--color-text-muted);
+    }
+  }
+}
+
+.oliva-gallery-card {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  @media (max-width: 900px) {
+    width: 100%;
+  }
+
+  &--wide {
+    flex: 1.6 1 0;
+  }
+
+  &__visual {
+    width: 100%;
+    height: 400px;
+    overflow: hidden;
+
+    @media (max-width: 820px) {
+      height: 240px;
+    }
+  }
+
+  &__img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease;
+
+    &:hover {
+      transform: scale(1.03);
+    }
+  }
+
+  &__title {
+    font-family: var(--font-serif-kr);
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--color-text);
+    margin: 0;
+  }
+
+  &__desc {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--color-text-muted);
+    margin: 0;
+  }
+}

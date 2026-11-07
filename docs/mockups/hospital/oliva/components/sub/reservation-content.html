@@ -1,0 +1,367 @@
+<div class="oliva-sub-page oliva-res-page">
+  <!-- 00. Sub Hero / Reservation Opening -->
+  <section class="oliva-sub-hero oliva-sub-hero--res" aria-labelledby="resHeroTitle">
+    <div class="oliva-sub-hero__inner">
+      <nav class="oliva-breadcrumb" aria-label="현재 위치">
+        <ol class="oliva-breadcrumb__list">
+          <li class="oliva-breadcrumb__item"><a href="index.html" class="oliva-breadcrumb__link">홈</a></li>
+          <li class="oliva-breadcrumb__sep" aria-hidden="true">/</li>
+          <li class="oliva-breadcrumb__item" aria-current="page">예약·문의</li>
+        </ol>
+      </nav>
+
+      <div class="oliva-res-hero">
+        <div class="oliva-res-hero__lead">
+          <p class="oliva-eyebrow">PRENOTAZIONI &amp; CONTATTI · 예약·문의</p>
+          <h1 class="oliva-res-hero__it-title" id="resHeroTitle">La vostra tavola.</h1>
+          <p class="oliva-res-hero__kr-title">당신을 기다리는 식탁.</p>
+          <div class="oliva-res-hero__desc">
+            <p>둘만의 저녁부터 소중한 사람들과의 모임까지.</p>
+            <p>함께할 시간과 궁금한 이야기를 편하게 들려주세요.</p>
+          </div>
+        </div>
+
+        <div class="oliva-res-hero__visual">
+          <div class="oliva-res-hero__img-wrap">
+            <img
+              src="./assets/images/92a19.png"
+              alt="창가의 아늑한 저녁 식탁 풍경"
+              class="oliva-res-hero__img"
+            />
+          </div>
+          <div class="oliva-res-hero__caption">
+            <span class="oliva-res-hero__caption-it">Un posto per voi.</span>
+            <span class="oliva-res-hero__caption-kr">당신을 위한 자리</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 01. Form & Guidance 2-Column Section -->
+  <section class="oliva-res-main-sec" aria-labelledby="formTitle">
+    <div class="oliva-res-main-sec__inner">
+      <!-- Left: Interactive Form -->
+      <div class="oliva-res-form-card">
+        <div class="oliva-res-form-card__header">
+          <h2 class="oliva-res-form-card__title" id="formTitle">어떤 이야기를 남겨주실 건가요?</h2>
+          <span class="oliva-res-form-card__req-hint">* 필수 항목</span>
+        </div>
+
+        <!-- Request Type Tabs -->
+        <div class="oliva-res-type-tabs" role="tablist" aria-label="요청 유형 선택">
+          <button
+            type="button"
+            class="oliva-res-type-tab is-active"
+            id="tabReservation"
+            role="tab"
+            aria-selected="true"
+            data-res-mode="reservation"
+          >
+            <span>예약 신청</span>
+            <img src="./assets/images/33b2b.svg" alt="" class="oliva-res-type-tab__icon" aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            class="oliva-res-type-tab"
+            id="tabInquiry"
+            role="tab"
+            aria-selected="false"
+            data-res-mode="inquiry"
+          >
+            <span>일반 문의</span>
+            <img src="./assets/images/3c135.svg" alt="" class="oliva-res-type-tab__icon" aria-hidden="true" />
+          </button>
+        </div>
+
+        <p class="oliva-res-form-card__notice" id="formNotice">
+          온라인 예약은 2–6인까지 가능합니다. 7인 이상 모임, 어린이 동반 또는 음식 알레르기가 있으시면 전화로 알려주세요.
+        </p>
+
+        <form class="oliva-res-form" id="olivaReservationForm" novalidate>
+          <!-- Guest Information Row -->
+          <div class="oliva-res-row">
+            <div class="oliva-form-group">
+              <label for="guestName" class="oliva-form-label">성함 *</label>
+              <input
+                type="text"
+                id="guestName"
+                name="guestName"
+                class="oliva-form-input"
+                placeholder="예약자 성함"
+                required
+              />
+            </div>
+            <div class="oliva-form-group">
+              <label for="guestPhone" class="oliva-form-label">연락처 *</label>
+              <input
+                type="tel"
+                id="guestPhone"
+                name="phone"
+                class="oliva-form-input"
+                placeholder="연락 가능한 휴대전화 번호"
+                required
+              />
+            </div>
+          </div>
+
+          <!-- Schedule & Details Section -->
+          <div class="oliva-res-schedule-group" id="reservationScheduleGroup">
+            <div class="oliva-res-schedule-header">
+              <span class="oliva-form-subheading">희망 방문 정보</span>
+              <span class="oliva-res-schedule-hint">예약 신청 시 작성 · 일반 문의 시 생략</span>
+            </div>
+
+            <div class="oliva-res-row">
+              <div class="oliva-form-group">
+                <label for="visitDate" class="oliva-form-label">희망 날짜 *</label>
+                <div class="oliva-input-wrap">
+                  <input
+                    type="date"
+                    id="visitDate"
+                    name="visitDate"
+                    class="oliva-form-input oliva-form-input--date"
+                    required
+                  />
+                  <img src="./assets/images/1f2cc.svg" alt="" class="oliva-input-icon" aria-hidden="true" />
+                </div>
+              </div>
+
+              <div class="oliva-form-group">
+                <label for="visitTime" class="oliva-form-label">희망 시간 *</label>
+                <div class="oliva-input-wrap">
+                  <select id="visitTime" name="visitTime" class="oliva-form-select" required>
+                    <option value="" disabled selected>시간을 선택해 주세요</option>
+                    <option value="11:30">오전 11:30</option>
+                    <option value="12:30">오후 12:30</option>
+                    <option value="18:30">오후 6:30</option>
+                    <option value="19:30">오후 7:30</option>
+                  </select>
+                  <img src="./assets/images/13ea9.svg" alt="" class="oliva-select-arrow" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+
+            <div class="oliva-res-row">
+              <div class="oliva-form-group">
+                <label for="partySize" class="oliva-form-label">방문 인원 *</label>
+                <div class="oliva-input-wrap">
+                  <select id="partySize" name="partySize" class="oliva-form-select" required>
+                    <option value="" disabled selected>2–6인 선택</option>
+                    <option value="2">2명</option>
+                    <option value="3">3명</option>
+                    <option value="4">4명</option>
+                    <option value="5">5명</option>
+                    <option value="6">6명</option>
+                  </select>
+                  <img src="./assets/images/13ea9.svg" alt="" class="oliva-select-arrow" aria-hidden="true" />
+                </div>
+              </div>
+
+              <div class="oliva-form-group">
+                <label for="inquiryType" class="oliva-form-label">문의 유형 · 일반 문의 시</label>
+                <div class="oliva-input-wrap">
+                  <select id="inquiryType" name="inquiryType" class="oliva-form-select">
+                    <option value="" disabled selected>식사·방문 / 모임 / 기타</option>
+                    <option value="dining">식사·방문 문의</option>
+                    <option value="group">모임·대관 문의</option>
+                    <option value="etc">기타 문의</option>
+                  </select>
+                  <img src="./assets/images/13ea9.svg" alt="" class="oliva-select-arrow" aria-hidden="true" />
+                </div>
+              </div>
+            </div>
+
+            <p class="oliva-res-hours-notice">런치 11:30–15:00 / 디너 17:30–22:00 · 매주 월요일 휴무</p>
+          </div>
+
+          <div class="oliva-sub-divider"></div>
+
+          <!-- Subject Field (For general inquiry) -->
+          <div class="oliva-form-group oliva-form-group--subject">
+            <label for="subject" class="oliva-form-label">문의 제목 · 일반 문의 시 작성</label>
+            <input
+              type="text"
+              id="subject"
+              name="subject"
+              class="oliva-form-input"
+              placeholder="궁금한 내용을 간단히 적어주세요"
+            />
+          </div>
+
+          <!-- Message Field -->
+          <div class="oliva-form-group">
+            <label for="message" class="oliva-form-label">문의 내용·요청사항</label>
+            <div class="oliva-textarea-wrap">
+              <textarea
+                id="message"
+                name="message"
+                class="oliva-form-textarea"
+                rows="4"
+                placeholder="방문에 관해 궁금한 점이나 요청사항을 남겨주세요.&#10;음식 알레르기·어린이 동반 안내는 전화로도 알려주세요."
+              ></textarea>
+              <p class="oliva-textarea-hint">불필요한 개인정보는 입력하지 말아주세요.</p>
+            </div>
+          </div>
+
+          <!-- Consent Box -->
+          <div class="oliva-consent-box">
+            <label class="oliva-consent-label">
+              <input type="checkbox" id="privacyConsent" name="privacyConsent" class="oliva-checkbox" required />
+              <span class="oliva-consent-text">개인정보 수집·이용 안내 확인 및 동의 (양식 시안)</span>
+            </label>
+            <div class="oliva-consent-details">
+              <p>입력 항목: 성함·연락처·방문 정보·문의 내용</p>
+              <p>수집·이용 목적 및 보유·이용기간: 매장 확인 필요</p>
+            </div>
+          </div>
+
+          <!-- Submit Action Area -->
+          <div class="oliva-form-submit-row">
+            <div class="oliva-form-submit-row__text">
+              <p class="oliva-form-submit-row__notice">신청 내용만으로 예약이 확정되지 않습니다.</p>
+              <p class="oliva-form-submit-row__sub">편집 가능한 시각 시안 · 실제 전송되지 않습니다.</p>
+            </div>
+            <button type="submit" class="oliva-btn oliva-btn--primary oliva-form-submit-btn" id="resSubmitBtn">
+              <span id="submitBtnText">예약 신청 내용 보내기</span>
+              <img src="./assets/images/93738.svg" alt="" class="oliva-btn__icon" aria-hidden="true" />
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Right: Contact & Booking Guidance Sidebar -->
+      <aside class="oliva-res-sidebar" aria-label="예약 및 문의 안내">
+        <div class="oliva-res-sidebar__block">
+          <p class="oliva-eyebrow">PARLIAMONE · 직접 이야기 나눠요</p>
+          <h3 class="oliva-res-sidebar__title">전화로 문의하기</h3>
+          <p class="oliva-res-sidebar__phone">02–332–0418</p>
+          <p class="oliva-res-sidebar__desc">
+            7인 이상 모임, 어린이 동반 또는 음식 알레르기가 있으시면 전화로 알려주세요. 원하시는 요리도 편하게 문의해 주세요.
+          </p>
+        </div>
+
+        <div class="oliva-sub-divider"></div>
+
+        <div class="oliva-res-sidebar__block">
+          <p class="oliva-eyebrow">ORARI · 영업시간</p>
+          <dl class="oliva-sidebar-hours">
+            <div class="oliva-sidebar-hour">
+              <dt>Lunch</dt>
+              <dd>11:30–15:00</dd>
+            </div>
+            <div class="oliva-sidebar-hour">
+              <dt>Dinner</dt>
+              <dd>17:30–22:00</dd>
+            </div>
+            <div class="oliva-sidebar-hour">
+              <dt>Last order</dt>
+              <dd>14:00 / 21:00</dd>
+            </div>
+          </dl>
+          <p class="oliva-sidebar-closed">매주 월요일은 쉬어갑니다.</p>
+        </div>
+
+        <div class="oliva-sub-divider"></div>
+
+        <div class="oliva-res-sidebar__block">
+          <h3 class="oliva-res-sidebar__subtitle">일정이 달라지셨나요?</h3>
+          <p class="oliva-res-sidebar__desc">
+            예약 변경·취소는 방문 하루 전까지 부탁드립니다.
+          </p>
+          <a href="tel:02-332-0418" class="oliva-res-sidebar__link">전화로 예약 변경·취소 문의 ↗</a>
+        </div>
+
+        <div class="oliva-sidebar-social-card">
+          <span class="oliva-sidebar-social-card__it">A little closer.</span>
+          <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="oliva-sidebar-social-card__insta">
+            Instagram @olivacasa.seoul ↗
+          </a>
+          <p class="oliva-sidebar-social-card__desc">
+            올리바 카사의 식탁과 공간을 만나보세요. 예약 관련 문의는 전화로 알려주세요.
+          </p>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <!-- 02. Reservation Timeline (Warm Background) -->
+  <section class="oliva-res-timeline" aria-labelledby="timelineTitle">
+    <div class="oliva-res-timeline__inner">
+      <div class="oliva-res-timeline__header">
+        <div class="oliva-res-timeline__heading">
+          <p class="oliva-eyebrow">COME PRENOTARE · 예약 과정 안내</p>
+          <h2 class="oliva-res-timeline__title" id="timelineTitle">신청에서, 식탁에 앉기까지.</h2>
+        </div>
+        <span class="oliva-res-timeline__tag">예약 신청 ≠ 예약 확정</span>
+      </div>
+
+      <div class="oliva-timeline-steps">
+        <!-- Step 1 -->
+        <div class="oliva-step-card">
+          <div class="oliva-step-card__top">
+            <span class="oliva-step-card__num">01</span>
+            <span class="oliva-step-card__it">La richiesta</span>
+          </div>
+          <h3 class="oliva-step-card__title">희망 일정을 알려주세요</h3>
+          <p class="oliva-step-card__desc">
+            방문 날짜와 시간, 함께하실 인원을 준비해 주세요. 특별히 전하고 싶은 요청도 함께 남겨주세요.
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="oliva-step-card">
+          <div class="oliva-step-card__top">
+            <span class="oliva-step-card__num">02</span>
+            <span class="oliva-step-card__it">La conferma</span>
+          </div>
+          <h3 class="oliva-step-card__title">예약 가능 여부를 확인해요</h3>
+          <p class="oliva-step-card__desc">
+            신청은 예약 확정이 아닙니다. 희망 일정의 예약 가능 여부와 확정 방법은 매장에 확인해 주세요.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="oliva-step-card">
+          <div class="oliva-step-card__top">
+            <span class="oliva-step-card__num">03</span>
+            <span class="oliva-step-card__it">A tavola</span>
+          </div>
+          <h3 class="oliva-step-card__title">확정 내용을 확인하고 방문해요</h3>
+          <p class="oliva-step-card__desc">
+            확정 안내에서 날짜·시간·인원을 확인해 주세요. 변경·취소는 방문 하루 전까지 부탁드립니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03. Checklist Before Visit -->
+  <section class="oliva-res-faq" aria-labelledby="faqTitle">
+    <div class="oliva-res-faq__inner">
+      <div class="oliva-res-faq__intro">
+        <p class="oliva-eyebrow">PRIMA DI ARRIVARE · 방문 전 안내</p>
+        <h2 class="oliva-res-faq__title" id="faqTitle">
+          조금 더 편안한<br />
+          시간을 위해.
+        </h2>
+        <a href="location.html" class="oliva-res-faq__link">오시는 길 자세히 보기 ↗</a>
+      </div>
+
+      <div class="oliva-res-faq__list">
+        <div class="oliva-faq-item">
+          <h3 class="oliva-faq-item__q">어디로 찾아가면 되나요?</h3>
+          <p class="oliva-faq-item__a">서울 서대문구 연희로11길 18, 1층. 연희동 주민센터에서 도보 3분 거리에 있습니다.</p>
+        </div>
+        <div class="oliva-faq-item">
+          <h3 class="oliva-faq-item__q">주차가 가능한가요?</h3>
+          <p class="oliva-faq-item__a">전용 주차 공간이 없습니다. 인근 공영주차장 또는 대중교통을 이용해 주세요.</p>
+        </div>
+        <div class="oliva-faq-item">
+          <h3 class="oliva-faq-item__q">알레르기나 식재료 요청이 있어요.</h3>
+          <p class="oliva-faq-item__a">음식 알레르기가 있으시면 전화로 알려주세요. 사용 재료와 조리 환경은 직원에게 확인해 주세요.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

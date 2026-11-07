@@ -2,13 +2,148 @@
  * Oliva Casa — Main Script with GSAP Smooth Animations & Hero Slider
  */
 document.addEventListener('includes:loaded', () => {
+  initActiveNavLink();
   initNavLinks();
   initActionButtons();
   initReservationFields();
   initMobileDrawer();
   initHeaderScroll();
+  initMenuCatSmoothScroll();
+  initReservationPageInteractions();
   initGSAPAnimations();
 });
+
+// ── 현재 페이지 활성화 네비게이션 표시 ──
+function initActiveNavLink() {
+  const currentPath = window.location.pathname.toLowerCase();
+  let activeKey = '';
+
+  if (currentPath.includes('story.html')) activeKey = 'story';
+  else if (currentPath.includes('menu.html')) activeKey = 'menu';
+  else if (currentPath.includes('space.html')) activeKey = 'space';
+  else if (currentPath.includes('location.html')) activeKey = 'location';
+  else if (currentPath.includes('reservation.html')) activeKey = 'reservation';
+
+  if (!activeKey) return;
+
+  document.querySelectorAll(`[data-nav="${activeKey}"]`).forEach((el) => {
+    el.classList.add('is-active');
+    el.setAttribute('aria-current', 'page');
+  });
+}
+
+// ── 메뉴 카테고리 스티키 바 스무스 스크롤 ──
+function initMenuCatSmoothScroll() {
+  const catLinks = document.querySelectorAll('.oliva-menu-cat-link');
+  if (!catLinks.length) return;
+
+  catLinks.forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      if (!href || !href.startsWith('#')) return;
+
+      const target = document.querySelector(href);
+      if (!target) return;
+
+      e.preventDefault();
+      // 헤더 높이(96/82) + 카테고리 바 높이(84/64) + 여백 감안
+      const headerOffset = window.innerWidth <= 820 ? 150 : 185;
+      const elementPosition = target.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth',
+      });
+    });
+  });
+}
+
+// ── 예약 페이지 탭 전환 및 폼 인터랙션 ──
+function initReservationPageInteractions() {
+  const tabRes = document.getElementById('tabReservation');
+  const tabInq = document.getElementById('tabInquiry');
+  const scheduleGroup = document.getElementById('reservationScheduleGroup');
+  const subjectGroup = document.querySelector('.oliva-form-group--subject');
+  const noticeEl = document.getElementById('formNotice');
+  const submitBtnText = document.getElementById('submitBtnText');
+  const form = document.getElementById('olivaReservationForm');
+
+  if (!tabRes || !tabInq || !form) return;
+
+  const setMode = (mode) => {
+    const isReservation = mode === 'reservation';
+
+    tabRes.classList.toggle('is-active', isReservation);
+    tabRes.setAttribute('aria-selected', isReservation ? 'true' : 'false');
+
+    tabInq.classList.toggle('is-active', !isReservation);
+    tabInq.setAttribute('aria-selected', !isReservation ? 'true' : 'false');
+
+    if (scheduleGroup) {
+      scheduleGroup.classList.toggle('is-hidden', !isReservation);
+      const scheduleInputs = scheduleGroup.querySelectorAll('input, select');
+      scheduleInputs.forEach((inp) => {
+        if (isReservation) {
+          if (inp.id === 'visitDate' || inp.id === 'visitTime' || inp.id === 'partySize') {
+            inp.setAttribute('required', '');
+          }
+        } else {
+          inp.removeAttribute('required');
+        }
+      });
+    }
+
+    if (subjectGroup) {
+      subjectGroup.classList.toggle('is-visible', !isReservation);
+      const subjectInput = subjectGroup.querySelector('input');
+      if (subjectInput) {
+        if (!isReservation) subjectInput.setAttribute('required', '');
+        else subjectInput.removeAttribute('required');
+      }
+    }
+
+    if (noticeEl) {
+      noticeEl.textContent = isReservation
+        ? '온라인 예약은 2–6인까지 가능합니다. 7인 이상 모임, 어린이 동반 또는 음식 알레르기가 있으시면 전화로 알려주세요.'
+        : '궁금하신 점이나 단체 대관, 촬영 등의 문의 사항을 남겨주시면 정성껏 답변드리겠습니다.';
+    }
+
+    if (submitBtnText) {
+      submitBtnText.textContent = isReservation ? '예약 신청 내용 보내기' : '문의 내용 보내기';
+    }
+  };
+
+  tabRes.addEventListener('click', () => setMode('reservation'));
+  tabInq.addEventListener('click', () => setMode('inquiry'));
+
+  // 폼 전송 핸들러
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+
+    if (!form.checkValidity()) {
+      form.reportValidity();
+      return;
+    }
+
+    const nameInput = document.getElementById('guestName');
+    const guestName = nameInput ? nameInput.value.trim() : '고객';
+    const isRes = tabRes.classList.contains('is-active');
+
+    if (isRes) {
+      alert(
+        `감사합니다, ${guestName}님!\n\n예약 신청이 정상 접수되었습니다 (시안 확인용).\n담당 매니저 확인 후 기재해 주신 연락처로 예약 확정 안내 문자를 전송해 드립니다.\n\n전화 문의: 02-332-0418`,
+      );
+    } else {
+      alert(
+        `감사합니다, ${guestName}님!\n\n문의사항이 전달되었습니다 (시안 확인용).\n확인 후 빠른 시일 내에 연락드리겠습니다.`,
+      );
+    }
+
+    form.reset();
+    setMode('reservation');
+  });
+}
 
 // ── 네비게이션 스무스 스크롤 ──
 function initNavLinks() {
@@ -662,5 +797,66 @@ function initScrollTriggers(gsap, ScrollTrigger) {
     duration: 1.1,
     delay: 0.2,
     ease: 'power2.out',
+  });
+
+  // ── 서브페이지 공통 스크롤 애니메이션 ──
+  // L. 서브 히어로 인트로
+  if (document.querySelector('.oliva-sub-hero')) {
+    gsap.from('.oliva-sub-hero__titles > *, .oliva-sub-hero__note > *', {
+      opacity: 0,
+      y: 20,
+      stagger: 0.12,
+      duration: 1.0,
+      ease: 'power3.out',
+    });
+
+    gsap.from('.oliva-sub-hero__visual, .oliva-sub-hero__panorama-wrap, .oliva-menu-intro__visual', {
+      opacity: 0,
+      y: 30,
+      duration: 1.2,
+      delay: 0.2,
+      ease: 'power3.out',
+    });
+  }
+
+  // M. 서브페이지 주요 섹션 순차 페이드인
+  const subSections = [
+    '.oliva-story-phil',
+    '.oliva-story-kitchen',
+    '.oliva-story-season',
+    '.oliva-story-space',
+    '.oliva-menu-signature',
+    '.oliva-alacarte',
+    '.oliva-menu-wine',
+    '.oliva-menu-course',
+    '.oliva-dining-guide',
+    '.oliva-space-materials',
+    '.oliva-space-perspectives',
+    '.oliva-space-time',
+    '.oliva-space-gallery',
+    '.oliva-loc-map-sec',
+    '.oliva-transit-sec',
+    '.oliva-visit-checklist',
+    '.oliva-res-main-sec',
+    '.oliva-res-timeline',
+    '.oliva-res-faq',
+    '.oliva-sub-cta',
+  ];
+
+  subSections.forEach((selector) => {
+    const el = document.querySelector(selector);
+    if (!el) return;
+
+    gsap.from(el, {
+      scrollTrigger: {
+        trigger: el,
+        start: 'top 85%',
+        toggleActions: 'play none none none',
+      },
+      opacity: 0,
+      y: 25,
+      duration: 1.05,
+      ease: 'power3.out',
+    });
   });
 }

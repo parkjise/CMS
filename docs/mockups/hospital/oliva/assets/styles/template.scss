@@ -14,5 +14,12 @@
 @use 'main/guest-review';
 @use 'main/reservation';
 @use 'main/location';
+@use 'sub/sub-common' as *;
+@use 'sub/story' as *;
+@use 'sub/menu' as *;
+@use 'sub/space' as *;
+@use 'sub/location' as sub-loc;
+@use 'sub/reservation' as sub-res;
 @use 'footer';
+
 

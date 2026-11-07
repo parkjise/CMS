@@ -198,6 +198,13 @@
   &:hover {
     opacity: 0.7;
   }
+
+  &.is-active {
+    font-weight: 500;
+    text-decoration: underline;
+    text-underline-offset: 6px;
+    text-decoration-thickness: 1.5px;
+  }
 }
 
 // ── Mobile Drawer Backdrop ──
@@ -317,6 +324,14 @@
 
       .oliva-drawer__link-kr {
         color: var(--color-text);
+      }
+    }
+
+    &.is-active {
+      .oliva-drawer__link-kr {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+        font-weight: 700;
       }
     }
 
