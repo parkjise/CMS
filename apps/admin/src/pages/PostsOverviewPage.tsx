@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from 'react'
+import { type FormEvent, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Link } from 'react-router'
@@ -48,6 +48,19 @@ export function PostsOverviewPage() {
   else if (categoriesQuery.isPending) categoryPlaceholder = '불러오는 중…'
   else if (categoriesQuery.isError) categoryPlaceholder = '불러오기 실패'
   else if (categories.length === 0) categoryPlaceholder = '카테고리 없음'
+  // 합치기/삭제 뒤 사라진 분류 조건이 숨은 채로 남지 않게 한다.
+  useEffect(() => {
+    if (
+      filters.category_id &&
+      canFilterCategory &&
+      categoriesQuery.isSuccess &&
+      !categoriesQuery.data?.some((category) => category.id === filters.category_id)
+    ) {
+      setSelected([])
+      setFilters((current) => ({ ...current, category_id: undefined, page: 1 }))
+    }
+  }, [filters.category_id, canFilterCategory, categoriesQuery.isSuccess, categoriesQuery.data])
+
   const postsQuery = usePostOverview(filters)
   const bulk = useBulkPosts()
 

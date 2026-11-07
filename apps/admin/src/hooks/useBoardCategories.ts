@@ -41,7 +41,13 @@ export function useCreateCategory(boardId: string) {
 export function useUpdateCategory(boardId: string) {
   const invalidate = useInvalidateCategories(boardId)
   return useMutation({
-    mutationFn: async ({ id, payload }: { id: string; payload: CategoryInput }): Promise<BoardCategory> => {
+    mutationFn: async ({
+      id,
+      payload,
+    }: {
+      id: string
+      payload: CategoryInput
+    }): Promise<BoardCategory> => {
       const { data } = await api.patch(`/v1/boards/${boardId}/categories/${id}`, payload)
       return data.data
     },
@@ -60,7 +66,11 @@ export function useDeleteCategory(boardId: string) {
       return data.data.moved
     },
     // 글의 분류가 바뀌므로 글 목록도 다시 읽는다
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),
+        queryClient.invalidateQueries({ queryKey: ['boards', 'overview'] }),
+      ]),
   })
 }
 
