@@ -964,7 +964,7 @@ def public_post_item(
         ),
         "list_fields": (
             field_service.field_values(list_fields or [], post.custom_data or {})
-            if board.board_type == "LIST" and not post.is_secret
+            if board.board_type in {"LIST", "GALLERY", "FAQ"} and not post.is_secret
             else None
         ),
         "id": post.id,

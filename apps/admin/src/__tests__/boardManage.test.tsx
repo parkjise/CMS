@@ -624,3 +624,20 @@ describe('게시판 휴지통', () => {
     expect(screen.queryByRole('button', { name: '복원' })).not.toBeInTheDocument()
   })
 })
+
+
+describe('모든 추가 게시판 유형의 목록 표시 선택 (T-160)', () => {
+  it.each(['LIST', 'CARD', 'GALLERY', 'FAQ'] as const)('%s 디자인 탭에 필드 선택을 제공한다', async (boardType) => {
+    mockApi({ boards: [{ ...board, board_type: boardType }] })
+    renderAt('/admin/boards/b1/design', <BoardDesignPage />, '/admin/boards/:boardId/design')
+    expect(await screen.findByRole('heading', { name: '목록에 표시할 추가 정보' })).toBeInTheDocument()
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/boards/b1/fields', undefined))
+  })
+  it('기본 공지에는 필드 선택과 조회를 추가하지 않는다', async () => {
+    mockApi({ boards: [notice] })
+    renderAt('/admin/boards/n1/design', <BoardDesignPage />, '/admin/boards/:boardId/design')
+    await screen.findByRole('heading', { name: '목록 표시' })
+    expect(screen.queryByRole('heading', { name: '목록에 표시할 추가 정보' })).not.toBeInTheDocument()
+    expect(get.mock.calls.some(([url]) => String(url).endsWith('/fields'))).toBe(false)
+  })
+})

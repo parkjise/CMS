@@ -83,6 +83,20 @@ $badge-bg: #f1f5f9;
     }
   }
 
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+  }
+  &__field {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   &__date {
     display: block;
     margin-top: 6px;

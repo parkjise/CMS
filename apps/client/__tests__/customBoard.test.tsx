@@ -168,7 +168,7 @@ describe('FAQ형', () => {
     const { container } = render(await CustomBoard(props('FAQ')))
     expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 20, q: undefined })
     const item = container.querySelector('details.board-faq__item') as HTMLElement
-    expect(within(item).getByText('진료 시간은?').tagName).toBe('SUMMARY')
+    expect(within(item).getByText('진료 시간은?').closest('summary')).toBe(item.querySelector('summary'))
     expect(item).toHaveTextContent('<script>x</script> 9시')
     expect(item.querySelector('script')).toBeNull()
   })

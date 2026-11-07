@@ -49,6 +49,24 @@ $line: #eee;
     transform: rotate(-135deg);
   }
 
+  &__heading {
+    min-width: 0;
+  }
+
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+    margin-top: 8px;
+    font-size: 0.875rem;
+    font-weight: 400;
+    color: var(--color-text-secondary);
+  }
+  &__field {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   // .board-view__content 본문 스타일 위에 간격만 바꾼다
   &__answer {
     padding: 0 8px 28px;

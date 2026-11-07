@@ -375,28 +375,28 @@ class TestListFieldSelection:
         listed = await client.get(url)
         assert listed.status_code == 200, listed.text
         item = listed.json()["data"]["items"][0]
-        if board_type in {"LIST", "CARD"}:
-            key = "list_fields" if board_type == "LIST" else "card_fields"
-            assert [f["value"] for f in item[key]] == ["개발팀", 0, False]
-            assert [f["label"] for f in item[key]] == ["부서", "인원", "접수"]
-            changed = await client.patch(
-                f"{fields_url}/{selected['id']}",
-                json={"show_in_list": False},
-                headers=auth_headers,
-            )
-            assert changed.status_code == 200, changed.text
-            after = (await client.get(url)).json()["data"]["items"][0]
-            assert "부서" not in str(after[key])
-        else:
-            assert item["list_fields"] is None
-            assert item["card_fields"] is None
+        key = "card_fields" if board_type == "CARD" else "list_fields"
+        assert [f["value"] for f in item[key]] == ["개발팀", 0, False]
+        assert [f["label"] for f in item[key]] == ["부서", "인원", "접수"]
+        assert item["list_fields" if board_type == "CARD" else "card_fields"] is None
+        changed = await client.patch(
+            f"{fields_url}/{selected['id']}",
+            json={"show_in_list": False},
+            headers=auth_headers,
+        )
+        assert changed.status_code == 200, changed.text
+        after = (await client.get(url)).json()["data"]["items"][0]
+        assert "부서" not in str(after[key])
         assert "custom_data" not in item
         for value in ["HIDDEN_VALUE", "UNLISTED_VALUE", "DELETED_VALUE", "internal"]:
             assert value not in listed.text
 
     @pytest.mark.asyncio
-    async def test_secret_list_never_returns_values(self, client, auth_headers, tenant):
-        board = await _board(client, auth_headers)
+    @pytest.mark.parametrize("board_type", ["LIST", "CARD", "GALLERY", "FAQ"])
+    async def test_secret_list_never_returns_values(
+        self, client, auth_headers, tenant, board_type
+    ):
+        board = await _board(client, auth_headers, board_type=board_type)
         await _patch(
             client, auth_headers, board["id"], operation={"allow_secret": True}
         )
@@ -423,4 +423,5 @@ class TestListFieldSelection:
         )
         assert listed.status_code == 200, listed.text
         assert listed.json()["data"]["items"][0]["list_fields"] is None
+        assert listed.json()["data"]["items"][0]["card_fields"] is None
         assert "SECRET_VALUE" not in listed.text
