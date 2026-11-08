@@ -195,9 +195,10 @@ describe('여러 카테고리 합치기', () => {
       </QueryClientProvider>
     )
     expect(screen.queryByRole('checkbox', { name: '외부' })).not.toBeInTheDocument()
-    for (let i = 0; i < 29; i++)
-      fireEvent.click(screen.getByRole('checkbox', { name: `분류 ${i}` }))
-    expect(screen.getByRole('checkbox', { name: '분류 29' })).toBeDisabled()
+    // 각 클릭마다 전체 DOM의 접근성 이름을 다시 계산하지 않고 실제 입력을 재사용한다.
+    const checkboxes = screen.getAllByRole('checkbox')
+    for (const checkbox of checkboxes.slice(0, 29)) fireEvent.click(checkbox)
+    expect(checkboxes[29]).toBeDisabled()
     expect(screen.getByRole('option', { name: '분류 29' })).toBeInTheDocument()
   })
 })
