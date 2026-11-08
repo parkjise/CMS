@@ -43,6 +43,7 @@ export interface PostInput {
 }
 
 export interface PostOverviewFilters extends PostFilters {
+  author?: string
   board_id?: string
   created_from?: string
   created_before?: string

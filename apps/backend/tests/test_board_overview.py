@@ -1217,3 +1217,146 @@ class TestPublicationDateFilter:
         assert response.status_code == 200, response.text
         assert response.json()["data"]["total"] == 1
         assert response.json()["data"]["items"][0]["id"] == posts[0]["id"]
+
+
+@pytest.fixture
+async def named_authors(client, auth_headers, tenant):
+    board = await _board(client, auth_headers, "author-search")
+    member_id = str(uuid.uuid4())
+    await _sql(
+        "INSERT INTO site_members (id, tenant_id, email, name, phone)"
+        " VALUES (:id, :t, 'private-email@example.com', :name, '01099998888')",
+        id=member_id,
+        t=tenant["id"],
+        name="김작가 AbC%_\\",
+    )
+    member = await _post(client, auth_headers, board["id"], "회원 소식")
+    guest = await _post(client, auth_headers, board["id"], "비회원 소식")
+    staff = await _post(client, auth_headers, board["id"], "관리자 소식")
+    await _sql(
+        "UPDATE board_posts SET author_member_id = :m WHERE id = :p",
+        m=member_id,
+        p=member["id"],
+    )
+    await _sql(
+        "UPDATE board_posts SET guest_name = '김작가 방문자' WHERE id = :p",
+        p=guest["id"],
+    )
+    yield {
+        "board": board,
+        "member": member,
+        "guest": guest,
+        "staff": staff,
+        "member_id": member_id,
+    }
+    await _sql(
+        "UPDATE board_posts SET author_member_id = NULL WHERE author_member_id = :m",
+        m=member_id,
+    )
+    await _sql("DELETE FROM site_members WHERE id = :m", m=member_id)
+
+
+class TestAuthorSearch:
+    @pytest.mark.parametrize(
+        "keyword,titles",
+        [
+            (" 김작가 ", {"회원 소식", "비회원 소식"}),
+            ("abc", {"회원 소식"}),
+            ("%_\\", {"회원 소식"}),
+            ("없는 이름", set()),
+            ("   ", {"회원 소식", "비회원 소식", "관리자 소식"}),
+        ],
+    )
+    async def test_display_names(
+        self, client, auth_headers, named_authors, keyword, titles
+    ):
+        response = await client.get(
+            POSTS, params={"author": keyword}, headers=auth_headers
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        assert data["total"] == len(titles)
+        assert {p["title"] for p in data["items"]} == titles
+
+    @pytest.mark.parametrize("keyword", ["private-email", "01099998888", "소식"])
+    async def test_does_not_search_contact_or_title(
+        self, client, auth_headers, named_authors, keyword
+    ):
+        data = (
+            await client.get(POSTS, params={"author": keyword}, headers=auth_headers)
+        ).json()["data"]
+        assert data["total"] == 0
+
+    async def test_filters_pagination_trash(self, client, auth_headers, named_authors):
+        params = {
+            "author": "김작가",
+            "size": 1,
+            "page": 2,
+            "board_id": named_authors["board"]["id"],
+            "status": "PUBLISHED",
+            "q": "소식",
+            "created_from": "2020-01-01T00:00:00Z",
+        }
+        data = (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]
+        assert data["total"] == 2
+        assert len(data["items"]) == 1
+        await client.delete(
+            f"{BOARDS}/{named_authors['board']['id']}/posts/{named_authors['guest']['id']}",
+            headers=auth_headers,
+        )
+        params.update(trash=True, page=1)
+        data = (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == named_authors["guest"]["id"]
+        params["status"] = "PRIVATE"
+        assert (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]["total"] == 0
+
+    async def test_withdrawn_name_matches_display(
+        self, client, auth_headers, named_authors
+    ):
+        await _sql(
+            "UPDATE site_members SET deleted_at = now(), is_active = false WHERE id = :m",
+            m=named_authors["member_id"],
+        )
+        data = (
+            await client.get(POSTS, params={"author": "AbC"}, headers=auth_headers)
+        ).json()["data"]
+        assert data["total"] == 1
+        assert data["items"][0]["author_member_name"] == "김작가 AbC%_\\"
+
+    async def test_tenant_isolation_and_viewer(
+        self, client, auth_headers, named_authors, tenant, test_user, other
+    ):
+        data = (
+            await client.get(
+                POSTS, params={"author": "김작가"}, headers=other["headers"]
+            )
+        ).json()["data"]
+        assert data["total"] == 0
+        await _sql(
+            "UPDATE users SET role = 'TENANT_VIEWER' WHERE id = :u", u=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(str(test_user["id"])),
+            tenant_id=uuid.UUID(str(tenant["id"])),
+            role="TENANT_VIEWER",
+        )
+        response = await client.get(
+            POSTS,
+            params={"author": "김작가"},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 2
+
+    async def test_validation_and_login(self, client, auth_headers, named_authors):
+        assert (
+            await client.get(POSTS, params={"author": "a" * 101}, headers=auth_headers)
+        ).status_code == 400
+        assert (await client.get(POSTS, params={"author": "김작가"})).status_code == 401

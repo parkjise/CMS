@@ -17,6 +17,7 @@ from sqlalchemy.orm import InstrumentedAttribute
 from app.db.session import set_rls_context, set_super_admin_context
 from app.models.board import Board, BoardField, BoardPost
 from app.models.section import Section, SectionSetting
+from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.board import (
     SLUG_MAX_LENGTH,
@@ -100,7 +101,9 @@ def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
     ]
 
 
-def _title_contains(column: InstrumentedAttribute[str], q: str) -> ColumnElement[bool]:
+def _title_contains(
+    column: InstrumentedAttribute[str] | InstrumentedAttribute[str | None], q: str
+) -> ColumnElement[bool]:
     escaped = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
     return column.ilike(f"%{escaped}%", escape="\\")
 
@@ -730,6 +733,7 @@ async def list_all_posts(
     category_id: UUID | None = None,
     status: str | None = None,
     q: str | None = None,
+    author: str | None = None,
     trash: bool = False,
     created_from: datetime | None = None,
     created_before: datetime | None = None,
@@ -758,6 +762,21 @@ async def list_all_posts(
         conditions.append(BoardPost.status == status)
     if q:
         conditions.append(_title_contains(BoardPost.title, q))
+    if author and author.strip():
+        name = author.strip()
+        # 목록에 표시하는 이름만 검색한다. 탈퇴 회원 이름 표시 정책도 동일하다.
+        member_match = (
+            select(SiteMember.id)
+            .where(
+                SiteMember.id == BoardPost.author_member_id,
+                SiteMember.tenant_id == tenant_id,
+                _title_contains(SiteMember.name, name),
+            )
+            .exists()
+        )
+        conditions.append(
+            or_(_title_contains(BoardPost.guest_name, name), member_match)
+        )
     if created_from:
         conditions.append(BoardPost.created_at >= created_from)
     if created_before:
