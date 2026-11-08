@@ -1360,3 +1360,262 @@ class TestAuthorSearch:
             await client.get(POSTS, params={"author": "a" * 101}, headers=auth_headers)
         ).status_code == 400
         assert (await client.get(POSTS, params={"author": "김작가"})).status_code == 401
+
+
+class TestBodySearch:
+    @pytest.mark.parametrize(
+        "body",
+        [
+            [{"type": "p", "text": "본문 검색**어** AbC%_\\ 끝"}],
+            [{"type": "ul", "items": ["앞", "본문 검색**어** AbC%_\\ 끝"]}],
+            [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "본문 검색"},
+                        {
+                            "type": "text",
+                            "text": "어 AbC%_\\ 끝",
+                            "marks": [{"type": "bold"}],
+                        },
+                    ],
+                }
+            ],
+            [
+                {
+                    "type": "heading",
+                    "attrs": {"level": 2},
+                    "content": [{"type": "text", "text": "본문 검색어 AbC%_\\ 끝"}],
+                }
+            ],
+            [
+                {
+                    "type": "blockquote",
+                    "content": [
+                        {
+                            "type": "paragraph",
+                            "content": [
+                                {"type": "text", "text": "본문 검색어 AbC%_\\ 끝"}
+                            ],
+                        }
+                    ],
+                }
+            ],
+            [
+                {
+                    "type": "bulletList",
+                    "content": [
+                        {
+                            "type": "listItem",
+                            "content": [
+                                {
+                                    "type": "paragraph",
+                                    "content": [
+                                        {
+                                            "type": "text",
+                                            "text": "본문 검색어 AbC%_\\ 끝",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+            [
+                {
+                    "type": "table",
+                    "content": [
+                        {
+                            "type": "tableRow",
+                            "content": [
+                                {
+                                    "type": "tableCell",
+                                    "content": [
+                                        {
+                                            "type": "paragraph",
+                                            "content": [
+                                                {
+                                                    "type": "text",
+                                                    "text": "본문 검색어 AbC%_\\ 끝",
+                                                }
+                                            ],
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        ],
+    )
+    async def test_formats_inline_order_and_literal(
+        self, client, auth_headers, tenant, body
+    ):
+        board = await _board(client, auth_headers)
+        match = await _post(client, auth_headers, board["id"], "일치", body=body)
+        await _post(client, auth_headers, board["id"], "본문 검색어 AbC%_\\", body=[])
+        for keyword in (" 검색어 ", "abc", "%_\\"):
+            response = await client.get(
+                POSTS, params={"body_q": keyword}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            data = response.json()["data"]
+            assert data["total"] == 1
+            assert [p["id"] for p in data["items"]] == [match["id"]]
+            assert "body" not in data["items"][0]
+
+    async def test_does_not_search_urls_attributes_or_keys(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers)
+        await _post(
+            client,
+            auth_headers,
+            board["id"],
+            "제목단어",
+            body=[
+                {"type": "image", "src": "/사진주소단어.png", "alt": "대체글자단어"},
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "보이는 글자",
+                            "marks": [
+                                {
+                                    "type": "link",
+                                    "attrs": {
+                                        "href": "https://example.com/링크주소단어"
+                                    },
+                                }
+                            ],
+                        }
+                    ],
+                },
+            ],
+        )
+        for keyword in (
+            "사진주소단어",
+            "대체글자단어",
+            "링크주소단어",
+            "paragraph",
+            "제목단어",
+            "없음",
+        ):
+            response = await client.get(
+                POSTS, params={"body_q": keyword}, headers=auth_headers
+            )
+            assert response.status_code == 200, response.text
+            assert response.json()["data"]["total"] == 0
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            [{"type": "p", "text": "앞"}, {"type": "p", "text": "뒤"}],
+            [{"type": "ul", "items": ["앞", "뒤"]}],
+            [
+                {
+                    "type": "paragraph",
+                    "content": [
+                        {"type": "text", "text": "앞"},
+                        {"type": "hardBreak"},
+                        {"type": "text", "text": "뒤"},
+                    ],
+                }
+            ],
+        ],
+    )
+    async def test_boundaries_are_not_concatenated(
+        self, client, auth_headers, tenant, body
+    ):
+        board = await _board(client, auth_headers)
+        await _post(client, auth_headers, board["id"], "경계", body=body)
+        response = await client.get(
+            POSTS, params={"body_q": "앞뒤"}, headers=auth_headers
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 0
+
+    async def test_combined_pagination_trash_and_tenant(
+        self, client, auth_headers, named_authors, other
+    ):
+        params = {
+            "body_q": SECRET_BODY,
+            "author": "김작가",
+            "q": "소식",
+            "board_id": named_authors["board"]["id"],
+            "status": "PUBLISHED",
+            "created_from": "2020-01-01T00:00:00Z",
+            "size": 1,
+            "page": 2,
+        }
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 200, response.text
+        data = response.json()["data"]
+        assert data["total"] == 2
+        assert len(data["items"]) == 1
+        assert (
+            await client.get(POSTS, params=params, headers=other["headers"])
+        ).json()["data"]["total"] == 0
+        await client.delete(
+            f"{BOARDS}/{named_authors['board']['id']}/posts/{named_authors['guest']['id']}",
+            headers=auth_headers,
+        )
+        params.update(page=1, trash=True)
+        data = (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]
+        assert data["total"] == 1
+        assert data["items"][0]["id"] == named_authors["guest"]["id"]
+        params["status"] = "PRIVATE"
+        assert (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]["total"] == 0
+
+    async def test_empty_validation_login_and_viewer(
+        self, client, auth_headers, named_authors, tenant, test_user
+    ):
+        assert (
+            await client.get(POSTS, params={"body_q": " "}, headers=auth_headers)
+        ).json()["data"]["total"] == 3
+        assert (
+            await client.get(POSTS, params={"body_q": "a" * 101}, headers=auth_headers)
+        ).status_code == 400
+        assert (
+            await client.get(POSTS, params={"body_q": SECRET_BODY})
+        ).status_code == 401
+        await _sql(
+            "UPDATE users SET role = 'TENANT_VIEWER' WHERE id = :u", u=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(str(test_user["id"])),
+            tenant_id=uuid.UUID(str(tenant["id"])),
+            role="TENANT_VIEWER",
+        )
+        response = await client.get(
+            POSTS,
+            params={"body_q": SECRET_BODY},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 3
+
+    async def test_private_secret_and_trashed_board(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers)
+        post = await _post(
+            client, auth_headers, board["id"], "비밀 글", status="PRIVATE"
+        )
+        await _sql(
+            "UPDATE board_posts SET is_secret = true WHERE id = :p", p=post["id"]
+        )
+        params = {"body_q": SECRET_BODY, "status": "PRIVATE"}
+        response = await client.get(POSTS, params=params, headers=auth_headers)
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["total"] == 1
+        assert "body" not in response.json()["data"]["items"][0]
+        await client.delete(f"{BOARDS}/{board['id']}", headers=auth_headers)
+        assert (await client.get(POSTS, params=params, headers=auth_headers)).json()[
+            "data"
+        ]["total"] == 0

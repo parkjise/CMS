@@ -2,7 +2,20 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-169 전체 글 작성자 이름 검색 (Codex)
+## 최신 기록: T-170 전체 글 본문 검색 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-05의 본문 검색을 진행했다. 문단 안의 서식으로 나뉜 글자는 연결하고 경계/속성은 구분하는 서버 검색 → API/관리자 입력 → 형식/격리/페이지 시험 플랜이다.
+- 브랜치: `codex/T-170-post-body-search`, 폴더: `/Users/jisepark/.codex/worktrees/t170-body-search/CMS`, 기준 main: `a0defbb`. PR 생성 뒤 연결하고 최종 head backend/frontend/e2e 모두 성공하면 병합한다.
+- 이전 T-169: #119 최종 head 87eaac7의 세 CI 성공 뒤 병합, 병합 커밋 `a0defbb`, 원격 main 포함 확인.
+- API: GET /api/v1/posts의 body_q(max 100), 앞뒤 공백 제거·빈 값 해제·대소문자 무시·LIKE 특수문자 글자 검색. services/board_search.py에 PostgreSQL strict jsonb_path_query + EXISTS를 둔다. 중첩 목록/표/인용 안의 paragraph/heading와 이전 p/ul을 찾고, 문단의 직접 text 자식은 ordinality 순서대로 연결한다. hardBreak/ul 항목은 줄 경계, 문단은 별도 검색으로 두어 서로 붙이지 않는다. 이전 형식의 쌍을 이룬 **굵게**는 RichLine과 같은 글자로 정규화한다. 링크/사진 URL, alt, 서식 속성, JSON 키, 추가 필드 값은 읽지 않는다. 경로는 고정 상수, 검색어는 이스케이프 후 바인딩한다. 참고: [PostgreSQL 17 JSON 함수](https://www.postgresql.org/docs/17/functions-json.html).
+- list_all_posts의 기존 테넌트/미삭제 게시판/휴지통/제목/작성자/분류/상태/날짜 WHERE와 교집합이며 count와 페이지에 같은 조건을 쓴다. 본문 전체를 Python으로 가져와 거르지 않는다. 기존 관리자/뷰어가 읽는 비공개/비밀글도 검색되나 본문/일치 구절을 응답에 추가하지 않는다. 공개 API, DB 스키마·인덱스, 로그인·권한 정책 변경 없음. 대규모 데이터 성능/검색 인덱스는 이번 검증 범위 밖이다.
+- 관리자: PostOverviewFilters.body_q, PostsOverviewPage의 본문 검색 입력. 입력만으로 조회하지 않으며 검색 시 trim/빈 값 해제, 페이지/선택 초기화와 날짜 오류 차단을 재사용한다. 기간 초기화는 본문 조건을 유지한다. 휴지통/뷰어도 같은 검색 동작이다.
+- 로컬 검증: 관리자 전체 71개 파일 585개 통과/기존 시간대 전용 1개 스킵. 신규 postsOverviewBody 4개로 요청 전 대기, trim/제목/작성자/기간 조합, 페이지/선택 초기화·게시판/휴지통 유지, 빈 값 해제·기간만 초기화, 날짜 오류/뷰어/최대 길이를 확인했다. 전체 프런트 타입 검사, 관리자 빌드, lint 오류 0(기존 경고 5개), 변경 UI Prettier, git diff --check 통과.
+- 서버: test_board_overview.py 96개 통과(신규 13개), 마지막 비공개/비밀글·삭제 게시판 회귀 1개 별도 통과 — 합계 97개/신규 14개. 전용 cms_test_db/cms_app RLS 사용. 구/신형·굵게 경계·중첩 표/목록/인용·대소문자·특수문자·URL/alt/키/제목 제외, 문단/줄/항목 경계, 제목/작성자/게시판/상태/날짜/total/페이지/휴지통 조합, 타 사업체, 빈 값/100자 초과/401/뷰어, 비공개/비밀글과 삭제 게시판 제외를 검증했다. 전체 app Ruff lint/format, mypy 175개 파일 통과. 초기 import 순서와 SQL 문자열 줄 길이 린트는 수정했다.
+- 한계/작업 보호: 실제 브라우저 화면, 백엔드 전체 로컬 시험/성능 부하는 수행하지 않았다. 로컬 Node 25.2.1, Node 22와 전체 회귀/커버리지는 원격 CI로 확인한다. 원래 체크아웃의 Oliva/.bkit/Corporate_Template_Plan_v0.1.md는 수정하지 않았다.
+- 후속: 독립 표 열/너비/순서, 2단계 분류, 선택지 매핑 등. 테마형 공지 스킵·자동 파기 D-06·법률/백업 보류를 유지한다.
+
+## 이전 기록: T-169 전체 글 작성자 이름 검색 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-05 후속에서 작성자 표시 이름 검색을 분리했다. 서버 조건/API → 관리자 입력 → 격리/결합 조건/선택 초기화 시험 순서로 진행했다.
 - 브랜치: `codex/T-169-post-author-search`, 폴더: `/Users/jisepark/.codex/worktrees/t169-author-search/CMS`, 기준 main: `ad2c9a5`. PR [#119](https://github.com/parkjise/CMS/pull/119), 생성 시점 미병합. backend/frontend/e2e 모두 통과하면 병합하며 현재 상태는 GitHub에서 확인한다.

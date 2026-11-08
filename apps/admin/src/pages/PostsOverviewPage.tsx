@@ -33,6 +33,7 @@ export function PostsOverviewPage() {
   const [filters, setFilters] = useState<PostOverviewFilters>({ page: 1, size: PAGE_SIZE })
   const [keyword, setKeyword] = useState('')
   const [author, setAuthor] = useState('')
+  const [bodyKeyword, setBodyKeyword] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [dateField, setDateField] = useState<'created' | 'updated' | 'published'>('created')
@@ -91,6 +92,7 @@ export function PostsOverviewPage() {
       changeFilters({
         q: keyword.trim() || undefined,
         author: author.trim() || undefined,
+        body_q: bodyKeyword.trim() || undefined,
         created_from: dateField === 'created' ? dates.created_from : undefined,
         created_before: dateField === 'created' ? dates.created_before : undefined,
         updated_from: dateField === 'updated' ? dates.created_from : undefined,
@@ -224,6 +226,13 @@ export function PostsOverviewPage() {
             value={keyword}
             maxLength={100}
             onChange={(e) => setKeyword(e.target.value)}
+          />
+          <Input
+            label="본문 검색"
+            value={bodyKeyword}
+            maxLength={100}
+            placeholder="문단 안의 글자"
+            onChange={(event) => setBodyKeyword(event.target.value)}
           />
           <Input
             label="회원·비회원 작성자 검색"
