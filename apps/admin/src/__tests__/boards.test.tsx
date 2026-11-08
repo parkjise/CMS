@@ -341,6 +341,9 @@ describe('글 관리', () => {
     const custom = { ...board, id: 'b1', system_key: null }
     const field = (over: object) => ({
       id: 'f1',
+      board_id: 'b1',
+      display_order: 0,
+      deleted_at: null,
       field_key: 'grade',
       label: '등급',
       field_type: 'SELECT',
