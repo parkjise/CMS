@@ -2,7 +2,19 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-170 전체 글 본문 검색 (Codex)
+## 최신 기록: T-171 관리자 게시판별 글 표 보기 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-03의 독립 표 열을 관리자 게시판별 글 관리의 보기 전환으로 분리했다. 기존 추가 정보 필드/값을 재사용하고 두 보기의 정보/작업을 공유한 뒤 값·전환·권한·오류와 좁은 화면을 시험하는 플랜이다.
+- 브랜치: `codex/T-171-admin-posts-table`, 폴더: `/Users/jisepark/.codex/worktrees/t171-posts-table/CMS`, 기준 main: `57640a6`. PR 생성 뒤 연결하고 최종 head backend/frontend/e2e 모두 성공하면 병합한다.
+- 이전 T-170: #120 최종 head a28f317의 세 CI 성공 뒤 병합. 병합 커밋 `57640a6`, 원격 main 포함 확인.
+- BoardPostsPage.tsx: 같은 게시판/미삭제/show_in_list 필드를 display_order 순으로 선별한다. 기본 제목 아래 보기와 개별 열 표 보기는 같은 postInfo/postActions 및 기존 훅을 사용한다. 표는 제목/상태/작성자/비밀글/분류/날짜와 기존 수정 링크를 유지하며 관리자만 작업 열을 본다. 빈 값은 —, 0/아니오/선택지는 fieldValueLabel, 사진/URL은 글자다. HTMLElement/이미지/링크를 값으로 만들지 않는다. 추가 정보는 기존 관리자 정책대로 홈페이지 비표시 칸도 포함한다.
+- 전환은 컴포넌트 안의 게시판별 임시 상태이며 검색/페이지/요청을 바꾸지 않는다. 새로 열면 기본 보기다. 기본 게시판에는 제공하지 않으며 조회 중/오류/표시할 칸 없음은 전환을 끄고 안내한다. 오류는 재시도, 원시 값은 대체 표시하지 않는다. 필드 갱신에서 표시 칸이 모두 없어지면 기본 보기로 복귀한다. 가로 스크롤 영역은 region 이름/tabIndex와 초점 표시를 갖고 표 헤더는 scope=col이다. 긴 값은 줄바꿈한다. API·DB·로그인·권한·공개 홈페이지·전체 글 화면은 바꾸지 않았다. 열 너비/순서 저장은 후속이다.
+- 로컬 검증: 관리자 전체 72개 파일 594개 통과/기존 시간대 전용 1개 스킵. 신규 boardPostsTable 9개로 기본 보기/제외 규칙, 순서와 값 형식/빈 값/URL 비링크, 기존 수정/고정/공개/삭제/복원, 뷰어, 검색·페이지·요청 수 유지, 필드 로딩/실패/재시도, 기본 게시판/칸 없음, 갱신 뒤 칸 사라짐, 다른 게시판 전환을 확인했다. 초기 전환 시험은 필드 로딩이 끝나기 전에 disabled select를 조작해 실패해 enabled 대기를 추가했다. 기존 boards 시험 픽스처에 빠진 board_id/display_order/deleted_at을 API 모양에 맞춰 보완한 뒤 전체 통과했다. 전체 프런트 타입 검사·관리자 빌드·lint 오류 0(기존 경고 5개), 페이지/신규 시험 Prettier·git diff --check 확인.
+- 브라우저 확인: 임시 Vite 진입점으로 실제 BoardPostsPage/공통 UI/실제 Tailwind CSS를 렌더하고 API만 Playwright로 가로챈 픽스처다. Chromium 390px에서 문서/viewport=390, 표 client=340/scroll=1360; 1280px에서 문서/viewport=1280, 표 client=1214/scroll=1360으로 문서 넘침 없이 표 안 스크롤을 확인했다. 긴 값/제목, 0/아니오/빈 값, 비밀글/비회원 표시를 넣은 두 캡처를 직접 확인했다. `/private/tmp/cms-T-171-390.png`, `/private/tmp/cms-T-171-1280.png`, 실행 스크립트 `/private/tmp/cms-T-171-browser.cjs`와 로그가 있다. 임시 HTML/TSX 진입점은 삭제했고 서버를 종료했다.
+- 한계/보호: 전체 앱 셸·실제 로그인·실제 서버 데이터/쓰기의 브라우저 통합 시험은 아니다. 로컬 백엔드 시험은 재실행하지 않았고 Node 25.2.1 로컬/Node 22·전체 회귀는 CI로 확인한다. 사용자 원래 체크아웃의 Oliva/.bkit/Corporate_Template_Plan_v0.1.md는 건드리지 않았다.
+- 후속: 공개 홈페이지 독립 표 열, 관리자/공개 열 너비·순서 저장, 2단계 분류, 선택지 매핑. 테마형 공지 스킵·D-06 자동 파기·법률/백업 보류 유지.
+
+## 이전 기록: T-170 전체 글 본문 검색 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-05의 본문 검색을 진행했다. 문단 안의 서식으로 나뉜 글자는 연결하고 경계/속성은 구분하는 서버 검색 → API/관리자 입력 → 형식/격리/페이지 시험 플랜이다.
 - 브랜치: `codex/T-170-post-body-search`, 폴더: `/Users/jisepark/.codex/worktrees/t170-body-search/CMS`, 기준 main: `a0defbb`. PR [#120](https://github.com/parkjise/CMS/pull/120), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
