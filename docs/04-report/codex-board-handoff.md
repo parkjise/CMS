@@ -5,7 +5,7 @@
 ## 최신 기록: T-171 관리자 게시판별 글 표 보기 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-03의 독립 표 열을 관리자 게시판별 글 관리의 보기 전환으로 분리했다. 기존 추가 정보 필드/값을 재사용하고 두 보기의 정보/작업을 공유한 뒤 값·전환·권한·오류와 좁은 화면을 시험하는 플랜이다.
-- 브랜치: `codex/T-171-admin-posts-table`, 폴더: `/Users/jisepark/.codex/worktrees/t171-posts-table/CMS`, 기준 main: `57640a6`. PR 생성 뒤 연결하고 최종 head backend/frontend/e2e 모두 성공하면 병합한다.
+- 브랜치: `codex/T-171-admin-posts-table`, 폴더: `/Users/jisepark/.codex/worktrees/t171-posts-table/CMS`, 기준 main: `57640a6`. PR [#121](https://github.com/parkjise/CMS/pull/121), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
 - 이전 T-170: #120 최종 head a28f317의 세 CI 성공 뒤 병합. 병합 커밋 `57640a6`, 원격 main 포함 확인.
 - BoardPostsPage.tsx: 같은 게시판/미삭제/show_in_list 필드를 display_order 순으로 선별한다. 기본 제목 아래 보기와 개별 열 표 보기는 같은 postInfo/postActions 및 기존 훅을 사용한다. 표는 제목/상태/작성자/비밀글/분류/날짜와 기존 수정 링크를 유지하며 관리자만 작업 열을 본다. 빈 값은 —, 0/아니오/선택지는 fieldValueLabel, 사진/URL은 글자다. HTMLElement/이미지/링크를 값으로 만들지 않는다. 추가 정보는 기존 관리자 정책대로 홈페이지 비표시 칸도 포함한다.
 - 전환은 컴포넌트 안의 게시판별 임시 상태이며 검색/페이지/요청을 바꾸지 않는다. 새로 열면 기본 보기다. 기본 게시판에는 제공하지 않으며 조회 중/오류/표시할 칸 없음은 전환을 끄고 안내한다. 오류는 재시도, 원시 값은 대체 표시하지 않는다. 필드 갱신에서 표시 칸이 모두 없어지면 기본 보기로 복귀한다. 가로 스크롤 영역은 region 이름/tabIndex와 초점 표시를 갖고 표 헤더는 scope=col이다. 긴 값은 줄바꿈한다. API·DB·로그인·권한·공개 홈페이지·전체 글 화면은 바꾸지 않았다. 열 너비/순서 저장은 후속이다.
