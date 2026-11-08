@@ -105,7 +105,9 @@ export function Header({
                 // eslint-disable-next-line @next/next/no-img-element -- 목업 마크업 유지 (SVG 로고)
                 <img className="header__logo-image" src={logoUrl} alt="" width={2496} height={1696} />
               )}
-              {brandName}
+              <span className="header__brand" title={brandName}>
+                {brandName}
+              </span>
             </a>
           </h1>
 
