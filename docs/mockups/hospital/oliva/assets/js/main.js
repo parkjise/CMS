@@ -1,6 +1,8 @@
 /**
  * Oliva Casa — Main Script with GSAP Smooth Animations & Hero Slider
  */
+initPreloader();
+
 document.addEventListener('includes:loaded', () => {
   initActiveNavLink();
   initNavLinks();
@@ -12,6 +14,51 @@ document.addEventListener('includes:loaded', () => {
   initReservationPageInteractions();
   initGSAPAnimations();
 });
+
+// ── Dinevo 스타일 프리로더 (Preloader) ──
+function initPreloader() {
+  const preloader = document.getElementById('preloader') || document.querySelector('.preloader');
+  if (!preloader) return;
+
+  let isIncludesLoaded = false;
+  let isWindowLoaded = document.readyState === 'complete';
+  let isDismissed = false;
+
+  const dismiss = () => {
+    if (isDismissed) return;
+    isDismissed = true;
+
+    // Dinevo 템플릿의 지연 페이드아웃 효과 구현
+    setTimeout(() => {
+      preloader.classList.add('is-loaded');
+      setTimeout(() => {
+        if (preloader.parentNode) {
+          preloader.parentNode.removeChild(preloader);
+        }
+        if (window.ScrollTrigger) {
+          window.ScrollTrigger.refresh();
+        }
+      }, 700);
+    }, 700);
+  };
+
+  document.addEventListener('includes:loaded', () => {
+    isIncludesLoaded = true;
+    if (isWindowLoaded) dismiss();
+  });
+
+  if (isWindowLoaded) {
+    if (isIncludesLoaded) dismiss();
+  } else {
+    window.addEventListener('load', () => {
+      isWindowLoaded = true;
+      if (isIncludesLoaded) dismiss();
+    });
+  }
+
+  // 네트워크 지연 방지용 세이프티 타임아웃 (최대 3초)
+  setTimeout(dismiss, 3000);
+}
 
 // ── 현재 페이지 활성화 네비게이션 표시 ──
 function initActiveNavLink() {
