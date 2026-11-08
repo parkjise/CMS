@@ -15,9 +15,26 @@ document.addEventListener('includes:loaded', () => {
   initGSAPAnimations();
 });
 
-// ── Dinevo 스타일 프리로더 (Preloader) ──
+// ── Dinevo 스타일 프리로더 (Preloader) — 공통 자동 주입 및 라이프사이클 제어 ──
 function initPreloader() {
-  const preloader = document.getElementById('preloader') || document.querySelector('.preloader');
+  let preloader = document.getElementById('preloader') || document.querySelector('.preloader');
+
+  // DOM에 프리로더 마크업이 없으면 body 최상단에 자동 주입 (개별 HTML 중복 방지 & 전 페이지 공통화)
+  if (!preloader && document.body) {
+    const preloaderHtml = `
+      <div class="preloader" id="preloader" aria-hidden="true">
+        <div class="spinner-wrap">
+          <div class="preloader-logo">
+            <img src="./assets/images/preloader.svg" alt="OLIVA CASA" />
+          </div>
+          <div class="spinner"></div>
+        </div>
+      </div>
+    `.trim();
+    document.body.insertAdjacentHTML('afterbegin', preloaderHtml);
+    preloader = document.getElementById('preloader');
+  }
+
   if (!preloader) return;
 
   let isIncludesLoaded = false;
