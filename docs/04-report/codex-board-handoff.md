@@ -5,7 +5,7 @@
 ## 최신 기록: T-169 전체 글 작성자 이름 검색 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-05 후속에서 작성자 표시 이름 검색을 분리했다. 서버 조건/API → 관리자 입력 → 격리/결합 조건/선택 초기화 시험 순서로 진행했다.
-- 브랜치: `codex/T-169-post-author-search`, 폴더: `/Users/jisepark/.codex/worktrees/t169-author-search/CMS`, 기준 main: `ad2c9a5`. PR 생성 후 번호를 연결하고 backend/frontend/e2e 모두 통과하면 병합한다.
+- 브랜치: `codex/T-169-post-author-search`, 폴더: `/Users/jisepark/.codex/worktrees/t169-author-search/CMS`, 기준 main: `ad2c9a5`. PR [#119](https://github.com/parkjise/CMS/pull/119), 생성 시점 미병합. backend/frontend/e2e 모두 통과하면 병합하며 현재 상태는 GitHub에서 확인한다.
 - 이전 T-168: #118 최종 head bc4bda3의 세 CI 성공 뒤 병합. 병합 커밋 `ad2c9a5`, 원격 main 포함 확인.
 - API: GET /api/v1/posts에 author(max 100)를 추가했다. 앞뒤 공백을 없애 빈 값은 제한하지 않고, 기존 LIKE 이스케이프를 재사용해 %/_/역슬래시를 글자로 찾는다. 회원 이름은 SiteMember의 PK 상관 EXISTS + 명시 tenant 조건으로 검사하므로 행을 늘리지 않는다. 비회원은 guest_name. 기존 목록 표시와 동일하게 탈퇴/비활성 회원도 현재 이름으로 검색한다. 기존 title q/게시판/분류/상태/세 날짜/휴지통 WHERE와 교집합이며 total과 목록에 같은 조건을 적용한다. 관리자 계정 이름·이메일·전화번호·본문은 검색하지 않는다. 공개 API/응답 필드/DB 스키마/로그인/권한 정책 변경 없음.
 - 관리자: useBoards.ts의 PostOverviewFilters와 PostsOverviewPage.tsx에 회원·비회원 작성자 검색 추가. 입력만으로 조회하지 않고 검색 시 trim/빈 값 해제를 적용한다. 기존 페이지/선택 초기화와 날짜 오류 차단을 사용하며 기간 초기화는 작성자 조건을 유지한다. 휴지통 전환은 기존처럼 상태 조건을 비운다. 뷰어도 검색할 수 있다.
