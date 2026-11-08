@@ -5,7 +5,7 @@
 ## 최신 기록: T-170 전체 글 본문 검색 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-05의 본문 검색을 진행했다. 문단 안의 서식으로 나뉜 글자는 연결하고 경계/속성은 구분하는 서버 검색 → API/관리자 입력 → 형식/격리/페이지 시험 플랜이다.
-- 브랜치: `codex/T-170-post-body-search`, 폴더: `/Users/jisepark/.codex/worktrees/t170-body-search/CMS`, 기준 main: `a0defbb`. PR 생성 뒤 연결하고 최종 head backend/frontend/e2e 모두 성공하면 병합한다.
+- 브랜치: `codex/T-170-post-body-search`, 폴더: `/Users/jisepark/.codex/worktrees/t170-body-search/CMS`, 기준 main: `a0defbb`. PR [#120](https://github.com/parkjise/CMS/pull/120), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
 - 이전 T-169: #119 최종 head 87eaac7의 세 CI 성공 뒤 병합, 병합 커밋 `a0defbb`, 원격 main 포함 확인.
 - API: GET /api/v1/posts의 body_q(max 100), 앞뒤 공백 제거·빈 값 해제·대소문자 무시·LIKE 특수문자 글자 검색. services/board_search.py에 PostgreSQL strict jsonb_path_query + EXISTS를 둔다. 중첩 목록/표/인용 안의 paragraph/heading와 이전 p/ul을 찾고, 문단의 직접 text 자식은 ordinality 순서대로 연결한다. hardBreak/ul 항목은 줄 경계, 문단은 별도 검색으로 두어 서로 붙이지 않는다. 이전 형식의 쌍을 이룬 **굵게**는 RichLine과 같은 글자로 정규화한다. 링크/사진 URL, alt, 서식 속성, JSON 키, 추가 필드 값은 읽지 않는다. 경로는 고정 상수, 검색어는 이스케이프 후 바인딩한다. 참고: [PostgreSQL 17 JSON 함수](https://www.postgresql.org/docs/17/functions-json.html).
 - list_all_posts의 기존 테넌트/미삭제 게시판/휴지통/제목/작성자/분류/상태/날짜 WHERE와 교집합이며 count와 페이지에 같은 조건을 쓴다. 본문 전체를 Python으로 가져와 거르지 않는다. 기존 관리자/뷰어가 읽는 비공개/비밀글도 검색되나 본문/일치 구절을 응답에 추가하지 않는다. 공개 API, DB 스키마·인덱스, 로그인·권한 정책 변경 없음. 대규모 데이터 성능/검색 인덱스는 이번 검증 범위 밖이다.
