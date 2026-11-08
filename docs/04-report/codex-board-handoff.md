@@ -2,7 +2,20 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-166 전체 글 공개일 필터 (Codex)
+## 최신 기록: T-167 긴 상호 헤더 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-08)에 따라 T-140-B 후속의 모바일 긴 상호 문제를 진행했다. 상호를 줄여 계정/토글 공간을 확보하고 데스크톱 접기는 유지하는 플랜이다.
+- PR: 생성 후 번호 연결. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- 브랜치: `codex/T-167-mobile-header`, 폴더: `/private/tmp/cms-T-167`, 기준 main: `8b5539d`.
+- 이전 T-166: #116 최종 head의 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `8b5539d`. 기존 DeferredStylesheets 비동기 정리 보완도 포함됐다.
+- 구현: hospital-a Header.tsx의 상호를 header__brand span으로 감싸 전체 텍스트/title/홈 링크를 유지한다. styles/header/_header.scss에서 로고 제목 영역 min-width:0/shrink를 허용하고 브랜드만 overflow hidden/ellipsis/nowrap으로 표시한다. 로고 이미지/메뉴 토글은 줄어들지 않는다. 펼친 lg 헤더의 상호는 기존대로 shrink:0, collapsed에서는 shrink:1이라 기존 메뉴 overflow 측정과 접기 정책을 보존한다. 계정 링크/회원 상태 전환·서버 API · DB · 로그인 · 권한 정책 변경 없음.
+- 재현/브라우저: 실제 템플릿 SCSS를 컴파일한 Chromium CSS 레이아웃 픽스처에서 변경 전 320px 화면의 header inner 280px에 scrollWidth 588px으로 넘침을 확인했다. 수정 후 e2e/header-layout.spec.ts 19개(320/390/768px × 방문자/회원/회원 기능 꺼짐 × 로고 유무 = 18, 1024px 접힘/1920px 펼침 = 1) 통과. 내부/문서 넘침, 링크/토글 전체 viewport 포함, 상호/계정 겹침 없음, 한 줄 계정, 전체 상호 이름을 확인한다. 390px guest/로고 캡처를 직접 확인해 상호 말줄임과 로그인/회원가입/토글 한 줄을 확인했다.
+- 브라우저 검증 한계: 실제 SCSS + 동일 구조의 HTML과 기본 리셋을 쓰는 독립 레이아웃 픽스처다. 실제 홈페이지 전체 렌더/서버 데이터/로그인 요청/실제 아이콘 폰트를 검증한 것은 아니다. React SSR을 Playwright 안에서 직접 실행하려던 초기 하네스는 JSX 변환 차이로 실패해 제거했고, 제품 React 동작과 CSS 레이아웃 시험을 분리했다. 임시 header-layout.local.config.ts는 삭제했으며 정식 Playwright 설정은 바꾸지 않았다.
+- 최종 로컬 검증: 홈페이지 전체 67개 파일 · 767개 시험(신규 headerBrand 4개) 통과. 실제 Header의 로고 유무, 전체 상호/title/홈 링크, 회원 꺼짐, 회원 마이페이지/로그아웃을 검증했다. 기존 hospitalATemplate의 메뉴 overflow/버튼/Esc 시험도 함께 통과한다. 전체 프런트 타입 검사, 홈페이지 빌드, SCSS lint, lint 오류 0(기존 이미지 경고 3개), 신규 시험/e2e Prettier · git diff --check 확인. 기존 Header의 무관한 포맷은 유지했다.
+- 검증 한계/작업 보호: 로컬 백엔드 시험은 재실행하지 않았다. 로컬 Node 25.2.1, Node 22와 전체 회귀는 원격 CI에서 확인한다. 사용자 원래 체크아웃의 Oliva 하위 페이지 SCSS/HTML 변경 및 .bkit/, Corporate_Template_Plan_v0.1.md를 건드리지 않았다. 임의로 긴 계정 링크 문구/커스텀 로고 크기는 범위 밖이다.
+- 후속: 본문/작성자 검색, 독립 표 열/너비/순서, 카테고리 확장 등. 테마형 공지 · 자동 파기 · 백업 · 법률 확인의 보류 결정을 유지한다.
+
+## 이전 기록: T-166 전체 글 공개일 필터 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-07)에 따라 BM-05 후속의 공개일 기간 검색을 구현했다. 기존 최초 공개 시각을 조회하고 날짜 기준 전환/초기화와 상태 조합을 확인하는 플랜으로 진행했다.
 - PR: [#116](https://github.com/parkjise/CMS/pull/116). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
