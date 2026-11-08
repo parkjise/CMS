@@ -1,0 +1,31 @@
+// Premium 프리셋 — 딥 네이비 · 샌드 · 화이트
+:root {
+  --color-navy: #0f2340;
+  --color-navy-deep: #0a1830;
+  --color-navy-soft: #1c3558;
+  --color-sand: #efe8dc;
+  --color-sand-deep: #e2d8c6;
+  --color-accent: #b8956a;
+  --color-white: #ffffff;
+  --color-text: #17233a;
+  --color-text-muted: #6b7686;
+  --color-border: #dcd5c8;
+  --color-border-dark: rgba(255, 255, 255, 0.16);
+
+  --font-serif: 'Cormorant Garamond', 'Noto Sans KR', Georgia, serif;
+  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --container-max-width: 1600px;
+  --gutter: 48px;
+  --header-h: 84px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  @media (max-width: 1024px) {
+    --gutter: 32px;
+    --header-h: 72px;
+  }
+  @media (max-width: 640px) {
+    --gutter: 20px;
+    --header-h: 64px;
+  }
+}

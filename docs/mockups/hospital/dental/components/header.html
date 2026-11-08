@@ -1,0 +1,49 @@
+<header class="dental-header" id="header">
+  <div class="dental-header__inner">
+    <a href="index.html" class="dental-brand" aria-label="MORAN DENTAL 홈으로 이동">
+      <span class="dental-brand__mark" aria-hidden="true">M</span>
+      <span class="dental-brand__text">
+        <span class="dental-brand__name">MORAN DENTAL</span>
+        <span class="dental-brand__sub">모란 치과</span>
+      </span>
+    </a>
+
+    <nav class="dental-header__nav" aria-label="주요 메뉴">
+      <ul class="dental-nav-list">
+        <li class="dental-nav-list__item"><a href="#about" class="dental-nav-link">병원 소개</a></li>
+        <li class="dental-nav-list__item"><a href="#treatments" class="dental-nav-link">진료 안내</a></li>
+        <li class="dental-nav-list__item"><a href="#doctors" class="dental-nav-link">의료진</a></li>
+        <li class="dental-nav-list__item"><a href="#location" class="dental-nav-link">오시는 길</a></li>
+        <li class="dental-nav-list__item"><a href="#notice" class="dental-nav-link">병원 소식</a></li>
+      </ul>
+    </nav>
+
+    <div class="dental-header__actions">
+      <a href="tel:0212345678" class="dental-header__tel" aria-label="전화 문의 02-1234-5678">02-1234-5678</a>
+      <a href="#reservation" class="dental-btn dental-btn--primary dental-header__btn">예약·상담</a>
+      <button
+        type="button"
+        class="dental-header__toggle"
+        id="dentalMenuToggle"
+        aria-label="전체 메뉴 열기"
+        aria-expanded="false"
+        aria-controls="dentalDrawer"
+      >
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+
+  <div class="dental-drawer-backdrop" id="dentalDrawerBackdrop" aria-hidden="true"></div>
+  <nav class="dental-drawer" id="dentalDrawer" aria-label="모바일 전체 메뉴" aria-hidden="true">
+    <ul class="dental-drawer__list">
+      <li><a href="#about" class="dental-drawer__link">병원 소개</a></li>
+      <li><a href="#treatments" class="dental-drawer__link">진료 안내</a></li>
+      <li><a href="#doctors" class="dental-drawer__link">의료진</a></li>
+      <li><a href="#location" class="dental-drawer__link">오시는 길</a></li>
+      <li><a href="#notice" class="dental-drawer__link">병원 소식</a></li>
+      <li><a href="#reservation" class="dental-drawer__link dental-drawer__link--accent">예약·상담</a></li>
+    </ul>
+    <p class="dental-drawer__tel">대표전화 <a href="tel:0212345678">02-1234-5678</a></p>
+  </nav>
+</header>

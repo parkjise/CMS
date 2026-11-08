@@ -1,0 +1,266 @@
+.dental-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  height: var(--header-h);
+  color: var(--color-white);
+  transition:
+    background-color 0.4s var(--ease),
+    color 0.4s var(--ease),
+    box-shadow 0.4s var(--ease);
+
+  &.is-scrolled,
+  &.is-open {
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(14px);
+    color: var(--color-navy);
+    box-shadow: 0 1px 0 rgba(15, 35, 64, 0.08);
+  }
+
+  &__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    height: 100%;
+    max-width: calc(var(--container-max-width) + var(--gutter) * 2);
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+
+  &__nav {
+    @media (max-width: 1024px) {
+      display: none;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  &__tel {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    @media (max-width: 1180px) {
+      display: none;
+    }
+  }
+
+  &__btn {
+    height: 46px;
+    padding: 0 24px;
+    font-size: 14px;
+    background: var(--color-white);
+    color: var(--color-navy);
+    @media (max-width: 640px) {
+      display: none;
+    }
+  }
+  &.is-scrolled &__btn,
+  &.is-open &__btn {
+    background: var(--color-navy);
+    color: var(--color-white);
+  }
+
+  &__toggle {
+    display: none;
+    width: 44px;
+    height: 44px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    span {
+      width: 24px;
+      height: 1.5px;
+      background: currentColor;
+      transition:
+        transform 0.35s var(--ease),
+        opacity 0.2s;
+    }
+    &[aria-expanded='true'] span:nth-child(1) {
+      transform: translateY(7.5px) rotate(45deg);
+    }
+    &[aria-expanded='true'] span:nth-child(2) {
+      opacity: 0;
+    }
+    &[aria-expanded='true'] span:nth-child(3) {
+      transform: translateY(-7.5px) rotate(-45deg);
+    }
+    @media (max-width: 1024px) {
+      display: flex;
+    }
+  }
+}
+
+.dental-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+
+  &__mark {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 600;
+  }
+  &__text {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+  }
+  &__name {
+    font-family: var(--font-serif);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+  }
+  &__sub {
+    font-size: 11px;
+    opacity: 0.7;
+    letter-spacing: 0.1em;
+  }
+}
+
+.dental-nav-list {
+  display: flex;
+  gap: 8px;
+
+  &__item .dental-nav-link {
+    position: relative;
+    display: block;
+    padding: 8px 18px;
+    font-size: 16px;
+    font-weight: 500;
+
+    &::after {
+      content: '';
+      position: absolute;
+      left: 18px;
+      right: 18px;
+      bottom: 2px;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.4s var(--ease);
+    }
+    &:hover::after {
+      transform: scaleX(1);
+    }
+  }
+}
+
+// 모바일 드로어
+.dental-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 24, 48, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.4s,
+    visibility 0.4s;
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.dental-drawer {
+  position: fixed;
+  top: var(--header-h);
+  right: 0;
+  width: min(380px, 100%);
+  height: calc(100dvh - var(--header-h));
+  padding: 32px var(--gutter);
+  background: var(--color-white);
+  color: var(--color-navy);
+  transform: translateX(100%);
+  visibility: hidden;
+  transition:
+    transform 0.5s var(--ease),
+    visibility 0.5s;
+
+  &.is-open {
+    transform: translateX(0);
+    visibility: visible;
+  }
+  &__link {
+    display: block;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--color-border);
+    font-size: 20px;
+    font-weight: 500;
+    &--accent {
+      color: var(--color-accent);
+    }
+  }
+  &__tel {
+    margin-top: 28px;
+    font-size: 14px;
+    color: var(--color-text-muted);
+    a {
+      display: block;
+      margin-top: 4px;
+      font-family: var(--font-serif);
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--color-navy);
+    }
+  }
+}
+
+@media (min-width: 1025px) {
+  .dental-drawer,
+  .dental-drawer-backdrop {
+    display: none;
+  }
+}
+
+// 모바일 하단 고정 바
+.dental-mbar {
+  display: none;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  height: 64px;
+  background: var(--color-navy);
+  padding-bottom: env(safe-area-inset-bottom);
+
+  &__item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.85);
+    span {
+      font-size: 18px;
+      line-height: 1;
+    }
+    &--primary {
+      background: var(--color-accent);
+      color: var(--color-white);
+    }
+  }
+
+  @media (max-width: 820px) {
+    display: flex;
+  }
+}

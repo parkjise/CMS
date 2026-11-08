@@ -1,0 +1,74 @@
+.dental-cta {
+  position: relative;
+  padding: 140px 0;
+  overflow: hidden;
+  color: var(--color-white);
+  background: var(--color-navy-deep);
+  @media (max-width: 820px) {
+    padding: 88px 0;
+  }
+
+  &__bg {
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse at 85% 10%, rgba(184, 149, 106, 0.28), transparent 55%),
+      radial-gradient(ellipse at 10% 100%, rgba(28, 53, 88, 0.9), transparent 60%);
+  }
+  &__inner {
+    position: relative;
+  }
+  &__title {
+    margin-bottom: 56px;
+  }
+  &__list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    @media (max-width: 1024px) {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+  &__card {
+    position: relative;
+    display: block;
+    padding: 36px 32px;
+    border: 1px solid var(--color-border-dark);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    transition:
+      background-color 0.5s var(--ease),
+      transform 0.5s var(--ease),
+      border-color 0.5s var(--ease);
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-6px);
+    }
+    strong {
+      display: block;
+      margin-top: 28px;
+      font-size: 26px;
+      font-weight: 500;
+    }
+    p {
+      margin-top: 4px;
+      font-size: 15px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+    i {
+      position: absolute;
+      top: 28px;
+      right: 28px;
+      font-style: normal;
+      font-size: 22px;
+    }
+  }
+  &__label {
+    font-family: var(--font-serif);
+    font-size: 13px;
+    letter-spacing: 0.24em;
+    color: var(--color-accent);
+  }
+}
