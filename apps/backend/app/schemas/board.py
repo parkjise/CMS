@@ -11,6 +11,7 @@ from pydantic import (
     Field,
     StringConstraints,
     field_validator,
+    model_validator,
 )
 
 from app.schemas.rich_body import clean_body
@@ -291,6 +292,26 @@ class CategoryUpdate(BaseModel):
 
 class CategoryOrderRequest(BaseModel):
     category_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+
+class CategoryMergeRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_ids: list[UUID] = Field(min_length=2, max_length=29)
+    target_id: UUID
+
+    @model_validator(mode="after")
+    def _distinct_categories(self) -> "CategoryMergeRequest":
+        if len(set(self.source_ids)) != len(self.source_ids):
+            raise ValueError("합칠 원본 카테고리가 중복되었습니다.")
+        if self.target_id in self.source_ids:
+            raise ValueError("합칠 대상은 원본 카테고리와 달라야 합니다.")
+        return self
+
+
+class CategoryMergeResponse(BaseModel):
+    merged: int
+    moved: int
 
 
 class CategoryResponse(BaseModel):

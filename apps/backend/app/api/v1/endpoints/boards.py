@@ -27,6 +27,8 @@ from app.schemas.board import (
     BoardRestoreResponse,
     BoardUpdate,
     CategoryCreate,
+    CategoryMergeRequest,
+    CategoryMergeResponse,
     CategoryOrderRequest,
     CategoryResponse,
     CategoryUpdate,
@@ -549,6 +551,21 @@ async def create_category(
     response = CategoryResponse.model_validate(category)
     await _audit_category(db, current_user, "BOARD_CATEGORY_CREATED", category)
     return ApiResponse.ok(response)
+
+
+@router.post(
+    "/{board_id}/categories/merge", response_model=ApiResponse[CategoryMergeResponse]
+)
+async def merge_categories(
+    data: CategoryMergeRequest,
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    moved = await category_service.merge_categories(db, board, data, current_user)
+    return ApiResponse.ok(
+        CategoryMergeResponse(merged=len(data.source_ids), moved=moved)
+    )
 
 
 @router.patch(

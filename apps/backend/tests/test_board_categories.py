@@ -429,3 +429,204 @@ class TestSecurity:
             await set_rls_context(db, uuid.uuid4())
             others = (await db.execute(count, {"b": board["id"]})).scalar_one()
         assert (own, others) == (1, 0)
+
+
+@pytest.fixture
+async def merge_set(client, auth_headers, board):
+    a = await _category(client, auth_headers, board, "원본 가")
+    b = await _category(client, auth_headers, board, "원본 나")
+    target = await _category(client, auth_headers, board, "통합", is_active=False)
+    return a, b, target
+
+
+class TestBulkMerge:
+    async def test_moves_trash_and_records_one_audit(
+        self, client, auth_headers, board, merge_set, purged
+    ):
+        a, b, target = merge_set
+        first = await _post(
+            client, auth_headers, board, category_id=a["id"], is_pinned=True
+        )
+        second = await _post(
+            client, auth_headers, board, category_id=b["id"], status="PRIVATE"
+        )
+        await client.delete(f"{board['posts']}/{second['id']}", headers=auth_headers)
+        untouched = await _post(client, auth_headers, board)
+        purged.clear()
+        resp = await client.post(
+            f"{board['categories']}/merge",
+            json={"source_ids": [a["id"], b["id"]], "target_id": target["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"] == {"merged": 2, "moved": 2}
+        rows = await _sql(
+            "SELECT id::text, category_id::text, status, deleted_at IS NOT NULL, is_pinned FROM board_posts WHERE board_id=:b",
+            b=board["id"],
+        )
+        by_id = {row[0]: row[1:] for row in rows}
+        assert by_id[first["id"]] == (target["id"], "PUBLISHED", False, True)
+        assert by_id[second["id"]] == (target["id"], "PRIVATE", True, False)
+        assert by_id[untouched["id"]][0] is None
+        remaining = await _list(client, auth_headers, board)
+        assert [c["id"] for c in remaining] == [target["id"]]
+        assert remaining[0]["is_active"] is False
+        logs = await _sql(
+            "SELECT before_value, after_value, ip_address FROM audit_logs WHERE action='BOARD_CATEGORIES_MERGED' AND target_id=:i",
+            i=target["id"],
+        )
+        assert len(logs) == 1
+        assert logs[0][0] == {"source_ids": [a["id"], b["id"]]}
+        assert logs[0][1]["moved_posts"] == 2
+        assert logs[0][2] is None
+        assert len(purged) == 1
+
+    @pytest.mark.parametrize("invalid", ["source", "target", "deleted", "foreign"])
+    async def test_invalid_part_is_atomic(
+        self, client, auth_headers, board, merge_set, invalid
+    ):
+        a, b, target = merge_set
+        post = await _post(client, auth_headers, board, category_id=a["id"])
+        sources, target_id = [a["id"], b["id"]], target["id"]
+        if invalid == "source":
+            sources[1] = str(uuid.uuid4())
+        elif invalid == "target":
+            target_id = str(uuid.uuid4())
+        elif invalid == "deleted":
+            gone = await _category(client, auth_headers, board, "삭제됨")
+            await client.delete(
+                f"{board['categories']}/{gone['id']}", headers=auth_headers
+            )
+            sources[1] = gone["id"]
+        else:
+            foreign_board = await _board(
+                client, auth_headers, "다른 게시판", "elsewhere"
+            )
+            sources[1] = (await _category(client, auth_headers, foreign_board, "외부"))[
+                "id"
+            ]
+        resp = await client.post(
+            f"{board['categories']}/merge",
+            json={"source_ids": sources, "target_id": target_id},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400, resp.text
+        assert {c["id"] for c in await _list(client, auth_headers, board)} == {
+            a["id"],
+            b["id"],
+            target["id"],
+        }
+        assert (
+            await _sql(
+                "SELECT category_id::text FROM board_posts WHERE id=:i", i=post["id"]
+            )
+        )[0][0] == a["id"]
+        assert not await _sql(
+            "SELECT id FROM audit_logs WHERE action='BOARD_CATEGORIES_MERGED' AND target_id=:i",
+            i=target["id"],
+        )
+
+    @pytest.mark.parametrize(
+        "invalid", ["empty", "single", "duplicate", "self", "too_many", "bad_uuid"]
+    )
+    async def test_bad_payload(self, client, auth_headers, board, merge_set, invalid):
+        a, b, target = merge_set
+        sources = [a["id"], b["id"]]
+        if invalid == "empty":
+            sources = []
+        if invalid == "single":
+            sources = [a["id"]]
+        if invalid == "duplicate":
+            sources = [a["id"], a["id"]]
+        if invalid == "self":
+            sources = [a["id"], target["id"]]
+        if invalid == "too_many":
+            sources = [str(uuid.uuid4()) for _ in range(30)]
+        if invalid == "bad_uuid":
+            sources = [a["id"], "bad"]
+        resp = await client.post(
+            f"{board['categories']}/merge",
+            json={"source_ids": sources, "target_id": target["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400, resp.text
+        assert len(await _list(client, auth_headers, board)) == 3
+
+    async def test_access_restrictions(
+        self, client, auth_headers, board, merge_set, other_headers, test_user, tenant
+    ):
+        a, b, target = merge_set
+        url = f"{board['categories']}/merge"
+        payload = {"source_ids": [a["id"], b["id"]], "target_id": target["id"]}
+        assert (await client.post(url, json=payload)).status_code == 401
+        assert (
+            await client.post(url, json=payload, headers=other_headers)
+        ).status_code == 404
+        await _sql(
+            "UPDATE users SET role='TENANT_VIEWER' WHERE id=:i", i=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        assert (
+            await client.post(
+                url, json=payload, headers={"Authorization": f"Bearer {token}"}
+            )
+        ).status_code == 403
+
+    async def test_failure_before_commit_rolls_back(
+        self, client, auth_headers, board, merge_set, monkeypatch
+    ):
+        from app.services import board_category
+
+        a, b, target = merge_set
+        post = await _post(client, auth_headers, board, category_id=a["id"])
+
+        async def fail_commit(*args, **kwargs):
+            raise RuntimeError("audit/commit failed")
+
+        monkeypatch.setattr(board_category, "log_action", fail_commit)
+        with pytest.raises(RuntimeError, match="audit/commit failed"):
+            await client.post(
+                f"{board['categories']}/merge",
+                json={"source_ids": [a["id"], b["id"]], "target_id": target["id"]},
+                headers=auth_headers,
+            )
+        assert len(await _list(client, auth_headers, board)) == 3
+        assert (
+            await _sql(
+                "SELECT category_id::text FROM board_posts WHERE id=:i", i=post["id"]
+            )
+        )[0][0] == a["id"]
+
+    async def test_empty_sources_and_system_feature_protection(
+        self, client, auth_headers, board, merge_set, monkeypatch
+    ):
+        a, b, target = merge_set
+        payload = {"source_ids": [a["id"], b["id"]], "target_id": target["id"]}
+        await _sql(
+            "UPDATE boards SET system_key='test-system' WHERE id=:i", i=board["id"]
+        )
+        resp = await client.post(
+            f"{board['categories']}/merge", json=payload, headers=auth_headers
+        )
+        assert resp.status_code == 409, resp.text
+        await _sql("UPDATE boards SET system_key=NULL WHERE id=:i", i=board["id"])
+
+        async def disabled(*args):
+            return False
+
+        with monkeypatch.context() as scoped:
+            scoped.setattr(feature_service, "is_enabled", disabled)
+            resp = await client.post(
+                f"{board['categories']}/merge", json=payload, headers=auth_headers
+            )
+            assert resp.status_code == 403, resp.text
+        assert len(await _list(client, auth_headers, board)) == 3
+        resp = await client.post(
+            f"{board['categories']}/merge", json=payload, headers=auth_headers
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"] == {"merged": 2, "moved": 0}
