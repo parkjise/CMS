@@ -5,7 +5,7 @@
 ## 최신 기록: T-168 여러 카테고리 합치기 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-09 후속의 여러 원본 일괄 합치기를 구현했다. 원본/대상 전체 검증 뒤 단일 트랜잭션으로 처리하고 실패/조회 갱신을 시험하는 플랜이다.
-- PR: 생성 후 번호 연결. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#118](https://github.com/parkjise/CMS/pull/118). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-168-category-bulk-merge`, 폴더: `/private/tmp/cms-T-168`, 기준 main: `a71a194`.
 - 이전 T-167: #117 backend · frontend · e2e 성공 뒤 병합, 최종 커밋 main 포함 확인. 병합 커밋 `a71a194`.
 - API: POST /api/v1/boards/{board_id}/categories/merge, source_ids(중복 없는 UUID 2~29개)/target_id(원본과 달라야 함), 응답 merged/moved. schemas/board.py, services/board_category.py, endpoints/boards.py. 기본 게시판 차단 및 같은 게시판/사업체의 미삭제 원본과 대상을 전부 검증한다. 관련 분류 행을 ID 순서로 FOR UPDATE 잠근 뒤 휴지통 포함 글 이동/원본 소프트 삭제/BOARD_CATEGORIES_MERGED 감사 행을 같은 세션의 log_action 한 커밋으로 처리한다. 실패 시 요청 세션 rollback으로 부분 이동/삭제를 남기지 않는다. 대상 이름/상태/순서, 글 내용/공개 상태/고정 여부는 유지한다. 감사에는 원본 ID/대상/개수만 남기며 본문/IP는 넣지 않는다. 사이트 캐시를 비운다. DB 스키마 · 로그인 · 권한 정책 변경 없음.
