@@ -20,6 +20,7 @@ import { ArrowDown, ArrowUp, Eye, EyeOff, GripVertical, Merge, Pencil, Trash2 } 
 import { useParams } from 'react-router'
 import type { BoardCategory } from '@cms/types'
 import { Button, Input, Modal, toast } from '@cms/ui'
+import { BulkMergeCategoriesDialog } from '@/components/boards/BulkMergeCategoriesDialog'
 import { MergeCategoryDialog } from '@/components/boards/MergeCategoryDialog'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoards } from '@/hooks/useBoards'
@@ -351,6 +352,7 @@ function CategoryManager({ boardId }: { boardId: string }) {
   const [categories, setCategories] = useState<BoardCategory[]>([])
   const [deleting, setDeleting] = useState<BoardCategory | null>(null)
   const [merging, setMerging] = useState<BoardCategory | null>(null)
+  const [bulkMerging, setBulkMerging] = useState(false)
   const [search, setSearch] = useState('')
   const [visibility, setVisibility] = useState('all')
   const query = search.trim().toLocaleLowerCase()
@@ -402,6 +404,23 @@ function CategoryManager({ boardId }: { boardId: string }) {
       {canEdit && (
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <AddCategoryForm boardId={boardId} atLimit={categories.length >= MAX_CATEGORIES} />
+        </div>
+      )}
+      {canEdit && (
+        <div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={categories.length < 3}
+            onClick={() => setBulkMerging(true)}
+          >
+            여러 카테고리 합치기
+          </Button>
+          {categories.length < 3 && (
+            <p className="mt-1 text-xs text-slate-500">
+              원본 2개와 대상 1개, 최소 3개의 카테고리가 필요합니다.
+            </p>
+          )}
         </div>
       )}
       {categories.length > 0 ? (
@@ -498,6 +517,13 @@ function CategoryManager({ boardId }: { boardId: string }) {
         categories={categories}
         onClose={() => setDeleting(null)}
       />
+      {bulkMerging && (
+        <BulkMergeCategoriesDialog
+          boardId={boardId}
+          categories={categories}
+          onClose={() => setBulkMerging(false)}
+        />
+      )}
       {merging && (
         <MergeCategoryDialog
           key={merging.id}

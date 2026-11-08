@@ -15,8 +15,10 @@ from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import log_action
 from app.models.board import Board, BoardCategory, BoardPost
-from app.schemas.board import CategoryCreate, CategoryUpdate
+from app.models.user import User
+from app.schemas.board import CategoryCreate, CategoryMergeRequest, CategoryUpdate
 from app.services import site_cache
 
 MAX_CATEGORIES = 30
@@ -210,6 +212,61 @@ async def reorder_categories(
         category.display_order = rank[category.id]
     await _commit(db, board)
     return await list_categories(db, board.id)
+
+
+async def merge_categories(
+    db: AsyncSession, board: Board, data: CategoryMergeRequest, actor: User
+) -> int:
+    """여러 원본의 검증/글 이동/소프트 삭제/감사를 한 번에 커밋한다."""
+    if board.system_key is not None:
+        raise _conflict(MSG_SYSTEM_BOARD)
+    ids = [*data.source_ids, data.target_id]
+    result = await db.execute(
+        select(BoardCategory)
+        .where(
+            BoardCategory.board_id == board.id,
+            BoardCategory.tenant_id == board.tenant_id,
+            BoardCategory.deleted_at.is_(None),
+            BoardCategory.id.in_(ids),
+        )
+        .order_by(BoardCategory.id)
+        .with_for_update()
+    )
+    categories = list(result.scalars())
+    if len(categories) != len(ids):
+        raise _invalid(MSG_UNKNOWN_CATEGORY, "source_ids")
+    moved = await db.execute(
+        update(BoardPost)
+        .where(
+            BoardPost.board_id == board.id,
+            BoardPost.tenant_id == board.tenant_id,
+            BoardPost.category_id.in_(data.source_ids),
+        )
+        .values(category_id=data.target_id)
+    )
+    now = datetime.now(UTC)
+    for category in categories:
+        if category.id != data.target_id:
+            category.deleted_at = now
+    count = int(moved.rowcount or 0)  # type: ignore[attr-defined]
+    # log_action이 같은 세션의 변경과 감사 기록을 함께 커밋한다.
+    await log_action(
+        db,
+        actor,
+        "BOARD_CATEGORIES_MERGED",
+        "board_category",
+        data.target_id,
+        before={"source_ids": [str(id_) for id_ in data.source_ids]},
+        after={
+            "board_id": str(board.id),
+            "target_id": str(data.target_id),
+            "merged": len(data.source_ids),
+            "moved_posts": count,
+        },
+        tenant_id=board.tenant_id,
+    )
+    await site_cache.purge_site(db, board.tenant_id)
+    return count
 
 
 def copies_of(categories: list[BoardCategory], board_id: UUID) -> list[BoardCategory]:

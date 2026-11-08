@@ -314,3 +314,14 @@ export interface ReportedPost {
   details: string[]
   latest_at: string
 }
+
+/** 여러 원본 카테고리를 한 대상에 합친다 (T-168). */
+export interface BoardCategoryMergeInput {
+  source_ids: string[]
+  target_id: string
+}
+
+export interface BoardCategoryMergeResult {
+  merged: number
+  moved: number
+}

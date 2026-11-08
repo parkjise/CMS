@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { BoardCategory } from '@cms/types'
+import type { BoardCategory, BoardCategoryMergeInput, BoardCategoryMergeResult } from '@cms/types'
 import { api } from '@/lib/api'
 
 /** 게시판 카테고리 (T-149, 게시판 모듈 기획서 BM-09) */
@@ -81,5 +81,21 @@ export function useReorderCategories(boardId: string) {
       await api.patch(`/v1/boards/${boardId}/categories/order`, { category_ids: categoryIds })
     },
     onSettled: invalidate,
+  })
+}
+
+/** 서버에서 여러 원본을 한 트랜잭션으로 합친다. */
+export function useMergeCategories(boardId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (payload: BoardCategoryMergeInput): Promise<BoardCategoryMergeResult> => {
+      const { data } = await api.post(`/v1/boards/${boardId}/categories/merge`, payload)
+      return data.data
+    },
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),
+        queryClient.invalidateQueries({ queryKey: ['boards', 'overview'] }),
+      ]),
   })
 }
