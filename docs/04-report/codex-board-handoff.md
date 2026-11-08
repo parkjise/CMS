@@ -2,7 +2,19 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-171 관리자 게시판별 글 표 보기 (Codex)
+## 최신 기록: T-172 관리자 표 열 순서·크기 개인 저장 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-09)에 따라 T-171 후속의 관리자 개인 열 설정을 진행했다. 계정·사업체·게시판별 브라우저 저장 → 표/키보드 조작 연결 → 격리/필드 갱신/실패·복원 및 브라우저 확인 플랜이다.
+- 브랜치: `codex/T-172-admin-table-layout`, 폴더: `/Users/jisepark/.codex/worktrees/t172-table-layout/CMS`, 기준 main: `2849c17`. PR 생성 뒤 연결하고 최종 head backend/frontend/e2e 모두 성공하면 병합한다.
+- 이전 T-171: #121 최종 head 909b45e의 세 CI 성공 뒤 병합. 병합 커밋 `2849c17`, 원격 main 포함 확인.
+- postTableLayoutStore.ts: Zustand의 개인 설정, localStorage `cms-admin-post-table-layouts`, version=1. scope는 JSON [tenant_id,user_id,board_id]이며 모두 확인돼야 저장한다. 순서/크기의 필드 ID만 보관하고 이름/글 값은 넣지 않는다. 읽기에서 JSON/버전/범위/ID/중복/크기를 검증하고 잘못된 항목은 버린다. 최근 100개 범위, 열 ID/크기는 20개 한도로 읽는다. 저장 실패는 현재 화면 상태와 해당 범위 실패 표시를 유지하며 재시도 성공 시 해제한다. 현재 범위 초기화는 다른 범위를 지우지 않는다. 서버 쓰기/저장 API는 없다.
+- PostTableLayoutControls.tsx + BoardPostsPage: 표 모드에서 details 열 순서·크기 설정, 앞/뒤 버튼(처음/끝 잠금), 좁게/보통/넓게 최소 128/160/256px, 현재 범위 초기화. CSS는 고정 Tailwind 클래스이며 직접 픽셀/드래그는 없다. 저장 순서의 유효한 표시 열만 사용하고 새 표시 열은 필드 순서대로 끝에 붙인다. 필드 정의/제목 아래/홈페이지 순서는 유지한다. 계정 정보가 없으면 저장 설정 대신 안내하고 기본 표는 그대로 제공한다. 뷰어도 개인 보기만 저장하며 기존 글 작업 권한은 바꾸지 않는다. 표시 모드 자체는 저장하지 않는다. DB/API/로그인/권한 정책/공유 디자인 변경 없음.
+- 로컬 검증: 관리자 전체 73개 파일 611개 통과/기존 시간대 전용 1개 스킵. 신규 postTableLayoutStore 12개 + 기존 boardPostsTable 확장 5개로 총 신규 17개. 계정/사업체/게시판 구분, 잘못된 JSON/버전/중복/크기 제거, 새/삭제 열 병합, 초기화의 다른 범위 보존, 저장/읽기 거부·초기화 실패 뒤 재시도, 100범위 제한, 실제 표 순서/크기/다시 열기, 요청 없음, 필드 갱신/뷰어를 확인했다. 저장 실패 시험은 테스트 setup의 localStorage가 자체 모의 객체인 점을 반영해 Storage.prototype 대신 실제 window.localStorage 메서드를 가로채도록 고친 뒤 통과했다. 전체 프런트 타입 검사, 관리자 빌드, lint 오류 0(기존 경고 5개), 변경 코드 Prettier·git diff --check 확인.
+- 브라우저: 실제 BoardPostsPage/공통 UI/실제 Tailwind CSS를 임시 Vite 진입점으로 렌더하고 API만 Playwright로 모의 처리한 Chromium 픽스처다. 390px에서 담당 열이 160→256px로 늘어나는 것, 확인 열 앞으로 두 번 이동, 새로고침 후 순서/크기 복원, 초기화를 확인했다. 390px 문서=viewport=390/표 client340 scroll1136, 1280px 문서=viewport=1280/표 client1214 scroll1214. 두 캡처를 직접 확인했다: `/private/tmp/cms-T-172-390.png`, `/private/tmp/cms-T-172-1280.png`, 실행 `/private/tmp/cms-T-172-browser.cjs`. 임시 진입점은 삭제하고 서버는 종료했다.
+- 한계/보호: 전체 앱 셸·실제 로그인·실제 서버 통합/다른 탭 동기화 검증이 아니다. 로컬 백엔드 시험은 재실행하지 않았고 Node 25.2.1 로컬/Node 22·전체 회귀는 CI로 확인한다. 원래 체크아웃의 Oliva/.bkit/Corporate_Template_Plan_v0.1.md 및 새 docs/mockups/기획/는 수정하지 않았다.
+- 후속: 공개 홈페이지 독립 표 열/열 설정, 관리자 개인 설정 서버 동기화, 2단계 분류, 선택지 매핑. 테마형 공지 스킵·D-06 자동 파기·법률/백업 보류 유지.
+
+## 이전 기록: T-171 관리자 게시판별 글 표 보기 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 BM-03의 독립 표 열을 관리자 게시판별 글 관리의 보기 전환으로 분리했다. 기존 추가 정보 필드/값을 재사용하고 두 보기의 정보/작업을 공유한 뒤 값·전환·권한·오류와 좁은 화면을 시험하는 플랜이다.
 - 브랜치: `codex/T-171-admin-posts-table`, 폴더: `/Users/jisepark/.codex/worktrees/t171-posts-table/CMS`, 기준 main: `57640a6`. PR [#121](https://github.com/parkjise/CMS/pull/121), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Pin, Plus } from 'lucide-react
 import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
+import { PostTableLayoutControls } from '@/components/boards/PostTableLayoutControls'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useBoardFields } from '@/hooks/useBoardFields'
@@ -21,6 +22,13 @@ import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
+import {
+  orderTableFields,
+  postTableScope,
+  tableColumnSize,
+  TABLE_SIZE_CLASSES,
+  usePostTableLayoutStore,
+} from '@/stores/postTableLayoutStore'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
@@ -72,6 +80,12 @@ export function BoardPostsPage() {
     .filter((field) => field.board_id === boardId && field.show_in_list && !field.deleted_at)
     .sort((a, b) => a.display_order - b.display_order)
   const showTable = Boolean(tableBoards[boardId] && listFields.length > 0)
+  const currentUser = useAuthStore((state) => state.user)
+  const tableScope = postTableScope(currentUser?.tenant_id, currentUser?.id, boardId)
+  const tableLayout = usePostTableLayoutStore((state) =>
+    tableScope ? state.layouts[tableScope] : undefined
+  )
+  const tableFields = orderTableFields(listFields, tableLayout)
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
   const restorePost = useRestorePost(boardId)
@@ -330,7 +344,7 @@ export function BoardPostsPage() {
             </select>
           </label>
           <p className="text-xs text-slate-500">
-            목록 표시를 켠 칸을 필드 순서대로 보여 줍니다. 이 화면에서만 적용됩니다.
+            표시 방식은 이 화면에만 적용됩니다. 표 보기의 열 순서·크기는 따로 저장할 수 있습니다.
           </p>
           {fieldsQuery.isPending && (
             <p className="text-sm text-slate-500">칸 정보를 불러오는 중…</p>
@@ -351,6 +365,10 @@ export function BoardPostsPage() {
             <p className="text-xs text-slate-500">목록 표시를 켠 추가 칸이 없습니다.</p>
           )}
         </div>
+      )}
+
+      {showTable && (
+        <PostTableLayoutControls scope={tableScope} fields={tableFields} layout={tableLayout} />
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -378,11 +396,11 @@ export function BoardPostsPage() {
                   <th scope="col" className="min-w-72 px-4 py-3">
                     게시글
                   </th>
-                  {listFields.map((field) => (
+                  {tableFields.map((field) => (
                     <th
                       key={field.id}
                       scope="col"
-                      className="min-w-40 px-4 py-3 [overflow-wrap:anywhere]"
+                      className={`${TABLE_SIZE_CLASSES[tableColumnSize(tableLayout, field.id)]} px-4 py-3 [overflow-wrap:anywhere]`}
                     >
                       {field.label}
                     </th>
@@ -400,10 +418,10 @@ export function BoardPostsPage() {
                     <td className="px-4 py-3 align-top">
                       <div className="w-72">{postInfo(post, false)}</div>
                     </td>
-                    {listFields.map((field) => (
+                    {tableFields.map((field) => (
                       <td
                         key={field.id}
-                        className="max-w-80 whitespace-pre-wrap px-4 py-3 align-top text-slate-700 [overflow-wrap:anywhere]"
+                        className={`${TABLE_SIZE_CLASSES[tableColumnSize(tableLayout, field.id)]} max-w-80 whitespace-pre-wrap px-4 py-3 align-top text-slate-700 [overflow-wrap:anywhere]`}
                       >
                         {isEmptyValue(post.custom_data?.[field.field_key]) ? (
                           <span aria-label="값 없음">—</span>

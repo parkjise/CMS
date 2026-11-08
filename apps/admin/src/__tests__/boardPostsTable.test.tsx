@@ -6,6 +6,11 @@ import type { BoardField } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { BoardPostsPage } from '@/pages/BoardPostsPage'
 import { useAuthStore } from '@/stores/authStore'
+import {
+  POST_TABLE_STORAGE_KEY,
+  readTableLayouts,
+  usePostTableLayoutStore,
+} from '@/stores/postTableLayoutStore'
 
 const { get, patch, del, post } = vi.hoisted(() => ({
   get: vi.fn(),
@@ -104,6 +109,9 @@ const params = () =>
   get.mock.calls.filter(([url]) => url === '/v1/boards/b1/posts').at(-1)?.[1].params
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.restoreAllMocks()
+  localStorage.removeItem(POST_TABLE_STORAGE_KEY)
+  usePostTableLayoutStore.setState({ layouts: {}, saveFailed: {} })
   useAuthStore.setState({ user: { role: 'TENANT_ADMIN' } } as never)
   currentRow = { ...row }
   fields = [
@@ -272,5 +280,112 @@ describe('게시판별 관리자 글 표 보기', () => {
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(screen.queryByText('메모:')).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: '추가 정보 표시 방식' })).toHaveValue('inline')
+  })
+})
+
+describe('표 열 순서·크기 개인 설정', () => {
+  beforeEach(() =>
+    useAuthStore.setState({ user: { id: 'u1', tenant_id: 't1', role: 'TENANT_ADMIN' } } as never)
+  )
+  const openControls = async () => {
+    await tableMode()
+    await userEvent.click(screen.getByText('열 순서·크기'))
+  }
+  const headers = () =>
+    within(screen.getByRole('table'))
+      .getAllByRole('columnheader')
+      .map((el) => el.textContent)
+  it('순서/크기를 적용하고 다시 열어도 저장된 설정을 사용하며 조회/쓰기 API를 보내지 않는다', async () => {
+    const view = renderPage()
+    await openControls()
+    const calls = get.mock.calls.length
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: '메모 열 크기' }), 'wide')
+    expect(headers()).toEqual(['게시글', '메모', '수량', '작업'])
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-64')
+    expect(get.mock.calls).toHaveLength(calls)
+    expect(patch).not.toHaveBeenCalled()
+    const saved = readTableLayouts()
+    expect(Object.values(saved)[0]).toEqual({
+      order: ['note', 'count'],
+      sizes: { note: 'wide', count: 'normal' },
+    })
+    view.unmount()
+    usePostTableLayoutStore.setState({ layouts: saved })
+    renderPage()
+    await tableMode()
+    expect(headers()).toEqual(['게시글', '메모', '수량', '작업'])
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-64')
+  })
+  it('다른 계정/사업체/게시판에 설정을 적용하지 않는다', async () => {
+    renderPage()
+    await openControls()
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    for (const user of [
+      { id: 'u2', tenant_id: 't1', role: 'TENANT_ADMIN' },
+      { id: 'u1', tenant_id: 't2', role: 'TENANT_ADMIN' },
+    ]) {
+      act(() => useAuthStore.setState({ user } as never))
+      expect(headers()).toEqual(['게시글', '수량', '메모', '작업'])
+    }
+    act(() =>
+      useAuthStore.setState({ user: { id: 'u1', tenant_id: 't1', role: 'TENANT_ADMIN' } } as never)
+    )
+    expect(headers()).toEqual(['게시글', '메모', '수량', '작업'])
+    await userEvent.click(screen.getByRole('link', { name: '다른 게시판 열기' }))
+    await tableMode()
+    expect(headers()).toEqual(['게시글', '다른 칸', '작업'])
+  })
+  it('필드 변경은 저장 순서와 새 칸을 조합하고 초기화는 기본 필드 순서/크기로 돌아간다', async () => {
+    renderPage()
+    await openControls()
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: '수량 열 크기' }), 'narrow')
+    fields = [
+      field('new', { label: '새 칸', display_order: -1 }),
+      field('count', { label: '수량', field_type: 'NUMBER', display_order: 1 }),
+    ]
+    await userEvent.click(screen.getByRole('button', { name: '상단 고정' }))
+    await waitFor(() => expect(headers()).toEqual(['게시글', '수량', '새 칸', '작업']))
+    expect(screen.getByRole('columnheader', { name: '수량' })).toHaveClass('min-w-32')
+    await userEvent.click(screen.getByRole('button', { name: '열 설정 초기화' }))
+    expect(headers()).toEqual(['게시글', '새 칸', '수량', '작업'])
+    expect(screen.getByRole('columnheader', { name: '수량' })).toHaveClass('min-w-40')
+  })
+  it('저장 실패는 안내하고 선택은 유지하며 재시도할 수 있다', async () => {
+    renderPage()
+    await openControls()
+    const spy = vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: '메모 열 크기' }), 'wide')
+    expect(screen.getByRole('alert')).toHaveTextContent('현재 화면에만 적용됩니다')
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-64')
+    spy.mockRestore()
+    await userEvent.click(screen.getByRole('button', { name: '저장 다시 시도' }))
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    expect(Object.values(readTableLayouts())[0].sizes.note).toBe('wide')
+    const resetFailure = vi.spyOn(window.localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('quota')
+    })
+    await userEvent.click(screen.getByRole('button', { name: '열 설정 초기화' }))
+    expect(screen.getByRole('alert')).toHaveTextContent('현재 화면에만 적용됩니다')
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-40')
+    resetFailure.mockRestore()
+    await userEvent.click(screen.getByRole('button', { name: '저장 다시 시도' }))
+    expect(readTableLayouts()).toEqual({})
+  })
+  it('뷰어도 개인 보기만 저장할 수 있고 글 작업/서버 변경은 없다', async () => {
+    useAuthStore.setState({
+      user: { id: 'viewer', tenant_id: 't1', role: 'TENANT_VIEWER' },
+    } as never)
+    renderPage()
+    await openControls()
+    expect(screen.getByRole('button', { name: '수량 열 앞으로' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '메모 열 뒤로' })).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    expect(headers()).toEqual(['게시글', '메모', '수량'])
+    expect(patch).not.toHaveBeenCalled()
+    expect(post).not.toHaveBeenCalled()
   })
 })
