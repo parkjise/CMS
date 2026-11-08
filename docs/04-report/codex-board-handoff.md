@@ -5,7 +5,7 @@
 ## 최신 기록: T-167 긴 상호 헤더 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-08)에 따라 T-140-B 후속의 모바일 긴 상호 문제를 진행했다. 상호를 줄여 계정/토글 공간을 확보하고 데스크톱 접기는 유지하는 플랜이다.
-- PR: 생성 후 번호 연결. 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
+- PR: [#117](https://github.com/parkjise/CMS/pull/117). 생성 시점 미병합이며 세 CI가 모두 통과하면 병합한다. 현재 상태는 GitHub에서 확인한다.
 - 브랜치: `codex/T-167-mobile-header`, 폴더: `/private/tmp/cms-T-167`, 기준 main: `8b5539d`.
 - 이전 T-166: #116 최종 head의 backend · frontend · e2e 성공 뒤 병합, main 포함 확인. 병합 커밋 `8b5539d`. 기존 DeferredStylesheets 비동기 정리 보완도 포함됐다.
 - 구현: hospital-a Header.tsx의 상호를 header__brand span으로 감싸 전체 텍스트/title/홈 링크를 유지한다. styles/header/_header.scss에서 로고 제목 영역 min-width:0/shrink를 허용하고 브랜드만 overflow hidden/ellipsis/nowrap으로 표시한다. 로고 이미지/메뉴 토글은 줄어들지 않는다. 펼친 lg 헤더의 상호는 기존대로 shrink:0, collapsed에서는 shrink:1이라 기존 메뉴 overflow 측정과 접기 정책을 보존한다. 계정 링크/회원 상태 전환·서버 API · DB · 로그인 · 권한 정책 변경 없음.
