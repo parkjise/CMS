@@ -13,6 +13,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
+from sqlalchemy.sql.elements import TextClause
 
 from app.db.session import set_rls_context, set_super_admin_context
 from app.models.board import Board, BoardField, BoardPost
@@ -34,6 +35,7 @@ from app.schemas.rich_body import body_summary, first_image
 from app.services import board_access, member_features, site_cache
 from app.services import board_category as category_service
 from app.services import board_field as field_service
+from app.services.board_search import body_contains
 
 NOTICE_KEY = "notice"
 STATUS_PUBLISHED = "PUBLISHED"
@@ -734,6 +736,7 @@ async def list_all_posts(
     status: str | None = None,
     q: str | None = None,
     author: str | None = None,
+    body_q: str | None = None,
     trash: bool = False,
     created_from: datetime | None = None,
     created_before: datetime | None = None,
@@ -749,7 +752,7 @@ async def list_all_posts(
         raise HTTPException(status_code=400, detail=MSG_UPDATED_DATE_RANGE)
     if published_from and published_before and published_from >= published_before:
         raise HTTPException(status_code=400, detail=MSG_PUBLISHED_DATE_RANGE)
-    conditions: list[ColumnElement[bool]] = [
+    conditions: list[ColumnElement[bool] | TextClause] = [
         BoardPost.tenant_id == tenant_id,
         Board.deleted_at.is_(None),
         BoardPost.deleted_at.is_not(None) if trash else BoardPost.deleted_at.is_(None),
@@ -777,6 +780,8 @@ async def list_all_posts(
         conditions.append(
             or_(_title_contains(BoardPost.guest_name, name), member_match)
         )
+    if body_q and body_q.strip():
+        conditions.append(body_contains(body_q.strip()))
     if created_from:
         conditions.append(BoardPost.created_at >= created_from)
     if created_before:
