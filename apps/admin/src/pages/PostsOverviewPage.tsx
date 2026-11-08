@@ -32,6 +32,7 @@ export function PostsOverviewPage() {
   const canEdit = useCanEdit()
   const [filters, setFilters] = useState<PostOverviewFilters>({ page: 1, size: PAGE_SIZE })
   const [keyword, setKeyword] = useState('')
+  const [author, setAuthor] = useState('')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [dateField, setDateField] = useState<'created' | 'updated' | 'published'>('created')
@@ -89,6 +90,7 @@ export function PostsOverviewPage() {
       setDateError('')
       changeFilters({
         q: keyword.trim() || undefined,
+        author: author.trim() || undefined,
         created_from: dateField === 'created' ? dates.created_from : undefined,
         created_before: dateField === 'created' ? dates.created_before : undefined,
         updated_from: dateField === 'updated' ? dates.created_from : undefined,
@@ -222,6 +224,13 @@ export function PostsOverviewPage() {
             value={keyword}
             maxLength={100}
             onChange={(e) => setKeyword(e.target.value)}
+          />
+          <Input
+            label="회원·비회원 작성자 검색"
+            value={author}
+            maxLength={100}
+            placeholder="목록에 표시되는 이름"
+            onChange={(event) => setAuthor(event.target.value)}
           />
           <label className="block text-sm">
             <span className="mb-1.5 block font-medium text-slate-700">날짜 기준</span>
