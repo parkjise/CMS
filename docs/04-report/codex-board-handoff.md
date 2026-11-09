@@ -5,7 +5,7 @@
 ## 최신 기록: T-173 공개 목록형 추가 정보 표 보기 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-09)에 따라 공개 목록형의 추가 정보를 표의 개별 열로 보여 주는 후속을 구현했다. 기존 디자인 저장/공개 필드 선별 → 권한 뒤 열 정의 → 코드형/테마형 공유 표 → 회귀 및 좁은 화면 확인 순서다.
-- 브랜치: `codex/T-173-public-list-table`, 폴더: `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`, 기준 main: `b73ba3c`. PR 생성 후 연결한다. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
+- 브랜치: `codex/T-173-public-list-table`, 폴더: `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`, 기준 main: `b73ba3c`. PR [#123](https://github.com/parkjise/CMS/pull/123), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
 - 이전 T-172: PR #122 세 CI 성공 뒤 병합, 병합 커밋 `b73ba3c`, 원격 main 포함 확인.
 - 관리자 BoardDesignPage: 추가 LIST만 홈페이지 추가 정보 표시(제목 아래/표의 개별 열)를 기존 디자인 저장으로 처리한다. 실패 시 선택 유지, 재시도, 기존 뷰어 잠금. 저장 즉시 홈페이지 반영하며 필드별 표시 선택은 기존대로 독립 저장한다.
 - 서버 BoardDesign.list_layout은 inline 기본/columns만 허용한다. 기존 boards.settings JSON 사용으로 마이그레이션 없음. 공개 목록의 기존 읽기 권한 확인 뒤 list_columns에 공개+목록 표시 미삭제 필드 key/label/type만 필드 순서로 제공한다. 빈 글 결과에도 열 정의 유지, 다른 유형/기본 공지/inline은 null. 글 값은 기존 list_fields를 재사용하고 비밀글은 null. 회원 전용은 기존 토큰 검사와 private,no-store 유지. 로그인/권한 정책 변경 없음.
