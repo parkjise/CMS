@@ -47,7 +47,9 @@ $badge-bg: #f1f5f9;
     border: 1px solid var(--color-text-primary);
     border-radius: 999px;
     font-size: 1rem;
-    transition: background-color 0.2s, color 0.2s;
+    transition:
+      background-color 0.2s,
+      color 0.2s;
     @include focus-ring;
 
     @include hover {
@@ -154,5 +156,46 @@ $badge-bg: #f1f5f9;
     @include md {
       margin-top: 110px;
     }
+  }
+
+  // 공개 목록형 추가 정보 표 (T-173)
+  &__table-scroll {
+    overflow-x: auto;
+    &:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: 2px;
+    }
+  }
+  &__table {
+    min-width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+  }
+  &__table-head,
+  &__table-cell {
+    min-width: 160px;
+    max-width: 320px;
+    padding: 16px;
+    border-bottom: 1px solid $line;
+    vertical-align: top;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+  &__table-head {
+    font-weight: 600;
+    border-color: $line-strong;
+  }
+  &__table-title {
+    min-width: 256px;
+  }
+  &__table-link {
+    color: inherit;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  &__table-date {
+    white-space: nowrap;
+    color: $muted;
   }
 }

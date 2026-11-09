@@ -50,6 +50,7 @@ class BoardDesign(BaseModel):
 
     columns: Literal[2, 3, 4] = 3
     image_ratio: Literal["1:1", "4:3", "16:9"] = "4:3"
+    list_layout: Literal["inline", "columns"] = "inline"
     show_date: bool = True
     show_image: bool = True
     show_summary: bool = True
@@ -480,7 +481,14 @@ class PublicPostItem(BaseModel):
     category_id: UUID | None = None
 
 
+class PublicListColumn(BaseModel):
+    key: str
+    label: str
+    field_type: str
+
+
 class PublicPostListResponse(BaseModel):
+    list_columns: list[PublicListColumn] | None = None
     total: int
     page: int
     size: int

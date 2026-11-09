@@ -1,3 +1,4 @@
+import { PublicListTable } from './PublicListTable'
 import type { ReactNode } from 'react'
 import { ListFieldValues } from './ListFieldValues'
 import type { BodyNode, PublicBoard, PublicPost } from '@cms/types'
@@ -285,6 +286,32 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
         <p className={`mt-6 border-t py-16 text-center text-sm ${line} ${muted}`}>
           {keyword ? '검색 결과가 없습니다.' : '등록된 글이 없습니다.'}
         </p>
+      ) : board.board_type === 'LIST' &&
+        design.list_layout === 'columns' &&
+        list.list_columns?.length ? (
+        <PublicListTable
+          rows={posts.map((post) => ({
+            id: post.id,
+            title: post.title,
+            date: postDate(post.published_at),
+            pinned: post.is_pinned,
+            secret: post.is_secret,
+            fields: post.list_fields,
+          }))}
+          columns={list.list_columns}
+          showDate={design.show_date}
+          hrefFor={hrefFor}
+          classes={{
+            scroll: 'mt-6 overflow-x-auto focus-visible:outline focus-visible:outline-2',
+            table: 'min-w-full text-left text-sm',
+            head: `min-w-40 border-b px-4 py-3 font-semibold ${line} ${primary}`,
+            cell: `min-w-40 max-w-80 whitespace-pre-wrap border-b px-4 py-3 align-top [overflow-wrap:anywhere] ${line} ${muted}`,
+            title: 'min-w-64',
+            link: `font-medium hover:underline ${primary}`,
+            badge: 'mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs',
+            date: 'whitespace-nowrap',
+          }}
+        />
       ) : board.board_type === 'GALLERY' ? (
         <ul
           className={`mt-6 grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-6 ${COLUMN_CLASS[design.columns]}`}
@@ -309,7 +336,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                   />
                 )}
                 <span className={`mt-3 block font-semibold group-hover:underline ${primary}`}>
-                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                  {post.is_secret && (
+                    <Lock
+                      className="mr-1 inline h-4 w-4 align-[-2px]"
+                      aria-label="비밀글"
+                      role="img"
+                    />
+                  )}
                   {post.title}
                 </span>
                 {!post.is_secret && (
@@ -355,7 +388,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     </span>
                   )}
                   <span className={`font-semibold group-hover:underline ${primary}`}>
-                    {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                    {post.is_secret && (
+                      <Lock
+                        className="mr-1 inline h-4 w-4 align-[-2px]"
+                        aria-label="비밀글"
+                        role="img"
+                      />
+                    )}
                     {post.title}
                   </span>
                   {design.show_summary && post.summary && (
@@ -392,7 +431,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                 className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-semibold ${primary} [&::-webkit-details-marker]:hidden`}
               >
                 <span className="min-w-0">
-                  {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                  {post.is_secret && (
+                    <Lock
+                      className="mr-1 inline h-4 w-4 align-[-2px]"
+                      aria-label="비밀글"
+                      role="img"
+                    />
+                  )}
                   {post.title}
                   {!post.is_secret && (
                     <ListFieldValues
@@ -432,7 +477,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                         공지
                       </span>
                     )}
-                    {post.is_secret && <Lock className="mr-1 inline h-4 w-4 align-[-2px]" aria-label="비밀글" role="img" />}
+                    {post.is_secret && (
+                      <Lock
+                        className="mr-1 inline h-4 w-4 align-[-2px]"
+                        aria-label="비밀글"
+                        role="img"
+                      />
+                    )}
                     {post.title}
                   </span>
                   {!post.is_secret && (

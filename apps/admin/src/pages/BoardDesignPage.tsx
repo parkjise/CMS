@@ -96,6 +96,28 @@ function BoardDesignForm({ board }: { board: Board }) {
               </p>
             )}
 
+            {boardType === 'LIST' && (
+              <div>
+                <label htmlFor="board-list-layout" className={LABEL_CLASS}>
+                  홈페이지 추가 정보 표시
+                </label>
+                <select
+                  id="board-list-layout"
+                  className={SELECT_CLASS}
+                  value={design.list_layout ?? 'inline'}
+                  onChange={(event) =>
+                    change({ list_layout: event.target.value === 'columns' ? 'columns' : 'inline' })
+                  }
+                >
+                  <option value="inline">제목 아래</option>
+                  <option value="columns">표의 개별 열</option>
+                </select>
+                <p className="mt-2 text-xs text-slate-500">
+                  홈페이지 표시와 목록 표시를 켠 칸만 나옵니다. 저장하면 홈페이지에 바로 적용됩니다.
+                </p>
+              </div>
+            )}
+
             {usesImage && (
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
