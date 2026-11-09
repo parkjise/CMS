@@ -54,7 +54,11 @@ class FakeRedis:
         self._check()
         return self.values.get(key)
 
+    broken_publish = False
+
     async def publish(self, _channel: str, payload: str) -> None:
+        if self.broken_publish:
+            raise ConnectionError("down")
         self.published.append(json.loads(payload))
 
 
@@ -97,6 +101,8 @@ async def _configure(client, auth_headers, board_id: str, **operation) -> object
                 "allow_secret": True,
                 "notify_new_post": True,
                 "allow_guest": True,
+                # 아래 신고 시험은 3건 기준으로 쓴다 (기본은 5, T-175)
+                "report_hide_count": 3,
                 **operation,
             },
         },
@@ -464,3 +470,72 @@ class TestReports:
             "/api/v1/posts/reports", headers={"Authorization": f"Bearer {other}"}
         )
         assert resp.status_code in (401, 403, 404) or resp.json()["data"] == []
+
+
+class TestReportThreshold:
+    """신고 자동 비공개 기준 · 신고 알림 (T-175)."""
+
+    @pytest.fixture
+    async def post(self, client, board) -> dict:
+        return (await _write(client, board)).json()["data"]
+
+    async def _report(self, client, board: dict, post: dict, count: int) -> list[dict]:
+        results = []
+        for index in range(count):
+            resp = await client.post(
+                f"{board['public']}/{post['id']}/report",
+                json={"reason": "SPAM"},
+                headers={"X-Real-IP": f"10.9.0.{index + 1}"},
+            )
+            assert resp.status_code == 201, resp.text
+            results.append(resp.json()["data"])
+        return results
+
+    async def test_default_is_five(self, client, auth_headers, tenant):
+        created = await client.post(
+            BOARDS, json={"name": "새", "slug": "fresh"}, headers=auth_headers
+        )
+        assert created.json()["data"]["operation"]["report_hide_count"] == 5
+
+    async def test_setting_five(self, client, auth_headers, board, post):
+        await _configure(client, auth_headers, board["id"], report_hide_count=5)
+        results = await self._report(client, board, post, 5)
+        assert [r["hidden"] for r in results] == [False] * 4 + [True]
+
+    async def test_zero_never_hides(self, client, auth_headers, board, post):
+        await _configure(client, auth_headers, board["id"], report_hide_count=0)
+        results = await self._report(client, board, post, 6)
+        assert not any(r["hidden"] for r in results)
+        assert (await client.get(f"{board['public']}/{post['id']}")).status_code == 200
+        listed = await client.get("/api/v1/posts/reports", headers=auth_headers)
+        assert listed.json()["data"][0]["report_count"] == 6
+
+    @pytest.mark.parametrize("value", [1, 4, -1, "five"])
+    async def test_invalid_400(self, client, auth_headers, board, value):
+        resp = await client.patch(
+            f"{BOARDS}/{board['id']}",
+            json={"operation": {"report_hide_count": value}},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+
+    async def test_every_report_notifies_admin(self, client, board, post, redis):
+        redis.published.clear()
+        await self._report(client, board, post, 3)
+        reports = [p for p in redis.published if p["type"] == "new_report"]
+        assert [r["hidden"] for r in reports] == [False, False, True]
+        assert reports[0] == {
+            "type": "new_report",
+            "board_id": board["id"],
+            "board_name": "방명록",
+            "post_id": post["id"],
+            "title": "안녕하세요",
+            "hidden": False,
+        }
+
+    async def test_notify_failure_still_reports(self, client, board, post, redis):
+        redis.broken_publish = True
+        resp = await client.post(
+            f"{board['public']}/{post['id']}/report", json={"reason": "SPAM"}
+        )
+        assert resp.status_code == 201

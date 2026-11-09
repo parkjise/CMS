@@ -1,7 +1,8 @@
 """글 신고 (T-151-B, 기획서 BM-11).
 
 - 공개된 글만 신고한다. 같은 사람(회원 id 또는 IP 의 해시)은 한 글에 한 번
-- 처리하지 않은 신고가 AUTO_HIDE_COUNT 개면 글을 비공개로 바꾼다 — 관리자가 되돌린다
+- 처리 안 된 신고가 운영 설정의 기준(기본 5, 0 은 안 숨김)이 되면 글을 비공개로 —
+  관리자가 되돌린다. 신고될 때마다 관리자 화면에 알린다 (T-175)
 - 신고 요청은 IP 해시별 1시간 MAX_REPORTS_PER_HOUR 개 (Redis 장애 시 허용)
 """
 
@@ -17,11 +18,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.redis import get_redis
 from app.models.board import Board, BoardPost, BoardPostReport
 from app.schemas.board import ReportAction, ReportCreate
-from app.services import site_cache
+from app.services import board as board_service
+from app.services import board_notify, site_cache
 
 logger = logging.getLogger(__name__)
 
-AUTO_HIDE_COUNT = 3
 MAX_REPORTS_PER_HOUR = 10
 DETAILS_SHOWN = 5
 OPEN = "OPEN"
@@ -101,12 +102,14 @@ async def report_post(
             .where(BoardPostReport.post_id == post.id, BoardPostReport.status == OPEN)
         )
     ).scalar_one()
-    hidden = open_count >= AUTO_HIDE_COUNT
+    hide_count = board_service.operation_of(board).report_hide_count
+    hidden = hide_count > 0 and open_count >= hide_count
     if hidden:
         post.status = STATUS_PRIVATE
     await db.commit()
     if hidden:
         await site_cache.purge_site(db, board.tenant_id)
+    await board_notify.notify_report(board, post, hidden)
     return hidden
 
 
