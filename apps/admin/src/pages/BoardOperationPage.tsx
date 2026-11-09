@@ -1,12 +1,21 @@
 import { useState } from 'react'
 import { useParams } from 'react-router'
-import type { Board, BoardOperation } from '@cms/types'
+import type { Board, BoardOperation, ReportHideCount } from '@cms/types'
 import { Button, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { pickErrorMessage } from '@/lib/errorMessages'
+
+// 신고 자동 비공개 기준 (T-175) — 저장하지 않은 게시판은 5
+const DEFAULT_REPORT_HIDE_COUNT: ReportHideCount = 5
+const REPORT_HIDE_OPTIONS: { value: ReportHideCount; label: string }[] = [
+  { value: 0, label: '자동으로 숨기지 않음 (알림만)' },
+  { value: 3, label: '3건' },
+  { value: 5, label: '5건 (기본)' },
+  { value: 10, label: '10건' },
+]
 
 const CARD_CLASS = 'space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm'
 
@@ -21,7 +30,9 @@ function OperationForm({ board }: { board: Board }) {
   const changed =
     operation.allow_secret !== board.operation.allow_secret ||
     operation.notify_new_post !== board.operation.notify_new_post ||
-    operation.allow_guest !== board.operation.allow_guest
+    operation.allow_guest !== board.operation.allow_guest ||
+    (operation.report_hide_count ?? DEFAULT_REPORT_HIDE_COUNT) !==
+      (board.operation.report_hide_count ?? DEFAULT_REPORT_HIDE_COUNT)
   const change = (next: Partial<BoardOperation>) => setOperation((current) => ({ ...current, ...next }))
 
   const save = async () => {
@@ -78,6 +89,27 @@ function OperationForm({ board }: { board: Board }) {
             checked={operation.notify_new_post}
             onChange={(e) => change({ notify_new_post: e.target.checked })}
           />
+        </div>
+        <div className={`mt-5 ${CARD_CLASS}`}>
+          <label className="block text-sm">
+            <span className="mb-1.5 block font-medium text-slate-700">신고가 몇 건 모이면 글을 숨길까요</span>
+            <select
+              className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm sm:w-72"
+              value={operation.report_hide_count ?? DEFAULT_REPORT_HIDE_COUNT}
+              onChange={(e) => change({ report_hide_count: Number(e.target.value) as ReportHideCount })}
+            >
+              {REPORT_HIDE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="text-sm text-slate-500">
+            방문자가 글을 신고하면 그때마다 관리자 화면에 알림이 뜹니다. 서로 다른 방문자의 신고가 이 수만큼 모이면 글을
+            자동으로 비공개로 바꾸고, 신고된 글 화면에서 다시 공개할 수 있습니다. 기준이 낮을수록 여러 사람이 짜고 정상
+            글을 숨기기 쉬워집니다.
+          </p>
         </div>
       </ReadOnlyFieldset>
       {canEdit && (

@@ -21,11 +21,21 @@ export interface NewPostEvent {
   title: string
 }
 
+/** 홈페이지에서 글이 신고됨 (T-175) — hidden 이면 기준을 넘어 자동 비공개됨 */
+export interface NewReportEvent {
+  type: 'new_report'
+  board_id: string
+  board_name: string
+  post_id: string
+  title: string
+  hidden: boolean
+}
+
 interface ConnectedEvent {
   type: 'connected'
 }
 
-type SSEMessage = NewInquiryEvent | NewPostEvent | ConnectedEvent
+type SSEMessage = NewInquiryEvent | NewPostEvent | NewReportEvent | ConnectedEvent
 
 /** 브라우저 알림 권한이 있으면 시스템 알림, 없으면 화면 안 토스트 */
 function announce(title: string, body: string, fallback: string) {
@@ -116,6 +126,13 @@ export function useSSENotifications(
             )
           } else if (data.type === 'new_post') {
             announce('새 글이 올라왔습니다', `${data.board_name} — ${data.title}`, `새 글: ${data.board_name} — ${data.title}`)
+          } else if (data.type === 'new_report') {
+            const note = data.hidden ? ' (신고가 쌓여 자동으로 숨김)' : ''
+            announce(
+              '신고된 글이 있습니다',
+              `${data.board_name} — ${data.title}${note}`,
+              `신고: ${data.board_name} — ${data.title}${note}`,
+            )
           }
         } catch {
           // 잘못된 payload는 무시
