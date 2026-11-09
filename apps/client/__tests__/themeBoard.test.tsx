@@ -27,6 +27,9 @@ vi.mock('@/components/layout/Footer', () => ({ Footer: () => null }))
 vi.mock('@/components/layout/FloatingButtons', () => ({ FloatingButtons: () => null }))
 
 import ThemeBoardPage, { generateMetadata } from '@/app/[tenant_slug]/b/[...path]/page'
+import ThemeNoticePage, {
+  generateMetadata as noticeMetadata,
+} from '@/app/[tenant_slug]/notice/[[...path]]/page'
 import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
 
 const boardOf = (board_type: BoardType, slug = 'news', description = ''): PublicBoard => ({
@@ -323,5 +326,53 @@ describe('테마형 게시판 상세 · 주소', () => {
     expect(await generateMetadata(props(['news']))).toEqual({ robots: { index: false, follow: false } })
     const tree = (await ThemeBoardPage(props(['news']))) as { type: unknown }
     expect(tree.type).toBe(TemplateSwitching)
+  })
+})
+
+describe('테마형 공지 /notice (T-176)', () => {
+  const noticeProps = (path?: string[]) => ({
+    params: Promise.resolve({ tenant_slug: 'demo', path }),
+    searchParams: Promise.resolve({}),
+  })
+
+  beforeEach(() => {
+    fetchPublicSite.mockResolvedValue(
+      siteWith([{ ...boardOf('LIST', 'notice'), name: '공지사항' }])
+    )
+  })
+
+  it('목록: 글 링크 · 검색 주소가 /notice', async () => {
+    const tree = (await ThemeNoticePage(noticeProps())) as React.ReactElement<{
+      children: React.ReactElement[]
+    }>
+    const main = tree.props.children[1] as React.ReactElement<{ children: React.ReactElement }>
+    const content = main.props.children
+    render(await (content.type as (p: unknown) => Promise<React.ReactElement>)(content.props))
+    expect(screen.getByRole('link', { name: /첫 글/ })).toHaveAttribute('href', '/demo/notice/p1')
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'notice', expect.anything())
+  })
+
+  it('메타: 대표 주소 /notice · /notice/{글}', async () => {
+    expect(JSON.stringify((await noticeMetadata(noticeProps())).alternates)).toContain('/notice')
+    fetchPublicPost.mockResolvedValue({ ...post, body: [] })
+    const detail = await noticeMetadata(noticeProps(['p1']))
+    expect(detail.title).toBe('첫 글 | 데모')
+    expect(JSON.stringify(detail.alternates)).toContain('/notice/p1')
+    expect(JSON.stringify(detail.alternates)).not.toContain('/b/')
+  })
+
+  it('공지 게시판이 없거나 글쓰기 주소면 404', async () => {
+    await expect(ThemeNoticePage(noticeProps(['write']))).rejects.toThrow('NEXT_NOT_FOUND')
+    fetchPublicSite.mockResolvedValue(siteWith([boardOf('LIST')]))
+    expect((await noticeMetadata(noticeProps())).robots).toEqual({ index: false, follow: false })
+    await expect(ThemeNoticePage(noticeProps())).rejects.toThrow('NEXT_NOT_FOUND')
+  })
+
+  it('공지가 있어도 /b/notice 는 404', async () => {
+    expect((await generateMetadata(props(['notice']))).robots).toEqual({
+      index: false,
+      follow: false,
+    })
+    await expect(ThemeBoardPage(props(['notice']))).rejects.toThrow('NEXT_NOT_FOUND')
   })
 })

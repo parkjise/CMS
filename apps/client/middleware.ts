@@ -62,11 +62,18 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
 /**
  * 테마형 새 게시판 주소가 없는 곳인지 (T-141) — 페이지는 스트리밍이라 상태 코드를 못 바꾼다.
  * 확인 실패(백엔드 장애)면 false — 페이지가 안내 화면을 그린다. 공지는 /notice 가 있어 /b/notice 도 404.
+ * notice — 테마형 /{slug}/notice[/{글}] (T-176). 공지는 관리자만 써서 글쓰기 · 고치기 주소가 없다.
  */
-async function isMissingBoardRoute(slug: string, [board, postId, ...extra]: string[]): Promise<boolean> {
+async function isMissingBoardRoute(
+  slug: string,
+  [board, postId, ...extra]: string[],
+  notice = false
+): Promise<boolean> {
   // 회원 글쓰기 · 고치기 (T-150-B) — 게시판만 확인하고, 쓸 수 있는지는 페이지가 본다
-  const form = (postId === 'write' && extra.length === 0) || (extra.length === 1 && extra[0] === 'edit')
-  if (!board || board === NOTICE_BOARD || (extra.length > 0 && !form)) return true
+  const form =
+    !notice &&
+    ((postId === 'write' && extra.length === 0) || (extra.length === 1 && extra[0] === 'edit'))
+  if (!board || (board === NOTICE_BOARD) !== notice || (extra.length > 0 && !form)) return true
   const posts = `${serverApiBase()}/public/site/${encodeURIComponent(slug)}/boards/${encodeURIComponent(board)}/posts`
   try {
     const res = await fetch(postId && !form ? `${posts}/${encodeURIComponent(postId)}` : `${posts}?size=1`, {
@@ -162,12 +169,17 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
     return pass()
   }
   const isBoard = page === BOARD_PATH
-  if (!isBoard && (segments.length > 3 || (page && RESERVED_PAGES.has(page)))) return pass()
+  const isNotice = page === NOTICE_BOARD
+  if (!isBoard && !isNotice && (segments.length > 3 || (page && RESERVED_PAGES.has(page))))
+    return pass()
 
   const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
   if (!key) {
     // /{slug}/b 는 받는 화면이 없어 공통 404 화면 + 404 상태로 끝난다
-    if (isBoard && (await isMissingBoardRoute(slug, segments.slice(2)))) return rewriteTo(`/${slug}/${BOARD_PATH}`)
+    const missing =
+      (isBoard && (await isMissingBoardRoute(slug, segments.slice(2)))) ||
+      (isNotice && (await isMissingBoardRoute(slug, segments.slice(1), true)))
+    if (missing) return rewriteTo(`/${slug}/${BOARD_PATH}`)
     return pass()
   }
   return rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)

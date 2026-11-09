@@ -123,14 +123,8 @@ describe('게시판 목록', () => {
     expect(screen.getByRole('link', { name: '병원 소식 설정' })).toHaveAttribute('href', '/admin/boards/b1/settings')
   })
 
-  it('테마형에서 공지 게시판은 지금 템플릿에 표시되지 않는다고 알린다', async () => {
+  it('테마형에서도 공지 게시판에 "표시되지 않음" 안내가 없다 (T-176)', async () => {
     mockApi({ boards: [notice, board], mode: 'theme' })
-    renderList()
-    expect(await screen.findAllByText('지금 템플릿에는 표시되지 않습니다')).toHaveLength(1)
-  })
-
-  it('코드형에서는 그 표시가 없다', async () => {
-    mockApi({ boards: [notice] })
     renderList()
     await screen.findByRole('link', { name: '공지사항 설정' })
     await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/site-settings/menu'))
@@ -596,6 +590,31 @@ describe('홈페이지 연결 탭', () => {
           { key: 'about', label: '회사', visible: true },
           { key: 'board:b1', label: null, visible: false },
         ],
+      }),
+    )
+  })
+
+  it.each([
+    ['code', 'notice'],
+    ['theme', 'board:n1'],
+  ] as const)('%s 템플릿의 공지는 메뉴 키 %s 로 켜고 끈다 (T-176)', async (mode, key) => {
+    mockApi({ boards: [notice] })
+    const base = get.getMockImplementation()!
+    get.mockImplementation((url: string, config?: { params?: { trash?: boolean } }) =>
+      url === '/v1/site-settings/menu'
+        ? ok({
+            mode,
+            reorderable: mode === 'code',
+            items: [{ key, default_label: '공지사항', label: null, visible: true }],
+          })
+        : base(url, config),
+    )
+    put.mockResolvedValue({ data: { data: { mode, reorderable: false, items: [] } } })
+    renderConnection('n1')
+    await userEvent.click(await screen.findByLabelText(/상단 메뉴에 표시/))
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith('/v1/site-settings/menu', {
+        items: [{ key, label: null, visible: false }],
       }),
     )
   })

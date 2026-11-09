@@ -64,6 +64,19 @@ describe('middleware — 템플릿별 라우트 분기', () => {
       expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/boards/'))).toBe(false)
     })
 
+    it('공지 /notice[/{글}] 도 있는지 묻고, 없거나 더 깊으면 404 (T-176)', async () => {
+      fetchMock.mockImplementation(apiResponse(200))
+      expect(rewriteOf(await run('/clinic/notice'))).toBeNull()
+      expect(rewriteOf(await run('/clinic/notice/p1'))).toBeNull()
+      expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('/boards/notice/posts/p1')
+      expect(rewriteOf(await run('/clinic/notice/write'))).toBeNull()
+      expect(fetchMock.mock.calls.at(-1)?.[0]).toContain('/boards/notice/posts/write')
+      expect(rewriteOf(await run('/clinic/notice/p1/edit'))).toBe(MISSING)
+      clearTemplateCache()
+      fetchMock.mockImplementation(apiResponse(404))
+      expect(rewriteOf(await run('/clinic/notice'))).toBe(MISSING)
+    })
+
     it('확인 실패(장애)면 통과 — 페이지가 안내', async () => {
       fetchMock.mockImplementation(apiResponse(500))
       expect(rewriteOf(await run('/clinic/b/news'))).toBeNull()

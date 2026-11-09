@@ -9,9 +9,10 @@ const REVALIDATE_SECONDS = 60
 
 export const NOTICE_BOARD = 'notice'
 
-/** 새 게시판 주소 /{slug}/b/{게시판}[/{글}] (T-140-B) */
+/** 새 게시판 주소 /{slug}/b/{게시판}[/{글}] (T-140-B). 공지는 코드형과 같은 /{slug}/notice (T-176) */
 export const BOARD_PATH = 'b'
-export const boardPageKey = (boardSlug: string): string => `${BOARD_PATH}/${boardSlug}`
+export const boardPageKey = (boardSlug: string): string =>
+  boardSlug === NOTICE_BOARD ? NOTICE_BOARD : `${BOARD_PATH}/${boardSlug}`
 
 async function getJson<T>(tenantSlug: string, path: string): Promise<T | null> {
   try {
