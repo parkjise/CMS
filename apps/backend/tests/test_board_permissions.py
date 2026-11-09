@@ -204,6 +204,29 @@ class TestMemberOnlyRead:
         assert detail.json()["data"]["title"] == "회원 글"
         assert detail.headers["cache-control"] == "private, no-store"
 
+    async def test_table_columns_remain_behind_member_read_check(
+        self, client, auth_headers, board, member
+    ):
+        saved = await client.patch(
+            f"{BOARDS}/{board['id']}",
+            json={"design": {"list_layout": "columns"}},
+            headers=auth_headers,
+        )
+        assert saved.status_code == 200, saved.text
+        field = await client.post(
+            f"{BOARDS}/{board['id']}/fields",
+            json={"label": "회원 전용 칸", "field_type": "TEXT", "show_in_list": True},
+            headers=auth_headers,
+        )
+        assert field.status_code == 201, field.text
+        denied = await client.get(board["list_url"])
+        assert denied.status_code == 401
+        assert "회원 전용 칸" not in denied.text
+        allowed = await client.get(board["list_url"], headers=member["headers"])
+        assert allowed.status_code == 200, allowed.text
+        assert allowed.headers["cache-control"] == "private, no-store"
+        assert allowed.json()["data"]["list_columns"][0]["label"] == "회원 전용 칸"
+
     async def test_no_token_401(self, client, board):
         for url in (board["list_url"], board["detail_url"]):
             resp = await client.get(url)

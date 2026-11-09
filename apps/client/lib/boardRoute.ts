@@ -9,6 +9,7 @@ import type {
   PublicPost,
   PublicPostItem,
   PublicPostList,
+  PublicListColumn,
 } from '@cms/types'
 import { fetchPublicPost, fetchPublicPosts } from './publicPosts'
 import type { PublicSite } from './publicSite.types'
@@ -21,6 +22,7 @@ export const BOARD_PAGE_SIZE: Record<BoardType, number> = {
 }
 
 const DEFAULT_DESIGN: BoardDesign = {
+  list_layout: 'inline',
   columns: 3,
   image_ratio: '4:3',
   show_date: true,
@@ -110,6 +112,7 @@ export async function resolveBoardRoute(
 }
 
 export interface BoardPage {
+  list_columns?: PublicListColumn[] | null
   posts: PublicPostItem[]
   total: number
   page: number
@@ -147,6 +150,7 @@ export async function loadBoardPage(
   if (page > totalPages) list = (await load(totalPages)) ?? list
   return {
     posts: list?.items ?? [],
+    list_columns: list?.list_columns,
     total,
     page: Math.min(page, totalPages),
     totalPages,

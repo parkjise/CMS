@@ -2,7 +2,21 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-172 관리자 표 열 순서·크기 개인 저장 (Codex)
+## 최신 기록: T-173 공개 목록형 추가 정보 표 보기 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-09)에 따라 공개 목록형의 추가 정보를 표의 개별 열로 보여 주는 후속을 구현했다. 기존 디자인 저장/공개 필드 선별 → 권한 뒤 열 정의 → 코드형/테마형 공유 표 → 회귀 및 좁은 화면 확인 순서다.
+- 브랜치: `codex/T-173-public-list-table`, 폴더: `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`, 기준 main: `b73ba3c`. PR [#123](https://github.com/parkjise/CMS/pull/123), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.
+- 이전 T-172: PR #122 세 CI 성공 뒤 병합, 병합 커밋 `b73ba3c`, 원격 main 포함 확인.
+- 관리자 BoardDesignPage: 추가 LIST만 홈페이지 추가 정보 표시(제목 아래/표의 개별 열)를 기존 디자인 저장으로 처리한다. 실패 시 선택 유지, 재시도, 기존 뷰어 잠금. 저장 즉시 홈페이지 반영하며 필드별 표시 선택은 기존대로 독립 저장한다.
+- 서버 BoardDesign.list_layout은 inline 기본/columns만 허용한다. 기존 boards.settings JSON 사용으로 마이그레이션 없음. 공개 목록의 기존 읽기 권한 확인 뒤 list_columns에 공개+목록 표시 미삭제 필드 key/label/type만 필드 순서로 제공한다. 빈 글 결과에도 열 정의 유지, 다른 유형/기본 공지/inline은 null. 글 값은 기존 list_fields를 재사용하고 비밀글은 null. 회원 전용은 기존 토큰 검사와 private,no-store 유지. 로그인/권한 정책 변경 없음.
+- 홈페이지 PublicListTable은 템플릿이 CSS 클래스를 주는 공유 표다. 코드형 NoticeListView/CustomBoardList와 ThemeBoardListView에 연결하고 loadBoardPage가 열 정의를 전달한다. 제목 링크/공지·비밀글 표시/날짜 설정, 검색·분류·페이지는 유지한다. 0/아니오/선택지 이름, 사진/URL 글자, 빈 값 —, 긴 값 줄바꿈과 키보드 접근 가로 스크롤. 비밀글의 악성 모의 응답 값도 화면에서 제외한다. 이전 API/열 없음은 기존 보기로 복귀하며 갤러리/FAQ/카드는 기존 표시를 유지한다. 공개 열 너비/순서 설정은 후속이다.
+- 로컬 검증: 관련 서버 public/options/permissions 73개(신규 8개), 관리자 전체 73파일 612개(신규 1개)/기존 시간대 전용 1개 스킵, 홈페이지 전체 67파일 780개(신규 13개) 통과. 전용 cms_test_db/cms_app RLS 사용. 필드 선별/빈 결과/비밀글/페이지/다른 유형/잘못된 모드/회원 읽기·캐시, 저장 실패 뒤 재시도, 두 템플릿 실제 부모 컴포넌트의 값·기존 API·빈 결과·날짜 설정 및 공유 로더 전달을 확인했다. 전체 프런트 타입, 관리자/홈페이지 빌드, SCSS lint, 백엔드 app Ruff lint/format·mypy 175파일 통과. 프런트 lint 오류 0(기존 관리자 5/홈페이지 3 경고). 초기 SCSS 중복 selector는 원래 블록에 합쳐 수정했다.
+- CI 보완: 첫 전체 서버 검사에서 1,800개 통과/1개 실패, 커버리지 95.40%. test_board_public의 공개 사이트 응답 전체 비교에 새 기본값 list_layout:inline이 빠져 실패했다. 예상 응답에 기본값을 추가하고 public/options/permissions 73개를 다시 통과했다. 수정한 최종 head의 세 CI를 모두 확인한 뒤 병합한다.
+- 브라우저: 실제 공유 PublicListTable+코드형 SCSS와 테마형 클래스 매핑의 임시 Vite 픽스처를 Chromium 390/1280px 네 조합으로 검증했다. 문서 너비=viewport, 모바일 표 client342/scroll1056, 데스크톱 client1232/scroll1232. 긴 제목/긴 값, 0/아니오/URL, 비밀글 네 칸 —와 이미지 없음 확인. code-390/theme-1280 두 캡처 직접 확인. `/private/tmp/cms-T-173-{code,theme}-{390,1280}.png`, 실행 `/private/tmp/cms-T-173-browser.cjs`. 임시 진입점 삭제/서버 종료 완료.
+- 한계/보호: 실제 전체 앱·공개 라우트·로그인/실제 서버 브라우저 통합 검증은 아니다. 백엔드 전체 로컬 회귀는 미실행, 로컬 Node 25.2.1/Node 22 및 전체 회귀는 CI에서 확인한다. 원래 체크아웃의 사용자 dental 목업 변경, .bkit/, Corporate_Template_Plan_v0.1.md, docs/mockups/기획/는 수정하지 않았다.
+- 후속: 공개 열 너비/순서, 관리자 개인 설정 서버 동기화, 2단계 분류, 선택지 매핑. 테마형 공지 스킵·D-06 자동 파기·법률/백업 보류 유지.
+
+## 이전 기록: T-172 관리자 표 열 순서·크기 개인 저장 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-09)에 따라 T-171 후속의 관리자 개인 열 설정을 진행했다. 계정·사업체·게시판별 브라우저 저장 → 표/키보드 조작 연결 → 격리/필드 갱신/실패·복원 및 브라우저 확인 플랜이다.
 - 브랜치: `codex/T-172-admin-table-layout`, 폴더: `/Users/jisepark/.codex/worktrees/t172-table-layout/CMS`, 기준 main: `2849c17`. PR [#122](https://github.com/parkjise/CMS/pull/122), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.

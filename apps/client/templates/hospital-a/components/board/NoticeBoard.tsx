@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
-import type { BodyBlock, BodyNode, PublicFieldValue } from '@cms/types'
+import type { BodyBlock, BodyNode, PublicFieldValue, PublicListColumn } from '@cms/types'
+import { PublicListTable } from '@/components/board/PublicListTable'
 import { ListFieldValues } from '@/components/board/ListFieldValues'
 import { FieldValue } from '@/components/board/FieldValue'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
@@ -112,6 +113,7 @@ export function NoticeDetailView({
 }
 
 interface NoticeListViewProps {
+  tableColumns?: PublicListColumn[] | null
   title: string
   hideTitle?: boolean
   items: NoticeItem[]
@@ -136,6 +138,7 @@ interface NoticeListViewProps {
 
 /** 글 목록 — 목업 sub/board-list.html */
 export function NoticeListView({
+  tableColumns,
   title,
   hideTitle = false,
   items,
@@ -170,7 +173,31 @@ export function NoticeListView({
       tabs={tabs}
       memberWriteHref={memberWriteHref}
     >
-      {items.length > 0 ? (
+      {items.length > 0 && tableColumns?.length ? (
+        <PublicListTable
+          rows={items.map((item) => ({
+            id: item.id,
+            title: item.subject,
+            date: item.date,
+            pinned: item.pinned,
+            secret: item.secret,
+            fields: item.listFields,
+          }))}
+          columns={tableColumns}
+          showDate={showDate}
+          hrefFor={hrefFor}
+          classes={{
+            scroll: 'board-list__table-scroll',
+            table: 'board-list__table',
+            head: 'board-list__table-head',
+            cell: 'board-list__table-cell',
+            title: 'board-list__table-title',
+            link: 'board-list__table-link',
+            badge: 'board-list__badge',
+            date: 'board-list__table-date',
+          }}
+        />
+      ) : items.length > 0 ? (
         <ul className="board-list__list">
           {items.map((item) => (
             <li
@@ -181,7 +208,9 @@ export function NoticeListView({
                 {item.pinned && <span className="board-list__badge">공지</span>}
                 <span className="board-list__content">
                   <span className="board-list__subject">
-                    {item.secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                    {item.secret && (
+                      <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                    )}
                     {item.subject}
                   </span>
                   {!item.secret && (

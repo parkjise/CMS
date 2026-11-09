@@ -997,6 +997,23 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
     ]
 
 
+def public_list_columns(
+    board: Board, fields: list[BoardField]
+) -> list[dict[str, str]] | None:
+    """읽기 권한을 확인한 목록에서만 제공하는 공개 열 정의. 글 값은 포함하지 않는다."""
+    if (
+        board.system_key is not None
+        or board.board_type != "LIST"
+        or board_options(board)[DESIGN_KEY]["list_layout"] != "columns"
+    ):
+        return None
+    return [
+        {"key": field.field_key, "label": field.label, "field_type": field.field_type}
+        for field in fields
+        if field.is_visible and field.deleted_at is None
+    ]
+
+
 def public_post_item(
     board: Board, post: BoardPost, list_fields: list[BoardField] | None = None
 ) -> dict:

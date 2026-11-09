@@ -55,6 +55,7 @@ from app.schemas.board import (
     PostResponse,
     PostStatus,
     PostUpdate,
+    PublicListColumn,
     PublicPostDetail,
     PublicPostItem,
     PublicPostListResponse,
@@ -897,6 +898,12 @@ async def list_public_posts(
     list_fields = await field_service.list_display_fields(db, board)
     return ApiResponse.ok(
         PublicPostListResponse(
+            list_columns=(
+                [PublicListColumn(**column) for column in columns]
+                if (columns := board_service.public_list_columns(board, list_fields))
+                is not None
+                else None
+            ),
             total=total,
             page=page,
             size=size,

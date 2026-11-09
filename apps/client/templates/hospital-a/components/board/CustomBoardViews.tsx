@@ -153,6 +153,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
         searchTarget={listSearch}
         canWrite
         showDate={design.show_date}
+        tableColumns={design.list_layout === 'columns' ? list.list_columns : undefined}
         tabs={tabs}
         memberWriteHref={memberWriteHref}
       />
@@ -202,7 +203,9 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                   )}
                   {post.is_pinned && <span className="board-gallery__badge">공지</span>}
                   <span className="board-gallery__subject">
-                    {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                    {post.is_secret && (
+                      <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                    )}
                     {post.title}
                   </span>
                   {!post.is_secret && (
@@ -236,7 +239,9 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                   <span className="board-card__body">
                     {post.is_pinned && <span className="board-card__badge">공지</span>}
                     <span className="board-card__subject">
-                      {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                      {post.is_secret && (
+                        <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                      )}
                       {post.title}
                     </span>
                     {design.show_summary && post.summary && (
@@ -270,7 +275,9 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
             >
               <summary className="board-faq__question">
                 <span className="board-faq__heading">
-                  {post.is_secret && <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />}
+                  {post.is_secret && (
+                    <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                  )}
                   {post.title}
                   {!post.is_secret && (
                     <ListFieldValues

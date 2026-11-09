@@ -427,6 +427,22 @@ describe('게시판 디자인 탭 (T-148)', () => {
   const renderDesign = (id = 'b1') =>
     renderAt(`/admin/boards/${id}/design`, <BoardDesignPage />, '/admin/boards/:boardId/design')
 
+  it('목록형 홈페이지 추가 정보 표 표시를 디자인과 함께 저장하고 실패 시 선택을 유지한다', async () => {
+    mockApi({})
+    patch.mockRejectedValueOnce(new Error('저장 실패')).mockResolvedValue({data:{data:board}})
+    renderDesign()
+    const select = await screen.findByLabelText('홈페이지 추가 정보 표시')
+    expect(select).toHaveValue('inline')
+    await userEvent.selectOptions(select,'columns')
+    await userEvent.click(screen.getByRole('button',{name:'저장'}))
+    await waitFor(()=>expect(toast.error).toHaveBeenCalled())
+    expect(select).toHaveValue('columns')
+    await userEvent.click(screen.getByRole('button',{name:'저장'}))
+    await waitFor(()=>expect(patch).toHaveBeenLastCalledWith('/v1/boards/b1',expect.objectContaining({design:{...board.design,list_layout:'columns'}})))
+    await userEvent.click(screen.getByRole('radio',{name:/갤러리형/}))
+    expect(screen.queryByLabelText('홈페이지 추가 정보 표시')).not.toBeInTheDocument()
+  })
+
   it('카드형을 고르면 카드 설정이 나오고 함께 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })

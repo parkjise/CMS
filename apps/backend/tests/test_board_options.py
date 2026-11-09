@@ -425,3 +425,104 @@ class TestListFieldSelection:
         assert listed.json()["data"]["items"][0]["list_fields"] is None
         assert listed.json()["data"]["items"][0]["card_fields"] is None
         assert "SECRET_VALUE" not in listed.text
+
+
+class TestPublicTable:
+    async def test_columns_visible_selected_empty_and_secret(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers)
+        assert board["design"]["list_layout"] == "inline"
+        board = await _patch(
+            client,
+            auth_headers,
+            board["id"],
+            design={**board["design"], "list_layout": "columns"},
+            operation={"allow_secret": True},
+        )
+        path = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+
+        async def add(label, **extra):
+            response = await client.post(
+                f"{BOARDS}/{board['id']}/fields",
+                json={
+                    "label": label,
+                    "field_type": "TEXT",
+                    "show_in_list": True,
+                    **extra,
+                },
+                headers=auth_headers,
+            )
+            assert response.status_code == 201, response.text
+            return response.json()["data"]
+
+        visible = await add("공개 칸")
+        empty = await add("빈 칸")
+        await add("숨김 칸", is_visible=False)
+        await add("목록 제외", show_in_list=False)
+        deleted = await add("삭제 칸")
+        await client.delete(
+            f"{BOARDS}/{board['id']}/fields/{deleted['id']}", headers=auth_headers
+        )
+        expected = [
+            {"key": f["field_key"], "label": f["label"], "field_type": "TEXT"}
+            for f in (visible, empty)
+        ]
+        listed = await client.get(path)
+        assert listed.status_code == 200, listed.text
+        assert listed.json()["data"]["list_columns"] == expected
+        for secret in (False, True):
+            created = await client.post(
+                f"{BOARDS}/{board['id']}/posts",
+                json={
+                    "title": "비밀" if secret else "일반",
+                    "status": "PUBLISHED",
+                    "is_secret": secret,
+                    "custom_data": {
+                        visible["field_key"]: "SECRET_VALUE" if secret else "보이는 값"
+                    },
+                },
+                headers=auth_headers,
+            )
+            assert created.status_code == 201, created.text
+        listed = await client.get(path, params={"size": 1})
+        assert listed.json()["data"]["total"] == 2
+        assert listed.json()["data"]["list_columns"] == expected
+        assert "SECRET_VALUE" not in listed.text
+        assert listed.json()["data"]["items"][0]["list_fields"] is None
+        no_match = await client.get(path, params={"q": "결과없음"})
+        assert no_match.json()["data"]["list_columns"] == expected
+        assert no_match.json()["data"]["items"] == []
+        await _patch(
+            client,
+            auth_headers,
+            board["id"],
+            design={**board["design"], "list_layout": "inline"},
+        )
+        assert (await client.get(path)).json()["data"]["list_columns"] is None
+
+    @pytest.mark.parametrize("board_type", ["GALLERY", "FAQ", "CARD"])
+    async def test_other_types_have_no_columns(
+        self, client, auth_headers, tenant, board_type
+    ):
+        board = await _board(
+            client,
+            auth_headers,
+            board_type=board_type,
+            design={"list_layout": "columns"},
+        )
+        response = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["data"]["list_columns"] is None
+
+    @pytest.mark.parametrize("value", ["table", None, True])
+    async def test_rejects_invalid_layout(self, client, auth_headers, tenant, value):
+        board = await _board(client, auth_headers)
+        response = await client.patch(
+            f"{BOARDS}/{board['id']}",
+            json={"design": {"list_layout": value}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400, response.text
