@@ -116,6 +116,7 @@ class TestSettings:
             "allow_secret": False,
             "notify_new_post": False,
             "allow_guest": False,
+            "report_hide_count": 5,
         }
         resp = await client.patch(
             f"{BOARDS}/{data['id']}",

@@ -125,6 +125,36 @@ describe('운영 설정 (T-151-A)', () => {
   })
 })
 
+describe('신고 자동 비공개 기준 (T-175)', () => {
+  const renderPage = (boards?: Board[]) => {
+    mockApi(boards)
+    return renderAt('/admin/boards/b1/operation', '/admin/boards/:boardId/operation', <BoardOperationPage />)
+  }
+
+  it('저장하지 않은 게시판은 5건이 기본', async () => {
+    renderPage()
+    expect(await screen.findByLabelText('신고가 몇 건 모이면 글을 숨길까요')).toHaveValue('5')
+    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+  })
+
+  it('알림만으로 바꿔 저장한다', async () => {
+    patch.mockResolvedValue({ data: { data: board } })
+    renderPage()
+    await userEvent.selectOptions(await screen.findByLabelText('신고가 몇 건 모이면 글을 숨길까요'), '0')
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
+        operation: { allow_secret: false, notify_new_post: false, allow_guest: false, report_hide_count: 0 },
+      }),
+    )
+  })
+
+  it('저장된 값을 보여 준다', async () => {
+    renderPage([{ ...board, operation: { ...board.operation, report_hide_count: 10 } }])
+    expect(await screen.findByLabelText('신고가 몇 건 모이면 글을 숨길까요')).toHaveValue('10')
+  })
+})
+
 describe('비밀글 — 관리자 (T-151-A)', () => {
   const item: PostListItem = {
     id: 'p1',
@@ -207,6 +237,22 @@ describe('새 글 알림 — 관리자 화면 (T-151-A)', () => {
       })
     })
     expect(toast.info).toHaveBeenCalledWith('새 글: 고객 문의 — 질문')
+  })
+
+  it('신고되면 알리고, 자동으로 숨겼으면 함께 알린다 (T-175)', () => {
+    renderHook(() => useSSENotifications())
+    act(() => {
+      FakeEventSource.last?.onmessage?.({
+        data: JSON.stringify({ type: 'new_report', board_id: 'b1', board_name: '고객 문의', post_id: 'p1', title: '광고', hidden: false }),
+      })
+    })
+    expect(toast.info).toHaveBeenLastCalledWith('신고: 고객 문의 — 광고')
+    act(() => {
+      FakeEventSource.last?.onmessage?.({
+        data: JSON.stringify({ type: 'new_report', board_id: 'b1', board_name: '고객 문의', post_id: 'p1', title: '광고', hidden: true }),
+      })
+    })
+    expect(toast.info).toHaveBeenLastCalledWith('신고: 고객 문의 — 광고 (신고가 쌓여 자동으로 숨김)')
   })
 
   it('문의 알림은 그대로', () => {

@@ -101,7 +101,11 @@ export interface BoardOperation {
   notify_new_post: boolean
   /** 비로그인 방문자도 이름 · 글 비밀번호로 쓴다 (T-151-B) */
   allow_guest: boolean
+  /** 처리 안 된 신고가 이 수가 되면 자동 비공개, 0 은 숨기지 않음 (T-175, 없으면 5) */
+  report_hide_count?: ReportHideCount
 }
+
+export type ReportHideCount = 0 | 3 | 5 | 10
 
 /** 권한 탭 — 회원 값을 고를 수 없는 이유, 고를 수 있으면 null */
 export interface PermissionOptions {

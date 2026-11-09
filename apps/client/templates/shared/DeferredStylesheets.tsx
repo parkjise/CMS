@@ -14,6 +14,9 @@ interface DeferredStylesheetsProps {
 
 const FONT_DISPLAY_BLOCKING = /font-display\s*:\s*(auto|block)/g
 
+/** 비동기로 받은 뒤 붙일 때 — 화면(document)이 이미 사라졌으면(시험 종료 등) 붙이지 않는다 (T-175) */
+const canAttach = (signal: AbortSignal) => !signal.aborted && typeof document !== 'undefined'
+
 const appendLink = (href: string) => {
   const link = document.createElement('link')
   link.rel = 'stylesheet'
@@ -24,16 +27,16 @@ const appendLink = (href: string) => {
 const appendSwapped = async (href: string, signal: AbortSignal) => {
   try {
     const res = await fetch(href, { mode: 'cors', signal })
-    if (signal.aborted) return
-    if (!res.ok) throw new Error(String(res.status))
+    if (!canAttach(signal)) return
+    if (!res?.ok) throw new Error(String(res?.status))
     const css = (await res.text()).replace(FONT_DISPLAY_BLOCKING, 'font-display:swap')
-    if (signal.aborted) return
+    if (!canAttach(signal)) return
     const style = document.createElement('style')
     style.dataset.href = href
     style.textContent = css
     document.head.appendChild(style)
   } catch {
-    if (!signal.aborted) appendLink(href)
+    if (canAttach(signal)) appendLink(href)
   }
 }
 

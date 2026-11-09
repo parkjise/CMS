@@ -2,7 +2,16 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-174 공개 표 열 순서·최소 크기 설정 (Codex)
+## 최신 기록: T-175 신고 자동 비공개 기준 · 신고 알림 (Claude, 2026-11-09)
+
+- Claude 가 Codex 의 T-153 ~ T-174 (PR #102 ~ #124) 를 검토한 뒤 이어서 작업했다. 검토 결과: main 직접 커밋 없음, #103 ~ #124 는 세 CI 성공 뒤 병합, DB 마이그레이션 추가 없음(최신 0045), 로그인 · 권한 정책 변경 없음. #102(인수인계 문서)만 frontend 실패 상태로 병합됐고 원인은 아래 간헐 실패였다.
+- 브랜치 `fix/T-175`, 폴더 `/Users/Js/Work/cms-T-175`, 기준 main `992b79c`.
+- 신고: `BoardOperation.report_hide_count` (0 · 3 · 5 · 10, 기본 5, 그 밖 400). 0 은 자동 비공개 안 함. 신고될 때마다 SSE `new_report` (게시판 이름 · 제목 · hidden). 관리자 운영 설정에 선택, 실시간 알림 토스트, 신고된 글 안내 문구. 타입은 선택 값(없으면 5)으로 둬 기존 시험 픽스처는 그대로.
+- 간헐 실패: `DeferredStylesheets` 가 fetch 를 응답 없이 흉내 낸 시험에서 `res.ok` 로 터진 뒤, 시험 환경이 정리돼 `document` 가 없는데 링크를 붙이려다 처리 안 된 오류로 vitest 를 실패시켰다. `canAttach`(취소 · document 확인)와 `res?.ok` 로 고치고 재현 시험 2개를 추가했다(예전 코드에서 같은 오류 재현 확인).
+- 시험: 백엔드 게시판 관련 77개 + 전체, 관리자 operation · reports 23개, 홈페이지 DeferredStylesheets · 관련 26개.
+- 한계: Playwright 연결 실패로 이번엔 실제 화면 확인을 못 했다. T-171 ~ T-174 의 실제 앱 화면 점검도 아직 남아 있다.
+
+## 이전 기록: T-174 공개 표 열 순서·최소 크기 설정 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-09)에 따라 T-173의 공개 표 열 설정 후속을 진행했다. 기존 디자인 저장 확장 → 공개 필드 선별/순서 → 관리자 설정 → 두 템플릿 크기 → 회귀/브라우저 검증 플랜이다.
 - 브랜치: `codex/T-174-public-column-layout`. 기존 관리 worktree `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`를 재사용했고 기준 main은 `eaf5126`이다. 폴더명은 T-173이지만 현재 브랜치가 T-174다. PR [#124](https://github.com/parkjise/CMS/pull/124), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공해야 병합한다.

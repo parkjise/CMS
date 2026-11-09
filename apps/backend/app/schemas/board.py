@@ -103,6 +103,9 @@ class BoardOperation(BaseModel):
     notify_new_post: bool = False
     # 비로그인 방문자도 이름 · 글 비밀번호로 쓴다 (T-151-B) — 회원 글쓰기 게시판만
     allow_guest: bool = False
+    # 처리 안 된 신고가 이 수가 되면 자동 비공개 (T-175). 0 은 자동으로 숨기지 않음.
+    # 3 이면 서로 다른 IP 3곳으로 아무 글이나 숨길 수 있어 기본은 5
+    report_hide_count: Literal[0, 3, 5, 10] = 5
 
 
 class BoardCreate(BaseModel):
