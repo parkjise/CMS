@@ -66,9 +66,16 @@ export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
 
+export type BoardColumnSize = 'narrow' | 'normal' | 'wide'
+export interface BoardColumnLayout {
+  key: string
+  size: BoardColumnSize
+}
+
 /** 게시판 디자인 (T-148) — 유형에 맞는 값만 화면에 쓴다 */
 export interface BoardDesign {
   list_layout?: 'inline' | 'columns'
+  list_column_layout?: BoardColumnLayout[]
   columns: 2 | 3 | 4
   image_ratio: '1:1' | '4:3' | '16:9'
   show_date: boolean
@@ -249,6 +256,7 @@ export interface PublicPostItem {
 }
 
 export interface PublicListColumn {
+  size?: BoardColumnSize
   key: string
   label: string
   field_type: FieldType

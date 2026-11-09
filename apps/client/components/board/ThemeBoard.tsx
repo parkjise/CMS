@@ -304,12 +304,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
           classes={{
             scroll: 'mt-6 overflow-x-auto focus-visible:outline focus-visible:outline-2',
             table: 'min-w-full text-left text-sm',
-            head: `min-w-40 border-b px-4 py-3 font-semibold ${line} ${primary}`,
-            cell: `min-w-40 max-w-80 whitespace-pre-wrap border-b px-4 py-3 align-top [overflow-wrap:anywhere] ${line} ${muted}`,
+            head: `border-b px-4 py-3 font-semibold ${line} ${primary}`,
+            cell: `max-w-80 whitespace-pre-wrap border-b px-4 py-3 align-top [overflow-wrap:anywhere] ${line} ${muted}`,
             title: 'min-w-64',
             link: `font-medium hover:underline ${primary}`,
             badge: 'mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs',
-            date: 'whitespace-nowrap',
+            date: 'min-w-40 whitespace-nowrap',
+            sizes: { narrow: 'min-w-32', normal: 'min-w-40', wide: 'min-w-64' },
           }}
         />
       ) : board.board_type === 'GALLERY' ? (

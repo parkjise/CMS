@@ -29,7 +29,7 @@ export const BoardListFieldSettings = ({ boardId }: BoardListFieldSettingsProps)
       <h2 className="text-sm font-semibold text-slate-900">목록에 표시할 추가 정보</h2>
       <p className="text-xs text-slate-500">
         각 칸은 바꾸는 즉시 저장됩니다. 관리자 글 목록과 전체 글에도 적용됩니다. 홈페이지에는
-        홈페이지 표시를 켠 칸만 제목 아래에 나옵니다.
+        홈페이지 표시를 켠 칸만 선택한 디자인에 따라 나옵니다.
       </p>
       {fieldsQuery.isPending ? (
         <p className="text-sm text-slate-500">칸 정보를 불러오는 중…</p>

@@ -195,6 +195,11 @@ export function NoticeListView({
             link: 'board-list__table-link',
             badge: 'board-list__badge',
             date: 'board-list__table-date',
+            sizes: {
+              narrow: 'board-list__table-narrow',
+              normal: 'board-list__table-normal',
+              wide: 'board-list__table-wide',
+            },
           }}
         />
       ) : items.length > 0 ? (

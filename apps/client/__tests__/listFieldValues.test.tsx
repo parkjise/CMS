@@ -158,6 +158,39 @@ for (const mode of ['code', 'theme']) {
         screen.queryByRole('link', { name: 'https://example.test/jobs' })
       ).not.toBeInTheDocument()
     })
+    it('저장된 열 순서와 최소 크기를 헤더와 값에 함께 적용한다', () => {
+      renderTable({
+        ...page(),
+        list_columns: [
+          { ...tableColumns[1], size: 'narrow' },
+          { ...tableColumns[0], size: 'wide' },
+          tableColumns[2],
+        ],
+      })
+      expect(screen.getAllByRole('columnheader').map((el) => el.textContent)).toEqual([
+        '제목',
+        '인원',
+        '부서',
+        '접수',
+        '작성일',
+      ])
+      const prefix = mode === 'code' ? 'board-list__table-' : 'min-w-'
+      expect(screen.getByRole('columnheader', { name: '인원' })).toHaveClass(
+        prefix + (mode === 'code' ? 'narrow' : '32')
+      )
+      expect(screen.getByRole('cell', { name: '0' })).toHaveClass(
+        prefix + (mode === 'code' ? 'narrow' : '32')
+      )
+      expect(screen.getByRole('columnheader', { name: '부서' })).toHaveClass(
+        prefix + (mode === 'code' ? 'wide' : '64')
+      )
+      expect(screen.getByRole('cell', { name: '개발팀' })).toHaveClass(
+        prefix + (mode === 'code' ? 'wide' : '64')
+      )
+      expect(screen.getByRole('columnheader', { name: '접수' })).toHaveClass(
+        prefix + (mode === 'code' ? 'normal' : '40')
+      )
+    })
     it('비밀글에 값이 들어와도 모든 추가 정보 칸은 비운다', () => {
       renderTable({ ...page({ is_secret: true }), list_columns: tableColumns })
       expect(screen.queryByText('개발팀')).not.toBeInTheDocument()

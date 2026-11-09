@@ -465,7 +465,12 @@ class TestPublicTable:
             f"{BOARDS}/{board['id']}/fields/{deleted['id']}", headers=auth_headers
         )
         expected = [
-            {"key": f["field_key"], "label": f["label"], "field_type": "TEXT"}
+            {
+                "key": f["field_key"],
+                "label": f["label"],
+                "field_type": "TEXT",
+                "size": "normal",
+            }
             for f in (visible, empty)
         ]
         listed = await client.get(path)
@@ -526,3 +531,110 @@ class TestPublicTable:
             headers=auth_headers,
         )
         assert response.status_code == 400, response.text
+
+
+class TestPublicColumnLayout:
+    async def test_saved_order_size_and_field_changes(
+        self, client, auth_headers, tenant
+    ):
+        board = await _board(client, auth_headers)
+        url = f"{BOARDS}/{board['id']}"
+
+        async def add(label, **extra):
+            response = await client.post(
+                f"{url}/fields",
+                json={
+                    "label": label,
+                    "field_type": "TEXT",
+                    "show_in_list": True,
+                    **extra,
+                },
+                headers=auth_headers,
+            )
+            assert response.status_code == 201, response.text
+            return response.json()["data"]
+
+        first = await add("첫 칸")
+        second = await add("둘째 칸")
+        hidden = await add("숨김 칸", is_visible=False)
+        removed = await add("삭제 칸")
+        layout = [
+            {"key": field["field_key"], "size": size}
+            for field, size in [
+                (second, "wide"),
+                (hidden, "narrow"),
+                (removed, "wide"),
+                (first, "narrow"),
+            ]
+        ]
+        layout.append({"key": "foreign_key", "size": "wide"})
+        saved = await _patch(
+            client,
+            auth_headers,
+            board["id"],
+            design={"list_layout": "columns", "list_column_layout": layout},
+        )
+        assert saved["design"]["list_column_layout"] == layout
+        site = (await client.get(f"/api/public/site/{tenant['slug']}")).json()["data"]
+        public = next(item for item in site["boards"] if item["id"] == board["id"])
+        assert public["design"]["list_column_layout"] == []
+        assert "foreign_key" not in str(public)
+        await client.delete(f"{url}/fields/{removed['id']}", headers=auth_headers)
+        added = await add("새 칸")
+        path = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        columns = (await client.get(path)).json()["data"]["list_columns"]
+        assert [(column["key"], column["size"]) for column in columns] == [
+            (second["field_key"], "wide"),
+            (first["field_key"], "narrow"),
+            (added["field_key"], "normal"),
+        ]
+        assert all(
+            set(column) == {"key", "label", "field_type", "size"} for column in columns
+        )
+        await client.patch(
+            f"{url}/fields/{second['id']}",
+            json={"show_in_list": False},
+            headers=auth_headers,
+        )
+        columns = (await client.get(path)).json()["data"]["list_columns"]
+        assert [column["key"] for column in columns] == [
+            first["field_key"],
+            added["field_key"],
+        ]
+        await _patch(
+            client,
+            auth_headers,
+            board["id"],
+            design={"list_layout": "columns", "list_column_layout": []},
+        )
+        columns = (await client.get(path)).json()["data"]["list_columns"]
+        assert [column["size"] for column in columns] == ["normal", "normal"]
+
+    @pytest.mark.parametrize(
+        "layout",
+        [
+            None,
+            {},
+            [{"key": "bad key", "size": "normal"}],
+            [{"key": "team", "size": "huge"}],
+            [{"key": "team", "size": True}],
+            [{"key": "team", "size": "wide", "value": "raw"}],
+            [{"key": "team"}, {"key": "team"}],
+            [{"key": f"key_{i}"} for i in range(21)],
+        ],
+    )
+    async def test_invalid_layout_rejected(self, client, auth_headers, tenant, layout):
+        board = await _board(client, auth_headers)
+        response = await client.patch(
+            f"{BOARDS}/{board['id']}",
+            json={"design": {"list_column_layout": layout}},
+            headers=auth_headers,
+        )
+        assert response.status_code == 400, response.text
+        current = (await client.get(BOARDS, headers=auth_headers)).json()["data"]
+        assert (
+            next(item for item in current if item["id"] == board["id"])["design"][
+                "list_column_layout"
+            ]
+            == []
+        )

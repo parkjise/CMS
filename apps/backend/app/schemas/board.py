@@ -43,6 +43,16 @@ BodyNode = dict[str, Any]
 PostBody = Annotated[list[Any], AfterValidator(clean_body)]
 
 
+ColumnSize = Literal["narrow", "normal", "wide"]
+
+
+class BoardColumnLayout(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    key: Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]{1,49}$")]
+    size: ColumnSize = "normal"
+
+
 class BoardDesign(BaseModel):
     """게시판 디자인 (BM-08, T-148) — 유형에 맞는 값만 화면에 쓴다."""
 
@@ -51,11 +61,21 @@ class BoardDesign(BaseModel):
     columns: Literal[2, 3, 4] = 3
     image_ratio: Literal["1:1", "4:3", "16:9"] = "4:3"
     list_layout: Literal["inline", "columns"] = "inline"
+    list_column_layout: list[BoardColumnLayout] = Field(
+        default_factory=list, max_length=20
+    )
     show_date: bool = True
     show_image: bool = True
     show_summary: bool = True
     faq_single_open: bool = False
     faq_first_open: bool = False
+
+    @model_validator(mode="after")
+    def unique_columns(self) -> "BoardDesign":
+        keys = [column.key for column in self.list_column_layout]
+        if len(keys) != len(set(keys)):
+            raise ValueError("같은 열을 중복 지정할 수 없습니다.")
+        return self
 
 
 BoardReadAccess = Literal["PUBLIC", "MEMBER"]
@@ -485,6 +505,7 @@ class PublicListColumn(BaseModel):
     key: str
     label: str
     field_type: str
+    size: ColumnSize = "normal"
 
 
 class PublicPostListResponse(BaseModel):
