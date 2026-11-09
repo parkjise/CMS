@@ -1,11 +1,12 @@
-<!-- LU치과 스타일 플로팅 퀵메뉴 & TOP 버튼 -->
+<!-- ALBA 치과 플로팅 퀵메뉴 & TOP 버튼 & 간편예약 모달 패널 (templates 포팅) -->
 <aside class="dental-float-quick" id="dentalFloatQuick" aria-label="빠른 메뉴 및 상단 이동">
   <div class="dental-float-quick__box">
     <ul class="dental-float-quick__list">
+      <!-- 01 간편예약 (패널 오픈) -->
       <li class="dental-float-quick__item">
-        <a href="#reservation" class="dental-float-quick__btn dental-float-quick__btn--primary" aria-label="간편 진료예약">
+        <button type="button" class="dental-float-quick__btn dental-float-quick__btn--primary" data-consult-open aria-label="간편 진료예약 신청 열기" aria-haspopup="dialog" aria-expanded="false">
           <div class="dental-float-quick__ico">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
               <line x1="16" y1="2" x2="16" y2="6"/>
               <line x1="8" y1="2" x2="8" y2="6"/>
@@ -15,13 +16,14 @@
             </svg>
           </div>
           <span>간편예약</span>
-        </a>
+        </button>
       </li>
 
+      <!-- 02 네이버예약 -->
       <li class="dental-float-quick__item">
         <a href="https://booking.naver.com" target="_blank" rel="noopener noreferrer" class="dental-float-quick__btn" aria-label="네이버 실시간 예약 (새창)">
           <div class="dental-float-quick__ico dental-float-quick__ico--naver">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true">
               <path d="M16.273 12.845 7.376 0H0v24h7.727V11.155L16.624 24H24V0h-7.727v12.845z"/>
             </svg>
           </div>
@@ -29,10 +31,11 @@
         </a>
       </li>
 
+      <!-- 03 카톡상담 -->
       <li class="dental-float-quick__item">
         <a href="https://pf.kakao.com" target="_blank" rel="noopener noreferrer" class="dental-float-quick__btn" aria-label="카카오톡 1:1 상담 (새창)">
           <div class="dental-float-quick__ico dental-float-quick__ico--kakao">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
               <path d="M12 3c-5.523 0-10 3.582-10 8 0 2.827 1.83 5.309 4.622 6.702l-1.173 4.31a.5.5 0 0 0 .762.535l5.05-3.342c.243.023.49.035.739.035 5.523 0 10-3.582 10-8s-4.477-8-10-8z"/>
             </svg>
           </div>
@@ -40,10 +43,61 @@
         </a>
       </li>
 
+      <!-- 04 라인 (LINE) -->
+      <li class="dental-float-quick__item">
+        <a href="https://line.me" target="_blank" rel="noopener noreferrer" class="dental-float-quick__btn" aria-label="네이버 라인 1:1 상담 (새창)">
+          <div class="dental-float-quick__ico dental-float-quick__ico--line">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.085.495.231l2.468 3.348V8.108c0-.345.282-.63.63-.63.345 0 .627.285.627.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.627-.63.349 0 .631.285.631.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+            </svg>
+          </div>
+          <span>라인</span>
+        </a>
+      </li>
+
+      <!-- 05 위챗 (WeChat) -->
+      <li class="dental-float-quick__item">
+        <a href="#" class="dental-float-quick__btn" aria-label="위챗 1:1 상담">
+          <div class="dental-float-quick__ico dental-float-quick__ico--wechat">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.538 1.99c-.067.25.18.473.407.348l2.42-1.326a.78.78 0 0 1 .536-.067c.846.223 1.737.344 2.651.344.207 0 .411-.008.615-.021-.19-.582-.294-1.2-.294-1.838 0-3.693 3.49-6.688 7.795-6.688.384 0 .76.026 1.129.074C17.062 5.12 13.184 2.188 8.691 2.188zm-2.58 4.22c.677 0 1.226.549 1.226 1.225 0 .677-.549 1.226-1.226 1.226-.676 0-1.225-.549-1.225-1.226 0-.676.549-1.225 1.225-1.225zm5.727 0c.676 0 1.225.549 1.225 1.225 0 .677-.549 1.226-1.225 1.226-.677 0-1.226-.549-1.226-1.226 0-.676.549-1.225 1.226-1.225zm4.368 5.767c-3.662 0-6.63 2.502-6.63 5.588 0 1.706.904 3.242 2.316 4.283a.46.46 0 0 1 .165.513l-.415 1.536c-.052.193.139.365.314.269l1.867-1.024a.6.6 0 0 1 .414-.052c.654.172 1.34.264 2.049.264 3.662 0 6.63-2.502 6.63-5.589 0-3.086-2.968-5.588-6.63-5.588zm-2.355 3.328c.523 0 .947.424.947.947 0 .524-.424.948-.947.948-.523 0-.947-.424-.947-.948 0-.523.424-.947.947-.947zm4.426 0c.524 0 .948.424.948.947 0 .524-.424.948-.948.948-.523 0-.947-.424-.947-.948 0-.523.424-.947.947-.947z"/>
+            </svg>
+          </div>
+          <span>위챗</span>
+        </a>
+      </li>
+
+      <!-- 06 인스타그램 (Instagram) -->
+      <li class="dental-float-quick__item">
+        <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" class="dental-float-quick__btn" aria-label="ALBA 인스타그램 (새창)">
+          <div class="dental-float-quick__ico dental-float-quick__ico--insta">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+            </svg>
+          </div>
+          <span>인스타</span>
+        </a>
+      </li>
+
+      <!-- 07 유튜브 (YouTube) -->
+      <li class="dental-float-quick__item">
+        <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" class="dental-float-quick__btn" aria-label="ALBA 공식 유튜브 채널 (새창)">
+          <div class="dental-float-quick__ico dental-float-quick__ico--youtube">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
+              <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+            </svg>
+          </div>
+          <span>유튜브</span>
+        </a>
+      </li>
+
+      <!-- 08 오시는길 -->
       <li class="dental-float-quick__item">
         <a href="#location" class="dental-float-quick__btn" aria-label="진료안내 및 오시는 길">
           <div class="dental-float-quick__ico">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
               <circle cx="12" cy="10" r="3"/>
             </svg>
@@ -56,9 +110,80 @@
 
   <!-- TOP 버튼 (스크롤 시 활성화) -->
   <button type="button" class="dental-float-quick__top" id="dentalQuickTop" aria-label="페이지 맨 위로 이동">
-    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
       <path d="M18 15l-6-6-6 6"/>
     </svg>
     <span>TOP</span>
   </button>
 </aside>
+
+<!-- 간편예약 폼 패널 (templates 포팅 모달 다이얼로그) -->
+<div class="dental-consult-backdrop" id="dentalConsultBackdrop" aria-hidden="true"></div>
+<section class="dental-consult-panel" id="dentalConsultPanel" role="dialog" aria-modal="true" aria-labelledby="dentalConsultTitle" aria-hidden="true">
+  <button class="dental-consult-panel__close" type="button" id="dentalConsultClose" aria-label="간편예약 닫기">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+
+  <div class="dental-consult-panel__head">
+    <span class="dental-consult-panel__badge">FAST APPOINTMENT</span>
+    <h2 class="dental-consult-panel__title" id="dentalConsultTitle">간편 예약 · 상담</h2>
+    <p class="dental-consult-panel__desc">희망하시는 진료 항목과 일정을 남겨주시면<br />전담 상담사가 빠른 시간 안에 확인 전화를 드립니다.</p>
+  </div>
+
+  <form class="dental-consult-panel__form" id="dentalConsultForm" novalidate>
+    <div class="dental-consult-field">
+      <input class="dental-consult-input" type="text" id="consult-name" name="name" autocomplete="name" placeholder=" " required />
+      <label class="dental-consult-label" for="consult-name">성함을 입력해주세요<span aria-hidden="true">*</span></label>
+    </div>
+
+    <div class="dental-consult-field">
+      <input class="dental-consult-input" type="tel" id="consult-phone" name="phone" inputmode="tel" autocomplete="tel" placeholder=" " required />
+      <label class="dental-consult-label" for="consult-phone">연락처를 입력해주세요 (- 제외)<span aria-hidden="true">*</span></label>
+    </div>
+
+    <div class="dental-consult-field dental-consult-field--select">
+      <label class="sr-only" for="consult-topic">진료 상담 분야</label>
+      <select class="dental-consult-input" id="consult-topic" name="topic" required>
+        <option value="">진료 상담 분야를 선택해주세요</option>
+        <option value="aesthetic">무삭제 라미네이트 · 심미치료</option>
+        <option value="implant">3D 네비게이션 임플란트</option>
+        <option value="orthodontics">치아교정 · 인비절라인</option>
+        <option value="general">일반진료 · 스케일링 · 충치</option>
+        <option value="consult">기타 진료 및 비용 문의</option>
+      </select>
+      <svg class="dental-consult-arrow" viewBox="0 0 10 6" width="10" height="6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M1 1l4 4 4-4"/>
+      </svg>
+    </div>
+
+    <div class="dental-consult-agree">
+      <input class="dental-consult-check sr-only" type="checkbox" id="consult-agree-call" name="agreeCall" required />
+      <label class="dental-consult-check-label" for="consult-agree-call">
+        <span class="dental-consult-box" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5L13 4"/></svg>
+        </span>
+        <span>상담 연락 수신 동의 (필수)</span>
+      </label>
+    </div>
+
+    <div class="dental-consult-agree">
+      <input class="dental-consult-check sr-only" type="checkbox" id="consult-agree-privacy" name="agreePrivacy" required />
+      <label class="dental-consult-check-label" for="consult-agree-privacy">
+        <span class="dental-consult-box" aria-hidden="true">
+          <svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.5 3.5L13 4"/></svg>
+        </span>
+        <span>개인정보 수집 및 이용 동의 (필수)</span>
+      </label>
+      <a class="dental-consult-more" href="#privacy" target="_blank" rel="noopener">자세히보기</a>
+    </div>
+
+    <p class="dental-consult-status" id="dentalConsultStatus" role="status" aria-live="polite"></p>
+
+    <button class="dental-consult-submit" type="submit">
+      <span>간편예약 신청하기</span>
+      <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10h12M11 5l5 5-5 5"/></svg>
+    </button>
+  </form>
+</section>

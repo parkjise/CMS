@@ -436,20 +436,136 @@ function initClinicTour() {
   });
 }
 
-// ── LU치과 스타일 플로팅 퀵메뉴 & TOP 버튼 ──
+// ── LU치과 스타일 플로팅 퀵메뉴 & TOP 버튼 & 간편예약 모달 패널 (templates 포팅) ──
 function initQuickMenu() {
   const topBtn = document.getElementById('dentalQuickTop');
-  if (!topBtn) return;
 
-  const onScroll = () => {
-    const show = window.scrollY > 250;
-    topBtn.classList.toggle('is-visible', show);
+  if (topBtn) {
+    const onScroll = () => {
+      const show = window.scrollY > 250;
+      topBtn.classList.toggle('is-visible', show);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    topBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // ── 간편예약 패널 (templates/components/quick-menu.html 로직 완벽 포팅) ──
+  const panel = document.getElementById('dentalConsultPanel');
+  const backdrop = document.getElementById('dentalConsultBackdrop');
+  const closeBtn = document.getElementById('dentalConsultClose');
+  const form = document.getElementById('dentalConsultForm');
+  const status = document.getElementById('dentalConsultStatus');
+  const openers = document.querySelectorAll('[data-consult-open], a[href="#reservation"]');
+
+  if (!panel || !form) return;
+
+  let lastOpener = null;
+
+  const setPanel = (open, opener = null) => {
+    panel.classList.toggle('is-open', open);
+    backdrop?.classList.toggle('is-open', open);
+    panel.setAttribute('aria-hidden', String(!open));
+    document.body.style.overflow = open && window.innerWidth <= 768 ? 'hidden' : '';
+
+    openers.forEach((btn) => {
+      if (btn.hasAttribute('aria-expanded')) {
+        btn.setAttribute('aria-expanded', String(open));
+      }
+    });
+
+    if (open) {
+      if (opener) lastOpener = opener;
+      if (status) {
+        status.textContent = '';
+        status.className = 'dental-consult-status';
+      }
+      setTimeout(() => {
+        panel.querySelector('input')?.focus({ preventScroll: true });
+      }, 100);
+    } else {
+      if (lastOpener && typeof lastOpener.focus === 'function') {
+        lastOpener.focus();
+      }
+    }
   };
-  window.addEventListener('scroll', onScroll, { passive: true });
-  onScroll();
 
-  topBtn.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  openers.forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      // 퀵메뉴 내 버튼 또는 cta 카드 클릭 시 모달 열기
+      if (btn.matches('[data-consult-open]') || btn.matches('.dental-cta__card') || btn.matches('.dental-header__btn')) {
+        e.preventDefault();
+        const isOpen = panel.classList.contains('is-open');
+        setPanel(!isOpen, btn);
+      }
+    });
+  });
+
+  closeBtn?.addEventListener('click', () => setPanel(false));
+  backdrop?.addEventListener('click', () => setPanel(false));
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panel.classList.contains('is-open')) {
+      setPanel(false);
+    }
+  });
+
+  // 폼 검증 및 제출
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!status) return;
+
+    const nameInput = form.querySelector('#consult-name');
+    const phoneInput = form.querySelector('#consult-phone');
+    const topicSelect = form.querySelector('#consult-topic');
+    const agreeCall = form.querySelector('#consult-agree-call');
+    const agreePrivacy = form.querySelector('#consult-agree-privacy');
+
+    if (!nameInput?.value.trim()) {
+      status.textContent = '성함을 입력해주세요.';
+      status.className = 'dental-consult-status is-error';
+      nameInput?.focus();
+      return;
+    }
+
+    if (!phoneInput?.value.trim() || phoneInput.value.trim().length < 8) {
+      status.textContent = '올바른 연락처를 입력해주세요.';
+      status.className = 'dental-consult-status is-error';
+      phoneInput?.focus();
+      return;
+    }
+
+    if (!topicSelect?.value) {
+      status.textContent = '진료 상담 분야를 선택해주세요.';
+      status.className = 'dental-consult-status is-error';
+      topicSelect?.focus();
+      return;
+    }
+
+    if (!agreeCall?.checked) {
+      status.textContent = '상담 연락 수신 동의가 필요합니다.';
+      status.className = 'dental-consult-status is-error';
+      agreeCall?.focus();
+      return;
+    }
+
+    if (!agreePrivacy?.checked) {
+      status.textContent = '개인정보 수집 및 이용 동의가 필요합니다.';
+      status.className = 'dental-consult-status is-error';
+      agreePrivacy?.focus();
+      return;
+    }
+
+    status.textContent = '✓ 간편예약 신청이 접수되었습니다. 확인 후 곧 연락드리겠습니다.';
+    status.className = 'dental-consult-status';
+    form.reset();
+
+    setTimeout(() => {
+      setPanel(false);
+    }, 2500);
   });
 }
 

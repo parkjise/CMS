@@ -567,22 +567,23 @@
   position: relative;
 
   &__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+    display: grid;
+    place-items: center;
+    width: 40px;
     height: 40px;
-    padding: 0 12px;
+    padding: 0;
     border: none;
-    border-radius: 999px;
+    border-radius: 50%;
     background: transparent;
     color: inherit;
-    font-size: 13px;
-    font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s var(--ease);
+    transition:
+      background-color 0.3s var(--ease),
+      color 0.3s var(--ease);
 
     &:hover {
       background: rgba(128, 128, 128, 0.12);
+      color: var(--color-indigo);
     }
   }
 

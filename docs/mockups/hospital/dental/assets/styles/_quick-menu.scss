@@ -25,17 +25,17 @@
   }
 
   &__box {
-    background: rgba(28, 28, 28, 0.94);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-radius: 20px;
-    padding: 8px 6px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+    background: rgba(26, 27, 30, 0.94);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: 6px 5px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
     border: 1px solid rgba(255, 255, 255, 0.12);
     transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
 
     &:hover {
-      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 16px 42px rgba(0, 0, 0, 0.32);
     }
 
     @media (max-width: 768px) {
@@ -49,7 +49,7 @@
     padding: 0;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
   }
 
   &__item {
@@ -62,22 +62,27 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 68px;
-    height: 64px;
-    border-radius: 14px;
+    width: 60px;
+    height: 52px;
+    border: none;
+    background: transparent;
+    border-radius: 12px;
     text-decoration: none;
     color: rgba(255, 255, 255, 0.85);
-    transition: all 0.25s var(--ease);
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.22s var(--ease);
 
     span {
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       letter-spacing: -0.02em;
-      margin-top: 4px;
+      margin-top: 3px;
+      line-height: 1;
     }
 
     &:hover {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.12);
       color: #ffffff;
       transform: translateY(-2px);
     }
@@ -96,7 +101,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    height: 22px;
+    height: 20px;
 
     &--naver {
       color: #03c75a;
@@ -105,6 +110,22 @@
     &--kakao {
       color: #fee500;
     }
+
+    &--line {
+      color: #06c755;
+    }
+
+    &--wechat {
+      color: #07c160;
+    }
+
+    &--insta {
+      color: #e1306c;
+    }
+
+    &--youtube {
+      color: #ff0000;
+    }
   }
 
   &__top {
@@ -112,8 +133,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 50px;
-    height: 50px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     background: #ffffff;
     border: 1px solid var(--color-border);
@@ -126,7 +147,7 @@
     transition: all 0.3s var(--ease);
 
     span {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       letter-spacing: 0.05em;
       margin-top: 1px;
@@ -148,12 +169,297 @@
     }
 
     @media (max-width: 640px) {
-      width: 44px;
-      height: 44px;
+      width: 42px;
+      height: 42px;
 
       span {
         display: none;
       }
     }
+  }
+}
+
+// ── 간편예약 폼 패널 (templates 포팅 모달 다이얼로그) ──
+.dental-consult-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 17, 23, 0.62);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.35s ease, visibility 0.35s ease;
+
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.dental-consult-panel {
+  position: fixed;
+  right: 104px;
+  bottom: 32px;
+  width: min(420px, calc(100vw - 32px));
+  max-height: calc(100dvh - 64px);
+  overflow-y: auto;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 36px 30px 30px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28), 0 0 0 1px rgba(0, 0, 0, 0.06);
+  z-index: 1010;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(20px) scale(0.96);
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s;
+
+  &.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+  }
+
+  @media (max-width: 768px) {
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 24px 24px 0 0;
+    padding: 30px 20px calc(24px + env(safe-area-inset-bottom));
+    transform: translateY(100%);
+
+    &.is-open {
+      transform: translateY(0);
+    }
+  }
+
+  &__close {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: none;
+    border-radius: 50%;
+    background: #f3f4f6;
+    color: var(--color-navy);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, transform 0.25s;
+
+    &:hover {
+      background: var(--color-indigo);
+      color: #ffffff;
+      transform: rotate(90deg);
+    }
+  }
+
+  &__head {
+    margin-bottom: 22px;
+  }
+
+  &__badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--color-indigo);
+    background: var(--color-indigo-soft);
+    padding: 3px 9px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--color-navy);
+    letter-spacing: -0.02em;
+    margin: 0;
+  }
+
+  &__desc {
+    margin-top: 8px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    color: #64748b;
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.dental-consult-field {
+  position: relative;
+  height: 50px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+
+  &:focus-within {
+    background: #ffffff;
+    border-color: var(--color-indigo);
+    box-shadow: 0 0 0 3px rgba(73, 60, 117, 0.12);
+  }
+
+  &--select {
+    select {
+      cursor: pointer;
+    }
+  }
+}
+
+.dental-consult-input {
+  width: 100%;
+  height: 100%;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-navy);
+  outline: none;
+  appearance: none;
+
+  &:not(:placeholder-shown) + .dental-consult-label,
+  &:focus + .dental-consult-label {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
+
+select.dental-consult-input:invalid {
+  color: #94a3b8;
+}
+
+.dental-consult-label {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  transform: translateY(-50%);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #94a3b8;
+  pointer-events: none;
+  transition: opacity 0.2s;
+
+  span {
+    color: #e53935;
+    margin-left: 2px;
+  }
+}
+
+.dental-consult-arrow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  pointer-events: none;
+  color: #94a3b8;
+}
+
+.dental-consult-agree {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 2px;
+}
+
+.dental-consult-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.dental-consult-box {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid #cbd5e1;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #ffffff;
+  transition: all 0.2s;
+
+  svg {
+    opacity: 0;
+    transform: scale(0.6);
+    transition: all 0.2s;
+  }
+}
+
+.dental-consult-check:checked + .dental-consult-check-label .dental-consult-box {
+  background: var(--color-indigo);
+  border-color: var(--color-indigo);
+
+  svg {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.dental-consult-more {
+  font-size: 11.5px;
+  color: #94a3b8;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+
+  &:hover {
+    color: var(--color-navy);
+  }
+}
+
+.dental-consult-status {
+  min-height: 20px;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 4px 0 0;
+  color: var(--color-indigo);
+
+  &.is-error {
+    color: #e53935;
+  }
+}
+
+.dental-consult-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 50px;
+  border: none;
+  border-radius: 12px;
+  background: var(--color-indigo);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(73, 60, 117, 0.35);
+  transition: background-color 0.25s, transform 0.25s, box-shadow 0.25s;
+
+  &:hover {
+    background: #3c3061;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(73, 60, 117, 0.45);
+  }
+
+  &:active {
+    transform: translateY(0);
   }
 }
