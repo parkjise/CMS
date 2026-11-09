@@ -33,6 +33,32 @@ describe('지연 글꼴 CSS 요청 정리', () => {
     }
   )
 
+  it('fetch 가 응답 없이(undefined) 끝나도 오류 없이 일반 링크로 붙인다 (T-175)', async () => {
+    // 다른 시험이 fetch 를 응답 없이 흉내 내면 res.ok 에서 터져 시험 환경이 정리된 뒤 실패했다
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(undefined))
+    render(<DeferredStylesheets hrefs={[URL]} swapFontDisplay={[URL]} />)
+    await waitFor(() =>
+      expect(document.head.querySelector(`link[rel="stylesheet"][href="${URL}"]`)).not.toBeNull(),
+    )
+  })
+
+  it('화면(document)이 사라진 뒤 끝난 요청은 아무것도 붙이지 않는다 (T-175)', async () => {
+    let finish!: (value: Response) => void
+    const pending = new Promise<Response>((resolve) => {
+      finish = resolve
+    })
+    vi.stubGlobal('fetch', vi.fn(() => pending))
+    render(<DeferredStylesheets hrefs={[URL]} swapFontDisplay={[URL]} />)
+    vi.stubGlobal('document', undefined)
+    await act(async () => {
+      finish(new Response('body{color:red}'))
+      await pending
+      await Promise.resolve()
+    })
+    vi.unstubAllGlobals()
+    expect(document.head.querySelector('style[data-href], link[rel="stylesheet"]')).toBeNull()
+  })
+
   it('응답 본문을 기다리다 해제해도 늦은 CSS를 적용하지 않는다', async () => {
     let finish!: (css: string) => void
     const body = new Promise<string>((resolve) => {
