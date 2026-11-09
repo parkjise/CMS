@@ -22,7 +22,6 @@ export function BoardsPage() {
   const boardsQuery = useBoards()
   const limitsQuery = useBoardLimits()
   const mode = useSiteMenu().data?.mode
-  const isTheme = mode === 'theme'
   const tenantSlug = useAuthStore((state) => state.tenantSlug)
   const canEdit = useCanEdit()
   const boards = boardsQuery.data
@@ -232,8 +231,9 @@ export function BoardsPage() {
             const url = tenantSlug
               ? `${CLIENT_BASE_URL}/${encodeURIComponent(tenantSlug)}/${path}`
               : null
+            // 공지는 템플릿을 확인한 뒤에 — 테마형도 /notice 로 열린다 (T-176)
             const canOpen =
-              url && board.status === 'ACTIVE' && (!board.system_key || mode === 'code')
+              url && board.status === 'ACTIVE' && (!board.system_key || mode !== undefined)
             const modified = board.updated_at ? dayjs(board.updated_at) : null
             return (
               <li
@@ -250,11 +250,6 @@ export function BoardsPage() {
                       <span className="ml-2 text-xs text-slate-500">
                         {boardTypeLabel(board.board_type)}
                       </span>
-                      {isTheme && board.system_key !== null && (
-                        <span className="ml-2 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-800">
-                          지금 템플릿에는 표시되지 않습니다
-                        </span>
-                      )}
                       {board.status === 'INACTIVE' && (
                         <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600">
                           사용 안 함

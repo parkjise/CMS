@@ -175,6 +175,55 @@ class TestPublicSiteBoards:
             await _sql("DELETE FROM tenants WHERE id = :t", t=other_id)
 
 
+async def _add_notice(tenant_id: str, status: str = "ACTIVE") -> str:
+    """코드형에서 쓰던 공지 게시판 — 테마형으로 바꿔도 남아 있다."""
+    board_id = str(uuid.uuid4())
+    await _sql(
+        "INSERT INTO boards (id, tenant_id, name, slug, system_key, board_type,"
+        " status, settings, created_at, updated_at) VALUES (:id, :t, '공지사항',"
+        " 'notice', 'notice', 'LIST', :st, '{}', now(), now())",
+        id=board_id,
+        t=tenant_id,
+        st=status,
+    )
+    return board_id
+
+
+class TestThemeNotice:
+    """테마형에도 공지를 /notice 로 보여 준다 (T-176)."""
+
+    async def test_theme_site_and_menu_include_notice(
+        self, client, auth_headers, tenant
+    ):
+        notice_id = await _add_notice(tenant["id"])
+        news = await _create(client, auth_headers, slug="news")
+
+        boards = await _public_boards(client, tenant["slug"])
+        keys = [i["key"] for i in await _menu_items(client, auth_headers)]
+
+        assert [(b["slug"], b["write_access"]) for b in boards] == [
+            ("notice", "ADMIN"),
+            ("news", "ADMIN"),
+        ]
+        assert keys == [f"board:{notice_id}", _key(news)]
+
+    async def test_code_site_keeps_notice_page(self, client, auth_headers, code_tenant):
+        notice_id = await _add_notice(code_tenant["id"])
+
+        boards = await _public_boards(client, code_tenant["slug"])
+        keys = [i["key"] for i in await _menu_items(client, auth_headers)]
+
+        assert boards == []
+        assert keys == ["about", "notice"]
+        assert f"board:{notice_id}" not in keys
+
+    async def test_inactive_notice_hidden(self, client, auth_headers, tenant):
+        await _add_notice(tenant["id"], status="INACTIVE")
+
+        assert await _public_boards(client, tenant["slug"]) == []
+        assert await _menu_items(client, auth_headers) == []
+
+
 class TestPublicPostFields:
     BODY = [
         {"type": "p", "text": "본문"},

@@ -68,16 +68,19 @@ async def _menu_candidates(
 
     코드형은 템플릿 페이지(menu.json), 테마형은 노출 중인 홈 섹션. 뒤에 새 게시판.
     """
-    boards = [
-        (board_menu_key(b["id"]), b["name"])
-        for b in await board_service.list_public_boards(db, tenant_id)
-    ]
     override = await template_service.get_current_override(db, tenant_id)
     template = await db.get(Template, override.template_id) if override else None
-    if template and template.renderer == "code" and template.code:
-        pages = load_menu(template.code)
-        if pages:
-            return "code", [*((p["key"], p["title"]) for p in pages), *boards]
+    code = template.code if template and template.renderer == "code" else None
+    # 테마형은 공지 페이지가 없어 공지 게시판도 메뉴 후보로 (T-176)
+    boards = [
+        (board_menu_key(b["id"]), b["name"])
+        for b in await board_service.list_public_boards(
+            db, tenant_id, include_notice=not code
+        )
+    ]
+    pages = load_menu(code) if code else None
+    if pages:
+        return "code", [*((p["key"], p["title"]) for p in pages), *boards]
     result = await db.execute(
         select(Section)
         .where(

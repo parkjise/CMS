@@ -18,7 +18,6 @@ import {
   useRestorePost,
   useUpdatePost,
 } from '@/hooks/useBoards'
-import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
@@ -57,15 +56,10 @@ export function BoardPostsPage() {
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
   const tenantSlug = useAuthStore((st) => st.tenantSlug)
-  const isTheme = useSiteMenu().data?.mode === 'theme'
   const publishedId = (useLocation().state as { publishedId?: string } | null)?.publishedId
-  // 테마형에는 공지 페이지가 없고, 사용 안 함 게시판은 열리지 않아 링크를 두지 않는다
+  // 사용 안 함 게시판은 열리지 않아 링크를 두지 않는다. 공지는 테마형도 /notice (T-176)
   const publishedUrl =
-    publishedId &&
-    board &&
-    tenantSlug &&
-    board.status === 'ACTIVE' &&
-    !(board.system_key && isTheme)
+    publishedId && board && tenantSlug && board.status === 'ACTIVE'
       ? `${CLIENT_BASE_URL}/${tenantSlug}/${board.system_key ?? `b/${board.slug}`}/${publishedId}`
       : null
   const postsQuery = usePosts(boardId, filters)

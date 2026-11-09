@@ -940,13 +940,23 @@ def _public_board(
     }
 
 
-async def list_public_boards(db: AsyncSession, tenant_id: UUID) -> list[dict]:
-    """홈페이지에 나가는 새 게시판 — 기본 게시판은 템플릿 페이지가 따로 있다 (5.3)."""
+async def list_public_boards(
+    db: AsyncSession, tenant_id: UUID, *, include_notice: bool = False
+) -> list[dict]:
+    """홈페이지에 나가는 새 게시판 — 기본 게시판은 템플릿 페이지가 따로 있다 (5.3).
+
+    include_notice — 테마형은 공지 페이지가 없어 공지 게시판도 함께 (T-176).
+    """
+    system = (
+        or_(Board.system_key.is_(None), Board.system_key == NOTICE_KEY)
+        if include_notice
+        else Board.system_key.is_(None)
+    )
     result = await db.execute(
         select(Board)
         .where(
             Board.tenant_id == tenant_id,
-            Board.system_key.is_(None),
+            system,
             Board.status == "ACTIVE",
             Board.deleted_at.is_(None),
         )

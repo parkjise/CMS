@@ -17,7 +17,9 @@ const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhos
 function MenuToggle({ board }: { board: Board }) {
   const menuQuery = useSiteMenu()
   const updateMenu = useUpdateSiteMenu()
-  const key = board.system_key ?? `board:${board.id}`
+  // 공지는 코드형에선 템플릿 페이지, 테마형에선 게시판으로 메뉴에 있다 (T-176)
+  const key =
+    board.system_key && menuQuery.data?.mode === 'code' ? board.system_key : `board:${board.id}`
   const items = menuQuery.data?.items ?? []
   const item = items.find((i) => i.key === key)
   if (!item) {

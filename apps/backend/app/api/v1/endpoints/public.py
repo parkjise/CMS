@@ -135,7 +135,12 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
         ),
         boards=[
             PublicBoardResponse(**board)
-            for board in await board_service.list_public_boards(db, tid)
+            for board in await board_service.list_public_boards(
+                db,
+                tid,
+                # 테마형은 공지 페이지가 없어 공지 게시판도 함께 (T-176)
+                include_notice=template is None or template.renderer != "code",
+            )
         ],
     )
 

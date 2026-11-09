@@ -125,6 +125,37 @@ describe('사이트맵 (T-140-C)', () => {
     expect((await locs()).urls).toEqual([BASE, `${BASE}/b/news`, `${BASE}/b/news/p1`])
   })
 
+  it('테마형 공지는 사이트 응답에 있을 때만 /notice 로, 메뉴에서 숨기면 뺀다 (T-176)', async () => {
+    const notice = {
+      id: 'n',
+      name: '공지사항',
+      slug: 'notice',
+      description: '',
+      board_type: 'LIST',
+    }
+    const theme = { renderer: 'theme', code: 'X' } as PublicSite['template']
+    fetchPublicSite.mockResolvedValue(
+      site({ template: theme, boards: [notice, news] as PublicSite['boards'] })
+    )
+    fetchSitemapPosts.mockResolvedValue([post('notice', 'n1', true), post('news', 'p1')])
+    expect((await locs()).urls).toEqual([
+      BASE,
+      `${BASE}/notice`,
+      `${BASE}/b/news`,
+      `${BASE}/notice/n1`,
+      `${BASE}/b/news/p1`,
+    ])
+
+    fetchPublicSite.mockResolvedValue(
+      site({
+        template: theme,
+        boards: [notice, news] as PublicSite['boards'],
+        site_settings: { menu_items: [{ key: 'board:n', label: null, visible: false }] },
+      } as Partial<PublicSite>)
+    )
+    expect((await locs()).urls.some((url) => url.includes('/notice'))).toBe(false)
+  })
+
   it('글 조회가 실패해도 메인 · 페이지는 나온다', async () => {
     fetchSitemapPosts.mockResolvedValue(null)
     const { urls } = await locs()

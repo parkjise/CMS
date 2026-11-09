@@ -185,16 +185,16 @@ describe('게시판 목록', () => {
     expect(screen.getByRole('link', { name: '공지사항 설정' })).toBeInTheDocument()
   })
 
-  it('테마형의 기본 공지는 링크가 없고 새 게시판은 열린다', async () => {
+  it('테마형도 기본 공지는 /notice 로 열리고 새 게시판도 열린다 (T-176)', async () => {
     mockApi({
       mode: 'theme',
       boards: [board, { ...board, id: 'b2', name: '소식', system_key: null, slug: 'news' }],
     })
     renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
-    await screen.findByText('지금 템플릿에는 표시되지 않습니다')
-    expect(
-      screen.queryByRole('link', { name: '공지사항 홈페이지 (새 창)' })
-    ).not.toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: '공지사항 홈페이지 (새 창)' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/clinic/notice'
+    )
     expect(screen.getByRole('link', { name: '소식 홈페이지 (새 창)' })).toHaveAttribute(
       'href',
       'http://localhost:3000/clinic/b/news'
@@ -458,8 +458,8 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
     expect(await screen.findByText('수정 화면: p9')).toBeInTheDocument()
   })
 
-  const renderPublished = (state: unknown, boards?: Board[]) => {
-    mockApi({ boards })
+  const renderPublished = (state: unknown, boards?: Board[], mode?: 'code' | 'theme') => {
+    mockApi({ boards, mode })
     useAuthStore.setState({ tenantSlug: 'demo' } as never)
     renderWithQuery(
       <MemoryRouter initialEntries={[{ pathname: '/admin/boards/b1/posts', state }]}>
@@ -472,6 +472,14 @@ describe('홈페이지에서 들어온 글쓰기 · 수정 (T-142-B-2)', () => {
 
   it('공개하고 돌아오면 홈페이지에서 보기 — 공지 주소', async () => {
     renderPublished({ publishedId: 'p9' })
+    expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/demo/notice/p9'
+    )
+  })
+
+  it('테마형도 공지 주소 (T-176)', async () => {
+    renderPublished({ publishedId: 'p9' }, undefined, 'theme')
     expect(await screen.findByRole('link', { name: '홈페이지에서 보기' })).toHaveAttribute(
       'href',
       'http://localhost:3000/demo/notice/p9'
