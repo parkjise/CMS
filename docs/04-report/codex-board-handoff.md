@@ -5,7 +5,7 @@
 ## 최신 기록: T-174 공개 표 열 순서·최소 크기 설정 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-09)에 따라 T-173의 공개 표 열 설정 후속을 진행했다. 기존 디자인 저장 확장 → 공개 필드 선별/순서 → 관리자 설정 → 두 템플릿 크기 → 회귀/브라우저 검증 플랜이다.
-- 브랜치: `codex/T-174-public-column-layout`. 기존 관리 worktree `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`를 재사용했고 기준 main은 `eaf5126`이다. 폴더명은 T-173이지만 현재 브랜치가 T-174다. PR 생성 후 연결한다. 최종 head backend/frontend/e2e 모두 성공해야 병합한다.
+- 브랜치: `codex/T-174-public-column-layout`. 기존 관리 worktree `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`를 재사용했고 기준 main은 `eaf5126`이다. 폴더명은 T-173이지만 현재 브랜치가 T-174다. PR [#124](https://github.com/parkjise/CMS/pull/124), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공해야 병합한다.
 - 이전 T-173: PR #123 최종 f13840d 세 CI 성공 후 병합, main `eaf5126`. 서버 전체 1,801개 통과/커버리지 95.40%.
 - BoardDesign.list_column_layout: [{key,size}], 기본 [], 최대 20개. 기존 필드 키 형식/크기 narrow·normal·wide/중복/알 수 없는 속성을 검증한다. 키/크기만 기존 boards.settings.design JSON에 저장하므로 DB 마이그레이션 없음. 공개 site/게시판 정보의 디자인에는 원시 배열을 []로 대체해 숨김·삭제 칸의 저장 키를 내보내지 않는다. 읽기 검사 뒤 public_list_columns가 기존 공개·목록 표시 미삭제 필드를 저장 순서로 정렬하고 size를 추가한다. 없는 키는 무시, 새/미설정 칸은 기존 순서로 뒤에 붙으며 기본 normal. 기존 list_fields 값/비밀글/회원 검사·private,no-store 유지. 로그인/권한 정책 변경 없음.
 - PublicColumnLayoutSettings + BoardDesignPage: 추가 LIST 표 모드에서만 앞/뒤 이동과 좁게/보통/넓게 최소 크기/초기화. 제목·날짜 순서 고정, 변경만으로 요청하지 않으며 기존 저장 버튼으로 모든 방문자 공통 디자인을 저장한다. 실패 후 선택 유지/재시도, 기존 뷰어 필드셋 잠금. 필드 로딩/조회 실패 재시도/표시 칸 없음 안내. 기존 원본 필드 순서/관리자 개인 설정은 유지한다. 표시 칸 기준으로 편집 배열을 구성하므로 편집 시 사라진 칸 설정은 빠진다. 그대로 보관된 키는 다시 표시하면 저장 위치/크기를 복원한다.
