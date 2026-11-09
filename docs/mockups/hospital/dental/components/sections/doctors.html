@@ -1,60 +1,86 @@
 <section class="dental-doctors" id="doctors">
   <div class="dental-container">
-    <div class="dental-section-head">
+    <div class="dental-section-head dental-section-head--dark">
       <div>
-        <p class="dental-eyebrow" data-reveal>OUR DOCTORS · 의료진 소개</p>
-        <h2 class="dental-title" data-reveal>이름 · 학력 · 경력 · 진료분야<br />진료일정을 확인하세요</h2>
+        <p class="dental-eyebrow" data-reveal>TEAM OF ALBA</p>
+        <h2 class="dental-title" data-reveal>
+          소중한 건강을 최우선으로 생각하는<br />
+          의료진 <b>Team ALBA</b>
+        </h2>
       </div>
-      <a href="#" class="dental-link-arrow" data-reveal>의료진 전체보기 ↗</a>
+      <div class="dental-doctors__nav" data-reveal>
+        <button type="button" class="dental-circle-btn" id="docPrev" aria-label="이전 의료진">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+        </button>
+        <button type="button" class="dental-circle-btn" id="docNext" aria-label="다음 의료진">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
-    <ul class="dental-doctors__list">
-      <li class="dental-doctor" data-reveal>
-        <div class="dental-doctor__photo">
-          <img src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=800&q=80" alt="김도윤 대표원장 프로필" loading="lazy" />
+    <div class="dental-docs" id="dentalDocs" data-reveal>
+      <!-- 01 -->
+      <article class="dental-doc is-active" data-doc="0">
+        <div class="dental-doc__photo">
+          <img src="https://images.unsplash.com/photo-1651008376811-b90baee60c1f?auto=format&fit=crop&w=1000&q=80" alt="김서윤 대표원장" loading="lazy" />
         </div>
-        <div class="dental-doctor__body">
-          <span class="dental-doctor__role">대표원장</span>
-          <strong class="dental-doctor__name">김도윤</strong>
-          <p class="dental-doctor__field">임플란트 · 보철</p>
-          <ul class="dental-doctor__career">
-            <li>○○대학교 치의학대학원 졸업</li>
-            <li>보철과 전문의 (예시)</li>
+        <div class="dental-doc__body">
+          <p class="dental-doc__field">임플란트·보철 전문의</p>
+          <h3 class="dental-doc__name"><b>김서윤</b> 대표원장</h3>
+          <ul class="dental-doc__career">
+            <li>○○대학교 치의학대학원 졸업 (예시)</li>
+            <li>치과보철과 전문의 (보건복지부 인증)</li>
+            <li>○○대학교 치과병원 보철과 레지던트 수료</li>
+            <li>前 ○○대학교병원 치과 진료교수</li>
+            <li>대한치과보철학회 정회원</li>
           </ul>
-          <p class="dental-doctor__day">진료 월·화·목·금</p>
+          <p class="dental-doc__day">진료 · 월·화·목·금</p>
+          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
         </div>
-      </li>
-      <li class="dental-doctor" data-reveal>
-        <div class="dental-doctor__photo">
-          <img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=800&q=80" alt="이서연 원장 프로필" loading="lazy" />
+      </article>
+      <!-- 02 -->
+      <article class="dental-doc" data-doc="1">
+        <div class="dental-doc__photo">
+          <img src="https://images.unsplash.com/photo-1612349316228-5942a9b489c2?auto=format&fit=crop&w=1000&q=80" alt="이도현 원장" loading="lazy" />
         </div>
-        <div class="dental-doctor__body">
-          <span class="dental-doctor__role">원장</span>
-          <strong class="dental-doctor__name">이서연</strong>
-          <p class="dental-doctor__field">치아교정 · 소아치과</p>
-          <ul class="dental-doctor__career">
-            <li>○○대학교 치의학대학원 졸업</li>
-            <li>교정과 전문의 (예시)</li>
+        <div class="dental-doc__body">
+          <p class="dental-doc__field">치아교정과 전문의</p>
+          <h3 class="dental-doc__name"><b>이도현</b> 원장</h3>
+          <ul class="dental-doc__career">
+            <li>○○대학교 치의학대학원 졸업 (예시)</li>
+            <li>치과교정과 전문의 (보건복지부 인증)</li>
+            <li>○○대학교 치과병원 교정과 레지던트 수료</li>
+            <li>대한치과교정학회 정회원</li>
           </ul>
-          <p class="dental-doctor__day">진료 월·수·금·토</p>
+          <p class="dental-doc__day">진료 · 월·수·금·토</p>
+          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
         </div>
-      </li>
-      <li class="dental-doctor" data-reveal>
-        <div class="dental-doctor__photo">
-          <img src="https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=800&q=80" alt="박민재 원장 프로필" loading="lazy" />
+      </article>
+      <!-- 03 -->
+      <article class="dental-doc" data-doc="2">
+        <div class="dental-doc__photo">
+          <img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=1000&q=80" alt="박하윤 원장" loading="lazy" />
         </div>
-        <div class="dental-doctor__body">
-          <span class="dental-doctor__role">원장</span>
-          <strong class="dental-doctor__name">박민재</strong>
-          <p class="dental-doctor__field">일반진료 · 잇몸치료</p>
-          <ul class="dental-doctor__career">
-            <li>○○대학교 치의학대학원 졸업</li>
-            <li>통합치의학과 전문의 (예시)</li>
+        <div class="dental-doc__body">
+          <p class="dental-doc__field">통합치의학과 전문의</p>
+          <h3 class="dental-doc__name"><b>박하윤</b> 원장</h3>
+          <ul class="dental-doc__career">
+            <li>○○대학교 치의학대학원 졸업 (예시)</li>
+            <li>통합치의학과 전문의 (보건복지부 인증)</li>
+            <li>충치·신경치료·잇몸치료 진료</li>
+            <li>대한치주과학회 정회원</li>
           </ul>
-          <p class="dental-doctor__day">진료 화·수·목·토</p>
+          <p class="dental-doc__day">진료 · 화·수·목·토</p>
+          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
         </div>
-      </li>
-    </ul>
-    <p class="dental-note">※ 의료진 정보는 예시이며, 실제 확인된 자격·경력으로 교체합니다.</p>
+      </article>
+
+      <div class="dental-docs__pager" id="docPager" role="tablist" aria-label="의료진 선택">
+        <button type="button" class="is-active" role="tab" aria-selected="true"><span>01</span>김서윤</button>
+        <button type="button" role="tab" aria-selected="false"><span>02</span>이도현</button>
+        <button type="button" role="tab" aria-selected="false"><span>03</span>박하윤</button>
+      </div>
+    </div>
+    <p class="dental-note">※ 의료진 정보와 사진은 예시이며, 실제 확인된 자격·경력으로 교체합니다.</p>
   </div>
 </section>

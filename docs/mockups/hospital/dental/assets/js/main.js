@@ -1,9 +1,12 @@
 /**
- * Moran Dental — Main Script (GSAP 인터랙션)
+ * Alba Dental — Main Script (GSAP 인터랙션)
  */
 document.addEventListener('includes:loaded', () => {
   initHeader();
+  initLang();
   initTodayInfo();
+  initDoctors();
+  initKakaoMap();
   initFaq();
   initGsap();
 });
@@ -36,7 +39,8 @@ function initHeader() {
 
 // ── 오늘 진료 상태 / 요일 하이라이트 (CMS 진료시간 연동 가정) ──
 function initTodayInfo() {
-  const HOURS = { 0: null, 1: [9.5, 18.5], 2: [9.5, 18.5], 3: [9.5, 18.5], 4: [9.5, 18.5], 5: [9.5, 18.5], 6: [9.5, 14] };
+  // 월·목 야간(~20:30), 화·수·금(~18:30), 토(~14:00), 일 휴진
+  const HOURS = { 0: null, 1: [9.5, 20.5], 2: [9.5, 18.5], 3: [9.5, 18.5], 4: [9.5, 20.5], 5: [9.5, 18.5], 6: [9.5, 14] };
   const now = new Date();
   const day = now.getDay();
   const t = now.getHours() + now.getMinutes() / 60;
@@ -44,7 +48,10 @@ function initTodayInfo() {
   const status = document.getElementById('todayStatus');
   const fmt = (h) => `${String(Math.floor(h)).padStart(2, '0')}:${h % 1 ? '30' : '00'}`;
 
-  document.querySelector(`.dental-hours tr[data-day="${day}"]`)?.classList.add('is-today');
+  document.querySelectorAll('.dental-hours li[data-days]').forEach((li) => {
+    const days = li.dataset.days;
+    if (days !== 'all' && days.split(',').includes(String(day)) && today) li.classList.add('is-today');
+  });
   if (!status) return;
 
   if (!today) {
@@ -57,6 +64,127 @@ function initTodayInfo() {
   } else {
     status.textContent = '오늘 진료가 종료되었습니다';
   }
+}
+
+// ── 다국어 드롭다운 ──
+function initLang() {
+  const wrap = document.getElementById('dentalLang');
+  const btn = document.getElementById('dentalLangBtn');
+  const cur = document.getElementById('dentalLangCur');
+  if (!wrap || !btn) return;
+  const setOpen = (open) => {
+    wrap.classList.toggle('is-open', open);
+    btn.setAttribute('aria-expanded', String(open));
+  };
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    setOpen(!wrap.classList.contains('is-open'));
+  });
+  wrap.querySelectorAll('[data-lang]').forEach((opt) =>
+    opt.addEventListener('click', () => {
+      wrap.querySelectorAll('[data-lang]').forEach((o) => o.setAttribute('aria-selected', String(o === opt)));
+      cur.textContent = opt.dataset.lang;
+      document.documentElement.lang = { KOR: 'ko', ENG: 'en', JPN: 'ja', CHN: 'zh' }[opt.dataset.lang];
+      setOpen(false);
+    }),
+  );
+  document.addEventListener('click', () => setOpen(false));
+  window.addEventListener('keydown', (e) => e.key === 'Escape' && setOpen(false));
+}
+
+// ── 의료진 슬라이더 (페이드 + 타원 포트레이트 전환) ──
+function initDoctors() {
+  const root = document.getElementById('dentalDocs');
+  if (!root) return;
+  const slides = [...root.querySelectorAll('.dental-doc')];
+  const tabs = [...root.querySelectorAll('#docPager button')];
+  let idx = 0;
+  let busy = false;
+
+  const go = (next) => {
+    if (busy || next === idx) return;
+    next = (next + slides.length) % slides.length;
+    const from = slides[idx];
+    const to = slides[next];
+    tabs.forEach((t, i) => {
+      t.classList.toggle('is-active', i === next);
+      t.setAttribute('aria-selected', String(i === next));
+    });
+    if (!window.gsap) {
+      from.classList.remove('is-active');
+      to.classList.add('is-active');
+      idx = next;
+      return;
+    }
+    busy = true;
+    const items = (el) => [el.querySelector('.dental-doc__photo'), ...el.querySelectorAll('.dental-doc__body > *')];
+    gsap.to(items(from), {
+      opacity: 0,
+      y: -16,
+      duration: 0.45,
+      stagger: 0.04,
+      ease: 'power2.in',
+      onComplete: () => {
+        from.classList.remove('is-active');
+        to.classList.add('is-active');
+        gsap.set(items(from), { clearProps: 'all' });
+        gsap.fromTo(
+          items(to),
+          { opacity: 0, y: 28 },
+          { opacity: 1, y: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out', onComplete: () => (busy = false) },
+        );
+        gsap.fromTo(to.querySelector('.dental-doc__photo'), { scale: 0.92 }, { scale: 1, duration: 1.1, ease: 'power3.out' });
+        idx = next;
+        ScrollTrigger.refresh();
+      },
+    });
+  };
+
+  document.getElementById('docPrev')?.addEventListener('click', () => go((idx - 1 + slides.length) % slides.length));
+  document.getElementById('docNext')?.addEventListener('click', () => go((idx + 1) % slides.length));
+  tabs.forEach((t, i) => t.addEventListener('click', () => go(i)));
+}
+
+// ── 카카오맵 (JavaScript 키 필요 · 없으면 OSM 임시 지도로 대체) ──
+// 1) https://developers.kakao.com 에서 앱 생성 → JavaScript 키 발급
+// 2) 플랫폼(Web) 에 사용 도메인 등록 (예: http://localhost:8090)
+// 3) 아래 KAKAO_JS_KEY 에 발급받은 키 입력
+const KAKAO_JS_KEY = 'YOUR_KAKAO_JAVASCRIPT_KEY';
+
+function initKakaoMap() {
+  const el = document.getElementById('kakaoMap');
+  if (!el) return;
+  const lat = Number(el.dataset.lat);
+  const lng = Number(el.dataset.lng);
+  const name = el.dataset.name || '';
+
+  const fallback = () => {
+    const d = 0.004;
+    el.innerHTML = `<iframe title="${name} 위치 지도" loading="lazy"
+      src="https://www.openstreetmap.org/export/embed.html?bbox=${lng - d * 1.6}%2C${lat - d}%2C${lng + d * 1.6}%2C${lat + d}&layer=mapnik&marker=${lat}%2C${lng}"></iframe>`;
+  };
+
+  if (!KAKAO_JS_KEY || KAKAO_JS_KEY.startsWith('YOUR_')) return fallback();
+
+  const draw = () => {
+    kakao.maps.load(() => {
+      const center = new kakao.maps.LatLng(lat, lng);
+      const map = new kakao.maps.Map(el, { center, level: 3 });
+      map.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT);
+      const pin = document.createElement('div');
+      pin.className = 'dental-map-pin';
+      pin.innerHTML = `<span>${name}</span>`;
+      new kakao.maps.CustomOverlay({ map, position: center, content: pin, yAnchor: 1.3 });
+      new kakao.maps.Marker({ map, position: center });
+    });
+  };
+
+  if (window.kakao && window.kakao.maps) return draw();
+  const sc = document.createElement('script');
+  sc.src = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`;
+  sc.onload = draw;
+  sc.onerror = fallback;
+  document.head.appendChild(sc);
 }
 
 // ── FAQ 아코디언 ──
@@ -166,3 +294,4 @@ function initGsap() {
 
   ScrollTrigger.refresh();
 }
+

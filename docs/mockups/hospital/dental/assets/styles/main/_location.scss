@@ -6,40 +6,27 @@
 
   &__inner {
     display: grid;
-    grid-template-columns: 5fr 6fr;
-    gap: 80px;
-    align-items: stretch;
+    grid-template-columns: 6fr 5fr;
+    gap: clamp(40px, 6vw, 110px);
+    align-items: start;
     @media (max-width: 1024px) {
       grid-template-columns: 1fr;
       gap: 48px;
     }
   }
-  &__lunch {
-    margin: 12px 0 32px;
-    font-size: 13px;
-    color: var(--color-text-muted);
-  }
-  &__list {
-    margin-bottom: 36px;
-    > div {
-      display: grid;
-      grid-template-columns: 72px 1fr;
-      padding: 14px 0;
-      border-top: 1px solid var(--color-border);
-      &:last-child {
-        border-bottom: 1px solid var(--color-border);
-      }
-    }
-    dt {
-      font-weight: 700;
-      color: var(--color-navy);
+  &__mapwrap {
+    position: sticky;
+    top: calc(var(--header-h) + 24px);
+    @media (max-width: 1024px) {
+      position: static;
     }
   }
   &__map {
     position: relative;
-    min-height: 480px;
+    width: 100%;
+    aspect-ratio: 4 / 3.4;
     overflow: hidden;
-    border-radius: 20px;
+    border-radius: 24px;
     background: var(--color-sand);
     iframe {
       position: absolute;
@@ -47,50 +34,167 @@
       width: 100%;
       height: 100%;
       border: 0;
-      filter: grayscale(0.4) contrast(1.02);
     }
-    @media (max-width: 1024px) {
-      min-height: 360px;
+    @media (max-width: 640px) {
+      aspect-ratio: 1;
+    }
+  }
+  &__desc {
+    margin-top: 20px;
+    color: #3a3a3a;
+  }
+  &__addr {
+    margin-top: 40px;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.6;
+    color: var(--color-navy);
+    span {
+      display: block;
+    }
+  }
+  &__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 20px 0 8px;
+    a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 18px;
+      border-radius: 999px;
+      background: var(--color-bg-soft);
+      font-size: 14px;
+      font-weight: 500;
+      transition:
+        background-color 0.3s var(--ease),
+        transform 0.3s var(--ease);
+      &:hover {
+        background: var(--color-sand-deep);
+        transform: translateY(-2px);
+      }
+    }
+    i {
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      &.is-naver {
+        background: #03c75a;
+      }
+      &.is-kakao {
+        background: #fee500;
+        border: 1px solid #e0c900;
+      }
+      &.is-tmap {
+        background: #ef4056;
+      }
+    }
+  }
+  &__row {
+    display: grid;
+    grid-template-columns: 110px 1fr;
+    gap: 16px;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--color-border);
+    &:first-of-type {
+      margin-top: 32px;
+    }
+    dt {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--color-navy);
+    }
+    dd {
+      color: #3a3a3a;
+    }
+    &--tel dd a {
+      font-size: clamp(30px, 3vw, 44px);
+      font-weight: 800;
+      letter-spacing: -0.01em;
+      line-height: 1.1;
+      color: var(--color-navy);
+    }
+    @media (max-width: 480px) {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+  }
+  &__notes {
+    margin-top: 16px;
+    li {
+      font-size: 13px;
+      color: var(--color-text-muted);
+      line-height: 1.9;
+      &::before {
+        content: '* ';
+      }
     }
   }
 }
 
 .dental-hours {
-  width: 100%;
-  margin-top: 36px;
-  border-collapse: collapse;
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 14px;
+    padding: 7px 12px;
+    margin: 0 -12px;
+    border-radius: 10px;
+    transition: background-color 0.4s var(--ease);
+    b {
+      min-width: 108px;
+      font-weight: 700;
+      color: var(--color-navy);
+    }
+    span {
+      font-weight: 500;
+      color: #3a3a3a;
+      font-variant-numeric: tabular-nums;
+    }
+    &.is-today {
+      background: var(--color-indigo-soft);
+      b::after {
+        content: 'TODAY';
+        margin-left: 8px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--color-indigo);
+        color: var(--color-white);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        vertical-align: 2px;
+      }
+    }
+  }
+}
 
-  th,
-  td {
-    padding: 13px 0;
-    border-bottom: 1px solid var(--color-border);
-    text-align: left;
-    font-size: 15px;
+.dental-badge {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--color-indigo-soft);
+  color: var(--color-indigo);
+  font-size: 12px;
+  font-weight: 700;
+  font-style: normal;
+  &--solid {
+    background: var(--color-indigo);
+    color: var(--color-white);
   }
-  th {
-    font-weight: 500;
-    color: var(--color-text-muted);
-  }
-  td {
-    text-align: right;
-    font-weight: 500;
-    color: var(--color-navy);
-  }
-  .is-off td {
-    color: #c0554b;
-  }
-  tr.is-today {
-    background: linear-gradient(90deg, rgba(184, 149, 106, 0.18), rgba(184, 149, 106, 0.04));
-  }
-  tr.is-today th,
-  tr.is-today td {
-    color: var(--color-navy);
-    font-weight: 700;
-  }
-  tr.is-today th {
-    padding-left: 12px;
-  }
-  tr.is-today td {
-    padding-right: 12px;
-  }
+}
+
+// 카카오맵 커스텀 오버레이 핀
+.dental-map-pin span {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--color-indigo);
+  color: var(--color-white);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(73, 60, 117, 0.35);
 }

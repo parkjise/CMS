@@ -7,7 +7,7 @@
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     background: var(--color-white);
-    box-shadow: 0 30px 80px rgba(10, 24, 48, 0.16);
+    box-shadow: 0 30px 80px rgba(24, 20, 38, 0.16);
     border-radius: 20px;
     overflow: hidden;
 
@@ -73,3 +73,4 @@
     color: var(--color-text-muted);
   }
 }
+

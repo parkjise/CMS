@@ -1,19 +1,24 @@
-// Premium 프리셋 — 딥 네이비 · 샌드 · 화이트
+// ELEV 무드 — 잉크 블랙 · 딥 인디고 · 샌드 · 화이트
 :root {
-  --color-navy: #0f2340;
-  --color-navy-deep: #0a1830;
-  --color-navy-soft: #1c3558;
-  --color-sand: #efe8dc;
-  --color-sand-deep: #e2d8c6;
-  --color-accent: #b8956a;
+  --color-navy: #1c1c1c; // 메인 잉크(텍스트·버튼)
+  --color-navy-deep: #141414;
+  --color-navy-soft: #3a3a3a;
+  --color-indigo: #493c75;
+  --color-indigo-deep: #1f1a33;
+  --color-indigo-soft: #ece8f4;
+  --color-sand: #f3eee6;
+  --color-sand-deep: #e5daca;
+  --color-bg-soft: #f6f6f6;
+  --color-accent: #968469;
   --color-white: #ffffff;
-  --color-text: #17233a;
-  --color-text-muted: #6b7686;
-  --color-border: #dcd5c8;
+  --color-text: #1c1c1c;
+  --color-text-muted: #828282;
+  --color-border: #e6e1d8;
   --color-border-dark: rgba(255, 255, 255, 0.16);
 
-  --font-serif: 'Cormorant Garamond', 'Noto Sans KR', Georgia, serif;
-  --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  // 전체 폰트 Pretendard 통일 (영문·숫자 포함)
+  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', 'Noto Sans KR', sans-serif;
+  --font-serif: var(--font-sans);
 
   --container-max-width: 1600px;
   --gutter: 48px;
