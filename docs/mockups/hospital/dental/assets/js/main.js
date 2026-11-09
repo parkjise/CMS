@@ -6,6 +6,7 @@ document.addEventListener('includes:loaded', () => {
   initLang();
   initTodayInfo();
   initDoctors();
+  initClinicTour();
   initMedia();
   initKakaoMap();
   initFaq();
@@ -13,7 +14,7 @@ document.addEventListener('includes:loaded', () => {
   initGsap();
 });
 
-// ── 헤더: 스크롤 시 화이트 전환 + 모바일 드로어 ──
+// ── 헤더: 스크롤 시 화이트 전환 + ELEV 스타일 메가메뉴 호버 + 모바일 드로어 ──
 function initHeader() {
   const header = document.getElementById('header');
   const toggle = document.getElementById('dentalMenuToggle');
@@ -24,6 +25,46 @@ function initHeader() {
   const onScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 40);
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
+
+  // ELEV 클리닉 스타일 1뎁스 메가메뉴 호버 인터랙션 (150ms 디바운스)
+  const navList = header.querySelector('.dental-nav-list');
+  const navItems = header.querySelectorAll('.dental-nav-list__item');
+  let navCloseTimer = null;
+
+  if (navList && navItems.length) {
+    navItems.forEach((item) => {
+      item.addEventListener('mouseenter', () => {
+        clearTimeout(navCloseTimer);
+        navItems.forEach((other) => other.classList.toggle('is-open', other === item));
+        header.classList.add('is-hovered');
+      });
+    });
+
+    navList.addEventListener('mouseleave', () => {
+      clearTimeout(navCloseTimer);
+      navCloseTimer = setTimeout(() => {
+        navItems.forEach((item) => item.classList.remove('is-open'));
+        header.classList.remove('is-hovered');
+      }, 150);
+    });
+
+    // 키보드 접근성 대응
+    navItems.forEach((item) => {
+      const link = item.querySelector('.dental-nav-link');
+      link?.addEventListener('focus', () => {
+        clearTimeout(navCloseTimer);
+        navItems.forEach((other) => other.classList.toggle('is-open', other === item));
+        header.classList.add('is-hovered');
+      });
+    });
+
+    header.addEventListener('focusout', (e) => {
+      if (!header.contains(e.relatedTarget)) {
+        navItems.forEach((item) => item.classList.remove('is-open'));
+        header.classList.remove('is-hovered');
+      }
+    });
+  }
 
   const setOpen = (open) => {
     header.classList.toggle('is-open', open);
@@ -326,6 +367,72 @@ function initFaq() {
         if (window.ScrollTrigger) ScrollTrigger.refresh();
       }, 400);
     });
+  });
+}
+
+// ── 치과 둘러보기 슬라이더 (LU 치과 loca_sect 레퍼런스) ──
+function initClinicTour() {
+  const slider = document.getElementById('tourSlider');
+  const prevBtn = document.getElementById('tourPrev');
+  const nextBtn = document.getElementById('tourNext');
+  const progressFill = document.getElementById('tourProgress');
+  if (!slider) return;
+
+  const cards = slider.querySelectorAll('.dental-tour__card');
+  if (!cards.length) return;
+
+  const updateProgress = () => {
+    const maxScroll = slider.scrollWidth - slider.clientWidth;
+    if (maxScroll <= 0) {
+      if (progressFill) progressFill.style.width = '100%';
+      return;
+    }
+    const ratio = slider.scrollLeft / maxScroll;
+    const minPercent = 100 / cards.length;
+    const currentPercent = minPercent + ratio * (100 - minPercent);
+    if (progressFill) {
+      progressFill.style.width = `${Math.min(Math.max(currentPercent, minPercent), 100)}%`;
+    }
+    if (prevBtn) prevBtn.disabled = slider.scrollLeft <= 5;
+    if (nextBtn) nextBtn.disabled = slider.scrollLeft >= maxScroll - 5;
+  };
+
+  const getScrollStep = () => {
+    const card = slider.querySelector('.dental-tour__card');
+    return card ? card.offsetWidth + 24 : 380;
+  };
+
+  prevBtn?.addEventListener('click', () => {
+    slider.scrollBy({ left: -getScrollStep(), behavior: 'smooth' });
+  });
+
+  nextBtn?.addEventListener('click', () => {
+    slider.scrollBy({ left: getScrollStep(), behavior: 'smooth' });
+  });
+
+  slider.addEventListener('scroll', updateProgress, { passive: true });
+  window.addEventListener('resize', updateProgress, { passive: true });
+  updateProgress();
+
+  // 마우스 드래그 지원
+  let isDown = false;
+  let startX = 0;
+  let scrollLeft = 0;
+
+  slider.addEventListener('mousedown', (e) => {
+    isDown = true;
+    startX = e.pageX - slider.offsetLeft;
+    scrollLeft = slider.scrollLeft;
+  });
+  window.addEventListener('mouseup', () => {
+    isDown = false;
+  });
+  slider.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - slider.offsetLeft;
+    const walk = (x - startX) * 1.5;
+    slider.scrollLeft = scrollLeft - walk;
   });
 }
 

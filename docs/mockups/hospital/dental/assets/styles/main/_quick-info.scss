@@ -32,7 +32,7 @@
     padding: 36px 32px;
     transition: background-color 0.4s var(--ease);
     &:hover {
-      background: var(--color-sand);
+      background: var(--color-light-gray);
     }
     @media (max-width: 1024px) {
       padding: 28px 24px;
@@ -40,8 +40,28 @@
     }
   }
   &__icon {
-    color: var(--color-accent);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background-color: var(--color-indigo);
+    color: var(--color-white);
     margin-bottom: 20px;
+    box-shadow: 0 8px 18px rgba(73, 60, 117, 0.22);
+    transition: transform 0.3s var(--ease), background-color 0.3s var(--ease);
+
+    svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--color-white);
+      color: var(--color-white);
+    }
+  }
+  &__card:hover &__icon {
+    transform: translateY(-2px) scale(1.05);
+    background-color: #3b2f61;
   }
   &__title {
     font-size: 20px;

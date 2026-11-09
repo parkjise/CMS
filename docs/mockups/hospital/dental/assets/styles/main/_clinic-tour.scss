@@ -1,0 +1,253 @@
+// ==========================================================================
+// ALBA DENTAL — 치과 둘러보기 섹션 (LU 치과 loca_sect 레퍼런스)
+// ==========================================================================
+
+.dental-tour {
+  position: relative;
+  padding: 120px 0 100px;
+  background: var(--color-white);
+  overflow: hidden;
+
+  @media (max-width: 900px) {
+    padding: 80px 0 70px;
+  }
+
+  &__top {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 32px;
+    margin-bottom: 48px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: flex-start;
+      margin-bottom: 32px;
+    }
+  }
+
+  &__head {
+    max-width: 680px;
+
+    .dental-title {
+      margin-bottom: 16px;
+      line-height: 1.35;
+
+      b {
+        color: var(--color-indigo);
+      }
+    }
+
+    .dental-desc {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--color-text-secondary);
+      word-break: keep-all;
+
+      @media (max-width: 768px) {
+        font-size: 14.5px;
+      }
+    }
+  }
+
+  // LU 치과 스타일 라운드 페이징 버튼
+  &__paging {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+
+    @media (max-width: 768px) {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 1px solid var(--color-border);
+    background: var(--color-white);
+    color: var(--color-navy);
+    cursor: pointer;
+    transition:
+      background-color 0.3s var(--ease),
+      border-color 0.3s var(--ease),
+      color 0.3s var(--ease),
+      transform 0.3s var(--ease),
+      box-shadow 0.3s var(--ease);
+
+    svg {
+      transition: transform 0.25s var(--ease);
+    }
+
+    &:hover {
+      background: var(--color-indigo);
+      border-color: var(--color-indigo);
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(73, 60, 117, 0.28);
+
+      &.dental-tour__btn--prev svg {
+        transform: translateX(-2px);
+      }
+      &.dental-tour__btn--next svg {
+        transform: translateX(2px);
+      }
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+
+    &:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+      background: var(--color-white);
+      color: var(--color-navy);
+      border-color: var(--color-border);
+    }
+  }
+
+  // 와이드 슬라이더 레일
+  &__slider-wrap {
+    position: relative;
+    width: 100%;
+    padding-left: max(calc((100% - 1320px) / 2 + 20px), 24px);
+
+    @media (max-width: 1360px) {
+      padding-left: 24px;
+    }
+    @media (max-width: 640px) {
+      padding-left: 18px;
+    }
+  }
+
+  &__slider {
+    display: flex;
+    gap: 24px;
+    overflow-x: auto;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    cursor: grab;
+    padding-right: 48px;
+    padding-bottom: 8px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &__card {
+    flex: 0 0 380px;
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    user-select: none;
+
+    @media (max-width: 900px) {
+      flex: 0 0 320px;
+    }
+    @media (max-width: 560px) {
+      flex: 0 0 82vw;
+    }
+
+    &:hover {
+      .dental-tour__thumb img {
+        transform: scale(1.06);
+      }
+      .dental-tour__name {
+        color: var(--color-indigo);
+      }
+    }
+  }
+
+  &__thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10.5;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #f1f3f5;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.6s var(--ease);
+    }
+  }
+
+  &__tag {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(28, 28, 28, 0.76);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #ffffff;
+    z-index: 2;
+  }
+
+  &__meta {
+    margin-top: 18px;
+  }
+
+  &__name {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--color-navy);
+    line-height: 1.45;
+    margin-bottom: 8px;
+    transition: color 0.25s var(--ease);
+  }
+
+  &__text {
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    word-break: keep-all;
+    margin: 0;
+  }
+
+  // LU 치과 스타일 프로그레스 바
+  &__progress {
+    position: relative;
+    width: 100%;
+    height: 3px;
+    background: #e9ecef;
+    border-radius: 999px;
+    margin-top: 48px;
+    overflow: hidden;
+
+    @media (max-width: 768px) {
+      margin-top: 32px;
+    }
+  }
+
+  &__progress-fill {
+    height: 100%;
+    width: 16.666%;
+    background: var(--color-indigo);
+    border-radius: 999px;
+    transition: width 0.15s ease-out;
+  }
+}
