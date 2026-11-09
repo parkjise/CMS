@@ -1,0 +1,159 @@
+// LU치과 스타일 플로팅 퀵메뉴 & TOP 버튼
+.dental-float-quick {
+  position: fixed;
+  right: 28px;
+  bottom: 32px;
+  z-index: 85;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+
+  & > * {
+    pointer-events: auto;
+  }
+
+  @media (max-width: 1024px) {
+    right: 18px;
+    bottom: 24px;
+  }
+
+  @media (max-width: 640px) {
+    right: 14px;
+    bottom: 84px; // 모바일 하단 고정 바 위
+  }
+
+  &__box {
+    background: rgba(28, 28, 28, 0.94);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 20px;
+    padding: 8px 6px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+
+    &:hover {
+      box-shadow: 0 14px 40px rgba(0, 0, 0, 0.3);
+    }
+
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__item {
+    margin: 0;
+    padding: 0;
+  }
+
+  &__btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 68px;
+    height: 64px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: rgba(255, 255, 255, 0.85);
+    transition: all 0.25s var(--ease);
+
+    span {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      margin-top: 4px;
+    }
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+
+    &--primary {
+      background: var(--color-indigo);
+      color: #ffffff;
+
+      &:hover {
+        background: #56478a;
+      }
+    }
+  }
+
+  &__ico {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+
+    &--naver {
+      color: #03c75a;
+    }
+
+    &--kakao {
+      color: #fee500;
+    }
+  }
+
+  &__top {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 1px solid var(--color-border);
+    color: var(--color-navy);
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(16px);
+    transition: all 0.3s var(--ease);
+
+    span {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      margin-top: 1px;
+      line-height: 1;
+    }
+
+    &:hover {
+      background: var(--color-indigo);
+      border-color: var(--color-indigo);
+      color: #ffffff;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 24px rgba(73, 60, 117, 0.35);
+    }
+
+    &.is-visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 640px) {
+      width: 44px;
+      height: 44px;
+
+      span {
+        display: none;
+      }
+    }
+  }
+}

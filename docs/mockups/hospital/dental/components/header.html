@@ -1,5 +1,6 @@
 <header class="dental-header" id="header">
   <div class="dental-header__inner">
+    <!-- 브랜드 로고 -->
     <a href="index.html" class="dental-brand" aria-label="ALBA DENTAL 홈으로 이동">
       <span class="dental-brand__mark" aria-hidden="true">A</span>
       <span class="dental-brand__text">
@@ -8,32 +9,115 @@
       </span>
     </a>
 
+    <!-- 루시드형 7대 GNB 네비게이션 (헤더 가운데 정렬) -->
     <nav class="dental-header__nav" aria-label="주요 메뉴">
       <ul class="dental-nav-list">
-        <li class="dental-nav-list__item"><a href="#about" class="dental-nav-link">병원 소개</a></li>
-        <li class="dental-nav-list__item"><a href="#treatments" class="dental-nav-link">진료 안내</a></li>
-        <li class="dental-nav-list__item"><a href="#doctors" class="dental-nav-link">의료진</a></li>
-        <li class="dental-nav-list__item"><a href="#location" class="dental-nav-link">오시는 길</a></li>
-        <li class="dental-nav-list__item"><a href="#notice" class="dental-nav-link">병원 소식</a></li>
+        <!-- 01 병원 소개 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#about" class="dental-nav-link">병원 소개</a>
+          <ul class="dental-nav-sub" aria-label="병원 소개 하위메뉴">
+            <li><a href="#about">병원 소개 · 진료철학</a></li>
+            <li><a href="#doctors">의료진 소개</a></li>
+            <li><a href="#about">첨단 장비 안내</a></li>
+            <li><a href="#location">진료시간 및 오시는 길</a></li>
+          </ul>
+        </li>
+
+        <!-- 02 심미치료 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#treatments" class="dental-nav-link">심미치료</a>
+          <ul class="dental-nav-sub" aria-label="심미치료 하위메뉴">
+            <li><a href="#treatments">무삭제 라미네이트</a></li>
+            <li><a href="#treatments">원데이 라미네이트</a></li>
+            <li><a href="#treatments">심미 잇몸성형</a></li>
+            <li><a href="#treatments">전문가 치아미백</a></li>
+          </ul>
+        </li>
+
+        <!-- 03 임플란트 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#treatments" class="dental-nav-link">임플란트</a>
+          <ul class="dental-nav-sub" aria-label="임플란트 하위메뉴">
+            <li><a href="#treatments">3D 네비게이션 임플란트</a></li>
+            <li><a href="#treatments">원데이 임플란트</a></li>
+            <li><a href="#treatments">고난도 뼈이식 임플란트</a></li>
+            <li><a href="#treatments">임플란트 재수술</a></li>
+          </ul>
+        </li>
+
+        <!-- 04 교정치료 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#treatments" class="dental-nav-link">교정치료</a>
+          <ul class="dental-nav-sub" aria-label="교정치료 하위메뉴">
+            <li><a href="#treatments">디지털 치아교정</a></li>
+            <li><a href="#treatments">클리피씨 급속교정</a></li>
+            <li><a href="#treatments">인비절라인 투명교정</a></li>
+            <li><a href="#treatments">부분교정 · 성장기 교정</a></li>
+          </ul>
+        </li>
+
+        <!-- 05 일반진료 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#treatments" class="dental-nav-link">일반진료</a>
+          <ul class="dental-nav-sub" aria-label="일반진료 하위메뉴">
+            <li><a href="#treatments">스케일링 · 잇몸치료</a></li>
+            <li><a href="#treatments">미세현미경 신경치료</a></li>
+            <li><a href="#treatments">충치치료 · 레진/인레이</a></li>
+            <li><a href="#treatments">사랑니 발치 · 턱관절</a></li>
+          </ul>
+        </li>
+
+        <!-- 06 치료사례 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#media" class="dental-nav-link">치료사례</a>
+          <ul class="dental-nav-sub" aria-label="치료사례 하위메뉴">
+            <li><a href="#media">임플란트 전후사례</a></li>
+            <li><a href="#media">치아교정 전후사례</a></li>
+            <li><a href="#media">심미치료 사례</a></li>
+          </ul>
+        </li>
+
+        <!-- 07 커뮤니티 -->
+        <li class="dental-nav-list__item has-sub">
+          <a href="#faq" class="dental-nav-link">커뮤니티</a>
+          <ul class="dental-nav-sub" aria-label="커뮤니티 하위메뉴">
+            <li><a href="#media">ALBA 미디어룸 (SNS)</a></li>
+            <li><a href="#reservation">온라인 예약 · 상담</a></li>
+            <li><a href="#faq">자주 묻는 질문 (FAQ)</a></li>
+          </ul>
+        </li>
       </ul>
     </nav>
 
+    <!-- 우측 유틸리티 영역 -->
     <div class="dental-header__actions">
-      <a href="tel:0212345678" class="dental-header__tel" aria-label="전화 문의 02-1234-5678">02-1234-5678</a>
       <a href="#reservation" class="dental-btn dental-btn--primary dental-header__btn">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="3" y="5" width="18" height="16" rx="2" />
+          <path d="M3 10h18M8 3v4M16 3v4" />
+        </svg>
         예약·상담
       </a>
 
       <!-- 로그인 -->
       <a href="#" class="dental-header__icon" aria-label="로그인">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.2 3.6-7 8-7s8 2.8 8 7"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4.2 3.6-7 8-7s8 2.8 8 7" />
+        </svg>
       </a>
 
-      <!-- 다국어 -->
+      <!-- 다국어 드롭다운 -->
       <div class="dental-lang" id="dentalLang">
-        <button type="button" class="dental-lang__btn" id="dentalLangBtn" aria-haspopup="listbox" aria-expanded="false" aria-label="언어 선택">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z"/></svg>
+        <button type="button" class="dental-lang__btn" id="dentalLangBtn" aria-haspopup="listbox" aria-expanded="false"
+          aria-label="언어 선택">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M3 12h18M12 3c2.6 2.6 4 5.6 4 9s-1.4 6.4-4 9c-2.6-2.6-4-5.6-4-9s1.4-6.4 4-9z" />
+          </svg>
           <span class="dental-lang__cur" id="dentalLangCur">KOR</span>
           <i class="dental-lang__caret" aria-hidden="true"></i>
         </button>
@@ -45,29 +129,81 @@
         </ul>
       </div>
 
-      <button
-        type="button"
-        class="dental-header__toggle"
-        id="dentalMenuToggle"
-        aria-label="전체 메뉴 열기"
-        aria-expanded="false"
-        aria-controls="dentalDrawer"
-      >
+      <!-- 모바일 햄버거 토글 -->
+      <button type="button" class="dental-header__toggle" id="dentalMenuToggle" aria-label="전체 메뉴 열기"
+        aria-expanded="false" aria-controls="dentalDrawer">
         <span></span><span></span><span></span>
       </button>
     </div>
   </div>
 
+  <!-- 모바일 드로어 (루시드 7대 메뉴 아코디언) -->
   <div class="dental-drawer-backdrop" id="dentalDrawerBackdrop" aria-hidden="true"></div>
   <nav class="dental-drawer" id="dentalDrawer" aria-label="모바일 전체 메뉴" aria-hidden="true">
-    <ul class="dental-drawer__list">
-      <li><a href="#about" class="dental-drawer__link">병원 소개</a></li>
-      <li><a href="#treatments" class="dental-drawer__link">진료 안내</a></li>
-      <li><a href="#doctors" class="dental-drawer__link">의료진</a></li>
-      <li><a href="#location" class="dental-drawer__link">오시는 길</a></li>
-      <li><a href="#notice" class="dental-drawer__link">병원 소식</a></li>
-      <li><a href="#reservation" class="dental-drawer__link dental-drawer__link--accent">예약·상담</a></li>
-    </ul>
-    <p class="dental-drawer__tel">대표전화 <a href="tel:0212345678">02-1234-5678</a></p>
+    <div class="dental-drawer__inner">
+      <ul class="dental-drawer__list">
+        <li class="dental-drawer__group">
+          <a href="#about" class="dental-drawer__link">01 병원 소개</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#about">병원 소개 · 진료철학</a></li>
+            <li><a href="#doctors">의료진 소개</a></li>
+            <li><a href="#location">진료시간 및 오시는 길</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#treatments" class="dental-drawer__link">02 심미치료</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#treatments">무삭제 라미네이트</a></li>
+            <li><a href="#treatments">원데이 라미네이트</a></li>
+            <li><a href="#treatments">치아미백</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#treatments" class="dental-drawer__link">03 임플란트</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#treatments">3D 네비게이션 임플란트</a></li>
+            <li><a href="#treatments">원데이 임플란트</a></li>
+            <li><a href="#treatments">고난도 뼈이식</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#treatments" class="dental-drawer__link">04 교정치료</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#treatments">디지털 치아교정</a></li>
+            <li><a href="#treatments">인비절라인 투명교정</a></li>
+            <li><a href="#treatments">클리피씨 급속교정</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#treatments" class="dental-drawer__link">05 일반진료</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#treatments">스케일링 · 잇몸치료</a></li>
+            <li><a href="#treatments">충치·신경치료</a></li>
+            <li><a href="#treatments">사랑니 발치</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#media" class="dental-drawer__link">06 치료사례</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#media">임플란트 전후사례</a></li>
+            <li><a href="#media">치아교정 전후사례</a></li>
+          </ul>
+        </li>
+        <li class="dental-drawer__group">
+          <a href="#faq" class="dental-drawer__link">07 커뮤니티</a>
+          <ul class="dental-drawer__sub">
+            <li><a href="#media">ALBA 미디어룸</a></li>
+            <li><a href="#faq">자주 묻는 질문 (FAQ)</a></li>
+            <li><a href="#reservation">온라인 예약 · 상담</a></li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="dental-drawer__footer">
+        <a href="#reservation" class="dental-btn dental-btn--primary" style="width: 100%; justify-content: center;">온라인
+          간편 예약</a>
+        <p class="dental-drawer__tel">대표전화 <a href="tel:0212345678">02-1234-5678</a></p>
+      </div>
+    </div>
   </nav>
 </header>

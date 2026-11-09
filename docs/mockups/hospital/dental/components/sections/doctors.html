@@ -8,79 +8,88 @@
           의료진 <b>Team ALBA</b>
         </h2>
       </div>
-      <div class="dental-doctors__nav" data-reveal>
-        <button type="button" class="dental-circle-btn" id="docPrev" aria-label="이전 의료진">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
-        </button>
-        <button type="button" class="dental-circle-btn" id="docNext" aria-label="다음 의료진">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
 
-    <div class="dental-docs" id="dentalDocs" data-reveal>
-      <!-- 01 -->
-      <article class="dental-doc is-active" data-doc="0">
-        <div class="dental-doc__photo">
-          <img src="https://images.unsplash.com/photo-1651008376811-b90baee60c1f?auto=format&fit=crop&w=1000&q=80" alt="김서윤 대표원장" loading="lazy" />
-        </div>
-        <div class="dental-doc__body">
-          <p class="dental-doc__field">임플란트·보철 전문의</p>
-          <h3 class="dental-doc__name"><b>김서윤</b> 대표원장</h3>
-          <ul class="dental-doc__career">
-            <li>○○대학교 치의학대학원 졸업 (예시)</li>
-            <li>치과보철과 전문의 (보건복지부 인증)</li>
-            <li>○○대학교 치과병원 보철과 레지던트 수료</li>
-            <li>前 ○○대학교병원 치과 진료교수</li>
-            <li>대한치과보철학회 정회원</li>
-          </ul>
-          <p class="dental-doc__day">진료 · 월·화·목·금</p>
-          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
-        </div>
-      </article>
-      <!-- 02 -->
-      <article class="dental-doc" data-doc="1">
-        <div class="dental-doc__photo">
-          <img src="https://images.unsplash.com/photo-1612349316228-5942a9b489c2?auto=format&fit=crop&w=1000&q=80" alt="이도현 원장" loading="lazy" />
-        </div>
-        <div class="dental-doc__body">
-          <p class="dental-doc__field">치아교정과 전문의</p>
-          <h3 class="dental-doc__name"><b>이도현</b> 원장</h3>
-          <ul class="dental-doc__career">
-            <li>○○대학교 치의학대학원 졸업 (예시)</li>
-            <li>치과교정과 전문의 (보건복지부 인증)</li>
-            <li>○○대학교 치과병원 교정과 레지던트 수료</li>
-            <li>대한치과교정학회 정회원</li>
-          </ul>
-          <p class="dental-doc__day">진료 · 월·수·금·토</p>
-          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
-        </div>
-      </article>
-      <!-- 03 -->
-      <article class="dental-doc" data-doc="2">
-        <div class="dental-doc__photo">
-          <img src="https://images.unsplash.com/photo-1594824476967-48c8b964273f?auto=format&fit=crop&w=1000&q=80" alt="박하윤 원장" loading="lazy" />
-        </div>
-        <div class="dental-doc__body">
-          <p class="dental-doc__field">통합치의학과 전문의</p>
-          <h3 class="dental-doc__name"><b>박하윤</b> 원장</h3>
-          <ul class="dental-doc__career">
-            <li>○○대학교 치의학대학원 졸업 (예시)</li>
-            <li>통합치의학과 전문의 (보건복지부 인증)</li>
-            <li>충치·신경치료·잇몸치료 진료</li>
-            <li>대한치주과학회 정회원</li>
-          </ul>
-          <p class="dental-doc__day">진료 · 화·수·목·토</p>
-          <a href="#" class="dental-pill">View More <i aria-hidden="true">›</i></a>
-        </div>
-      </article>
-
+      <!-- 기존 좌우 슬라이드 화살표 위치로 이동한 pager (의료진 이름 탭) -->
       <div class="dental-docs__pager" id="docPager" role="tablist" aria-label="의료진 선택">
-        <button type="button" class="is-active" role="tab" aria-selected="true"><span>01</span>김서윤</button>
-        <button type="button" role="tab" aria-selected="false"><span>02</span>이도현</button>
-        <button type="button" role="tab" aria-selected="false"><span>03</span>박하윤</button>
+        <button type="button" class="is-active" role="tab" aria-selected="true" data-index="0"><span>01</span>김서윤</button>
+        <button type="button" role="tab" aria-selected="false" data-index="1"><span>02</span>이도현</button>
+        <button type="button" role="tab" aria-selected="false" data-index="2"><span>03</span>박하윤</button>
       </div>
     </div>
+
+    <!-- 좌우 슬라이드 버튼이 dental-doc 양옆에 배치된 래퍼 -->
+    <div class="dental-docs__wrap">
+      <button type="button" class="dental-docs__arrow dental-docs__arrow--prev" id="docPrev" aria-label="이전 의료진">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 19l-7-7 7-7"/></svg>
+      </button>
+
+      <div class="dental-docs" id="dentalDocs">
+        <!-- 01 김서윤 대표원장 -->
+        <article class="dental-doc is-active" data-doc="0">
+          <div class="dental-doc__photo">
+            <img src="https://www.ludental.co.kr/_File/medicalTeam//listfile_1743469519_0.jpg" alt="김서윤 대표원장" loading="lazy" />
+          </div>
+          <div class="dental-doc__body">
+            <p class="dental-doc__field">임플란트·보철 전문의</p>
+            <h3 class="dental-doc__name"><b>김서윤</b> 대표원장</h3>
+            <ul class="dental-doc__career">
+              <li>서울대학교 치의학전문대학원 석사 수료</li>
+              <li>보건복지부 인증 치과보철과 전문의</li>
+              <li>서울대학교치과병원 보철과 수련의·전임의</li>
+              <li>대한치과보철학회(KAOMS) 정회원 및 우수보철의</li>
+              <li>오스템·스트라우만 임플란트 임상자문의</li>
+            </ul>
+            <p class="dental-doc__day">진료일정 · 월 · 화 · 목 · 금 (야간진료)</p>
+            <a href="#reservation" class="dental-pill">진료 예약하기 <i aria-hidden="true">›</i></a>
+          </div>
+        </article>
+
+        <!-- 02 이도현 원장 -->
+        <article class="dental-doc" data-doc="1">
+          <div class="dental-doc__photo">
+            <img src="https://www.elevclinic.co.kr/inc/img/main/doctor-studio.webp" alt="이도현 원장" loading="lazy" />
+          </div>
+          <div class="dental-doc__body">
+            <p class="dental-doc__field">치아교정과 전문의</p>
+            <h3 class="dental-doc__name"><b>이도현</b> 원장</h3>
+            <ul class="dental-doc__career">
+              <li>연세대학교 치과대학 치의학과 졸업</li>
+              <li>보건복지부 인증 치과교정과 전문의</li>
+              <li>신촌세브란스병원 치과교정과 레지던트 수료</li>
+              <li>대한치과교정학회(KAO) 정회원</li>
+              <li>인비절라인(Invisalign) 공식 인증의</li>
+            </ul>
+            <p class="dental-doc__day">진료일정 · 월 · 수 · 금 · 토</p>
+            <a href="#reservation" class="dental-pill">진료 예약하기 <i aria-hidden="true">›</i></a>
+          </div>
+        </article>
+
+        <!-- 03 박하윤 원장 -->
+        <article class="dental-doc" data-doc="2">
+          <div class="dental-doc__photo">
+            <img src="https://www.ludental.co.kr/_File/medicalTeam//file_1755067709_0.jpg" alt="박하윤 원장" loading="lazy" />
+          </div>
+          <div class="dental-doc__body">
+            <p class="dental-doc__field">통합치의학과 전문의</p>
+            <h3 class="dental-doc__name"><b>박하윤</b> 원장</h3>
+            <ul class="dental-doc__career">
+              <li>경희대학교 치의학전문대학원 졸업</li>
+              <li>보건복지부 인증 통합치의학과 전문의</li>
+              <li>대한구강악안면임플란트학회 정회원</li>
+              <li>미세현미경 근관치료(신경치료) 전문과정 수료</li>
+              <li>자연치아 아끼기 운동본부 임상연구원</li>
+            </ul>
+            <p class="dental-doc__day">진료일정 · 화 · 수 · 목 · 토</p>
+            <a href="#reservation" class="dental-pill">진료 예약하기 <i aria-hidden="true">›</i></a>
+          </div>
+        </article>
+      </div>
+
+      <button type="button" class="dental-docs__arrow dental-docs__arrow--next" id="docNext" aria-label="다음 의료진">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+
     <p class="dental-note">※ 의료진 정보와 사진은 예시이며, 실제 확인된 자격·경력으로 교체합니다.</p>
   </div>
 </section>

@@ -9,6 +9,7 @@ document.addEventListener('includes:loaded', () => {
   initMedia();
   initKakaoMap();
   initFaq();
+  initQuickMenu();
   initGsap();
 });
 
@@ -95,10 +96,11 @@ function initLang() {
 
 // ── 의료진 슬라이더 (페이드 + 타원 포트레이트 전환) ──
 function initDoctors() {
+  const section = document.getElementById('doctors');
   const root = document.getElementById('dentalDocs');
-  if (!root) return;
+  if (!section || !root) return;
   const slides = [...root.querySelectorAll('.dental-doc')];
-  const tabs = [...root.querySelectorAll('#docPager button')];
+  const tabs = [...section.querySelectorAll('#docPager button')];
   let idx = 0;
   let busy = false;
 
@@ -121,9 +123,9 @@ function initDoctors() {
     const items = (el) => [el.querySelector('.dental-doc__photo'), ...el.querySelectorAll('.dental-doc__body > *')];
     gsap.to(items(from), {
       opacity: 0,
-      y: -16,
-      duration: 0.45,
-      stagger: 0.04,
+      y: -14,
+      duration: 0.25,
+      stagger: 0.02,
       ease: 'power2.in',
       onComplete: () => {
         from.classList.remove('is-active');
@@ -131,10 +133,10 @@ function initDoctors() {
         gsap.set(items(from), { clearProps: 'all' });
         gsap.fromTo(
           items(to),
-          { opacity: 0, y: 28 },
-          { opacity: 1, y: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out', onComplete: () => (busy = false) },
+          { opacity: 0, y: 20 },
+          { opacity: 1, y: 0, duration: 0.45, stagger: 0.04, ease: 'power3.out', onComplete: () => (busy = false) },
         );
-        gsap.fromTo(to.querySelector('.dental-doc__photo'), { scale: 0.92 }, { scale: 1, duration: 1.1, ease: 'power3.out' });
+        gsap.fromTo(to.querySelector('.dental-doc__photo'), { scale: 0.95 }, { scale: 1, duration: 0.6, ease: 'power3.out' });
         idx = next;
         ScrollTrigger.refresh();
       },
@@ -257,19 +259,90 @@ function initMedia() {
   });
 }
 
-// ── FAQ 아코디언 ──
+// ── ELEV 스타일 FAQ 아코디언 & 카테고리 필터 ──
 function initFaq() {
-  document.querySelectorAll('.dental-faq__q').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const panel = btn.nextElementSibling;
-      const open = btn.getAttribute('aria-expanded') === 'true';
-      btn.setAttribute('aria-expanded', String(!open));
-      if (window.gsap) {
-        gsap.to(panel, { height: open ? 0 : 'auto', duration: 0.5, ease: 'power3.out' });
-      } else {
-        panel.style.height = open ? '0' : 'auto';
-      }
+  const tabs = document.querySelectorAll('.dental-faq-sect__tab');
+  const items = document.querySelectorAll('.dental-faq-item');
+
+  // 카테고리 필터링
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const cat = tab.dataset.cat;
+      tabs.forEach((t) => t.classList.toggle('is-active', t === tab));
+
+      items.forEach((item) => {
+        const itemCat = item.dataset.cat;
+        const match = cat === 'all' || itemCat === cat;
+        item.classList.toggle('is-hidden', !match);
+        // 닫기
+        const btn = item.querySelector('.dental-faq-item__q');
+        const panel = item.querySelector('.dental-faq-item__a');
+        if (btn && panel) {
+          btn.setAttribute('aria-expanded', 'false');
+          panel.style.height = '0';
+        }
+      });
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
     });
+  });
+
+  // 아코디언 토글
+  items.forEach((item) => {
+    const btn = item.querySelector('.dental-faq-item__q');
+    const panel = item.querySelector('.dental-faq-item__a');
+    if (!btn || !panel) return;
+
+    btn.addEventListener('click', () => {
+      const isOpen = btn.getAttribute('aria-expanded') === 'true';
+
+      // 다른 열린 아코디언 닫기
+      items.forEach((other) => {
+        if (other !== item) {
+          const oBtn = other.querySelector('.dental-faq-item__q');
+          const oPanel = other.querySelector('.dental-faq-item__a');
+          if (oBtn && oPanel) {
+            oBtn.setAttribute('aria-expanded', 'false');
+            if (window.gsap) {
+              gsap.to(oPanel, { height: 0, duration: 0.35, ease: 'power2.inOut' });
+            } else {
+              oPanel.style.height = '0';
+            }
+          }
+        }
+      });
+
+      btn.setAttribute('aria-expanded', String(!isOpen));
+      if (window.gsap) {
+        if (isOpen) {
+          gsap.to(panel, { height: 0, duration: 0.35, ease: 'power2.inOut' });
+        } else {
+          gsap.set(panel, { height: 'auto' });
+          gsap.from(panel, { height: 0, duration: 0.45, ease: 'power3.out' });
+        }
+      } else {
+        panel.style.height = isOpen ? '0' : 'auto';
+      }
+      setTimeout(() => {
+        if (window.ScrollTrigger) ScrollTrigger.refresh();
+      }, 400);
+    });
+  });
+}
+
+// ── LU치과 스타일 플로팅 퀵메뉴 & TOP 버튼 ──
+function initQuickMenu() {
+  const topBtn = document.getElementById('dentalQuickTop');
+  if (!topBtn) return;
+
+  const onScroll = () => {
+    const show = window.scrollY > 250;
+    topBtn.classList.toggle('is-visible', show);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+
+  topBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 }
 

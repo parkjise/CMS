@@ -1,0 +1,228 @@
+// ELEV 스타일 FAQ (공지사항 제거, 클린 아코디언)
+.dental-faq-sect {
+  padding: 120px 0;
+  background-color: var(--color-white);
+  border-top: 1px solid var(--color-border);
+
+  @media (max-width: 1024px) {
+    padding: 88px 0;
+  }
+  @media (max-width: 640px) {
+    padding: 64px 0;
+  }
+
+  &__head {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 56px;
+
+    .dental-eyebrow {
+      margin-bottom: 12px;
+      color: var(--color-indigo);
+      letter-spacing: 0.16em;
+    }
+
+    .dental-title {
+      font-size: clamp(28px, 3.2vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      color: var(--color-navy);
+      margin-bottom: 16px;
+    }
+
+    .dental-desc {
+      font-size: 16px;
+      line-height: 1.65;
+      color: var(--color-text-muted);
+      word-break: keep-all;
+    }
+  }
+
+  &__tabs {
+    display: inline-flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 32px;
+    background: #f4f5f7;
+    padding: 6px;
+    border-radius: 999px;
+
+    @media (max-width: 640px) {
+      margin-top: 24px;
+      border-radius: 14px;
+      padding: 4px;
+      gap: 6px;
+    }
+  }
+
+  &__tab {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: #64748b;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+
+    &:hover {
+      color: var(--color-navy);
+    }
+
+    &.is-active {
+      background: var(--color-indigo);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(73, 60, 117, 0.25);
+    }
+
+    @media (max-width: 640px) {
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+  }
+
+  &__list {
+    max-width: 960px;
+    margin: 0 auto;
+    border-top: 1px solid var(--color-border);
+  }
+}
+
+.dental-faq-item {
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color 0.2s ease;
+
+  &.is-hidden {
+    display: none !important;
+  }
+
+  &__q {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 26px 8px;
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    color: var(--color-navy);
+    transition: color 0.2s ease;
+
+    @media (max-width: 640px) {
+      gap: 12px;
+      padding: 20px 4px;
+    }
+
+    &:hover {
+      .dental-faq-item__text {
+        color: var(--color-indigo);
+      }
+    }
+
+    &[aria-expanded='true'] {
+      .dental-faq-item__icon svg {
+        transform: rotate(180deg);
+      }
+      .dental-faq-item__badge {
+        background: var(--color-indigo);
+        color: #ffffff;
+      }
+    }
+  }
+
+  &__badge {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--color-indigo-soft);
+    color: var(--color-indigo);
+    font-size: 14px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s var(--ease);
+
+    @media (max-width: 640px) {
+      width: 28px;
+      height: 28px;
+      font-size: 12px;
+    }
+  }
+
+  &__text {
+    flex: 1;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.02em;
+    color: var(--color-navy);
+    transition: color 0.2s ease;
+
+    @media (max-width: 640px) {
+      font-size: 15px;
+    }
+  }
+
+  &__icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #f4f5f7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    transition: all 0.25s var(--ease);
+
+    svg {
+      transition: transform 0.3s var(--ease);
+    }
+
+    @media (max-width: 640px) {
+      width: 30px;
+      height: 30px;
+    }
+  }
+
+  &__a {
+    overflow: hidden;
+    height: 0;
+    transition: height 0.35s var(--ease);
+  }
+
+  &__answer {
+    padding: 0 8px 28px 52px;
+
+    @media (max-width: 640px) {
+      padding: 0 4px 20px 40px;
+    }
+
+    p {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.75;
+      color: #4b5563;
+      background: #f9fafb;
+      padding: 20px 24px;
+      border-radius: 12px;
+      border: 1px solid #f0f2f5;
+
+      strong {
+        color: var(--color-navy);
+        font-weight: 600;
+      }
+
+      @media (max-width: 640px) {
+        font-size: 14px;
+        padding: 16px 18px;
+      }
+    }
+  }
+}
