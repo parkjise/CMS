@@ -1,0 +1,304 @@
+// ALBA DENTAL — Media Section (LU 치과 스타일 미디어룸)
+.dental-media {
+  padding: 120px 0;
+  background-color: var(--color-white);
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+
+  @media (max-width: 1024px) {
+    padding: 88px 0;
+  }
+  @media (max-width: 640px) {
+    padding: 64px 0;
+  }
+
+  &__head {
+    text-align: center;
+    max-width: 680px;
+    margin: 0 auto 48px;
+
+    .dental-eyebrow {
+      margin-bottom: 12px;
+      color: var(--color-indigo);
+      letter-spacing: 0.14em;
+    }
+
+    .dental-title {
+      font-size: clamp(28px, 3.2vw, 42px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      color: var(--color-text);
+      margin-bottom: 16px;
+    }
+
+    .dental-desc {
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--color-text-muted);
+      word-break: keep-all;
+    }
+  }
+
+  &__tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 32px;
+    background: #f4f2f7;
+    padding: 6px;
+    border-radius: 999px;
+
+    @media (max-width: 640px) {
+      margin-top: 24px;
+      gap: 8px;
+    }
+  }
+
+  &__tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 26px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: #666072;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s var(--ease);
+
+    svg {
+      transition: transform 0.25s var(--ease);
+    }
+
+    &:hover {
+      color: var(--color-navy);
+      svg {
+        transform: scale(1.1);
+      }
+    }
+
+    &.is-active {
+      background: var(--color-indigo);
+      color: #ffffff;
+      box-shadow: 0 4px 16px rgba(73, 60, 117, 0.28);
+
+      svg {
+        transform: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      padding: 9px 20px;
+      font-size: 14px;
+    }
+  }
+
+  &__panel {
+    display: block;
+    animation: mediaFadeIn 0.4s var(--ease) forwards;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__slider {
+    position: relative;
+    width: 100%;
+  }
+
+  &__track {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+
+    @media (max-width: 1180px) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    @media (max-width: 640px) {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      gap: 16px;
+      padding-bottom: 8px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      &::-webkit-scrollbar {
+        display: none;
+      }
+    }
+  }
+
+  &__card {
+    display: flex;
+    flex-direction: column;
+
+    @media (max-width: 640px) {
+      flex: 0 0 78%;
+      scroll-snap-align: start;
+    }
+  }
+
+  &__link {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
+
+    &:hover {
+      .dental-media__thumb img {
+        transform: scale(1.06);
+      }
+      .dental-media__play {
+        transform: translate(-50%, -50%) scale(1.12);
+        background: #ffffff;
+        color: var(--color-indigo);
+        box-shadow: 0 8px 24px rgba(73, 60, 117, 0.35);
+      }
+      .dental-media__card-title {
+        color: var(--color-indigo);
+      }
+    }
+  }
+
+  &__thumb {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #1a1a1a;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.6s var(--ease);
+    }
+  }
+
+  &__badge {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    background: rgba(28, 28, 28, 0.78);
+    backdrop-filter: blur(8px);
+    color: #ffffff;
+    z-index: 2;
+
+    &--insta {
+      background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%);
+    }
+  }
+
+  &__play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--color-navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.24);
+    transition: transform 0.3s var(--ease), background 0.3s var(--ease), color 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    z-index: 2;
+
+    svg {
+      margin-left: 2px;
+    }
+
+    @media (max-width: 640px) {
+      width: 44px;
+      height: 44px;
+    }
+  }
+
+  &__info {
+    padding: 16px 4px 4px;
+  }
+
+  &__date {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+  }
+
+  &__card-title {
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.45;
+    color: var(--color-text);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition: color 0.25s var(--ease);
+
+    @media (max-width: 640px) {
+      font-size: 15px;
+    }
+  }
+
+  &__dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 40px;
+
+    @media (max-width: 640px) {
+      margin-top: 24px;
+    }
+  }
+
+  &__dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 4px;
+    border: none;
+    padding: 0;
+    background: #dfdbe7;
+    cursor: pointer;
+    transition: all 0.3s var(--ease);
+
+    &:hover {
+      background: #b5adc4;
+    }
+
+    &.is-active {
+      width: 32px;
+      background: var(--color-indigo);
+    }
+  }
+}
+
+@keyframes mediaFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

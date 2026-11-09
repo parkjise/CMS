@@ -6,6 +6,7 @@ document.addEventListener('includes:loaded', () => {
   initLang();
   initTodayInfo();
   initDoctors();
+  initMedia();
   initKakaoMap();
   initFaq();
   initGsap();
@@ -185,6 +186,75 @@ function initKakaoMap() {
   sc.onload = draw;
   sc.onerror = fallback;
   document.head.appendChild(sc);
+}
+
+// ── 미디어 (YouTube / Instagram) 탭 및 슬라이더 인터랙션 ──
+function initMedia() {
+  const tabs = document.querySelectorAll('.dental-media__tab');
+  const panels = document.querySelectorAll('.dental-media__panel');
+  if (!tabs.length || !panels.length) return;
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const targetId = tab.getAttribute('aria-controls');
+      tabs.forEach((t) => {
+        const isActive = t === tab;
+        t.classList.toggle('is-active', isActive);
+        t.setAttribute('aria-selected', String(isActive));
+      });
+
+      panels.forEach((p) => {
+        const isActive = p.id === targetId;
+        p.classList.toggle('is-active', isActive);
+        if (isActive) {
+          p.removeAttribute('hidden');
+        } else {
+          p.setAttribute('hidden', '');
+        }
+      });
+
+      if (window.ScrollTrigger) ScrollTrigger.refresh();
+    });
+  });
+
+  // 페이지네이션 닷 클릭 및 모바일 스크롤 연동
+  panels.forEach((panel) => {
+    const dots = panel.querySelectorAll('.dental-media__dot');
+    const track = panel.querySelector('.dental-media__track');
+    const cards = panel.querySelectorAll('.dental-media__card');
+
+    dots.forEach((dot, idx) => {
+      dot.addEventListener('click', () => {
+        dots.forEach((d) => d.classList.remove('is-active'));
+        dot.classList.add('is-active');
+
+        if (track && cards[idx] && window.innerWidth <= 640) {
+          cards[idx].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        }
+      });
+    });
+
+    // 모바일 스와이프 시 활성 닷 업데이트
+    if (track && dots.length) {
+      let isTicking = false;
+      track.addEventListener(
+        'scroll',
+        () => {
+          if (!isTicking) {
+            window.requestAnimationFrame(() => {
+              const scrollLeft = track.scrollLeft;
+              const cardWidth = cards[0]?.offsetWidth || 1;
+              const activeIndex = Math.min(Math.round(scrollLeft / cardWidth), dots.length - 1);
+              dots.forEach((d, i) => d.classList.toggle('is-active', i === activeIndex));
+              isTicking = false;
+            });
+            isTicking = true;
+          }
+        },
+        { passive: true }
+      );
+    }
+  });
 }
 
 // ── FAQ 아코디언 ──
