@@ -185,6 +185,15 @@ $badge-bg: #f1f5f9;
     font-weight: 600;
     border-color: $line-strong;
   }
+  &__table-narrow {
+    min-width: 128px;
+  }
+  &__table-normal {
+    min-width: 160px;
+  }
+  &__table-wide {
+    min-width: 256px;
+  }
   &__table-title {
     min-width: 256px;
   }

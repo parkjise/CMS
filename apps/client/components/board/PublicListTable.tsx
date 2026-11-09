@@ -1,4 +1,4 @@
-import type { PublicFieldValue, PublicListColumn } from '@cms/types'
+import type { BoardColumnSize, PublicFieldValue, PublicListColumn } from '@cms/types'
 import { fieldValueText } from '@/lib/publicPosts'
 
 export interface PublicTableRow {
@@ -15,6 +15,7 @@ interface PublicListTableProps {
   showDate: boolean
   hrefFor: (extra: { id: string }) => string
   classes: {
+    sizes: Record<BoardColumnSize, string>
     scroll: string
     table: string
     head: string
@@ -42,7 +43,11 @@ export const PublicListTable = ({
             제목
           </th>
           {columns.map((column) => (
-            <th key={column.key} scope="col" className={c.head}>
+            <th
+              key={column.key}
+              scope="col"
+              className={`${c.head} ${c.sizes[column.size ?? 'normal']}`}
+            >
               {column.label}
             </th>
           ))}
@@ -68,7 +73,7 @@ export const PublicListTable = ({
                 ? undefined
                 : row.fields?.find((field) => field.key === column.key)
               return (
-                <td key={column.key} className={c.cell}>
+                <td key={column.key} className={`${c.cell} ${c.sizes[column.size ?? 'normal']}`}>
                   {value ? (
                     value.field_type === 'IMAGE' ? (
                       '사진 있음'

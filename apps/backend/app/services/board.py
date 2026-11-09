@@ -930,7 +930,8 @@ def _public_board(
         SEO_TITLE_KEY: options[SEO_TITLE_KEY],
         SEO_DESCRIPTION_KEY: options[SEO_DESCRIPTION_KEY],
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
-        DESIGN_KEY: options[DESIGN_KEY],
+        # 저장된 키(숨김/삭제 칸 포함)는 공개하지 않고 읽기 검사 뒤 열 API로 제공한다.
+        DESIGN_KEY: {**options[DESIGN_KEY], "list_column_layout": []},
         "read_access": permissions["read"],
         "write_access": READ_MEMBER if member_write or guest_write else "ADMIN",
         "allow_secret": options[OPERATION_KEY]["allow_secret"],
@@ -1007,10 +1008,22 @@ def public_list_columns(
         or board_options(board)[DESIGN_KEY]["list_layout"] != "columns"
     ):
         return None
+    layout = board_options(board)[DESIGN_KEY]["list_column_layout"]
+    positions = {column["key"]: index for index, column in enumerate(layout)}
+    sizes = {column["key"]: column["size"] for column in layout}
+    visible = [
+        field for field in fields if field.is_visible and field.deleted_at is None
+    ]
+    # 미설정/새 열은 기존 필드 순서대로 저장된 열 뒤에 붙인다.
+    visible.sort(key=lambda field: positions.get(field.field_key, len(layout)))
     return [
-        {"key": field.field_key, "label": field.label, "field_type": field.field_type}
-        for field in fields
-        if field.is_visible and field.deleted_at is None
+        {
+            "key": field.field_key,
+            "label": field.label,
+            "field_type": field.field_type,
+            "size": sizes.get(field.field_key, "normal"),
+        }
+        for field in visible
     ]
 
 

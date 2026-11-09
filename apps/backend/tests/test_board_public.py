@@ -144,6 +144,7 @@ class TestPublicSiteBoards:
                     "columns": 3,
                     "image_ratio": "4:3",
                     "list_layout": "inline",
+                    "list_column_layout": [],
                     "show_date": True,
                     "show_image": True,
                     "show_summary": True,

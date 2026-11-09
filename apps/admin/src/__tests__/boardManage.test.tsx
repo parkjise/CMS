@@ -443,6 +443,25 @@ describe('게시판 디자인 탭 (T-148)', () => {
     expect(screen.queryByLabelText('홈페이지 추가 정보 표시')).not.toBeInTheDocument()
   })
 
+  it('홈페이지 열 변경은 저장 전 요청하지 않고 실패 뒤 재시도에도 유지한다', async () => {
+    mockApi({boards:[{...board,design:{...board.design,list_layout:'columns'}}]})
+    const fallback = get.getMockImplementation()!
+    get.mockImplementation((url, config) => url === '/v1/boards/b1/fields' ? ok([
+      {id:'f1',board_id:'b1',field_key:'team',label:'부서',is_visible:true,show_in_list:true,display_order:0,deleted_at:null},
+      {id:'f2',board_id:'b1',field_key:'count',label:'인원',is_visible:true,show_in_list:true,display_order:1,deleted_at:null},
+    ]) : fallback(url, config))
+    patch.mockRejectedValueOnce(new Error('실패')).mockResolvedValue({data:{data:board}})
+    renderDesign()
+    await userEvent.selectOptions(await screen.findByLabelText('인원 홈페이지 열 크기'),'wide')
+    await userEvent.click(screen.getByRole('button',{name:'인원 홈페이지 열 앞으로'}))
+    expect(patch).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button',{name:'저장'}))
+    await waitFor(()=>expect(toast.error).toHaveBeenCalled())
+    expect(screen.getByLabelText('인원 홈페이지 열 크기')).toHaveValue('wide')
+    await userEvent.click(screen.getByRole('button',{name:'저장'}))
+    await waitFor(()=>expect(patch).toHaveBeenLastCalledWith('/v1/boards/b1',expect.objectContaining({design:expect.objectContaining({list_column_layout:[{key:'count',size:'wide'},{key:'team',size:'normal'}]})})))
+  })
+
   it('카드형을 고르면 카드 설정이 나오고 함께 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })

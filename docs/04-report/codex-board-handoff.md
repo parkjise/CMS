@@ -2,7 +2,20 @@
 
 작성: Codex / 2026-11-06 (Asia/Seoul)
 
-## 최신 기록: T-173 공개 목록형 추가 정보 표 보기 (Codex)
+## 최신 기록: T-174 공개 표 열 순서·최소 크기 설정 (Codex)
+
+- 사용자 다음 작업 진행 요청(2026-11-09)에 따라 T-173의 공개 표 열 설정 후속을 진행했다. 기존 디자인 저장 확장 → 공개 필드 선별/순서 → 관리자 설정 → 두 템플릿 크기 → 회귀/브라우저 검증 플랜이다.
+- 브랜치: `codex/T-174-public-column-layout`. 기존 관리 worktree `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`를 재사용했고 기준 main은 `eaf5126`이다. 폴더명은 T-173이지만 현재 브랜치가 T-174다. PR 생성 후 연결한다. 최종 head backend/frontend/e2e 모두 성공해야 병합한다.
+- 이전 T-173: PR #123 최종 f13840d 세 CI 성공 후 병합, main `eaf5126`. 서버 전체 1,801개 통과/커버리지 95.40%.
+- BoardDesign.list_column_layout: [{key,size}], 기본 [], 최대 20개. 기존 필드 키 형식/크기 narrow·normal·wide/중복/알 수 없는 속성을 검증한다. 키/크기만 기존 boards.settings.design JSON에 저장하므로 DB 마이그레이션 없음. 공개 site/게시판 정보의 디자인에는 원시 배열을 []로 대체해 숨김·삭제 칸의 저장 키를 내보내지 않는다. 읽기 검사 뒤 public_list_columns가 기존 공개·목록 표시 미삭제 필드를 저장 순서로 정렬하고 size를 추가한다. 없는 키는 무시, 새/미설정 칸은 기존 순서로 뒤에 붙으며 기본 normal. 기존 list_fields 값/비밀글/회원 검사·private,no-store 유지. 로그인/권한 정책 변경 없음.
+- PublicColumnLayoutSettings + BoardDesignPage: 추가 LIST 표 모드에서만 앞/뒤 이동과 좁게/보통/넓게 최소 크기/초기화. 제목·날짜 순서 고정, 변경만으로 요청하지 않으며 기존 저장 버튼으로 모든 방문자 공통 디자인을 저장한다. 실패 후 선택 유지/재시도, 기존 뷰어 필드셋 잠금. 필드 로딩/조회 실패 재시도/표시 칸 없음 안내. 기존 원본 필드 순서/관리자 개인 설정은 유지한다. 표시 칸 기준으로 편집 배열을 구성하므로 편집 시 사라진 칸 설정은 빠진다. 그대로 보관된 키는 다시 표시하면 저장 위치/크기를 복원한다.
+- PublicListTable은 헤더와 값 셀에 같은 size 클래스 매핑을 적용한다. 코드형 SCSS/테마형 Tailwind의 128/160/256px 최소 너비이며 넓은 표는 여유 공간만큼 커진다. 이전 size 누락은 normal. 검색/분류/페이지/제목 링크/비밀글 값 숨김/날짜를 유지한다.
+- 로컬 검증: 서버 public/options/permissions 82개(신규 9개), 관리자 전체 74파일 618개(신규 6개)/기존 시간대 전용 1개 스킵, 홈페이지 전체 67파일 782개(신규 2개) 통과. 전용 cms_test_db/cms_app RLS. 서버는 순서/크기 저장·추가/숨김/삭제/목록 제외/없는 키/초기화·원시 설정 공개 제외·잘못된 형식 8조건을 검증했다. 관리자 설정 5개+실제 디자인 저장/실패/재시도 1개, 홈페이지 두 실제 부모 목록의 열 순서/헤더·값 크기/이전 size 누락을 확인했다. 전체 프런트 타입, 관리자/홈페이지 빌드, SCSS 전체 lint, 백엔드 app Ruff lint/format·mypy 175파일 통과. 프런트 lint 오류 0(기존 관리자 5/홈페이지 3 경고). 초기 테스트 실행 옵션·필수 value_count 픽스처·Literal 응답 타입 및 누락된 stylelint 실행 파일은 수정/잠금 파일 재설치 후 통과했다.
+- 브라우저: 실제 CustomBoardList/ThemeBoardListView와 실제 SCSS/Tailwind를 임시 Vite 진입점으로 렌더한 Chromium 픽스처, 서버/로그인 통합은 아니다. 코드형/테마형 × 390/1280px 네 조합에서 열 순서, 최소 256/128/160px, 비밀글 세 칸 —, 페이지 넘침 없음 확인. 모바일 code client342/scroll960, theme client294/scroll960; desktop code1232/1232, theme1184/1184. code390/theme1280 두 캡처 직접 확인. `/private/tmp/cms-T-174-{code,theme}-{390,1280}.png`, 실행 `/private/tmp/cms-T-174-browser.cjs`. 임시 진입점 삭제/서버 종료.
+- 한계/보호: 관리자 실제 브라우저 화면·실제 전체 앱/서버 통합·백엔드 전체 로컬 회귀는 미검증. 로컬 Node 25.2.1, Node 22 및 전체 회귀/커버리지는 CI로 확인한다. 원래 체크아웃의 사용자 dental 목업/.bkit/Corporate_Template_Plan_v0.1.md/docs/mockups/기획/는 수정하지 않았다.
+- 후속: 관리자 개인 열 설정 서버 동기화, 2단계 분류, 선택지 매핑. 테마형 공지 스킵·D-06 자동 파기·법률/백업 보류 유지.
+
+## 이전 기록: T-173 공개 목록형 추가 정보 표 보기 (Codex)
 
 - 사용자 다음 작업 진행 요청(2026-11-09)에 따라 공개 목록형의 추가 정보를 표의 개별 열로 보여 주는 후속을 구현했다. 기존 디자인 저장/공개 필드 선별 → 권한 뒤 열 정의 → 코드형/테마형 공유 표 → 회귀 및 좁은 화면 확인 순서다.
 - 브랜치: `codex/T-173-public-list-table`, 폴더: `/Users/jisepark/.codex/worktrees/t173-public-table/CMS`, 기준 main: `b73ba3c`. PR [#123](https://github.com/parkjise/CMS/pull/123), 생성 시점 미병합. 최종 head backend/frontend/e2e 모두 성공하면 병합하며 현재 상태는 GitHub에서 확인한다.

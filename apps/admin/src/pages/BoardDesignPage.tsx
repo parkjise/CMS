@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useParams } from 'react-router'
 import type { Board, BoardDesign, BoardSortOrder, BoardType } from '@cms/types'
 import { Button, Toggle, toast } from '@cms/ui'
+import { PublicColumnLayoutSettings } from '@/components/boards/PublicColumnLayoutSettings'
 import { BoardListFieldSettings } from '@/components/boards/BoardListFieldSettings'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
@@ -116,6 +117,14 @@ function BoardDesignForm({ board }: { board: Board }) {
                   홈페이지 표시와 목록 표시를 켠 칸만 나옵니다. 저장하면 홈페이지에 바로 적용됩니다.
                 </p>
               </div>
+            )}
+
+            {boardType === 'LIST' && design.list_layout === 'columns' && (
+              <PublicColumnLayoutSettings
+                boardId={board.id}
+                layout={design.list_column_layout ?? []}
+                onChange={(layout) => change({ list_column_layout: layout })}
+              />
             )}
 
             {usesImage && (

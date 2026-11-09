@@ -899,7 +899,7 @@ async def list_public_posts(
     return ApiResponse.ok(
         PublicPostListResponse(
             list_columns=(
-                [PublicListColumn(**column) for column in columns]
+                [PublicListColumn.model_validate(column) for column in columns]
                 if (columns := board_service.public_list_columns(board, list_fields))
                 is not None
                 else None
