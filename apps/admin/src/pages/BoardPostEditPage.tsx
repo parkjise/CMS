@@ -5,6 +5,7 @@ import type { BoardCategory, BoardField, BodyNode, Post, PostStatus } from '@cms
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
+import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
@@ -45,6 +46,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const secretChoice = Boolean(board?.operation?.allow_secret || post?.is_secret)
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
+  const [moving, setMoving] = useState(false)
   const custom = useForm<CustomValues>({
     defaultValues: initialCustomValues(fields ?? [], post ? post.custom_data : null),
   })
@@ -168,6 +170,17 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
 
       {canEdit && (
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+          {post && (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mr-auto"
+              disabled={saving}
+              onClick={() => setMoving(true)}
+            >
+              게시판 옮기기
+            </Button>
+          )}
           <Link
             to={`/admin/boards/${boardId}/posts`}
             className="inline-flex h-10 items-center rounded-md px-4 text-sm text-slate-600 hover:bg-slate-100"
@@ -194,6 +207,17 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
             </>
           )}
         </div>
+      )}
+      {moving && post && (
+        <PostMoveDialog
+          postIds={[post.id]}
+          fromBoardId={boardId}
+          note="저장하지 않은 수정 내용은 옮기면서 사라집니다. 먼저 저장해 주세요."
+          onClose={() => setMoving(false)}
+          onMoved={(_result, targetId) =>
+            navigate(`/admin/boards/${targetId}/posts/${post.id}/edit`, { replace: true })
+          }
+        />
       )}
     </form>
   )

@@ -243,6 +243,29 @@ export interface PostOverviewList {
 
 export type PostBulkAction = 'PUBLISH' | 'PRIVATE' | 'TRASH' | 'RESTORE'
 
+/** 다른 게시판으로 글 옮기기 (T-184) — 분류는 받을 게시판의 것, null 이면 분류 없음 */
+export interface PostMoveInput {
+  post_ids: string[]
+  target_board_id: string
+  category_id: string | null
+}
+
+export interface PostMovePreview {
+  posts: number
+  target_name: string
+  /** 값이 따라가는 칸 · 받을 게시판에 맞는 칸이 없어 빠지는 칸 (칸 이름별 글 수) */
+  carried: { label: string; posts: number }[]
+  dropped: { label: string; posts: number }[]
+  blocked_count: number
+  /** 앞에서부터 20개까지 */
+  blocked: { post_id: string; title: string; reason: string }[]
+}
+
+export interface PostMoveResult {
+  moved: number
+  values_dropped: number
+}
+
 export interface PostList {
   total: number
   page: number
