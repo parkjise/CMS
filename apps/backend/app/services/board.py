@@ -177,6 +177,11 @@ async def clear_samples(db: AsyncSession, tenant_id: UUID) -> None:
     await site_cache.purge_site(db, tenant_id)
 
 
+async def drop_notice_samples(db: AsyncSession, tenant_id: UUID) -> None:
+    """공지 샘플을 비운다 — 커밋은 부르는 쪽이 (글 옮기기, T-184)."""
+    await _clear_samples(db, tenant_id)
+
+
 async def _ensure_system_boards(db: AsyncSession, tenant_id: UUID) -> None:
     """템플릿에 공지 페이지가 있으면 공지 게시판을 만든다 (이미 있으면 그대로)."""
     has_notice = (
@@ -906,6 +911,36 @@ async def open_public_board(
         )
     )
     return result.scalar_one_or_none()
+
+
+async def public_post_location(
+    db: AsyncSession, tenant_slug: str, post_id: UUID
+) -> dict | None:
+    """공개 글이 지금 있는 게시판 — 옮긴 글의 예전 주소를 새 주소로 보낼 때 (T-184).
+
+    사용 중인 게시판(새 게시판 · 공지)의 공개 글만. 제목 같은 내용은 돌려주지 않는다.
+    """
+    tenant = await _open_public_tenant(db, tenant_slug)
+    if tenant is None:
+        return None
+    row = (
+        await db.execute(
+            select(Board.slug, Board.system_key)
+            .join(BoardPost, BoardPost.board_id == Board.id)
+            .where(
+                BoardPost.id == post_id,
+                BoardPost.tenant_id == tenant.id,
+                BoardPost.status == STATUS_PUBLISHED,
+                BoardPost.deleted_at.is_(None),
+                Board.status == "ACTIVE",
+                Board.deleted_at.is_(None),
+                or_(Board.system_key.is_(None), Board.system_key == NOTICE_KEY),
+            )
+        )
+    ).one_or_none()
+    if row is None:
+        return None
+    return {"board_slug": row.slug, "is_system": row.system_key is not None}
 
 
 def _public_board(

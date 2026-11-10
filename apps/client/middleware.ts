@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 import { serverApiBase } from './lib/apiBase'
-import { BOARD_PATH, NOTICE_BOARD } from './lib/publicPosts'
+import { BOARD_PATH, NOTICE_BOARD, boardPageKey } from './lib/publicPosts'
 import { CUSTOM_HOST_HEADER, hostnameFromHeader, isCustomHost } from './lib/siteHost'
 
 /**
@@ -86,6 +86,35 @@ async function isMissingBoardRoute(
   }
 }
 
+const POST_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+/**
+ * 다른 게시판으로 옮긴 글의 새 주소 (T-184) — /{slug} 뒤의 경로. 옮기지 않았거나 확인 실패면 null.
+ * 글 주소에는 게시판이 들어 있어, 옮긴 뒤 예전 링크 · 검색 결과가 404 가 되지 않게 영구 이동한다.
+ */
+async function movedPostPath(slug: string, board: string, postId: string): Promise<string | null> {
+  if (!POST_ID.test(postId)) return null
+  try {
+    const res = await fetch(
+      `${serverApiBase()}/public/site/${encodeURIComponent(slug)}/posts/${encodeURIComponent(postId)}/location`,
+      { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(2000) },
+    )
+    if (!res.ok) return null
+    const body = (await res.json()) as { data?: { board_slug?: unknown } }
+    const moved = body.data?.board_slug
+    if (typeof moved !== 'string' || moved === board) return null
+    return `/${boardPageKey(moved)}/${postId}`
+  } catch {
+    return null
+  }
+}
+
+/** 방문자가 접속한 주소 기준 — 프록시 뒤라 nextUrl 의 호스트 · 스킴은 내부 값이다 */
+function publicOrigin(request: NextRequest): string {
+  const proto = request.headers.get('x-forwarded-proto') ?? request.nextUrl.protocol.replace(':', '')
+  return `${proto}://${request.headers.get('host') ?? request.nextUrl.host}`
+}
+
 // 고객 도메인 → slug. 연결 · 해제는 자주 있지 않아 1분, 없는 도메인도 저장해 조회가 쌓이지 않게 (T-137)
 const DOMAIN_CACHE_TTL_MS = 60_000
 const domainCache = new Map<string, { slug: string | null; expires: number }>()
@@ -131,9 +160,7 @@ export async function middleware(request: NextRequest) {
   // 프록시 뒤라 nextUrl 의 호스트 · 스킴은 내부 값이다 — 방문자가 접속한 값으로 만든다
   if (pathname === `/${slug}` || pathname.startsWith(`/${slug}/`)) {
     const target = pathname.slice(slug.length + 1) || '/'
-    const proto = request.headers.get('x-forwarded-proto') ?? request.nextUrl.protocol.replace(':', '')
-    const origin = `${proto}://${request.headers.get('host')}`
-    return NextResponse.redirect(new URL(`${target}${request.nextUrl.search}`, origin), 301)
+    return NextResponse.redirect(new URL(`${target}${request.nextUrl.search}`, publicOrigin(request)), 301)
   }
   headers.set(CUSTOM_HOST_HEADER, hostname)
   return routeTenant(request, pathname === '/' ? `/${slug}` : `/${slug}${pathname}`, headers)
@@ -173,16 +200,29 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
   if (!isBoard && !isNotice && (segments.length > 3 || (page && RESERVED_PAGES.has(page))))
     return pass()
 
+  // 글 상세 주소의 게시판 · 글 — /b/{게시판}/{글} · /notice/{글}
+  const [postBoard, postId] = isBoard
+    ? segments.length === 4 ? [segments[2], segments[3]] : []
+    : isNotice && segments.length === 3 ? [NOTICE_BOARD, segments[2]] : []
+  const redirectMoved = async () => {
+    const moved = postBoard && postId ? await movedPostPath(slug, postBoard, postId) : null
+    if (!moved) return null
+    // 고객 도메인의 정식 주소에는 slug 가 없다
+    const path = headers.has(CUSTOM_HOST_HEADER) ? moved : `/${slug}${moved}`
+    return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, publicOrigin(request)), 301)
+  }
+
   const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
   if (!key) {
     // /{slug}/b 는 받는 화면이 없어 공통 404 화면 + 404 상태로 끝난다
     const missing =
       (isBoard && (await isMissingBoardRoute(slug, segments.slice(2)))) ||
       (isNotice && (await isMissingBoardRoute(slug, segments.slice(1), true)))
-    if (missing) return rewriteTo(`/${slug}/${BOARD_PATH}`)
+    if (missing) return (await redirectMoved()) ?? rewriteTo(`/${slug}/${BOARD_PATH}`)
     return pass()
   }
-  return rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)
+  // 코드형은 글이 있는지 미리 보지 않는다 — 옮긴 글인지만 묻는다
+  return (await redirectMoved()) ?? rewriteTo(`/${CODE_ROUTE_PREFIX}${key}/${segments.join('/')}`)
 }
 
 export const config = {

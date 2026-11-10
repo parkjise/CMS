@@ -517,6 +517,48 @@ class PostBulkResponse(BaseModel):
     updated: int
 
 
+class PostMoveRequest(BaseModel):
+    """다른 게시판으로 글 옮기기 (T-184) — 분류는 받을 게시판의 것, 없으면 분류 없음."""
+
+    post_ids: list[UUID] = Field(min_length=1, max_length=100)
+    target_board_id: UUID
+    category_id: UUID | None = None
+
+
+class PostMoveFieldCount(BaseModel):
+    label: str
+    posts: int
+
+
+class PostMoveBlocked(BaseModel):
+    post_id: UUID
+    title: str
+    reason: str
+
+
+class PostMovePreview(BaseModel):
+    posts: int
+    target_name: str
+    # 값이 따라가는 칸 · 받을 게시판에 맞는 칸이 없어 빠지는 칸 (칸 이름별 글 수)
+    carried: list[PostMoveFieldCount]
+    dropped: list[PostMoveFieldCount]
+    blocked_count: int
+    # 앞에서부터 20개까지
+    blocked: list[PostMoveBlocked]
+
+
+class PostMoveResult(BaseModel):
+    moved: int
+    values_dropped: int
+
+
+class PublicPostLocation(BaseModel):
+    """옮긴 글의 지금 게시판 (T-184) — 예전 주소를 새 주소로 보낸다."""
+
+    board_slug: str
+    is_system: bool
+
+
 class PublicSitemapPost(BaseModel):
     """사이트맵 한 줄 (T-140-C) — 공개 글 주소를 만드는 값만."""
 

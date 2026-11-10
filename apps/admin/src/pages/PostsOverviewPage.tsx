@@ -5,6 +5,7 @@ import { Link } from 'react-router'
 import type { PostBulkAction, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
 import { PostListFields } from '@/components/boards/PostListFields'
+import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { isEmptyValue } from '@/lib/customFields'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -41,6 +42,7 @@ export function PostsOverviewPage() {
   const dateLabel = { created: '작성일', updated: '수정일', published: '공개일' }[dateField]
   const [dateError, setDateError] = useState('')
   const [selected, setSelected] = useState<string[]>([])
+  const [moving, setMoving] = useState(false)
 
   const boardsQuery = useBoards()
   const selectedBoard = boardsQuery.data?.find((board) => board.id === filters.board_id)
@@ -364,6 +366,15 @@ export function PostsOverviewPage() {
               <Button
                 type="button"
                 size="sm"
+                variant="secondary"
+                disabled={bulk.isPending}
+                onClick={() => setMoving(true)}
+              >
+                다른 게시판으로
+              </Button>
+              <Button
+                type="button"
+                size="sm"
                 variant="ghost"
                 disabled={bulk.isPending}
                 onClick={() => run('TRASH')}
@@ -373,6 +384,18 @@ export function PostsOverviewPage() {
             </>
           )}
         </div>
+      )}
+
+      {moving && (
+        <PostMoveDialog
+          postIds={selected}
+          fromBoardId={filters.board_id}
+          onClose={() => setMoving(false)}
+          onMoved={() => {
+            setMoving(false)
+            setSelected([])
+          }}
+        />
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">

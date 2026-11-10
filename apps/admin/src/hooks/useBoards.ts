@@ -13,6 +13,9 @@ import type {
   Post,
   PostBulkAction,
   PostList,
+  PostMoveInput,
+  PostMovePreview,
+  PostMoveResult,
   PostOverviewList,
   PermissionOptions,
   PostStatus,
@@ -186,6 +189,28 @@ export function useBulkPosts() {
     mutationFn: async (payload: { post_ids: string[]; action: PostBulkAction }): Promise<number> => {
       const { data } = await api.post('/v1/posts/bulk', payload)
       return data.data.updated
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** 다른 게시판으로 옮기기 미리보기 (T-184) — 아무것도 바꾸지 않는다 */
+export function usePostMovePreview() {
+  return useMutation({
+    mutationFn: async (payload: PostMoveInput): Promise<PostMovePreview> => {
+      const { data } = await api.post('/v1/posts/move/preview', payload)
+      return data.data
+    },
+  })
+}
+
+/** 글을 옮긴다 — 두 게시판의 글 수 · 분류 글 수가 함께 바뀐다 */
+export function useMovePosts() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (payload: PostMoveInput): Promise<PostMoveResult> => {
+      const { data } = await api.post('/v1/posts/move', payload)
+      return data.data
     },
     onSuccess: invalidate,
   })

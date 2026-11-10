@@ -57,6 +57,9 @@ from app.schemas.board import (
     PostCreate,
     PostListItem,
     PostListResponse,
+    PostMovePreview,
+    PostMoveRequest,
+    PostMoveResult,
     PostOverviewItem,
     PostOverviewListResponse,
     PostResponse,
@@ -66,6 +69,7 @@ from app.schemas.board import (
     PublicPostDetail,
     PublicPostItem,
     PublicPostListResponse,
+    PublicPostLocation,
     PublicSitemapPost,
     ReportCreate,
     ReportedPostItem,
@@ -80,6 +84,7 @@ from app.services import board_guest_post as guest_post_service
 from app.services import board_member_post as member_post_service
 from app.services import board_report as report_service
 from app.services import field_convert as convert_service
+from app.services import post_move as move_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
@@ -895,6 +900,29 @@ async def bulk_update_posts(
     return ApiResponse.ok(PostBulkResponse(updated=len(ids)))
 
 
+@posts_router.post("/move/preview", response_model=ApiResponse[PostMovePreview])
+async def preview_post_move(
+    data: PostMoveRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """다른 게시판으로 옮기기 미리보기 (T-184) — 아무것도 바꾸지 않는다."""
+    return ApiResponse.ok(
+        PostMovePreview(**await move_service.preview(db, tenant_id, data))
+    )
+
+
+@posts_router.post("/move", response_model=ApiResponse[PostMoveResult])
+async def move_posts(
+    data: PostMoveRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    result = await move_service.move(db, tenant_id, data, current_user)
+    return ApiResponse.ok(PostMoveResult(**result))
+
+
 # ── 신고된 글 (T-151-B) ──────────────────────────────────────────────────
 
 
@@ -937,6 +965,20 @@ async def list_sitemap_posts(tenant_slug: str, db: AsyncSession = Depends(get_db
     if posts is None:
         raise _not_found(MSG_BOARD_NOT_FOUND)
     return ApiResponse.ok([PublicSitemapPost(**post) for post in posts])
+
+
+@public_router.get(
+    "/site/{tenant_slug}/posts/{post_id}/location",
+    response_model=ApiResponse[PublicPostLocation],
+)
+async def get_public_post_location(
+    tenant_slug: str, post_id: UUID, db: AsyncSession = Depends(get_db)
+):
+    """공개 글이 지금 있는 게시판 (T-184) — 옮긴 글의 예전 주소를 새 주소로 보낸다."""
+    found = await board_service.public_post_location(db, tenant_slug, post_id)
+    if found is None:
+        raise _not_found(MSG_POST_NOT_FOUND)
+    return ApiResponse.ok(PublicPostLocation(**found))
 
 
 async def _open_readable_board(

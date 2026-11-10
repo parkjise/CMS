@@ -592,4 +592,42 @@ describe('글 작성 · 수정', () => {
     await screen.findByLabelText('내용')
     expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
   })
+
+  it('다른 게시판으로 옮기면 옮긴 곳의 수정 화면으로 간다 (T-184)', async () => {
+    mockApi({ detail, boards: [board, { ...board, id: 'b2', name: '채용 공고' }] })
+    const base = get.getMockImplementation()
+    get.mockImplementation((url: string) => (url.endsWith('/categories') ? ok([]) : base?.(url)))
+    post.mockImplementation((url: string) =>
+      url === '/v1/posts/move'
+        ? ok({ moved: 1, values_dropped: 0 })
+        : ok({
+            posts: 1,
+            target_name: '채용 공고',
+            carried: [],
+            dropped: [],
+            blocked_count: 0,
+            blocked: [],
+          })
+    )
+    renderEdit()
+    await screen.findByLabelText('내용')
+    await userEvent.click(screen.getByRole('button', { name: '게시판 옮기기' }))
+    expect(screen.getByText(/저장하지 않은 수정 내용은 옮기면서 사라집니다/)).toBeInTheDocument()
+    await userEvent.selectOptions(await screen.findByLabelText('받을 게시판'), '채용 공고')
+    await screen.findByText(/글 1개를 ‘채용 공고’\(으\)로 옮깁니다/)
+    await userEvent.click(screen.getByRole('button', { name: '옮기기' }))
+    // 같은 라우트라 옮긴 게시판 기준으로 글을 다시 읽는다
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/v1/boards/b2/posts/p1'))
+    expect(post).toHaveBeenCalledWith('/v1/posts/move', {
+      post_ids: ['p1'],
+      target_board_id: 'b2',
+      category_id: null,
+    })
+  })
+
+  it('새 글에는 게시판 옮기기가 없다', async () => {
+    renderNew()
+    await screen.findByLabelText('내용')
+    expect(screen.queryByRole('button', { name: '게시판 옮기기' })).not.toBeInTheDocument()
+  })
 })
