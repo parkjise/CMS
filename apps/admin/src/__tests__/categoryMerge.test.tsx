@@ -180,7 +180,7 @@ describe('카테고리 합치기', () => {
         </MemoryRouter>
       </QueryClientProvider>
     )
-    await screen.findByRole('option', { name: '소식' })
+    await within(screen.getByLabelText('게시판')).findByRole('option', { name: '소식' })
     await userEvent.selectOptions(screen.getByLabelText('게시판'), 'b1')
     await userEvent.selectOptions(screen.getByLabelText('카테고리'), 's')
     await waitFor(() =>

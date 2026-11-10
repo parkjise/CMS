@@ -8,6 +8,7 @@ import { PostListFields } from '@/components/boards/PostListFields'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { isEmptyValue } from '@/lib/customFields'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
+import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type PostOverviewFilters,
@@ -129,15 +130,13 @@ export function PostsOverviewPage() {
   }
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
-      <div>
-        <Link to="/admin/boards" className="text-sm text-slate-500 hover:text-slate-700">
-          ← 게시판 관리
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">전체 글</h1>
-      </div>
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+      <BoardPageTitle
+        title="게시글 관리"
+        description="모든 게시판의 글을 한곳에서 찾고, 공개 · 비공개 · 휴지통 · 다른 게시판으로 옮기기를 한꺼번에 할 수 있어요."
+      />
 
-      <div className="flex flex-wrap items-end gap-3">
+      <div className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm">
         <div>
           <label htmlFor="posts-board" className="mb-1.5 block text-sm font-medium text-slate-700">
             게시판
@@ -398,7 +397,7 @@ export function PostsOverviewPage() {
         />
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         {data && (
           <div className="flex items-center gap-3 border-b border-slate-100 p-3 text-sm text-slate-500">
             {canEdit && items.length > 0 && (

@@ -68,7 +68,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="max-w-4xl space-y-5">
       <form
         className="space-y-5"
         onSubmit={(e) => {
@@ -77,7 +77,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
         }}
       >
         <ReadOnlyFieldset>
-          <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <Input
               label="게시판 이름"
               required
@@ -96,7 +96,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
           </div>
 
           {!isSystem && (
-            <div className="mt-5 space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="mt-5 space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
               <h2 className="text-sm font-semibold text-slate-900">검색 노출</h2>
               <Toggle
                 label="검색 결과에 표시"
@@ -154,7 +154,7 @@ export function BoardSettingsPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
 
       {boardsQuery.isLoading && (

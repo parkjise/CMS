@@ -2,6 +2,7 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import type { AuditLogKind } from '@cms/types'
 import { Button } from '@cms/ui'
+import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { AUDIT_PAGE_SIZE, useAuditLogs } from '@/hooks/useBoards'
 import { AUDIT_KIND_LABELS, actionLabel, auditTarget } from '@/lib/auditLabels'
 
@@ -22,13 +23,11 @@ export function AuditLogsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-5 p-6 md:p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">변경 기록</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          게시판을 만들거나 설정을 바꾸고, 글을 휴지통에 넣거나 옮긴 기록입니다. 글 내용을 저장한 것은 남기지 않습니다.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+      <BoardPageTitle
+        title="변경 기록"
+        description="게시판을 만들거나 설정을 바꾸고, 글을 휴지통에 넣거나 옮긴 기록입니다. 글 내용을 저장한 것은 남기지 않습니다."
+      />
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="기록 종류">
         {[[null, '전체'] as const, ...KINDS].map(([value, label]) => (
@@ -45,14 +44,18 @@ export function AuditLogsPage() {
         ))}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white shadow-sm">
-        {logsQuery.isLoading && <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>}
-        {logsQuery.isError && <p className="p-8 text-center text-sm text-red-600">기록을 불러오지 못했습니다.</p>}
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        {logsQuery.isLoading && (
+          <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>
+        )}
+        {logsQuery.isError && (
+          <p className="p-8 text-center text-sm text-red-600">기록을 불러오지 못했습니다.</p>
+        )}
         {logsQuery.isSuccess && items.length === 0 && (
           <p className="p-8 text-center text-sm text-slate-400">아직 기록이 없어요.</p>
         )}
         {items.length > 0 && (
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[640px] text-left text-sm">
             <thead className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
               <tr>
                 <th className="px-4 py-2 font-medium">날짜</th>
@@ -81,7 +84,13 @@ export function AuditLogsPage() {
 
       {total > AUDIT_PAGE_SIZE && (
         <div className="flex items-center justify-center gap-3 text-sm">
-          <Button type="button" size="sm" variant="secondary" disabled={page <= 1} onClick={() => setPage(page - 1)}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+          >
             이전
           </Button>
           <span className="text-slate-500">

@@ -2,6 +2,7 @@ import dayjs from 'dayjs'
 import { Link } from 'react-router'
 import type { ReportAction, ReportReason, ReportedPost } from '@cms/types'
 import { Button, toast } from '@cms/ui'
+import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useReportedPosts, useResolveReports } from '@/hooks/useBoards'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -25,13 +26,14 @@ function ReportRow({ item, canEdit }: { item: ReportedPost; canEdit: boolean }) 
   const resolve = useResolveReports()
 
   const run = (action: ReportAction) => {
-    if (action === 'DELETE' && !window.confirm(`'${item.title}' 을(를) 휴지통으로 옮길까요?`)) return
+    if (action === 'DELETE' && !window.confirm(`'${item.title}' 을(를) 휴지통으로 옮길까요?`))
+      return
     resolve.mutate(
       { postId: item.post_id, action },
       {
         onSuccess: () => toast.success(ACTION_DONE[action]),
         onError: (error) => toast.error(pickErrorMessage(error, '처리하지 못했습니다.')),
-      },
+      }
     )
   }
 
@@ -68,21 +70,45 @@ function ReportRow({ item, canEdit }: { item: ReportedPost; canEdit: boolean }) 
       )}
       {canEdit && (
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="secondary" disabled={resolve.isPending} onClick={() => run('DISMISS')}>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            disabled={resolve.isPending}
+            onClick={() => run('DISMISS')}
+          >
             신고 닫기
           </Button>
           {item.status === 'PRIVATE' && !item.deleted && (
-            <Button type="button" size="sm" variant="secondary" disabled={resolve.isPending} onClick={() => run('PUBLISH')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={resolve.isPending}
+              onClick={() => run('PUBLISH')}
+            >
               다시 공개
             </Button>
           )}
           {item.status === 'PUBLISHED' && !item.deleted && (
-            <Button type="button" size="sm" variant="secondary" disabled={resolve.isPending} onClick={() => run('HIDE')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              disabled={resolve.isPending}
+              onClick={() => run('HIDE')}
+            >
               비공개로
             </Button>
           )}
           {!item.deleted && (
-            <Button type="button" size="sm" variant="danger" disabled={resolve.isPending} onClick={() => run('DELETE')}>
+            <Button
+              type="button"
+              size="sm"
+              variant="danger"
+              disabled={resolve.isPending}
+              onClick={() => run('DELETE')}
+            >
               휴지통으로
             </Button>
           )}
@@ -99,17 +125,18 @@ export function ReportedPostsPage() {
   const items = reportsQuery.data ?? []
 
   return (
-    <div className="mx-auto max-w-4xl space-y-5 p-6 md:p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">신고된 글</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          홈페이지 방문자가 신고한 글입니다. 신고가 게시판 운영 설정의 기준(기본 5건)만큼 모이면 글은 자동으로 비공개가 되고, 여기서 다시 공개하거나 지울 수
-          있습니다.
-        </p>
-      </div>
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
-        {reportsQuery.isLoading && <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>}
-        {reportsQuery.isError && <p className="p-8 text-center text-sm text-red-600">신고를 불러오지 못했습니다.</p>}
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+      <BoardPageTitle
+        title="신고된 글"
+        description="홈페이지 방문자가 신고한 글입니다. 신고가 게시판 운영 설정의 기준(기본 5건)만큼 모이면 글은 자동으로 비공개가 되고, 여기서 다시 공개하거나 지울 수 있습니다."
+      />
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        {reportsQuery.isLoading && (
+          <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>
+        )}
+        {reportsQuery.isError && (
+          <p className="p-8 text-center text-sm text-red-600">신고를 불러오지 못했습니다.</p>
+        )}
         {reportsQuery.isSuccess && items.length === 0 && (
           <p className="p-8 text-center text-sm text-slate-400">처리할 신고가 없습니다.</p>
         )}
