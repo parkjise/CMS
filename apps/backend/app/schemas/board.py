@@ -285,6 +285,46 @@ class ChoiceRemapResponse(BaseModel):
     moved: int
 
 
+class FieldConvertPreviewRequest(BaseModel):
+    """값이 있는 칸의 유형 바꾸기 미리보기 (T-182)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    field_type: FieldType
+
+
+class FieldConvertRequest(FieldConvertPreviewRequest):
+    # 바꿀 수 없는 글의 값을 비우고 진행 — False 면 하나라도 있으면 409
+    clear_failed: bool = False
+
+
+class FieldConvertSample(BaseModel):
+    post_id: UUID
+    title: str
+    before: str
+    after: str
+
+
+class FieldConvertFailure(BaseModel):
+    post_id: UUID
+    title: str
+    before: str
+    reason: str
+
+
+class FieldConvertPreview(BaseModel):
+    field_type: str
+    total: int
+    convertible: int
+    failed: int
+    samples: list[FieldConvertSample]
+    # 앞에서부터 20개까지
+    failures: list[FieldConvertFailure]
+    # 선택지 칸으로 바꾸면 쓰게 될 선택지
+    choices: list[FieldOption]
+    default_value_kept: bool
+
+
 class FieldResponse(BaseModel):
     id: UUID
     board_id: UUID
@@ -306,6 +346,12 @@ class FieldResponse(BaseModel):
     value_count: int = 0
     # 선택지마다 그 값을 쓰는 글 수 (휴지통 글 포함) — 목록에서만, 옮기기 안내용 (T-180)
     choice_counts: dict[str, int] = {}
+
+
+class FieldConvertResult(BaseModel):
+    converted: int
+    cleared: int
+    field: FieldResponse
 
 
 # ── 카테고리 (T-149) ─────────────────────────────────────────────────────

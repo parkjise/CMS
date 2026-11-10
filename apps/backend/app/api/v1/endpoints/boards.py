@@ -34,6 +34,10 @@ from app.schemas.board import (
     CategoryUpdate,
     ChoiceRemapRequest,
     ChoiceRemapResponse,
+    FieldConvertPreview,
+    FieldConvertPreviewRequest,
+    FieldConvertRequest,
+    FieldConvertResult,
     FieldCreate,
     FieldOption,
     FieldOrderRequest,
@@ -74,6 +78,7 @@ from app.services import board_field as field_service
 from app.services import board_guest_post as guest_post_service
 from app.services import board_member_post as member_post_service
 from app.services import board_report as report_service
+from app.services import field_convert as convert_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
@@ -470,6 +475,51 @@ async def remap_field_choice(
         raise _not_found(MSG_FIELD_NOT_FOUND)
     moved = await field_service.remap_choice(db, board, field, data, current_user)
     return ApiResponse.ok(ChoiceRemapResponse(moved=moved))
+
+
+@router.post(
+    "/{board_id}/fields/{field_id}/convert/preview",
+    response_model=ApiResponse[FieldConvertPreview],
+)
+async def preview_field_convert(
+    data: FieldConvertPreviewRequest,
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    """값이 있는 칸의 유형 바꾸기 미리보기 — 저장하지 않는다 (T-182)."""
+    if field.deleted_at is not None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    result = await convert_service.preview(db, board, field, data.field_type)
+    return ApiResponse.ok(FieldConvertPreview.model_validate(result))
+
+
+@router.post(
+    "/{board_id}/fields/{field_id}/convert",
+    response_model=ApiResponse[FieldConvertResult],
+)
+async def convert_field(
+    data: FieldConvertRequest,
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """유형을 바꾸고 글 값도 함께 바꾼다 (T-182)."""
+    if field.deleted_at is not None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    result = await convert_service.convert(
+        db, board, field, data.field_type, data.clear_failed, current_user
+    )
+    counts = await field_service.value_counts(db, board.id)
+    choices = await field_service.choice_counts(db, board.id, [field])
+    response = _field_response(field).model_copy(
+        update={
+            "value_count": counts.get(field.field_key, 0),
+            "choice_counts": choices.get(field.id, {}),
+        }
+    )
+    return ApiResponse.ok(FieldConvertResult(**result, field=response))
 
 
 @router.delete("/{board_id}/fields/{field_id}", response_model=ApiResponse[dict])
