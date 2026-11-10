@@ -501,6 +501,7 @@ async def _audit_category(
             "board_id": str(category.board_id),
             "name": category.name,
             "is_active": category.is_active,
+            "parent_id": str(category.parent_id) if category.parent_id else None,
             **(extra or {}),
         },
         tenant_id=category.tenant_id,
@@ -593,7 +594,11 @@ async def update_category(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
 ):
-    before = {"name": category.name, "is_active": category.is_active}
+    before = {
+        "name": category.name,
+        "is_active": category.is_active,
+        "parent_id": str(category.parent_id) if category.parent_id else None,
+    }
     updated = await category_service.update_category(db, board, category, data)
     response = CategoryResponse.model_validate(updated)
     await _audit_category(

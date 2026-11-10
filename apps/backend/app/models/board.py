@@ -136,11 +136,12 @@ class BoardField(Base, TimestampMixin, SoftDeleteMixin):
 
 
 class BoardCategory(Base, TimestampMixin, SoftDeleteMixin):
-    """게시판 카테고리 — 1단계 분류 (T-149, BM-09)."""
+    """게시판 카테고리 — 상위 · 하위 2단계 분류 (T-149, T-179, BM-09)."""
 
     __tablename__ = "board_categories"
     __table_args__ = (
         Index("ix_board_categories_tenant_id", "tenant_id"),
+        Index("ix_board_categories_parent_id", "parent_id"),
         Index(
             "uq_board_categories_name",
             "board_id",
@@ -158,6 +159,10 @@ class BoardCategory(Base, TimestampMixin, SoftDeleteMixin):
     )
     board_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("boards.id", ondelete="CASCADE"), nullable=False
+    )
+    # 상위 분류 — 비어 있으면 1단계. 하위의 하위는 없다 (T-179)
+    parent_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("board_categories.id"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(30), nullable=False)
     # 끄면 홈페이지 분류 탭에서만 빠진다 — 글은 '전체'에 그대로

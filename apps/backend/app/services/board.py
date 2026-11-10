@@ -612,7 +612,7 @@ async def list_posts(
     if status:
         conditions.append(BoardPost.status == status)
     if category_id:
-        conditions.append(BoardPost.category_id == category_id)
+        conditions.append(category_service.post_in_category(category_id))
     if q:
         conditions.append(_title_contains(BoardPost.title, q))
     total = (
@@ -760,7 +760,7 @@ async def list_all_posts(
     if board_id:
         conditions.append(BoardPost.board_id == board_id)
     if category_id:
-        conditions.append(BoardPost.category_id == category_id)
+        conditions.append(category_service.post_in_category(category_id))
     if status:
         conditions.append(BoardPost.status == status)
     if q:
@@ -1117,7 +1117,7 @@ async def list_public_posts(
     ).first() is not None
     conditions = [*public, _title_contains(BoardPost.title, q)] if q else public
     if category_id:
-        conditions = [*conditions, BoardPost.category_id == category_id]
+        conditions = [*conditions, category_service.post_in_category(category_id)]
     total = (
         await db.execute(select(func.count()).select_from(BoardPost).where(*conditions))
     ).scalar_one()
