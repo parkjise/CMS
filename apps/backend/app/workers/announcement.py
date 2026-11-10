@@ -5,7 +5,6 @@
 - deactivate_expired_announcements: 만료 공지 자동 비노출 — 매일
 """
 
-import asyncio
 from datetime import UTC, datetime
 
 from sqlalchemy import and_, select, update
@@ -15,6 +14,7 @@ from app.models.announcement import Announcement
 from app.models.sns import NotificationSetting
 from app.services import announcement as announcement_service
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 # 알림톡 공지 템플릿 코드 (승인된 템플릿. 테스트 모드에서는 stub)
 ANNOUNCEMENT_TEMPLATE_CODE = "ANNOUNCE_01"
@@ -28,7 +28,7 @@ ANNOUNCEMENT_TEMPLATE_CODE = "ANNOUNCE_01"
     retry_backoff=True,
 )
 def send_announcement(self, announcement_id: str) -> dict:
-    return asyncio.run(_send_announcement(announcement_id))
+    return run_async(_send_announcement(announcement_id))
 
 
 async def _send_announcement(announcement_id: str) -> dict:
@@ -97,7 +97,7 @@ async def _send_announcement(announcement_id: str) -> dict:
     retry_backoff=True,
 )
 def publish_scheduled_announcements(self) -> int:
-    return asyncio.run(_publish_scheduled_announcements())
+    return run_async(_publish_scheduled_announcements())
 
 
 async def _publish_scheduled_announcements() -> int:
@@ -130,7 +130,7 @@ async def _publish_scheduled_announcements() -> int:
     retry_backoff=True,
 )
 def deactivate_expired_announcements(self) -> int:
-    return asyncio.run(_deactivate_expired_announcements())
+    return run_async(_deactivate_expired_announcements())
 
 
 async def _deactivate_expired_announcements() -> int:

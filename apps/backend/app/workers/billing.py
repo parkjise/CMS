@@ -9,7 +9,6 @@
 모든 태스크는 AsyncSessionLocal + 슈퍼 어드민 모드(RLS 우회)로 동작한다.
 """
 
-import asyncio
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import func, select, update
@@ -18,6 +17,7 @@ from app.db.session import affected_rows, set_super_admin_context
 from app.models.billing import Subscription
 from app.models.tenant import Tenant
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 MAX_RETRY_FAILURES = 3
 DATA_RETENTION_DAYS = 30
@@ -48,7 +48,7 @@ async def _block_tenant(db, tenant_id) -> None:
     retry_backoff=True,
 )
 def process_monthly_billing(self) -> int:
-    return asyncio.run(_process_monthly_billing())
+    return run_async(_process_monthly_billing())
 
 
 async def _process_monthly_billing() -> int:
@@ -87,7 +87,7 @@ async def _process_monthly_billing() -> int:
     retry_backoff=True,
 )
 def retry_billing(self) -> dict:
-    return asyncio.run(_retry_billing())
+    return run_async(_retry_billing())
 
 
 async def _retry_billing() -> dict:
@@ -134,7 +134,7 @@ async def _retry_billing() -> dict:
     retry_backoff=True,
 )
 def check_expiring_subscriptions(self) -> int:
-    return asyncio.run(_check_expiring_subscriptions())
+    return run_async(_check_expiring_subscriptions())
 
 
 async def _check_expiring_subscriptions() -> int:
@@ -193,7 +193,7 @@ async def _check_expiring_subscriptions() -> int:
     retry_backoff=True,
 )
 def suspend_expired_subscriptions(self) -> int:
-    return asyncio.run(_suspend_expired_subscriptions())
+    return run_async(_suspend_expired_subscriptions())
 
 
 async def _suspend_expired_subscriptions() -> int:
@@ -241,7 +241,7 @@ async def _suspend_expired_subscriptions() -> int:
     retry_backoff=True,
 )
 def delete_cancelled_tenant_data(self) -> int:
-    return asyncio.run(_delete_cancelled_tenant_data())
+    return run_async(_delete_cancelled_tenant_data())
 
 
 async def _delete_cancelled_tenant_data() -> int:
@@ -284,7 +284,7 @@ async def _delete_cancelled_tenant_data() -> int:
     retry_backoff=True,
 )
 def notify_trial_ending(self) -> int:
-    return asyncio.run(_notify_trial_ending())
+    return run_async(_notify_trial_ending())
 
 
 async def _notify_trial_ending() -> int:
@@ -348,7 +348,7 @@ async def _notify_trial_ending() -> int:
     retry_backoff=True,
 )
 def process_trial_expirations(self) -> dict:
-    return asyncio.run(_process_trial_expirations())
+    return run_async(_process_trial_expirations())
 
 
 async def _process_trial_expirations() -> dict:

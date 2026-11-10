@@ -1,8 +1,7 @@
 """T-098 이메일 비동기 발송 Celery 태스크."""
 
-import asyncio
-
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 
 @celery_app.task(
@@ -19,4 +18,4 @@ def send_email_async(
     """이메일을 비동기로 발송. test 모드에서는 stub 반환."""
     from app.services import email as email_service
 
-    return asyncio.run(email_service.send_email(to, subject, template, variables))
+    return run_async(email_service.send_email(to, subject, template, variables))

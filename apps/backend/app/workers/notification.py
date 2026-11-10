@@ -4,8 +4,6 @@
 `inquiries.is_notified=True`로 업데이트한다.
 """
 
-import asyncio
-
 from sqlalchemy import select, update
 
 from app.db.session import set_super_admin_context
@@ -13,6 +11,7 @@ from app.models.inquiry import Inquiry
 from app.models.tenant import Tenant
 from app.services import notification as notification_service
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 
 @celery_app.task(
@@ -25,7 +24,7 @@ from app.workers.celery_app import celery_app
 )
 def send_inquiry_alert(self, tenant_id: str, inquiry_id: str) -> dict:
     """문의 접수 알림을 비동기로 발송. 지수 백오프 재시도."""
-    return asyncio.run(_send_inquiry_alert(tenant_id, inquiry_id))
+    return run_async(_send_inquiry_alert(tenant_id, inquiry_id))
 
 
 async def _send_inquiry_alert(tenant_id: str, inquiry_id: str) -> dict:
@@ -84,7 +83,7 @@ async def _send_inquiry_alert(tenant_id: str, inquiry_id: str) -> dict:
 )
 def send_member_joined_alert(self, tenant_id: str, member_id: str) -> dict:
     """방문자 회원 가입 후 환영 메일 + 관리자 신규 회원 알림 (T-108)."""
-    return asyncio.run(_send_member_joined_alert(tenant_id, member_id))
+    return run_async(_send_member_joined_alert(tenant_id, member_id))
 
 
 async def _send_member_joined_alert(tenant_id: str, member_id: str) -> dict:
@@ -127,7 +126,7 @@ async def _send_member_joined_alert(tenant_id: str, member_id: str) -> dict:
 )
 def send_member_password_changed(self, tenant_id: str, member_id: str) -> dict:
     """방문자 비밀번호 변경 보안 알림 — 메일 + 문자 (T-109, 기획서 16.11)."""
-    return asyncio.run(_send_member_password_changed(tenant_id, member_id))
+    return run_async(_send_member_password_changed(tenant_id, member_id))
 
 
 async def _send_member_password_changed(tenant_id: str, member_id: str) -> dict:
@@ -187,7 +186,7 @@ def send_member_withdrawn(
 
     회원 정보는 이미 익명화돼 있으므로 원래 연락처를 인자로 받는다.
     """
-    return asyncio.run(_send_member_withdrawn(site_name, name, email, phone))
+    return run_async(_send_member_withdrawn(site_name, name, email, phone))
 
 
 async def _send_member_withdrawn(
@@ -228,9 +227,7 @@ def send_member_reservation_notice(
     self, tenant_id: str, reservation_id: str, status: str
 ) -> dict:
     """회원 예약 확정 · 취소 알림 (T-115) — 회원 알림 설정 · 수신 동의에 따라."""
-    return asyncio.run(
-        _send_member_reservation_notice(tenant_id, reservation_id, status)
-    )
+    return run_async(_send_member_reservation_notice(tenant_id, reservation_id, status))
 
 
 async def _send_member_reservation_notice(
