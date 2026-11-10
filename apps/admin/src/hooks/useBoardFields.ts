@@ -1,5 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { BoardField, FieldOption, FieldType } from '@cms/types'
+import type {
+  BoardField,
+  FieldConvertPreview,
+  FieldConvertResult,
+  FieldOption,
+  FieldType,
+} from '@cms/types'
 import { api } from '@/lib/api'
 
 /** 게시판 칸 (T-142, 게시판 모듈 기획서 BM-04) */
@@ -109,6 +115,52 @@ export function useRemapChoice(boardId: string) {
       return data.data.moved
     },
     // 글 값이 바뀌므로 칸(글 수)과 글 목록을 모두 다시 읽는다
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),
+        queryClient.invalidateQueries({ queryKey: ['boards', 'overview'] }),
+      ]),
+  })
+}
+
+/** 값이 있는 칸의 유형 바꾸기 미리보기 (T-182) — 저장하지 않는다 */
+export function useFieldConvertPreview(boardId: string) {
+  return useMutation({
+    mutationFn: async ({
+      fieldId,
+      fieldType,
+    }: {
+      fieldId: string
+      fieldType: FieldType
+    }): Promise<FieldConvertPreview> => {
+      const { data } = await api.post(`/v1/boards/${boardId}/fields/${fieldId}/convert/preview`, {
+        field_type: fieldType,
+      })
+      return data.data
+    },
+  })
+}
+
+/** 유형을 바꾸고 글 값도 함께 바꾼다 (T-182) */
+export function useConvertField(boardId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      fieldId,
+      fieldType,
+      clearFailed,
+    }: {
+      fieldId: string
+      fieldType: FieldType
+      clearFailed: boolean
+    }): Promise<FieldConvertResult> => {
+      const { data } = await api.post(`/v1/boards/${boardId}/fields/${fieldId}/convert`, {
+        field_type: fieldType,
+        clear_failed: clearFailed,
+      })
+      return data.data
+    },
+    // 칸 설정과 글 값이 함께 바뀐다
     onSuccess: () =>
       Promise.all([
         queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),

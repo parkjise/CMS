@@ -4,6 +4,7 @@ import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react'
 import type { BoardField, FieldOption, FieldType } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { ChoiceRemapDialog } from '@/components/boards/ChoiceRemapDialog'
+import { FieldConvertDialog } from '@/components/boards/FieldConvertDialog'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { type FieldInput, useCreateField, useUpdateField } from '@/hooks/useBoardFields'
 import {
@@ -48,6 +49,8 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
   const [errors, setErrors] = useState<{ label?: string; key?: string; options?: string; range?: string }>({})
   // 쓰고 있는 선택지 옮기기 (T-180) — removing 이면 옮긴 뒤 화면에서 뺀다
   const [remapping, setRemapping] = useState<{ option: FieldOption; removing: boolean } | null>(null)
+  // 값이 있는 칸은 유형 바꾸기 창에서 글 값과 함께 바꾼다 (T-182)
+  const [converting, setConverting] = useState(false)
 
   // 기본값 입력칸은 글쓰기 화면과 같은 칸으로 그린다 — 지금 고른 유형 · 선택지 그대로
   const defaultField: BoardField = {
@@ -158,10 +161,28 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
             </option>
           ))}
         </select>
-        {inUse && (
-          <p className="mt-1.5 text-sm text-slate-500">
-            이 칸에 값이 있는 글이 {field?.value_count.toLocaleString()}개 있어 유형을 바꿀 수 없습니다.
-          </p>
+        {inUse && field && (
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
+            <p className="text-sm text-slate-500">
+              이 칸에 값이 있는 글이 {field.value_count.toLocaleString()}개 있어 여기서는 유형을 바꿀 수
+              없습니다. 글 값까지 함께 바꾸려면 [유형 바꾸기]를 눌러 주세요.
+            </p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => setConverting(true)}>
+              유형 바꾸기
+            </Button>
+          </div>
+        )}
+        {field && converting && (
+          <FieldConvertDialog
+            boardId={boardId}
+            field={field}
+            onClose={() => setConverting(false)}
+            onConverted={() => {
+              setConverting(false)
+              // 칸 설정이 바뀌었으니 편집을 닫고 새로 읽은 칸으로 다시 연다
+              onDone()
+            }}
+          />
         )}
       </div>
 
