@@ -251,6 +251,29 @@ describe('테마형 게시판 목록 (T-141)', () => {
       expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
       expect(screen.getByRole('search').querySelector('input[name="c"]')).toBeNull()
     })
+
+    it('2단계 — 하위를 고르면 상위 · 하위 두 줄이 켜진다 (T-179)', async () => {
+      fetchPublicSite.mockResolvedValue(
+        siteWith([
+          {
+            ...boardOf('LIST'),
+            categories: [
+              { id: 'c1', name: '진료' },
+              { id: 'k1', name: '임플란트', parent_id: 'c1' },
+              { id: 'c2', name: '행사' },
+            ],
+          },
+        ]),
+      )
+      await renderPage(['news'], { c: 'k1' })
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined, category: 'k1' })
+      const top = screen.getByRole('list', { name: '상위 카테고리' })
+      const sub = screen.getByRole('list', { name: '하위 카테고리' })
+      expect(within(top).getAllByRole('link').map((a) => a.textContent)).toEqual(['전체', '진료', '행사'])
+      expect(within(top).getByRole('link', { name: '진료' })).toHaveAttribute('aria-current', 'page')
+      expect(within(sub).getByRole('link', { name: '전체' })).toHaveAttribute('href', '/demo/b/news?c=c1')
+      expect(within(sub).getByRole('link', { name: '임플란트' })).toHaveAttribute('aria-current', 'page')
+    })
   })
 })
 

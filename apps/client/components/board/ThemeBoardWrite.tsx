@@ -3,6 +3,7 @@
 import type { PublicBoard } from '@cms/types'
 import { Lock } from 'lucide-react'
 import { pageHref } from '@/templates/shared/contracts'
+import { categoryOptions } from '@/lib/categoryTabs'
 import {
   CONTENT_MAX,
   GUEST_NAME_MAX,
@@ -191,7 +192,7 @@ export function ThemeBoardWrite({
               onChange={(e) => form.change({ categoryId: e.target.value })}
             >
               <option value="">분류 없음</option>
-              {categories.map((category) => (
+              {categoryOptions(categories).map((category) => (
                 <option key={category.id} value={category.id}>
                   {category.name}
                 </option>

@@ -13,6 +13,7 @@ import {
   loadBoardPage,
 } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
+import { type CategoryTab, categoryTabRows } from '@/lib/categoryTabs'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeGuestPostActions, ThemeReportButton } from './ThemeGuestTools'
@@ -209,6 +210,47 @@ export async function ThemeBoardList({
   )
 }
 
+interface ThemeTabRowProps {
+  label: string
+  tabs: CategoryTab[]
+  current?: string
+  hrefFor: (extra?: HrefExtra) => string
+  sub?: boolean
+}
+
+/** 카테고리 탭 한 줄 — 둘째 줄(하위)은 작게 (T-179) */
+function ThemeTabRow({ label, tabs, current, hrefFor, sub }: ThemeTabRowProps) {
+  return (
+    <ul
+      aria-label={label}
+      className={`flex gap-2 overflow-x-auto pb-0.5 md:flex-wrap ${
+        sub ? `mt-3 border-t border-dashed pt-3 ${line}` : ''
+      }`}
+    >
+      {tabs.map((tab) => {
+        const active = tab.id === current
+        return (
+          <li key={tab.id ?? 'all'} className="shrink-0">
+            <a
+              href={hrefFor({ c: tab.id })}
+              aria-current={active ? 'page' : undefined}
+              className={`block whitespace-nowrap rounded-full border ${
+                sub ? 'px-3 py-1 text-xs md:text-sm' : 'px-4 py-1.5 text-sm'
+              } ${
+                active
+                  ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-semibold text-white'
+                  : `${line} ${muted} hover:text-[color:var(--color-text-primary)]`
+              }`}
+            >
+              {tab.name}
+            </a>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 interface ListViewProps {
   board: PublicBoard
   list: BoardPage
@@ -220,6 +262,7 @@ interface ListViewProps {
 export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListViewProps) {
   const { posts, keyword, category } = list
   const categories = board.categories ?? []
+  const tabRows = categoryTabRows(categories, category)
   const design = boardDesign(board)
   const ratio = RATIO_CLASS[design.image_ratio]
   return (
@@ -237,26 +280,21 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
 
       {categories.length > 0 && (
         <nav aria-label="카테고리" className="mt-8">
-          <ul className="flex gap-2 overflow-x-auto pb-0.5 md:flex-wrap">
-            {[{ id: undefined, name: '전체' }, ...categories].map((tab) => {
-              const active = tab.id === category
-              return (
-                <li key={tab.id ?? 'all'} className="shrink-0">
-                  <a
-                    href={hrefFor({ c: tab.id })}
-                    aria-current={active ? 'page' : undefined}
-                    className={`block whitespace-nowrap rounded-full border px-4 py-1.5 text-sm ${
-                      active
-                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)] font-semibold text-white'
-                        : `${line} ${muted} hover:text-[color:var(--color-text-primary)]`
-                    }`}
-                  >
-                    {tab.name}
-                  </a>
-                </li>
-              )
-            })}
-          </ul>
+          <ThemeTabRow
+            label="상위 카테고리"
+            tabs={tabRows.top}
+            current={tabRows.topCurrent}
+            hrefFor={hrefFor}
+          />
+          {tabRows.sub.length > 0 && (
+            <ThemeTabRow
+              label="하위 카테고리"
+              tabs={tabRows.sub}
+              current={category}
+              hrefFor={hrefFor}
+              sub
+            />
+          )}
         </nav>
       )}
 

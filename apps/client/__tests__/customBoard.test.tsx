@@ -139,6 +139,51 @@ describe('카테고리 탭 (T-149)', () => {
     const tabs = screen.getByRole('navigation', { name: '카테고리' })
     expect(within(tabs).getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
   })
+
+  describe('2단계 (T-179)', () => {
+    const tree = [
+      { id: 'c1', name: '진료' },
+      { id: 'k1', name: '임플란트', parent_id: 'c1' },
+      { id: 'k2', name: '교정', parent_id: 'c1' },
+      { id: 'c2', name: '행사' },
+    ]
+    const render2 = async (c?: string) => {
+      fetchPublicPosts.mockResolvedValue(listOf([post]))
+      render(await CustomBoard(props('LIST', { board: { ...boardOf('LIST'), categories: tree }, c })))
+      return {
+        top: screen.getByRole('list', { name: '상위 카테고리' }),
+        sub: screen.queryByRole('list', { name: '하위 카테고리' }),
+      }
+    }
+
+    it('첫 줄은 상위만, 하위 줄은 상위를 골라야 나온다', async () => {
+      const { top, sub } = await render2()
+      expect(within(top).getAllByRole('link').map((a) => a.textContent)).toEqual(['전체', '진료', '행사'])
+      expect(sub).not.toBeInTheDocument()
+    })
+
+    it('상위를 고르면 하위 줄 — 상위 전체가 켜지고 하위 글까지 읽는다', async () => {
+      const { top, sub } = await render2('c1')
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', expect.objectContaining({ category: 'c1' }))
+      expect(within(top).getByRole('link', { name: '진료' })).toHaveAttribute('aria-current', 'page')
+      expect(within(sub!).getAllByRole('link').map((a) => a.textContent)).toEqual(['전체', '임플란트', '교정'])
+      expect(within(sub!).getByRole('link', { name: '전체' })).toHaveAttribute('href', '/demo/b/news?c=c1')
+      expect(within(sub!).getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
+      expect(within(sub!).getByRole('link', { name: '교정' })).toHaveAttribute('href', '/demo/b/news?c=k2')
+    })
+
+    it('하위를 고르면 상위 탭 · 그 하위 탭이 함께 켜진다', async () => {
+      const { top, sub } = await render2('k1')
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', expect.objectContaining({ category: 'k1' }))
+      expect(within(top).getByRole('link', { name: '진료' })).toHaveAttribute('aria-current', 'page')
+      expect(within(sub!).getByRole('link', { name: '임플란트' })).toHaveAttribute('aria-current', 'page')
+    })
+
+    it('하위가 없는 상위는 둘째 줄이 없다', async () => {
+      const { sub } = await render2('c2')
+      expect(sub).not.toBeInTheDocument()
+    })
+  })
 })
 
 describe('갤러리형', () => {
