@@ -12,13 +12,14 @@ import {
   usePostTableLayoutStore,
 } from '@/stores/postTableLayoutStore'
 
-const { get, patch, del, post } = vi.hoisted(() => ({
+const { get, patch, del, post, put } = vi.hoisted(() => ({
   get: vi.fn(),
   patch: vi.fn(),
   del: vi.fn(),
   post: vi.fn(),
+  put: vi.fn(),
 }))
-vi.mock('@/lib/api', () => ({ api: { get, patch, delete: del, post } }))
+vi.mock('@/lib/api', () => ({ api: { get, patch, delete: del, post, put } }))
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
 const field = (key: string, extra: Partial<BoardField> = {}): BoardField => ({
   id: key,
@@ -66,6 +67,7 @@ const row = {
 }
 let fields: BoardField[]
 let currentRow: typeof row
+let serverLayout: unknown = null
 const mockApi = (system = false, total = 1) => {
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards')
@@ -74,6 +76,8 @@ const mockApi = (system = false, total = 1) => {
         { id: 'b2', name: '다른 게시판', system_key: null },
       ])
     if (url === '/v1/site-settings/menu') return ok({ mode: 'code' })
+    // 계정에 저장한 열 설정 (T-181) — 기본은 없음
+    if (url.startsWith('/v1/me/preferences/post-table/')) return ok(serverLayout)
     if (url === '/v1/boards/b1/fields') return ok(fields)
     if (url === '/v1/boards/b2/fields')
       return ok([field('other', { board_id: 'b2', label: '다른 칸' })])
@@ -81,7 +85,9 @@ const mockApi = (system = false, total = 1) => {
     return ok([])
   })
   patch.mockImplementation(() => ok(currentRow))
-  del.mockImplementation(() => {
+  put.mockImplementation((_url: string, body: unknown) => ok(body))
+  del.mockImplementation((url: string) => {
+    if (url.startsWith('/v1/me/preferences/')) return ok({ reset: true })
     currentRow = { ...currentRow, deleted_at: '2026-11-08' }
     return ok(undefined)
   })
@@ -111,7 +117,8 @@ beforeEach(() => {
   vi.resetAllMocks()
   vi.restoreAllMocks()
   localStorage.removeItem(POST_TABLE_STORAGE_KEY)
-  usePostTableLayoutStore.setState({ layouts: {}, saveFailed: {} })
+  usePostTableLayoutStore.setState({ layouts: {}, saveFailed: {}, serverFailed: {} })
+  serverLayout = null
   useAuthStore.setState({ user: { role: 'TENANT_ADMIN' } } as never)
   currentRow = { ...row }
   fields = [
@@ -387,5 +394,107 @@ describe('표 열 순서·크기 개인 설정', () => {
     expect(headers()).toEqual(['게시글', '메모', '수량'])
     expect(patch).not.toHaveBeenCalled()
     expect(post).not.toHaveBeenCalled()
+  })
+})
+
+describe('열 설정 계정 저장 (T-181)', () => {
+  const PREF_URL = '/v1/me/preferences/post-table/b1'
+  const openControls = async () => {
+    await tableMode()
+    await userEvent.click(screen.getByText('열 순서·크기'))
+  }
+  const headers = () =>
+    within(screen.getByRole('table'))
+      .getAllByRole('columnheader')
+      .map((el) => el.textContent)
+  beforeEach(() => {
+    useAuthStore.setState({ user: { id: 'u1', tenant_id: 't1', role: 'TENANT_ADMIN' } } as never)
+  })
+
+  it('계정에 저장된 설정을 불러와 쓴다', async () => {
+    serverLayout = { order: ['note', 'count'], sizes: { note: 'wide' }, updated_at: '2026-11-10T00:00:00Z' }
+    renderPage()
+    await tableMode()
+    await waitFor(() => expect(headers()).toEqual(['게시글', '메모', '수량', '작업']))
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-64')
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('바꾸면 화면은 바로, 계정에는 마지막 설정을 한 번 보낸다', async () => {
+    renderPage()
+    await openControls()
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: '메모 열 크기' }), 'wide')
+    expect(headers()).toEqual(['게시글', '메모', '수량', '작업'])
+    await waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect(put).toHaveBeenCalledWith(PREF_URL, {
+      order: ['note', 'count'],
+      sizes: { note: 'wide', count: 'normal' },
+    })
+  })
+
+  it('계정에 없고 이 브라우저에만 있으면 한 번 옮긴다', async () => {
+    const scope = JSON.stringify(['t1', 'u1', 'b1'])
+    usePostTableLayoutStore.setState({
+      layouts: { [scope]: { order: ['note', 'count'], sizes: { count: 'narrow' } } },
+    })
+    renderPage()
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith(PREF_URL, {
+        order: ['note', 'count'],
+        sizes: { count: 'narrow' },
+      })
+    )
+    await tableMode()
+    expect(headers()).toEqual(['게시글', '메모', '수량', '작업'])
+    expect(put).toHaveBeenCalledTimes(1)
+  })
+
+  it('초기화는 계정 설정도 지운다', async () => {
+    serverLayout = { order: ['note', 'count'], sizes: {} }
+    renderPage()
+    await openControls()
+    await waitFor(() => expect(headers()).toEqual(['게시글', '메모', '수량', '작업']))
+    await userEvent.click(screen.getByRole('button', { name: '열 설정 초기화' }))
+    expect(headers()).toEqual(['게시글', '수량', '메모', '작업'])
+    await waitFor(() => expect(del).toHaveBeenCalledWith(PREF_URL))
+  })
+
+  it('계정 저장이 실패하면 알리고 화면 설정은 유지하며 다시 저장할 수 있다', async () => {
+    put.mockRejectedValueOnce(new Error('network'))
+    renderPage()
+    await openControls()
+    await userEvent.selectOptions(screen.getByRole('combobox', { name: '메모 열 크기' }), 'wide')
+    expect(await screen.findByRole('alert')).toHaveTextContent('계정에 저장하지 못했습니다')
+    expect(screen.getByRole('columnheader', { name: '메모' })).toHaveClass('min-w-64')
+    await userEvent.click(screen.getByRole('button', { name: '계정에 다시 저장' }))
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
+    expect(put).toHaveBeenLastCalledWith(PREF_URL, {
+      order: ['count', 'note'],
+      sizes: { count: 'normal', note: 'wide' },
+    })
+  })
+
+  it('불러오기가 실패하면 이 브라우저 설정으로 보여 주고 알린다', async () => {
+    get.mockImplementation((url: string) => {
+      if (url.startsWith('/v1/me/preferences/')) return Promise.reject(new Error('down'))
+      if (url === '/v1/boards') return ok([{ id: 'b1', name: '소식', system_key: null }])
+      if (url === '/v1/boards/b1/fields') return ok(fields)
+      if (url.endsWith('/posts')) return ok({ total: 1, items: [currentRow], page: 1, size: 20 })
+      return ok([])
+    })
+    renderPage()
+    await openControls()
+    expect(await screen.findByRole('alert')).toHaveTextContent('계정에 저장하지 못했습니다')
+    expect(headers()).toEqual(['게시글', '수량', '메모', '작업'])
+  })
+
+  it('뷰어도 자기 열 설정은 계정에 저장한다', async () => {
+    useAuthStore.setState({ user: { id: 'viewer', tenant_id: 't1', role: 'TENANT_VIEWER' } } as never)
+    renderPage()
+    await openControls()
+    await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))
+    await waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect(patch).not.toHaveBeenCalled()
   })
 })

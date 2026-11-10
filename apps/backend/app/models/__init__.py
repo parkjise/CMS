@@ -15,6 +15,7 @@ from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
+from app.models.preference import AdminUserPreference
 from app.models.section import Section, SectionSetting
 from app.models.seo import SeoSetting
 from app.models.site import SiteSetting
@@ -31,6 +32,7 @@ from app.models.tenant import Tenant
 from app.models.user import User
 
 __all__ = [
+    "AdminUserPreference",
     "Tenant",
     "User",
     "Section",

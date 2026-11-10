@@ -18,6 +18,7 @@ import {
   useRestorePost,
   useUpdatePost,
 } from '@/hooks/useBoards'
+import { usePostTableLayoutSync } from '@/hooks/usePostTableLayoutSync'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
 import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -81,6 +82,8 @@ export function BoardPostsPage() {
     tableScope ? state.layouts[tableScope] : undefined
   )
   const tableFields = orderTableFields(listFields, tableLayout)
+  // 열 설정은 계정에도 저장 — 다른 브라우저에서도 같게 (T-181)
+  const layoutSync = usePostTableLayoutSync(boardId, tableScope, listFields.length > 0)
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
   const restorePost = useRestorePost(boardId)
@@ -363,7 +366,14 @@ export function BoardPostsPage() {
       )}
 
       {showTable && (
-        <PostTableLayoutControls scope={tableScope} fields={tableFields} layout={tableLayout} />
+        <PostTableLayoutControls
+          scope={tableScope}
+          fields={tableFields}
+          layout={tableLayout}
+          onSave={layoutSync.persist}
+          serverFailed={layoutSync.serverFailed}
+          onRetryServer={layoutSync.retry}
+        />
       )}
 
       <div className="rounded-lg border border-slate-200 bg-white shadow-sm">

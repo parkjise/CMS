@@ -115,8 +115,8 @@ async def require_tenant_active(
 
 TENANT_VIEWER_ROLE = "TENANT_VIEWER"
 _READ_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
-# 뷰어도 할 수 있는 본인 동작 — 공지 읽음 표시
-_VIEWER_ALLOWED_WRITE = re.compile(r"/announcements/[^/]+/read$")
+# 뷰어도 할 수 있는 본인 동작 — 공지 읽음 표시, 개인 화면 설정 (T-181)
+_VIEWER_ALLOWED_WRITE = re.compile(r"/announcements/[^/]+/read$|/me/preferences/")
 
 
 async def require_tenant_write(

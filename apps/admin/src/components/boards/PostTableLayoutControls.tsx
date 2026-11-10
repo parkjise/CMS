@@ -11,12 +11,20 @@ interface PostTableLayoutControlsProps {
   scope: string | null
   fields: BoardField[]
   layout?: PostTableLayout
+  /** 화면 · 이 브라우저에 바로, 계정(서버)에는 잠시 뒤 저장한다 (T-181) */
+  onSave: (layout: PostTableLayout | null) => void
+  /** 계정(서버)에 저장하지 못했다 */
+  serverFailed: boolean
+  onRetryServer: () => void
 }
 
 export const PostTableLayoutControls = ({
   scope,
   fields,
   layout,
+  onSave,
+  serverFailed,
+  onRetryServer,
 }: PostTableLayoutControlsProps) => {
   const save = usePostTableLayoutStore((state) => state.save)
   const failed = usePostTableLayoutStore((state) => (scope ? state.saveFailed[scope] : false))
@@ -30,14 +38,14 @@ export const PostTableLayoutControls = ({
     const target = index + direction
     if (target < 0 || target >= next.order.length) return
     ;[next.order[index], next.order[target]] = [next.order[target], next.order[index]]
-    save(scope, next)
+    onSave(next)
   }
   return (
     <details className="rounded-lg border border-slate-200 bg-white p-4 text-sm">
       <summary className="cursor-pointer font-medium text-slate-700">열 순서·크기</summary>
       <p className="mt-3 text-xs text-slate-500">
-        이 브라우저의 현재 계정·사업체·게시판에 저장됩니다. 크기는 열의 최소 너비입니다. 제목 아래
-        보기와 홈페이지에는 적용되지 않습니다.
+        지금 계정의 이 게시판 설정으로 저장되어 다른 브라우저 · 기기에서도 같게 보입니다. 크기는
+        열의 최소 너비입니다. 제목 아래 보기와 홈페이지에는 적용되지 않습니다.
       </p>
       {!scope ? (
         <p className="mt-2 text-sm text-slate-500">
@@ -63,7 +71,7 @@ export const PostTableLayoutControls = ({
                     if (!isColumnSize(size)) return
                     const next = current()
                     next.sizes[field.id] = size
-                    save(scope, next)
+                    onSave(next)
                   }}
                 >
                   <option value="narrow">좁게</option>
@@ -99,7 +107,7 @@ export const PostTableLayoutControls = ({
             size="sm"
             variant="secondary"
             disabled={!layout}
-            onClick={() => save(scope, null)}
+            onClick={() => onSave(null)}
           >
             열 설정 초기화
           </Button>
@@ -112,6 +120,14 @@ export const PostTableLayoutControls = ({
                 onClick={() => save(scope, layout ? current() : null)}
               >
                 저장 다시 시도
+              </button>
+            </p>
+          )}
+          {serverFailed && (
+            <p role="alert" className="mt-3 text-sm text-amber-700">
+              계정에 저장하지 못했습니다. 이 브라우저에서는 지금 설정이 유지됩니다.{' '}
+              <button type="button" className="underline" onClick={onRetryServer}>
+                계정에 다시 저장
               </button>
             </p>
           )}

@@ -6,6 +6,7 @@ import {
   postTableScope,
   readTableLayouts,
   tableColumnSize,
+  toTableLayout,
   usePostTableLayoutStore,
 } from '@/stores/postTableLayoutStore'
 
@@ -90,5 +91,15 @@ describe('관리자 표 개인 설정 저장', () => {
     expect(Object.keys(readTableLayouts())).toHaveLength(100)
     expect(readTableLayouts()[postTableScope('t', 'u', 'b0')!]).toBeUndefined()
     expect(readTableLayouts()[postTableScope('t', 'u', 'b104')!]).toEqual(layout)
+  })
+})
+
+describe('toTableLayout (T-181)', () => {
+  it('서버 응답에서도 열 ID 순서 · 크기만 꺼내고 형식이 아니면 null', () => {
+    expect(
+      toTableLayout({ order: ['a', 'a', 'b', 3], sizes: { a: 'wide', b: 'huge' }, updated_at: 'x' })
+    ).toEqual({ order: ['a', 'b'], sizes: { a: 'wide' } })
+    expect(toTableLayout(null)).toBeNull()
+    expect(toTableLayout([])).toBeNull()
   })
 })
