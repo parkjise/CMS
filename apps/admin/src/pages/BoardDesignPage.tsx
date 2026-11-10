@@ -5,6 +5,8 @@ import { Button, Toggle, toast } from '@cms/ui'
 import { PublicColumnLayoutSettings } from '@/components/boards/PublicColumnLayoutSettings'
 import { BoardListFieldSettings } from '@/components/boards/BoardListFieldSettings'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { BoardDesignPreview } from '@/components/boards/BoardDesignPreview'
+import { CARD, HELP_STRIP, PAGE, PANEL_LABEL } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -19,9 +21,28 @@ const SORT_OPTIONS: { value: BoardSortOrder; label: string }[] = [
 const PAGE_SIZES = [10, 20, 30]
 const COLUMNS: BoardDesign['columns'][] = [2, 3, 4]
 const RATIOS: BoardDesign['image_ratio'][] = ['1:1', '4:3', '16:9']
-const SELECT_CLASS = 'h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm'
-const LABEL_CLASS = 'mb-1.5 block text-sm font-medium text-slate-700'
-const CARD_CLASS = 'space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm'
+const SELECT_CLASS =
+  'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
+const LABEL_CLASS = 'mb-1.5 block text-xs font-medium text-slate-600'
+const CARD_CLASS = `space-y-4 ${CARD}`
+
+/** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸 */
+function TypeSketch({ type }: { type: BoardType }) {
+  const tiles = type === 'GALLERY' || type === 'CARD'
+  return (
+    <span
+      aria-hidden
+      className={`mb-2 flex h-11 gap-1 rounded bg-slate-100 p-2 ${tiles ? 'flex-row' : 'flex-col'}`}
+    >
+      {[0, 1, 2].map((bar) => (
+        <i
+          key={bar}
+          className={`rounded-sm bg-slate-300 ${tiles ? 'h-full flex-1' : `h-1 ${bar === 1 ? 'w-2/3' : bar === 2 ? 'w-5/6' : 'w-full'}`}`}
+        />
+      ))}
+    </span>
+  )
+}
 
 function BoardDesignForm({ board }: { board: Board }) {
   const canEdit = useCanEdit()
@@ -55,212 +76,240 @@ function BoardDesignForm({ board }: { board: Board }) {
   }
 
   return (
-    <form
-      className="mx-auto max-w-2xl space-y-5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        save()
-      }}
-    >
-      <ReadOnlyFieldset>
-        {!isSystem && (
-          <div className={`mb-5 ${CARD_CLASS}`}>
-            <fieldset>
-              <legend className={LABEL_CLASS}>표시 유형</legend>
-              <div className="grid gap-3 sm:grid-cols-2">
-                {BOARD_TYPES.map((type) => (
-                  <label
-                    key={type.value}
-                    className={`flex cursor-pointer gap-3 rounded-lg border p-3 text-sm ${
-                      boardType === type.value ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="board-type"
-                      className="mt-0.5"
-                      checked={boardType === type.value}
-                      onChange={() => setBoardType(type.value)}
-                    />
-                    <span>
-                      <span className="block font-medium text-slate-900">{type.label}</span>
-                      <span className="mt-0.5 block text-slate-500">{type.hint}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-            {typeWarning && (
-              <p className="text-sm text-amber-700">
-                이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수
-                있습니다.
-              </p>
-            )}
+    <div className="grid items-start gap-6 xl:grid-cols-[400px_minmax(0,1fr)]">
+      <form
+        className="min-w-0 space-y-5"
+        onSubmit={(e) => {
+          e.preventDefault()
+          save()
+        }}
+      >
+        <ReadOnlyFieldset>
+          {!isSystem && (
+            <div className={`mb-5 ${CARD_CLASS}`}>
+              <fieldset>
+                <legend className={PANEL_LABEL}>레이아웃 유형</legend>
+                <div className="grid grid-cols-2 gap-2.5">
+                  {BOARD_TYPES.map((type) => (
+                    <label
+                      key={type.value}
+                      title={type.hint}
+                      className={`relative cursor-pointer rounded-lg border p-3 text-xs has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
+                        boardType === type.value
+                          ? 'border-blue-600 bg-blue-50/60'
+                          : 'border-slate-200 hover:border-slate-300'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="board-type"
+                        className="sr-only"
+                        checked={boardType === type.value}
+                        onChange={() => setBoardType(type.value)}
+                      />
+                      <TypeSketch type={type.value} />
+                      <span className="block font-medium text-slate-800">{type.label}</span>
+                      {boardType === type.value && (
+                        <span aria-hidden className="absolute right-2 top-1.5 text-blue-600">
+                          ✓
+                        </span>
+                      )}
+                    </label>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-slate-500">
+                  {BOARD_TYPES.find((type) => type.value === boardType)?.hint}
+                </p>
+              </fieldset>
+              {typeWarning && (
+                <p className="text-sm text-amber-700">
+                  이미 쓴 글은 그대로 남습니다. 사진 없는 글은 갤러리형에서 빈 칸으로 보일 수
+                  있습니다.
+                </p>
+              )}
 
-            {boardType === 'LIST' && (
+              {boardType === 'LIST' && (
+                <div>
+                  <label htmlFor="board-list-layout" className={LABEL_CLASS}>
+                    홈페이지 추가 정보 표시
+                  </label>
+                  <select
+                    id="board-list-layout"
+                    className={SELECT_CLASS}
+                    value={design.list_layout ?? 'inline'}
+                    onChange={(event) =>
+                      change({
+                        list_layout: event.target.value === 'columns' ? 'columns' : 'inline',
+                      })
+                    }
+                  >
+                    <option value="inline">제목 아래</option>
+                    <option value="columns">표의 개별 열</option>
+                  </select>
+                  <p className="mt-2 text-xs text-slate-500">
+                    홈페이지 표시와 목록 표시를 켠 칸만 나옵니다. 저장하면 홈페이지에 바로
+                    적용됩니다.
+                  </p>
+                </div>
+              )}
+
+              {boardType === 'LIST' && design.list_layout === 'columns' && (
+                <PublicColumnLayoutSettings
+                  boardId={board.id}
+                  layout={design.list_column_layout ?? []}
+                  onChange={(layout) => change({ list_column_layout: layout })}
+                />
+              )}
+
+              {usesImage && (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="board-columns" className={LABEL_CLASS}>
+                      PC 한 줄 개수
+                    </label>
+                    <select
+                      id="board-columns"
+                      className={SELECT_CLASS}
+                      value={design.columns}
+                      onChange={(e) =>
+                        change({ columns: Number(e.target.value) as BoardDesign['columns'] })
+                      }
+                    >
+                      {COLUMNS.map((count) => (
+                        <option key={count} value={count}>
+                          {count}개
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label htmlFor="board-ratio" className={LABEL_CLASS}>
+                      사진 비율
+                    </label>
+                    <select
+                      id="board-ratio"
+                      className={SELECT_CLASS}
+                      value={design.image_ratio}
+                      onChange={(e) =>
+                        change({ image_ratio: e.target.value as BoardDesign['image_ratio'] })
+                      }
+                    >
+                      {RATIOS.map((ratio) => (
+                        <option key={ratio} value={ratio}>
+                          {ratio}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+              {boardType === 'CARD' && (
+                <div className="space-y-4">
+                  <Toggle
+                    label="사진 표시"
+                    checked={design.show_image}
+                    onChange={(e) => change({ show_image: e.target.checked })}
+                  />
+                  <Toggle
+                    label="요약 표시"
+                    description="본문 앞부분을 보여 줍니다."
+                    checked={design.show_summary}
+                    onChange={(e) => change({ show_summary: e.target.checked })}
+                  />
+                  <p className="text-xs text-slate-500">
+                    아래에서 고른 추가 정보도 카드에 나옵니다.
+                  </p>
+                </div>
+              )}
+              {boardType === 'FAQ' ? (
+                <div className="space-y-4">
+                  <Toggle
+                    label="한 번에 하나만 펼치기"
+                    checked={design.faq_single_open}
+                    onChange={(e) => change({ faq_single_open: e.target.checked })}
+                  />
+                  <Toggle
+                    label="첫 질문을 펼쳐 두기"
+                    checked={design.faq_first_open}
+                    onChange={(e) => change({ faq_first_open: e.target.checked })}
+                  />
+                </div>
+              ) : (
+                <Toggle
+                  label="작성일 표시"
+                  checked={design.show_date}
+                  onChange={(e) => change({ show_date: e.target.checked })}
+                />
+              )}
+            </div>
+          )}
+
+          {!isSystem && <BoardListFieldSettings boardId={board.id} />}
+
+          <div className={CARD_CLASS}>
+            <h2 className={PANEL_LABEL}>목록 표시</h2>
+            <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <label htmlFor="board-list-layout" className={LABEL_CLASS}>
-                  홈페이지 추가 정보 표시
+                <label htmlFor="board-sort" className={LABEL_CLASS}>
+                  기본 정렬
                 </label>
                 <select
-                  id="board-list-layout"
+                  id="board-sort"
                   className={SELECT_CLASS}
-                  value={design.list_layout ?? 'inline'}
-                  onChange={(event) =>
-                    change({ list_layout: event.target.value === 'columns' ? 'columns' : 'inline' })
-                  }
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(e.target.value as BoardSortOrder)}
                 >
-                  <option value="inline">제목 아래</option>
-                  <option value="columns">표의 개별 열</option>
+                  {SORT_OPTIONS.map(({ value, label }) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
                 </select>
-                <p className="mt-2 text-xs text-slate-500">
-                  홈페이지 표시와 목록 표시를 켠 칸만 나옵니다. 저장하면 홈페이지에 바로 적용됩니다.
-                </p>
               </div>
-            )}
+              <div>
+                <label htmlFor="board-page-size" className={LABEL_CLASS}>
+                  페이지당 글 수
+                </label>
+                <select
+                  id="board-page-size"
+                  className={SELECT_CLASS}
+                  value={pageSize ?? ''}
+                  onChange={(e) => setPageSize(e.target.value ? Number(e.target.value) : null)}
+                >
+                  <option value="">자동 (유형에 맞게)</option>
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}개
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500">
+              상단 고정 글은 정렬과 관계없이 맨 위에 나옵니다.
+            </p>
+          </div>
+        </ReadOnlyFieldset>
 
-            {boardType === 'LIST' && design.list_layout === 'columns' && (
-              <PublicColumnLayoutSettings
-                boardId={board.id}
-                layout={design.list_column_layout ?? []}
-                onChange={(layout) => change({ list_column_layout: layout })}
-              />
-            )}
-
-            {usesImage && (
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <label htmlFor="board-columns" className={LABEL_CLASS}>
-                    PC 한 줄 개수
-                  </label>
-                  <select
-                    id="board-columns"
-                    className={SELECT_CLASS}
-                    value={design.columns}
-                    onChange={(e) =>
-                      change({ columns: Number(e.target.value) as BoardDesign['columns'] })
-                    }
-                  >
-                    {COLUMNS.map((count) => (
-                      <option key={count} value={count}>
-                        {count}개
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label htmlFor="board-ratio" className={LABEL_CLASS}>
-                    사진 비율
-                  </label>
-                  <select
-                    id="board-ratio"
-                    className={SELECT_CLASS}
-                    value={design.image_ratio}
-                    onChange={(e) =>
-                      change({ image_ratio: e.target.value as BoardDesign['image_ratio'] })
-                    }
-                  >
-                    {RATIOS.map((ratio) => (
-                      <option key={ratio} value={ratio}>
-                        {ratio}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
-            {boardType === 'CARD' && (
-              <div className="space-y-4">
-                <Toggle
-                  label="사진 표시"
-                  checked={design.show_image}
-                  onChange={(e) => change({ show_image: e.target.checked })}
-                />
-                <Toggle
-                  label="요약 표시"
-                  description="본문 앞부분을 보여 줍니다."
-                  checked={design.show_summary}
-                  onChange={(e) => change({ show_summary: e.target.checked })}
-                />
-                <p className="text-xs text-slate-500">아래에서 고른 추가 정보도 카드에 나옵니다.</p>
-              </div>
-            )}
-            {boardType === 'FAQ' ? (
-              <div className="space-y-4">
-                <Toggle
-                  label="한 번에 하나만 펼치기"
-                  checked={design.faq_single_open}
-                  onChange={(e) => change({ faq_single_open: e.target.checked })}
-                />
-                <Toggle
-                  label="첫 질문을 펼쳐 두기"
-                  checked={design.faq_first_open}
-                  onChange={(e) => change({ faq_first_open: e.target.checked })}
-                />
-              </div>
-            ) : (
-              <Toggle
-                label="작성일 표시"
-                checked={design.show_date}
-                onChange={(e) => change({ show_date: e.target.checked })}
-              />
-            )}
+        {canEdit && (
+          <div className="flex justify-end">
+            <Button type="submit" loading={updateBoard.isPending}>
+              저장
+            </Button>
           </div>
         )}
-
-        {!isSystem && <BoardListFieldSettings boardId={board.id} />}
-
-        <div className={CARD_CLASS}>
-          <h2 className="text-sm font-semibold text-slate-900">목록 표시</h2>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="board-sort" className={LABEL_CLASS}>
-                기본 정렬
-              </label>
-              <select
-                id="board-sort"
-                className={SELECT_CLASS}
-                value={sortOrder}
-                onChange={(e) => setSortOrder(e.target.value as BoardSortOrder)}
-              >
-                {SORT_OPTIONS.map(({ value, label }) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="board-page-size" className={LABEL_CLASS}>
-                페이지당 글 수
-              </label>
-              <select
-                id="board-page-size"
-                className={SELECT_CLASS}
-                value={pageSize ?? ''}
-                onChange={(e) => setPageSize(e.target.value ? Number(e.target.value) : null)}
-              >
-                <option value="">자동 (유형에 맞게)</option>
-                {PAGE_SIZES.map((size) => (
-                  <option key={size} value={size}>
-                    {size}개
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <p className="text-xs text-slate-500">상단 고정 글은 정렬과 관계없이 맨 위에 나옵니다.</p>
-        </div>
-      </ReadOnlyFieldset>
-
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button type="submit" loading={updateBoard.isPending}>
-            저장
-          </Button>
-        </div>
-      )}
-    </form>
+      </form>
+      <div className="min-w-0 space-y-4 xl:sticky xl:top-6">
+        <BoardDesignPreview
+          name={board.name}
+          type={isSystem ? 'LIST' : boardType}
+          design={design}
+        />
+        <p className={HELP_STRIP}>
+          색상과 글꼴은 사이트 디자인을 따릅니다. 저장하면 홈페이지에 바로 반영돼요.
+        </p>
+      </div>
+    </div>
   )
 }
 
@@ -271,7 +320,7 @@ export function BoardDesignPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className={PAGE}>
       <BoardDetailHeader boardId={boardId} />
       {boardsQuery.isLoading && (
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />

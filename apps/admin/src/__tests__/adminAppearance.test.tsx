@@ -56,11 +56,11 @@ describe('tenant admin appearance', () => {
     await userEvent.click(screen.getByRole('button', { name: '메뉴 검색' }))
     const dialog = screen.getByRole('dialog', { name: '메뉴 검색' })
     expect(within(dialog).queryByRole('link', { name: '방문자 분석' })).not.toBeInTheDocument()
-    await userEvent.type(screen.getByRole('textbox', { name: '검색어' }), '전체 글')
-    await userEvent.click(within(dialog).getByRole('link', { name: '전체 글' }))
+    await userEvent.type(screen.getByRole('textbox', { name: '검색어' }), '게시글 관리')
+    await userEvent.click(within(dialog).getByRole('link', { name: '게시글 관리' }))
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(
-      within(screen.getByRole('navigation', { name: '브레드크럼' })).getByText('전체 글')
+      within(screen.getByRole('navigation', { name: '브레드크럼' })).getByText('게시글 관리')
     ).toHaveAttribute('aria-current', 'page')
   })
 
@@ -92,12 +92,12 @@ describe('tenant admin appearance', () => {
       </MemoryRouter>
     )
     expect(screen.getByRole('link', { name: '월간 리포트' })).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: '전체 글' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '게시글 관리' })).not.toBeInTheDocument()
     await userEvent.hover(screen.getByRole('link', { name: '게시판 관리' }))
     const flyout = screen.getByRole('navigation', { name: '게시판 관리 바로가기' })
     expect(within(flyout).getByRole('link', { name: '게시판 목록' })).toBeInTheDocument()
-    await userEvent.hover(within(flyout).getByRole('link', { name: '전체 글' }))
-    await userEvent.click(within(flyout).getByRole('link', { name: '전체 글' }))
+    await userEvent.hover(within(flyout).getByRole('link', { name: '게시글 관리' }))
+    await userEvent.click(within(flyout).getByRole('link', { name: '게시글 관리' }))
     expect(
       screen.queryByRole('navigation', { name: '게시판 관리 바로가기' })
     ).not.toBeInTheDocument()

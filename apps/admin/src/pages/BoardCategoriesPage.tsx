@@ -512,14 +512,14 @@ function CategoryManager({ boardId }: { boardId: string }) {
     return <p className="text-sm text-red-600">카테고리를 불러오지 못했습니다.</p>
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
+    <div className="max-w-4xl space-y-4">
       <p className="text-sm text-slate-500">
         글을 분류로 나눕니다. 홈페이지 글 목록 위에 &lsquo;전체&rsquo;와 함께 분류 탭이 나타납니다.
         숨긴 분류는 탭에서만 빠지고, 글은 &lsquo;전체&rsquo;에 그대로 보입니다. 상위 카테고리를
         고르면 2단계(예: 진료 › 임플란트)로 나눌 수 있고, 상위를 고르면 하위의 글도 함께 보입니다.
       </p>
       {canEdit && (
-        <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <AddCategoryForm
             boardId={boardId}
             atLimit={categories.length >= MAX_CATEGORIES}
@@ -674,7 +674,7 @@ export function BoardCategoriesPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
       {boardsQuery.isSuccess && !board && (
         <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>

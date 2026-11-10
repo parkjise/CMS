@@ -6,6 +6,7 @@ import { FeatureGuard } from '@/components/layout/FeatureGuard'
 import { PageFallback } from '@/components/layout/PageFallback'
 import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { BOARD_SECTIONS } from '@/lib/boardWorkspace'
 import { type LazyPage, lazyPage } from '@/lib/lazyPage'
 
 // 로그인 화면도 따로 — 폼 라이브러리(react-hook-form · zod)가 다른 화면 첫 로딩에 섞이지 않게 (T-043-B)
@@ -27,6 +28,7 @@ const PostsOverviewPage = lazyPage(() => import('@/pages/PostsOverviewPage'), 'P
 const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
 const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
 const AuditLogsPage = lazyPage(() => import('@/pages/AuditLogsPage'), 'AuditLogsPage')
+const BoardWorkspacePage = lazyPage(() => import('@/pages/BoardWorkspacePage'), 'BoardWorkspacePage')
 const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'BoardSettingsPage')
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
@@ -144,6 +146,11 @@ export const router = createBrowserRouter([
             path: '/admin/boards/history',
             element: withFeature('BOARD_MANAGER', <AuditLogsPage />),
           },
+          // 하위 메뉴 → 마지막으로 작업한 게시판의 그 화면 (T-187)
+          ...BOARD_SECTIONS.map((section) => ({
+            path: `/admin/boards/${section}`,
+            element: withFeature('BOARD_MANAGER', <BoardWorkspacePage />),
+          })),
           {
             path: '/admin/boards/:boardId/settings',
             element: withFeature('BOARD_MANAGER', <BoardSettingsPage />),

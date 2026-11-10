@@ -87,13 +87,13 @@ describe('게시판 관리 2뎁스 메뉴', () => {
   it('다른 화면에서는 접혀 있고, 누르면 하위 메뉴가 나온다 (누르기만 해서는 이동하지 않음)', async () => {
     renderSidebar('/admin/dashboard')
     expect(group()).toHaveAttribute('aria-expanded', 'false')
-    expect(screen.queryByRole('link', { name: '전체 글' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: '게시글 관리' })).not.toBeInTheDocument()
 
     await userEvent.click(group())
 
     expect(group()).toHaveAttribute('aria-expanded', 'true')
     expect(screen.getByRole('link', { name: '게시판 목록' })).toHaveAttribute('href', '/admin/boards')
-    expect(screen.getByRole('link', { name: '전체 글' })).toHaveAttribute('href', '/admin/posts')
+    expect(screen.getByRole('link', { name: '게시글 관리' })).toHaveAttribute('href', '/admin/posts')
     // 지금 화면은 그대로
     expect(screen.getByRole('link', { name: '대시보드' })).toHaveAttribute('aria-current', 'page')
   })
@@ -107,10 +107,12 @@ describe('게시판 관리 2뎁스 메뉴', () => {
 
   it.each([
     ['/admin/boards', '게시판 목록'],
-    ['/admin/boards/b1/posts', '게시판 목록'],
-    ['/admin/boards/b1/settings', '게시판 목록'],
-    ['/admin/boards/trash', '게시판 목록'],
-    ['/admin/posts', '전체 글'],
+    ['/admin/boards/b1/posts', '게시글 관리'],
+    ['/admin/boards/b1/settings', '환경설정'],
+    ['/admin/boards/b1/connection', '환경설정'],
+    ['/admin/boards/b1/design', '게시판 디자인'],
+    ['/admin/boards/trash', '휴지통'],
+    ['/admin/posts', '게시글 관리'],
   ])('%s 에서는 펼친 채 %s 표시', (path, label) => {
     renderSidebar(path)
     expect(group()).toHaveAttribute('aria-expanded', 'true')
@@ -124,7 +126,7 @@ describe('게시판 관리 2뎁스 메뉴', () => {
         <Sidebar onClose={onClose} />
       </MemoryRouter>,
     )
-    await userEvent.click(screen.getByRole('link', { name: '전체 글' }))
+    await userEvent.click(screen.getByRole('link', { name: '게시글 관리' }))
     expect(onClose).toHaveBeenCalled()
   })
 

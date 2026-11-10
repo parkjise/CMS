@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes, useLocation, useParams } from 'react-router'
 import type { Board, Post, PostList } from '@cms/types'
@@ -145,13 +145,16 @@ const EditTarget = () => {
   return <p>수정 화면: {postId}</p>
 }
 
+const statusTab = (name: RegExp) =>
+  within(screen.getByRole('group', { name: '사용 상태' })).getByRole('button', { name })
+
 describe('게시판 목록', () => {
   it('글 수를 보여 주고 글 관리로 연결한다', async () => {
     mockApi({})
     renderAt('/admin/boards', <BoardsPage />, '/admin/boards')
     const link = await screen.findByRole('link', { name: /공지사항.*글 2개/ })
     expect(link).toHaveAttribute('href', '/admin/boards/b1/posts')
-    expect(link).toHaveTextContent('글 2개')
+    expect(link).toHaveTextContent('2 건')
   })
 
   it('기본 공지의 실제 주소와 설정 수정 시각을 보여 준다', async () => {
@@ -163,7 +166,7 @@ describe('게시판 목록', () => {
     expect(link).toHaveAttribute('rel', 'noopener noreferrer')
     const time = screen.getByTitle('게시판 설정 수정일')
     expect(time).toHaveAttribute('datetime', board.updated_at)
-    expect(time).toHaveTextContent('설정 수정 2026.11.05')
+    expect(time).toHaveTextContent('2026.11.05')
     expect(link.closest('a')?.parentElement?.closest('a')).toBeNull()
   })
 
@@ -256,7 +259,7 @@ describe('게시판 목록', () => {
     await user.type(screen.getByRole('searchbox', { name: '게시판 이름' }), ' news ')
     expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 2개')
     await user.selectOptions(screen.getByRole('combobox', { name: '게시판 유형' }), 'CARD')
-    await user.selectOptions(screen.getByRole('combobox', { name: '사용 상태' }), 'INACTIVE')
+    await user.click(statusTab(/^비활성/))
     expect(screen.getByRole('link', { name: /지난 NEWS.*글 2개/ })).toBeInTheDocument()
     expect(screen.queryByRole('link', { name: /채용 NEWS.*글 2개/ })).not.toBeInTheDocument()
     expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 1개')
@@ -264,7 +267,7 @@ describe('게시판 목록', () => {
     expect(screen.getByRole('status')).toHaveTextContent('전체 5개 중 5개')
     expect(screen.getByRole('searchbox')).toHaveValue('')
     expect(screen.getByRole('combobox', { name: '게시판 유형' })).toHaveValue('')
-    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('')
+    expect(statusTab(/^전체 게시판/)).toHaveAttribute('aria-pressed', 'true')
   })
 
   it.each(['LIST', 'GALLERY', 'FAQ', 'CARD'])('URL의 %s 유형 조건을 복원한다', async (type) => {
@@ -281,7 +284,7 @@ describe('게시판 목록', () => {
     renderAt('/admin/boards?q=NEWS&type=GALLERY&status=INACTIVE', <BoardsPage />, '/admin/boards')
     expect(await screen.findByText('검색 조건에 맞는 게시판이 없습니다.')).toBeInTheDocument()
     expect(screen.getByRole('searchbox')).toHaveValue('NEWS')
-    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('INACTIVE')
+    expect(statusTab(/^비활성/)).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByText('아직 게시판이 없습니다.')).not.toBeInTheDocument()
   })
 
@@ -291,7 +294,7 @@ describe('게시판 목록', () => {
     renderAt('/admin/boards?type=UNKNOWN&status=UNKNOWN', <BoardsPage />, '/admin/boards')
     expect(await screen.findByRole('status')).toHaveTextContent('전체 5개 중 5개')
     expect(screen.getByRole('combobox', { name: '게시판 유형' })).toHaveValue('')
-    expect(screen.getByRole('combobox', { name: '사용 상태' })).toHaveValue('')
+    expect(statusTab(/^전체 게시판/)).toHaveAttribute('aria-pressed', 'true')
     expect(screen.queryByRole('link', { name: '게시판 추가' })).not.toBeInTheDocument()
   })
 
@@ -310,7 +313,7 @@ describe('게시판 목록', () => {
     await screen.findByRole('status')
     await user.type(screen.getByRole('searchbox'), 'NEWS')
     await user.selectOptions(screen.getByRole('combobox', { name: '게시판 유형' }), 'CARD')
-    await user.selectOptions(screen.getByRole('combobox', { name: '사용 상태' }), 'ACTIVE')
+    await user.click(statusTab(/^운영 중/))
     const params = new URLSearchParams(screen.getByTestId('location').textContent ?? '')
     expect(params.get('q')).toBe('NEWS')
     expect(params.get('type')).toBe('CARD')

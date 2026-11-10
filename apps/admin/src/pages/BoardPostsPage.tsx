@@ -213,7 +213,7 @@ export function BoardPostsPage() {
   )
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
       <BoardDetailHeader
         boardId={boardId}
         actions={
@@ -264,7 +264,7 @@ export function BoardPostsPage() {
       )}
 
       <form
-        className="flex flex-wrap items-center gap-2"
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
         onSubmit={(e) => {
           e.preventDefault()
           setFilters({ ...filters, page: 1, q: keyword.trim() || undefined })
@@ -376,7 +376,7 @@ export function BoardPostsPage() {
         />
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
         {postsQuery.isLoading && (
           <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>
         )}

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { NavLink, useLocation } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import { ChevronDown, X, ExternalLink, LogOut, Layers } from 'lucide-react'
 import { ADMIN_NAVIGATION, isChildActive } from './navigation'
 import type { LucideIcon } from 'lucide-react'
@@ -72,20 +72,20 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
         <ul id={listId} className="mt-0.5 space-y-0.5">
           {children.map(({ to, label }) => (
             <li key={to}>
-              <NavLink
+              {/* NavLink 는 주소 앞부분만 맞아도 켜져서, 켜짐은 isChildActive 로만 정한다 (T-187) */}
+              <Link
                 to={to}
                 onClick={onNavigate}
-                className={() =>
-                  [
-                    'block rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
-                    isChildActive(pathname, to, children)
-                      ? 'bg-blue-50 font-medium text-blue-700'
-                      : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
-                  ].join(' ')
-                }
+                aria-current={isChildActive(pathname, to, children) ? 'page' : undefined}
+                className={[
+                  'block rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
+                  isChildActive(pathname, to, children)
+                    ? 'bg-blue-50 font-medium text-blue-700'
+                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
+                ].join(' ')}
               >
                 {label}
-              </NavLink>
+              </Link>
             </li>
           ))}
         </ul>

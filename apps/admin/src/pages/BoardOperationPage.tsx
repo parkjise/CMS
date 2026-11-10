@@ -17,7 +17,7 @@ const REPORT_HIDE_OPTIONS: { value: ReportHideCount; label: string }[] = [
   { value: 10, label: '10건' },
 ]
 
-const CARD_CLASS = 'space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm'
+const CARD_CLASS = 'space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm'
 
 function OperationForm({ board }: { board: Board }) {
   const canEdit = useCanEdit()
@@ -46,7 +46,7 @@ function OperationForm({ board }: { board: Board }) {
 
   return (
     <form
-      className="mx-auto max-w-2xl space-y-5"
+      className="max-w-4xl space-y-5"
       onSubmit={(e) => {
         e.preventDefault()
         save()
@@ -130,7 +130,7 @@ export function BoardOperationPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
       {boardsQuery.isLoading && <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}

@@ -267,7 +267,9 @@ describe('게시판별 관리자 글 표 보기', () => {
     view.unmount()
     mockApi(true)
     renderPage()
-    await screen.findByRole('heading', { name: '소식' })
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: '작업 중인 게시판' })).toHaveDisplayValue('소식')
+    )
     expect(screen.queryByRole('combobox', { name: '추가 정보 표시 방식' })).not.toBeInTheDocument()
   })
   it('필드 갱신에서 표시 칸이 사라지면 남은 원시 값을 내지 않고 기본 보기로 돌아간다', async () => {
@@ -283,7 +285,11 @@ describe('게시판별 관리자 글 표 보기', () => {
     renderPage()
     await tableMode()
     await userEvent.click(screen.getByRole('link', { name: '다른 게시판 열기' }))
-    await screen.findByRole('heading', { name: '다른 게시판' })
+    await waitFor(() =>
+      expect(screen.getByRole('combobox', { name: '작업 중인 게시판' })).toHaveDisplayValue(
+        '다른 게시판'
+      )
+    )
     expect(screen.queryByRole('table')).not.toBeInTheDocument()
     expect(screen.queryByText('메모:')).not.toBeInTheDocument()
     expect(screen.getByRole('combobox', { name: '추가 정보 표시 방식' })).toHaveValue('inline')
@@ -412,7 +418,11 @@ describe('열 설정 계정 저장 (T-181)', () => {
   })
 
   it('계정에 저장된 설정을 불러와 쓴다', async () => {
-    serverLayout = { order: ['note', 'count'], sizes: { note: 'wide' }, updated_at: '2026-11-10T00:00:00Z' }
+    serverLayout = {
+      order: ['note', 'count'],
+      sizes: { note: 'wide' },
+      updated_at: '2026-11-10T00:00:00Z',
+    }
     renderPage()
     await tableMode()
     await waitFor(() => expect(headers()).toEqual(['게시글', '메모', '수량', '작업']))
@@ -490,7 +500,9 @@ describe('열 설정 계정 저장 (T-181)', () => {
   })
 
   it('뷰어도 자기 열 설정은 계정에 저장한다', async () => {
-    useAuthStore.setState({ user: { id: 'viewer', tenant_id: 't1', role: 'TENANT_VIEWER' } } as never)
+    useAuthStore.setState({
+      user: { id: 'viewer', tenant_id: 't1', role: 'TENANT_VIEWER' },
+    } as never)
     renderPage()
     await openControls()
     await userEvent.click(screen.getByRole('button', { name: '메모 열 앞으로' }))

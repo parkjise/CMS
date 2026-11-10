@@ -21,8 +21,14 @@ export const ADMIN_NAVIGATION = [
     label: '게시판 관리',
     children: [
       { to: '/admin/boards', label: '게시판 목록' },
-      { to: '/admin/boards/new', label: '게시판 생성' },
-      { to: '/admin/posts', label: '전체 글' },
+      { to: '/admin/boards/new', label: '게시판 만들기' },
+      { to: '/admin/boards/design', label: '게시판 디자인' },
+      { to: '/admin/boards/fields', label: '필드 관리' },
+      { to: '/admin/posts', label: '게시글 관리' },
+      { to: '/admin/boards/categories', label: '카테고리 관리' },
+      { to: '/admin/boards/permissions', label: '권한 관리' },
+      { to: '/admin/boards/trash', label: '휴지통' },
+      { to: '/admin/boards/settings', label: '환경설정' },
       { to: '/admin/posts/reports', label: '신고된 글' },
       { to: '/admin/boards/history', label: '변경 기록' },
     ],
@@ -39,6 +45,20 @@ const matches = (pathname: string, to: string) => pathname === to || pathname.st
 
 /** 2뎁스 현재 화면 — 더 구체적인 형제 메뉴가 있으면 그쪽만 (목록과 생성이 함께 켜지지 않게) */
 export function isChildActive(pathname: string, to: string, siblings: { to: string }[]) {
+  // 게시판별 화면은 그 화면을 여는 하위 메뉴를 켠다 (T-187) — 글은 게시글 관리, 연결 · 운영은 환경설정
+  const detail = pathname.match(
+    /^\/admin\/boards\/[^/]+\/(design|fields|categories|permissions|operation|settings|connection|posts)(?:\/.*)?$/
+  )
+  if (detail) {
+    const section = detail[1]
+    const target =
+      section === 'posts'
+        ? '/admin/posts'
+        : section === 'connection' || section === 'operation'
+          ? '/admin/boards/settings'
+          : `/admin/boards/${section}`
+    if (siblings.some((item) => item.to === target)) return to === target
+  }
   return (
     matches(pathname, to) &&
     !siblings.some((other) => other.to.startsWith(`${to}/`) && matches(pathname, other.to))
@@ -48,7 +68,7 @@ export function isChildActive(pathname: string, to: string, siblings: { to: stri
 export function breadcrumbsFor(pathname: string) {
   const base = ADMIN_NAVIGATION.find(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
   if (pathname === '/admin/posts')
-    return [{ label: '게시판 관리', to: '/admin/boards' }, { label: '전체 글' }]
+    return [{ label: '게시판 관리', to: '/admin/boards' }, { label: '게시글 관리' }]
   if (pathname === '/admin/posts/reports')
     return [{ label: '게시판 관리', to: '/admin/boards' }, { label: '신고된 글' }]
   if (!base) return [{ label: pathname === '/admin/403' ? '접근 권한 안내' : '관리자' }]
@@ -56,7 +76,9 @@ export function breadcrumbsFor(pathname: string) {
   if (pathname !== base.to) {
     const tail = pathname.slice(base.to.length)
     if (base.to === '/admin/boards') {
-      if (tail === '/new') crumbs.push({ label: '게시판 추가' })
+      const entry = base.children?.find((item) => item.to === pathname)
+      if (entry) crumbs.push({ label: entry.label })
+      else if (tail === '/new') crumbs.push({ label: '게시판 추가' })
       else if (tail === '/trash') crumbs.push({ label: '휴지통' })
       else if (tail === '/history') crumbs.push({ label: '변경 기록' })
       else if (tail.endsWith('/settings')) crumbs.push({ label: '게시판 설정' })

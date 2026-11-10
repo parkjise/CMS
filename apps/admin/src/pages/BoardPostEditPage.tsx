@@ -7,6 +7,7 @@ import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
+import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
 import { useBoardFields } from '@/hooks/useBoardFields'
@@ -189,7 +190,12 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
           </Link>
           {status === 'PUBLISHED' ? (
             <>
-              <Button type="button" variant="secondary" disabled={saving} onClick={() => save('PRIVATE')}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => save('PRIVATE')}
+              >
                 비공개로 저장
               </Button>
               <Button type="button" loading={saving} onClick={() => save('PUBLISHED')}>
@@ -198,7 +204,12 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
             </>
           ) : (
             <>
-              <Button type="button" variant="secondary" disabled={saving} onClick={() => save(status)}>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => save(status)}
+              >
                 {status === 'PRIVATE' ? '비공개로 저장' : '임시저장'}
               </Button>
               <Button type="button" loading={saving} onClick={() => save('PUBLISHED')}>
@@ -231,13 +242,19 @@ export function BoardPostEditPage() {
   const categoriesQuery = useBoardCategories(boardId)
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 p-6 md:p-8">
-      <div>
-        <Link to={`/admin/boards/${boardId}/posts`} className="text-sm text-slate-500 hover:text-slate-700">
-          ← 글 목록
-        </Link>
-        <h1 className="mt-1 text-2xl font-bold text-slate-900">{postId ? '글 수정' : '글쓰기'}</h1>
-      </div>
+    <div className="mx-auto w-full max-w-5xl space-y-6 p-6 md:p-8">
+      <BoardPageTitle
+        title={postId ? '글 수정' : '글쓰기'}
+        description="제목, 공개 상태와 본문을 편집합니다. 저장하면 홈페이지에 바로 반영돼요."
+        actions={
+          <Link
+            to={`/admin/boards/${boardId}/posts`}
+            className="inline-flex h-10 items-center rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+          >
+            ← 글 목록
+          </Link>
+        }
+      />
 
       {postId && postQuery.isLoading && (
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />

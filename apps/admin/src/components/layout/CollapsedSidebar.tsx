@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { NavLink, useLocation } from 'react-router'
+import { Link, NavLink, useLocation } from 'react-router'
 import { ExternalLink, Layers, LogOut } from 'lucide-react'
 import { ADMIN_NAVIGATION, isChildActive } from './navigation'
 import { useAuthStore } from '@/stores/authStore'
@@ -146,16 +146,19 @@ export function CollapsedSidebar() {
                   </p>
                   <div className="mt-1 space-y-1">
                     {activeItem.children.map(({ to, label }) => (
-                      <NavLink
+                      <Link
                         key={to}
                         to={to}
                         onClick={close}
-                        className={() =>
-                          `block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`
+                        aria-current={
+                          isChildActive(pathname, to, activeItem.children ?? [])
+                            ? 'page'
+                            : undefined
                         }
+                        className={`block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {label}
-                      </NavLink>
+                      </Link>
                     ))}
                   </div>
                 </>

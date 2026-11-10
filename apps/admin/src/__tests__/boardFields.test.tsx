@@ -140,7 +140,7 @@ describe('필드 관리', () => {
   it('칸이 없으면 안내', async () => {
     mockApi({ fields: [] })
     renderFields()
-    expect(await screen.findByText(/아직 칸이 없습니다/)).toBeInTheDocument()
+    expect(await screen.findByText('추가한 사용자 정의 필드가 없습니다.')).toBeInTheDocument()
   })
 
   it('칸 추가 — 하나 고르기는 선택지를 받고, 내부 값은 이름과 따로', async () => {

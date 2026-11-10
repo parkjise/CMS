@@ -78,7 +78,7 @@ function ConnectionForm({ board }: { board: Board }) {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5">
+    <div className="max-w-4xl space-y-5">
       <form
         className="space-y-5"
         onSubmit={(e) => {
@@ -87,7 +87,7 @@ function ConnectionForm({ board }: { board: Board }) {
         }}
       >
         <ReadOnlyFieldset>
-          <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
             <Input
               label="주소 이름"
               maxLength={60}
@@ -121,7 +121,7 @@ function ConnectionForm({ board }: { board: Board }) {
       </form>
 
       <ReadOnlyFieldset>
-        <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
           <MenuToggle board={board} />
           {publicUrl && (
             <a
@@ -147,7 +147,7 @@ export function BoardConnectionPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-5 p-6 md:p-8">
+    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
       {boardsQuery.isLoading && (
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
