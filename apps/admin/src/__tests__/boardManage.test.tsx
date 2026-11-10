@@ -181,7 +181,12 @@ describe('게시판 목록', () => {
 
 describe('게시판 추가 마법사', () => {
   const renderNew = () => renderAt('/admin/boards/new', <BoardNewPage />, '/admin/boards/new')
-  const next = () => userEvent.click(screen.getByRole('button', { name: '다음' }))
+  const next = () => userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+  const create = () => userEvent.click(screen.getByRole('button', { name: '게시판 만들기' }))
+  const stepIs = (label: string) =>
+    expect(
+      within(screen.getByRole('list', { name: '게시판 만들기 단계' })).getByText(label).closest('li')
+    ).toHaveAttribute('aria-current', 'step')
 
   it('보기 전용 계정에는 입력 칸 대신 안내를 보여 준다', async () => {
     mockApi({})
@@ -189,7 +194,8 @@ describe('게시판 추가 마법사', () => {
     useAuthStore.setState({ user: { ...user, role: 'TENANT_VIEWER' } as typeof user })
     renderNew()
     expect(await screen.findByText(/보기 전용 계정은 게시판을 추가할 수 없습니다/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '다음' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /다음 단계/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '취소' })).not.toBeInTheDocument()
     useAuthStore.setState({ user })
   })
 
@@ -207,19 +213,30 @@ describe('게시판 추가 마법사', () => {
     await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
     await userEvent.type(screen.getByLabelText('주소 이름'), '한글')
     await next()
-    expect(await screen.findByText(/영문 소문자/)).toBeInTheDocument()
+    expect(await screen.findByText(/영문 소문자 · 숫자 · 하이픈으로/)).toBeInTheDocument()
   })
 
-  it('3단계를 거쳐 만들고 다음 할 일을 보여 준다', async () => {
+  it('다섯 단계를 거쳐 만들고 다음 할 일을 보여 준다', async () => {
     mockApi({})
     post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
     renderNew()
+    stepIs('기본 정보')
     await userEvent.type(screen.getByLabelText(/게시판 이름/), ' 병원 소식 ')
+    await userEvent.click(screen.getByRole('checkbox', { name: '만든 뒤 바로 사용' }))
     await next()
+    stepIs('유형 · 디자인')
     await userEvent.click(screen.getByRole('radio', { name: /갤러리형/ }))
     await next()
-    await userEvent.click(screen.getByRole('radio', { name: /사용 안 함/ }))
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    stepIs('필드 구성')
+    expect(screen.getByText('title')).toBeInTheDocument()
+    await next()
+    stepIs('권한 · 운영')
+    expect(screen.getByText('관리자만')).toBeInTheDocument()
+    await next()
+    stepIs('검토')
+    expect(screen.getByText('기본 필드 6개 / 추천 칸 2개')).toBeInTheDocument()
+    expect(screen.getByText('자동으로 만듦')).toBeInTheDocument()
+    await create()
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/v1/boards', {
         name: '병원 소식',
@@ -248,13 +265,18 @@ describe('게시판 추가 마법사', () => {
       await userEvent.type(screen.getByLabelText(/게시판 이름/), '채용')
       await next()
     }
+    const back = () => userEvent.click(screen.getByRole('button', { name: /이전/ }))
 
     it('일반 목록은 추천 칸이 없고, 카드형은 모두 체크된 채 나온다', async () => {
       mockApi({})
       renderNew()
       await toTypeStep()
+      await next()
       expect(screen.queryByRole('group', { name: '함께 만들 추천 칸' })).not.toBeInTheDocument()
+      expect(screen.getByText(/기본 필드만으로 시작합니다/)).toBeInTheDocument()
+      await back()
       await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      await next()
       const group = await screen.findByRole('group', { name: '함께 만들 추천 칸' })
       expect(within(group).getByRole('checkbox', { name: /근무 형태/ })).toBeChecked()
       expect(within(group).getByText(/하나 고르기: 정규직 · 계약직/)).toBeInTheDocument()
@@ -266,13 +288,19 @@ describe('게시판 추가 마법사', () => {
       renderNew()
       await toTypeStep()
       await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      await next()
       await userEvent.click(await screen.findByRole('checkbox', { name: /근무 형태/ }))
+      await back()
       await userEvent.click(screen.getByRole('radio', { name: /갤러리형/ }))
+      await next()
       expect(screen.getByRole('checkbox', { name: /촬영일/ })).toBeChecked()
+      await back()
       await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      await next()
       expect(screen.getByRole('checkbox', { name: /근무 형태/ })).not.toBeChecked()
       await next()
-      await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+      await next()
+      await create()
       await waitFor(() =>
         expect(post).toHaveBeenCalledWith(
           '/v1/boards',
@@ -288,9 +316,11 @@ describe('게시판 추가 마법사', () => {
       renderNew()
       await toTypeStep()
       await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      await next()
       expect(await screen.findByText(/추천 칸을 불러오지 못했습니다/)).toBeInTheDocument()
       await next()
-      await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+      await next()
+      await create()
       await waitFor(() =>
         expect(post).toHaveBeenCalledWith('/v1/boards', expect.objectContaining({ preset_fields: [] })),
       )
@@ -299,20 +329,20 @@ describe('게시판 추가 마법사', () => {
   })
 
   const toLastStep = async () => {
-    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
-    await next()
-    await next()
+    for (let i = 0; i < 4; i += 1) await next()
   }
 
   it('[메뉴에 추가]는 기본 켜짐, 끄면 메뉴에 넣지 않는다', async () => {
     mockApi({})
     post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
     renderNew()
-    await toLastStep()
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
     const checkbox = await screen.findByRole('checkbox', { name: /상단 메뉴에 추가/ })
     expect(checkbox).toBeChecked()
     await userEvent.click(checkbox)
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    await toLastStep()
+    expect(screen.getByText('사용 · 메뉴에 넣지 않음')).toBeInTheDocument()
+    await create()
     await waitFor(() =>
       expect(post).toHaveBeenCalledWith('/v1/boards', expect.objectContaining({ in_menu: false })),
     )
@@ -323,21 +353,35 @@ describe('게시판 추가 마법사', () => {
     mockApi({})
     post.mockResolvedValue({ data: { data: { ...board, id: 'new1', status: 'INACTIVE' } } })
     renderNew()
-    await toLastStep()
-    await userEvent.click(screen.getByRole('radio', { name: /사용 안 함/ }))
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    await userEvent.click(screen.getByRole('checkbox', { name: '만든 뒤 바로 사용' }))
     expect(screen.queryByRole('checkbox', { name: /상단 메뉴에 추가/ })).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    await toLastStep()
+    await create()
     expect(await screen.findByText(/사용으로 바꾸면 홈페이지 상단 메뉴에 나옵니다/)).toBeInTheDocument()
   })
 
-
-  it('이전으로 돌아가도 입력이 남는다', async () => {
+  it('이전으로 돌아가도 입력이 남고, 첫 단계에는 이전 버튼이 없다', async () => {
     mockApi({})
     renderNew()
+    expect(screen.queryByRole('button', { name: /이전/ })).not.toBeInTheDocument()
     await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
     await next()
-    await userEvent.click(screen.getByRole('button', { name: '이전' }))
+    await userEvent.click(screen.getByRole('button', { name: /이전/ }))
     expect(screen.getByLabelText(/게시판 이름/)).toHaveValue('소식')
+  })
+
+  it('취소 — 입력이 있으면 확인하고 목록으로 돌아간다', async () => {
+    mockApi({})
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderNew()
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    await userEvent.click(screen.getByRole('button', { name: '취소' }))
+    expect(confirm).toHaveBeenCalled()
+    expect(screen.getByLabelText(/게시판 이름/)).toHaveValue('소식')
+    confirm.mockReturnValue(true)
+    await userEvent.click(screen.getByRole('button', { name: '취소' }))
+    expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
   })
 
   it('한도를 넘으면 마법사 대신 안내', async () => {
@@ -352,11 +396,10 @@ describe('게시판 추가 마법사', () => {
     post.mockRejectedValue(new Error('x'))
     renderNew()
     await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
-    await next()
-    await next()
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    await toLastStep()
+    await create()
     await waitFor(() => expect(toast.error).toHaveBeenCalled())
-    expect(screen.getByRole('button', { name: '만들기' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '게시판 만들기' })).toBeInTheDocument()
   })
 })
 
