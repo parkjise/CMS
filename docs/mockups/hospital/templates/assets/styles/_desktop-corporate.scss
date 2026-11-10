@@ -1,0 +1,93 @@
+/* PC-only corporate refinements. Keep the existing tablet/mobile presentation. */
+.corporate-desktop-only,
+.corp-info-cards {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .corporate-desktop-only { display: inline; font-family: 'Archivo', 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+  .corporate-mobile-only { display: none !important; }
+  .sub-nav {
+    position: sticky;
+    top: 80px;
+    z-index: 30;
+    background: #fff;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 4%);
+  }
+  .corp-card__tag { color: #000 !important; background: #f2f2f2 !important; }
+  .corp-stat-card__icon,
+  .history-timeline__current-year,
+  .data-sect__num { color: #000; }
+  .corp-history-current-year { color: #000 !important; }
+  .corp-stat-card__num small { color: #94a3b8; }
+  .corp-tabs__btn.is-active { background: #000; border-color: #000; color: #fff; }
+  .corp-section__desc { font-size: 18px; }
+  .corp-greeting__layout { column-gap: 100px; }
+  .corp-greeting__overlay { display: none; }
+  .corp-greeting__body { font-size: 18px !important; }
+  .corp-greeting__signature { color: #000 !important; }
+  .corp-partners-page .corp-section .container > div > h4 { font-size: 18px !important; font-weight: 600 !important; }
+  .corp-partners-page .corp-section .container > div > h4 > i { display: none; }
+  img.corp-partner-logo { display: block; width: 100%; max-width: 200px; height: 64px; object-fit: contain; }
+  .corp-table-wrap--desktop-cards { display: none; }
+  .corp-info-cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .corp-info-card { margin: 0; padding: 32px; border: 1px solid #e5e7eb; border-radius: 16px; background: #fff; box-shadow: 0 6px 24px rgb(0 0 0 / 3%); }
+  .corp-info-card--wide { grid-column: 1 / -1; }
+  .corp-info-card dt { margin-bottom: 12px; color: #64748b; font-size: 14px; font-weight: 600; }
+  .corp-info-card dd { margin: 0; color: #111; font-size: 18px; line-height: 1.7; overflow-wrap: anywhere; }
+  .corp-info-card__index { display: inline-block; margin-bottom: 24px; color: #111; font-size: 14px; font-weight: 600; letter-spacing: .08em; }
+  .corp-info-card h4 { margin: 0 0 28px; color: #111; font-size: 22px; font-weight: 600; line-height: 1.5; }
+  .corp-info-cards--equipment dl { margin: 0; display: grid; gap: 20px; }
+  .corp-info-cards--equipment dt { margin-bottom: 4px; }
+  .corp-info-cards--equipment dd { font-size: 16px; }
+}
+
+@media (min-width: 1024px) {
+  .corp-partner-logo[src$="kia.webp"],
+  .corp-partner-logo[src$="naver-labs.svg"] { filter: brightness(0); }
+  .corp-partner-logo[src$="samsung.png"] { object-fit: cover; max-width: 260px; }
+}
+
+@media (min-width: 1024px) {
+  .corporate-popup-banner { display: flex; flex-direction: column; justify-content: center; gap: 24px; height: 100%; padding: 36px; background: linear-gradient(150deg, #15283c, #080c12); color: #fff; }
+  .corporate-popup-banner small { font-size: 11px; letter-spacing: .06em; color: #c4ced7; }
+  .corporate-popup-banner strong { font-size: 30px; line-height: 1.5; font-weight: 600; }
+  .corporate-popup-banner > span { font-size: 15px; line-height: 1.8; color: #c4ced7; }
+  .corporate-popup-banner b { margin-top: 12px; font-size: 13px; font-weight: 500; }
+}
+
+@font-face {
+  font-family: 'Pretendard';
+  src: url('../fonts/PretendardVariable.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Restore the original history timeline on desktop; retain the mobile layout. */
+.history-original-desktop { display: none; }
+@media (min-width: 1024px) {
+  .history-original-desktop { display: block; }
+  .history-existing-mobile { display: none; }
+  .history-original-desktop .history-timeline { padding-top: 120px; }
+  .history-original-desktop .history-timeline__current-year { color: #000; }
+  .history-original-desktop .history-timeline__nav { top: 150px; }
+  .history-original-desktop .history-timeline__aside { top: 314px; }
+  .history-original-desktop .history-timeline__year { scroll-margin-top: 274px; }
+}
+
+/* English typography: Archivo first; retain Korean font fallbacks. */
+@media (min-width: 1024px) {
+  [lang="en"],
+  [lang="en"] .corporate-desktop-only,
+  .corp-greeting__signature {
+    font-family: 'Archivo', 'Pretendard', sans-serif !important;
+  }
+  .hero-slider__title,
+  .story-text__sub,
+  .criteria-cards__title,
+  .value-circles__link,
+  .mypage__hello {
+    font-family: 'Archivo', 'Noto Serif KR', serif;
+  }
+}

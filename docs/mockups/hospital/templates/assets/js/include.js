@@ -57,6 +57,12 @@
       return
     }
     await includeAll(document)
+    try {
+      const { enhanceDesktopCorporate } = await import('./desktop-corporate.js?v=20261111-main-copy')
+      enhanceDesktopCorporate()
+    } catch (err) {
+      console.error('[desktop-corporate] PC presentation could not be loaded', err)
+    }
     document.dispatchEvent(new CustomEvent('includes:loaded'))
   }
 
