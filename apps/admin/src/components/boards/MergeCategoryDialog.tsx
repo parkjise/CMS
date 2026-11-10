@@ -4,6 +4,7 @@ import { Button, Modal, toast } from '@cms/ui'
 import { useDeleteCategory } from '@/hooks/useBoardCategories'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { categoryLabel } from '@/lib/categoryTree'
 
 interface MergeCategoryDialogProps {
   boardId: string
@@ -66,7 +67,7 @@ export const MergeCategoryDialog = ({
             <option value="">카테고리를 선택하세요</option>
             {candidates.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {categoryLabel(category, categories)}
                 {category.is_active ? '' : ' (홈페이지에서 숨김)'}
               </option>
             ))}

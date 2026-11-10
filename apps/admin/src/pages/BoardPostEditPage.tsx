@@ -18,6 +18,7 @@ import {
   validateCustomValues,
 } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { categoryLabel, orderTree } from '@/lib/categoryTree'
 
 const TITLE_MAX = 200
 
@@ -124,9 +125,11 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
                 onChange={(e) => setCategoryId(e.target.value)}
               >
                 <option value="">분류 없음</option>
-                {categories.map((c) => (
+                {orderTree(categories).map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.is_active ? c.name : `${c.name} (숨김)`}
+                    {c.is_active
+                      ? categoryLabel(c, categories)
+                      : `${categoryLabel(c, categories)} (숨김)`}
                   </option>
                 ))}
               </select>

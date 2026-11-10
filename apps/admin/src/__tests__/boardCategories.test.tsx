@@ -107,7 +107,8 @@ describe('카테고리 관리', () => {
   it('목록 · 글 수 · 숨김 표시', async () => {
     mockApi()
     renderCategories()
-    expect(await screen.findByText('개발')).toBeInTheDocument()
+    const list = await screen.findByRole('list', { name: '카테고리 목록' })
+    expect(within(list).getByText('개발')).toBeInTheDocument()
     expect(screen.getByText('글 2개')).toBeInTheDocument()
     expect(screen.getByText('홈페이지에서 숨김')).toBeInTheDocument()
   })
@@ -306,5 +307,18 @@ describe('글의 카테고리', () => {
     )
     const row = screen.getByText('프론트엔드 채용').closest('li')!
     expect(within(row).getByText('개발')).toBeInTheDocument()
+  })
+
+  it('2단계 — 글쓰기 · 글 목록에서 `상위 › 하위` 로 보여 준다 (T-179)', async () => {
+    const frontend = categoryOf({ id: 'c3', name: '프론트엔드', display_order: 2, parent_id: 'c1' })
+    mockApi({ categories: [dev, design, frontend] })
+    renderAt('/admin/boards/b1/posts/new', '/admin/boards/:boardId/posts/new', <BoardPostEditPage />)
+    const select = await screen.findByLabelText('카테고리')
+    expect(within(select).getAllByRole('option').map((o) => o.textContent)).toEqual([
+      '분류 없음',
+      '개발',
+      '개발 › 프론트엔드',
+      '디자인 (숨김)',
+    ])
   })
 })

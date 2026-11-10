@@ -7,6 +7,8 @@ import { api } from '@/lib/api'
 export interface CategoryInput {
   name?: string
   is_active?: boolean
+  /** 상위 분류 — null 이면 1단계로 (T-179) */
+  parent_id?: string | null
 }
 
 const categoriesKey = (boardId: string) => ['boards', boardId, 'categories'] as const
