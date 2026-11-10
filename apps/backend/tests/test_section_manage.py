@@ -142,6 +142,7 @@ class TestLimits:
             "GALLERY",
             "CONTACT",
             "MAP",
+            "BOARD_LATEST",
         }
 
     async def test_premium_unlimited(
