@@ -1,5 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type {
+  AuditLogKind,
+  AuditLogList,
   BoardDesign,
   BoardOperation,
   BoardPermissions,
@@ -59,6 +61,7 @@ export interface PostOverviewFilters extends PostFilters {
 }
 
 const BOARDS_KEY = ['boards'] as const
+export const AUDIT_PAGE_SIZE = 20
 const postsKey = (boardId: string) => ['boards', boardId, 'posts'] as const
 
 export function useBoards() {
@@ -155,6 +158,20 @@ export function useTrashedBoards() {
       const { data } = await api.get('/v1/boards', { params: { trash: true } })
       return data.data
     },
+  })
+}
+
+/** 변경 기록 (T-186) — 게시판 키 아래라 게시판 · 글을 바꾸면 함께 새로 읽는다 */
+export function useAuditLogs(kind: AuditLogKind | null, page: number) {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'audit-logs', kind, page],
+    queryFn: async (): Promise<AuditLogList> => {
+      const { data } = await api.get('/v1/audit-logs', {
+        params: { page, limit: AUDIT_PAGE_SIZE, ...(kind ? { kind } : {}) },
+      })
+      return data.data
+    },
+    placeholderData: keepPreviousData,
   })
 }
 

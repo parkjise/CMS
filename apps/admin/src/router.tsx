@@ -26,6 +26,7 @@ const ReportedPostsPage = lazyPage(() => import('@/pages/ReportedPostsPage'), 'R
 const PostsOverviewPage = lazyPage(() => import('@/pages/PostsOverviewPage'), 'PostsOverviewPage')
 const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
 const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
+const AuditLogsPage = lazyPage(() => import('@/pages/AuditLogsPage'), 'AuditLogsPage')
 const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'BoardSettingsPage')
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
@@ -138,6 +139,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/boards/trash',
             element: withFeature('BOARD_MANAGER', <BoardTrashPage />),
+          },
+          {
+            path: '/admin/boards/history',
+            element: withFeature('BOARD_MANAGER', <AuditLogsPage />),
           },
           {
             path: '/admin/boards/:boardId/settings',
