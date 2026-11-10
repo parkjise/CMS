@@ -272,6 +272,19 @@ class FieldOrderRequest(BaseModel):
     field_ids: list[UUID] = Field(min_length=1, max_length=100)
 
 
+class ChoiceRemapRequest(BaseModel):
+    """쓰고 있는 선택지를 옮긴다 (T-180) — target 이 null 이면 값을 비운다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    source: str = Field(min_length=1, max_length=100)
+    target: str | None = Field(default=None, min_length=1, max_length=100)
+
+
+class ChoiceRemapResponse(BaseModel):
+    moved: int
+
+
 class FieldResponse(BaseModel):
     id: UUID
     board_id: UUID
@@ -291,6 +304,8 @@ class FieldResponse(BaseModel):
     deleted_at: datetime | None
     # 값이 있는 글 수 (휴지통 글 포함) — 목록에서만, 삭제 · 유형 변경 안내용
     value_count: int = 0
+    # 선택지마다 그 값을 쓰는 글 수 (휴지통 글 포함) — 목록에서만, 옮기기 안내용 (T-180)
+    choice_counts: dict[str, int] = {}
 
 
 # ── 카테고리 (T-149) ─────────────────────────────────────────────────────

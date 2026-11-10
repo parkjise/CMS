@@ -310,6 +310,109 @@ describe('필드 관리', () => {
   })
 })
 
+describe('선택지 옮기기 (T-180)', () => {
+  const dept = fieldOf({
+    id: 'f3',
+    field_key: 'dept',
+    label: '진료과',
+    field_type: 'SELECT',
+    options: [
+      { value: 'opt_1', label: '소아과' },
+      { value: 'opt_2', label: '소아청소년과' },
+      { value: 'opt_3', label: '내과' },
+    ],
+    value_count: 5,
+    choice_counts: { opt_1: 4, opt_2: 1, opt_3: 0 },
+  })
+
+  const openDept = async (field = dept) => {
+    mockApi({ fields: [field] })
+    renderFields()
+    await userEvent.click(await screen.findByRole('button', { name: '진료과 수정' }))
+  }
+
+  it('쓰고 있는 선택지에 글 수와 옮기기 버튼', async () => {
+    await openDept()
+    expect(screen.getByText('글 4개')).toBeInTheDocument()
+    expect(screen.getByText('글 1개')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '선택지 1 다른 선택지로 옮기기' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '선택지 3 다른 선택지로 옮기기' })).not.toBeInTheDocument()
+  })
+
+  it('옮기기 — 영향을 보여 주고 보낸다', async () => {
+    post.mockResolvedValue({ data: { data: { moved: 4 } } })
+    await openDept()
+    await userEvent.click(screen.getByRole('button', { name: '선택지 1 다른 선택지로 옮기기' }))
+    const dialog = await screen.findByRole('dialog')
+    const select = within(dialog).getByLabelText('옮길 곳')
+    expect(within(select).queryByRole('option', { name: '소아과' })).not.toBeInTheDocument()
+    await userEvent.selectOptions(select, 'opt_2')
+    expect(within(dialog).getByRole('status')).toHaveTextContent('글 4개의 값이 ‘소아과’ → ‘소아청소년과’(으)로 바뀝니다.')
+    await userEvent.click(within(dialog).getByRole('button', { name: '옮기기' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/boards/b1/fields/f3/choices/remap', {
+        source: 'opt_1',
+        target: 'opt_2',
+      }),
+    )
+    expect(toast.success).toHaveBeenCalledWith('글 4개를 옮겼습니다.')
+    // 옮기기만 했으니 선택지는 그대로
+    expect(screen.getByLabelText('선택지 1')).toHaveValue('소아과')
+  })
+
+  it('쓰고 있는 선택지를 지우면 옮기기 창 — 옮긴 뒤 화면에서 빠진다', async () => {
+    post.mockResolvedValue({ data: { data: { moved: 4 } } })
+    await openDept()
+    await userEvent.click(screen.getByRole('button', { name: '선택지 1 지우기' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/바로 지울 수 없습니다/)).toBeInTheDocument()
+    await userEvent.selectOptions(within(dialog).getByLabelText('옮길 곳'), '__clear__')
+    expect(within(dialog).getByRole('status')).toHaveTextContent('되돌릴 수 없습니다')
+    await userEvent.click(within(dialog).getByRole('button', { name: '옮기기' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/boards/b1/fields/f3/choices/remap', {
+        source: 'opt_1',
+        target: null,
+      }),
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getAllByLabelText(/^선택지 \d$/).map((input) => (input as HTMLInputElement).value)).toEqual([
+      '소아청소년과',
+      '내과',
+    ])
+    expect(toast.success).toHaveBeenCalledWith(expect.stringContaining('[칸 저장]을 누르면'))
+  })
+
+  it('안 쓰는 선택지는 바로 지운다', async () => {
+    await openDept()
+    await userEvent.click(screen.getByRole('button', { name: '선택지 3 지우기' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('선택지 3')).not.toBeInTheDocument()
+  })
+
+  it('필수 칸은 값 비우기를 고를 수 없다', async () => {
+    await openDept({ ...dept, is_required: true })
+    await userEvent.click(screen.getByRole('button', { name: '선택지 1 다른 선택지로 옮기기' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByRole('option', { name: /값 비우기/ })).toBeDisabled()
+  })
+
+  it('실패하면 알리고 선택지는 그대로', async () => {
+    post.mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 409, data: { error: { message: '필수 칸은 값을 비울 수 없습니다.' } } },
+    })
+    await openDept()
+    await userEvent.click(screen.getByRole('button', { name: '선택지 1 지우기' }))
+    const dialog = await screen.findByRole('dialog')
+    await userEvent.selectOptions(within(dialog).getByLabelText('옮길 곳'), 'opt_3')
+    await userEvent.click(within(dialog).getByRole('button', { name: '옮기기' }))
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByLabelText('선택지 1')).toHaveValue('소아과')
+  })
+})
+
 describe('글쓰기 폼', () => {
   const stored: Post = {
     id: 'p1',

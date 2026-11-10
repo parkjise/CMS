@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Plus, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, Plus, Trash2 } from 'lucide-react'
 import type { BoardField, FieldOption, FieldType } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
+import { ChoiceRemapDialog } from '@/components/boards/ChoiceRemapDialog'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { type FieldInput, useCreateField, useUpdateField } from '@/hooks/useBoardFields'
 import {
@@ -45,6 +46,8 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
   const [max, setMax] = useState(field?.max?.toString() ?? '')
   const [showInList, setShowInList] = useState(field?.show_in_list ?? false)
   const [errors, setErrors] = useState<{ label?: string; key?: string; options?: string; range?: string }>({})
+  // 쓰고 있는 선택지 옮기기 (T-180) — removing 이면 옮긴 뒤 화면에서 뺀다
+  const [remapping, setRemapping] = useState<{ option: FieldOption; removing: boolean } | null>(null)
 
   // 기본값 입력칸은 글쓰기 화면과 같은 칸으로 그린다 — 지금 고른 유형 · 선택지 그대로
   const defaultField: BoardField = {
@@ -75,6 +78,9 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
   }
 
   const inUse = (field?.value_count ?? 0) > 0
+  // 저장된 선택지만 글에서 쓰일 수 있다 — 유형을 바꾸는 중이면 세지 않는다
+  const usedBy = (option: FieldOption) =>
+    field && field.field_type === fieldType ? (field.choice_counts?.[option.value] ?? 0) : 0
   const saving = createField.isPending || updateField.isPending
 
   const addOption = () =>
@@ -175,11 +181,31 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
                   )
                 }
               />
+              {usedBy(option) > 0 && (
+                <>
+                  <span className="shrink-0 text-xs text-slate-500">
+                    글 {usedBy(option).toLocaleString()}개
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`선택지 ${index + 1} 다른 선택지로 옮기기`}
+                    title="이 선택지를 쓴 글을 다른 선택지로 옮기기"
+                    className="rounded p-2 text-slate-500 hover:bg-slate-100"
+                    onClick={() => setRemapping({ option, removing: false })}
+                  >
+                    <ArrowRightLeft className="h-4 w-4" aria-hidden />
+                  </button>
+                </>
+              )}
               <button
                 type="button"
                 aria-label={`선택지 ${index + 1} 지우기`}
                 className="rounded p-2 text-slate-500 hover:bg-slate-100"
-                onClick={() => setOptions((list) => list.filter((o) => o.value !== option.value))}
+                onClick={() =>
+                  usedBy(option) > 0
+                    ? setRemapping({ option, removing: true })
+                    : setOptions((list) => list.filter((o) => o.value !== option.value))
+                }
               >
                 <Trash2 className="h-4 w-4" aria-hidden />
               </button>
@@ -191,6 +217,22 @@ export function FieldEditorForm({ boardId, field, onDone }: FieldEditorFormProps
           </Button>
           {errors.options && <p role="alert" className="text-sm text-red-600">{errors.options}</p>}
         </fieldset>
+      )}
+      {field && remapping && (
+        <ChoiceRemapDialog
+          key={remapping.option.value}
+          boardId={boardId}
+          field={field}
+          source={remapping.option}
+          labels={Object.fromEntries(options.map((o) => [o.value, o.label.trim()]))}
+          removing={remapping.removing}
+          onClose={() => setRemapping(null)}
+          onMoved={() => {
+            if (remapping.removing)
+              setOptions((list) => list.filter((o) => o.value !== remapping.option.value))
+            setRemapping(null)
+          }}
+        />
       )}
 
       {fieldType === 'NUMBER' && (

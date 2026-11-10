@@ -1024,3 +1024,271 @@ class TestShowInList:
         )
         assert resp.status_code == 200, resp.text
         assert "내부 값" not in resp.text
+
+
+THREE = [*CHOICES, {"value": "c", "label": "다"}]
+
+
+class TestChoiceRemap:
+    """쓰고 있는 선택지 옮기기 (T-180, 기획서 8.4)."""
+
+    def _url(self, board: dict, field: dict) -> str:
+        return f"{board['fields']}/{field['id']}/choices/remap"
+
+    async def _values(self, board: dict, key: str) -> dict[str, Any]:
+        rows = await _sql(
+            "SELECT title, custom_data -> :k FROM board_posts WHERE board_id = :b",
+            k=key,
+            b=board["id"],
+        )
+        return {title: value for title, value in rows or []}
+
+    async def test_counts_per_choice(self, client, auth_headers, board):
+        single = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        multi = await _field(
+            client, auth_headers, board, field_type="MULTI_SELECT", options=THREE
+        )
+        await _publish(
+            client,
+            auth_headers,
+            board,
+            **{single["field_key"]: "a", multi["field_key"]: ["a", "b"]},
+        )
+        await _publish(client, auth_headers, board, **{single["field_key"]: "a"})
+        resp = await client.get(board["fields"], headers=auth_headers)
+        by_id = {f["id"]: f for f in resp.json()["data"]}
+        assert by_id[single["id"]]["choice_counts"] == {"a": 2, "b": 0, "c": 0}
+        assert by_id[multi["id"]]["choice_counts"] == {"a": 1, "b": 1, "c": 0}
+        text_field = await _field(client, auth_headers, board)
+        resp = await client.get(board["fields"], headers=auth_headers)
+        assert (
+            next(f for f in resp.json()["data"] if f["id"] == text_field["id"])[
+                "choice_counts"
+            ]
+            == {}
+        )
+
+    async def test_select_move_then_delete_option(
+        self, client, auth_headers, board, purged
+    ):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        key = field["field_key"]
+        await _post(client, auth_headers, board, title="1", custom_data={key: "a"})
+        trashed = (
+            await _post(client, auth_headers, board, title="2", custom_data={key: "a"})
+        ).json()["data"]
+        await client.delete(f"{board['posts']}/{trashed['id']}", headers=auth_headers)
+        await _post(client, auth_headers, board, title="3", custom_data={key: "b"})
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": "c"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"] == {"moved": 2}
+        # 휴지통 글도 옮긴다
+        assert await self._values(board, key) == {"1": "c", "2": "c", "3": "b"}
+        assert purged
+        # 이제 지울 수 있다
+        resp = await client.patch(
+            f"{board['fields']}/{field['id']}",
+            json={"options": [CHOICES[1], THREE[2]]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+
+    async def test_multi_merges_duplicates_and_clears(
+        self, client, auth_headers, board
+    ):
+        field = await _field(
+            client, auth_headers, board, field_type="MULTI_SELECT", options=THREE
+        )
+        key = field["field_key"]
+        await _post(
+            client, auth_headers, board, title="겹침", custom_data={key: ["a", "b"]}
+        )
+        await _post(client, auth_headers, board, title="하나", custom_data={key: ["a"]})
+        await _post(
+            client, auth_headers, board, title="상관없음", custom_data={key: ["c"]}
+        )
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        assert resp.json()["data"] == {"moved": 2}
+        assert await self._values(board, key) == {
+            "겹침": ["b"],
+            "하나": ["b"],
+            "상관없음": ["c"],
+        }
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "b", "target": None},
+            headers=auth_headers,
+        )
+        assert resp.json()["data"] == {"moved": 2}
+        # 비면 칸 값을 지운다
+        assert await self._values(board, key) == {
+            "겹침": None,
+            "하나": None,
+            "상관없음": ["c"],
+        }
+
+    async def test_select_clear(self, client, auth_headers, board):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        key = field["field_key"]
+        await _post(client, auth_headers, board, title="1", custom_data={key: "a"})
+        resp = await client.post(
+            self._url(board, field), json={"source": "a"}, headers=auth_headers
+        )
+        assert resp.json()["data"] == {"moved": 1}
+        assert await self._values(board, key) == {"1": None}
+
+    async def test_audit_log(self, client, auth_headers, tenant, board):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        await _post(client, auth_headers, board, custom_data={field["field_key"]: "a"})
+        await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        rows = await _sql(
+            "SELECT before_value, after_value FROM audit_logs"
+            " WHERE action = 'BOARD_FIELD_CHOICE_REMAPPED' AND tenant_id = :t",
+            t=tenant["id"],
+        )
+        assert rows and rows[0][0] == {"source": "a"}
+        assert rows[0][1]["target"] == "b" and rows[0][1]["moved_posts"] == 1
+
+    @pytest.mark.parametrize(
+        ("body", "status"),
+        [
+            ({"source": "zz", "target": "a"}, 400),
+            ({"source": "a", "target": "zz"}, 400),
+            ({"source": "a", "target": "a"}, 400),
+            ({"target": "a"}, 422),
+            ({"source": "a", "target": "b", "extra": 1}, 422),
+        ],
+    )
+    async def test_invalid_requests(self, client, auth_headers, board, body, status):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        resp = await client.post(
+            self._url(board, field), json=body, headers=auth_headers
+        )
+        assert resp.status_code in (status, 400 if status == 422 else status), resp.text
+
+    async def test_required_cannot_clear(self, client, auth_headers, board):
+        field = await _field(
+            client,
+            auth_headers,
+            board,
+            field_type="SELECT",
+            options=THREE,
+            is_required=True,
+        )
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": None},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 409
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200
+
+    async def test_not_choice_or_deleted_field(self, client, auth_headers, board):
+        text_field = await _field(client, auth_headers, board)
+        resp = await client.post(
+            self._url(board, text_field), json={"source": "a"}, headers=auth_headers
+        )
+        assert resp.status_code == 400
+        choice = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        await client.delete(f"{board['fields']}/{choice['id']}", headers=auth_headers)
+        resp = await client.post(
+            self._url(board, choice),
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+    async def test_only_this_board(self, client, auth_headers, board):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        other = (
+            await client.post(
+                BOARDS, json={"name": "다른", "slug": "other"}, headers=auth_headers
+            )
+        ).json()["data"]
+        other["fields"] = f"{BOARDS}/{other['id']}/fields"
+        other["posts"] = f"{BOARDS}/{other['id']}/posts"
+        same_key = await _field(
+            client, auth_headers, other, field_type="SELECT", options=THREE
+        )
+        assert same_key["field_key"] == field["field_key"]
+        await _post(
+            client,
+            auth_headers,
+            other,
+            title="남",
+            custom_data={same_key["field_key"]: "a"},
+        )
+        resp = await client.post(
+            self._url(board, field),
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        assert resp.json()["data"] == {"moved": 0}
+        assert await self._values(other, same_key["field_key"]) == {"남": "a"}
+        # 다른 게시판 주소로 이 칸을 부르면 404
+        resp = await client.post(
+            f"{other['fields']}/{field['id']}/choices/remap",
+            json={"source": "a", "target": "b"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+
+    async def test_other_tenant_and_viewer(
+        self, client, auth_headers, other_headers, tenant, test_user, board
+    ):
+        field = await _field(
+            client, auth_headers, board, field_type="SELECT", options=THREE
+        )
+        body = {"source": "a", "target": "b"}
+        resp = await client.post(
+            self._url(board, field), json=body, headers=other_headers
+        )
+        assert resp.status_code == 404
+        assert (
+            await client.post(self._url(board, field), json=body)
+        ).status_code == 401
+        await _sql(
+            "UPDATE users SET role = 'TENANT_VIEWER' WHERE id = :i", i=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        resp = await client.post(
+            self._url(board, field),
+            json=body,
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 403

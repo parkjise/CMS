@@ -32,6 +32,8 @@ from app.schemas.board import (
     CategoryOrderRequest,
     CategoryResponse,
     CategoryUpdate,
+    ChoiceRemapRequest,
+    ChoiceRemapResponse,
     FieldCreate,
     FieldOption,
     FieldOrderRequest,
@@ -390,10 +392,14 @@ async def list_fields(
 ):
     fields = await field_service.list_fields(db, board.id, deleted=trash)
     counts = await field_service.value_counts(db, board.id)
+    choices = await field_service.choice_counts(db, board.id, fields)
     return ApiResponse.ok(
         [
             _field_response(f).model_copy(
-                update={"value_count": counts.get(f.field_key, 0)}
+                update={
+                    "value_count": counts.get(f.field_key, 0),
+                    "choice_counts": choices.get(f.id, {}),
+                }
             )
             for f in fields
         ]
@@ -446,6 +452,24 @@ async def update_field(
     response = _field_response(updated)
     await _audit_field(db, current_user, "BOARD_FIELD_UPDATED", updated, before=before)
     return ApiResponse.ok(response)
+
+
+@router.post(
+    "/{board_id}/fields/{field_id}/choices/remap",
+    response_model=ApiResponse[ChoiceRemapResponse],
+)
+async def remap_field_choice(
+    data: ChoiceRemapRequest,
+    board: Board = Depends(_board_or_404),
+    field: BoardField = Depends(_field_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """쓰고 있는 선택지의 글을 다른 선택지로 옮기거나 값을 비운다 (T-180)."""
+    if field.deleted_at is not None:
+        raise _not_found(MSG_FIELD_NOT_FOUND)
+    moved = await field_service.remap_choice(db, board, field, data, current_user)
+    return ApiResponse.ok(ChoiceRemapResponse(moved=moved))
 
 
 @router.delete("/{board_id}/fields/{field_id}", response_model=ApiResponse[dict])
