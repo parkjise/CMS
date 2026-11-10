@@ -46,6 +46,8 @@ export interface CodeTemplateProps {
   board?: PublicBoard
   /** 메인 최신 공지의 실제 글 (T-139) — 없으면 섹션의 샘플 글 */
   latestNotices?: PublicPostList | null
+  /** 메인 최신 글을 고객이 고른 게시판에서 읽을 때 (T-185) — 없으면 공지 */
+  latestFrom?: { pageKey: string; name: string } | null
   /** 게시판 상세·글쓰기 ('{글 id}' | 'write') — /{slug}/{page}/{id} */
   detailId?: string
   /** 목록 검색어(q) · 페이지(p) · 카테고리(c) */

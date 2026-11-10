@@ -1,3 +1,5 @@
+import type { PublicBoard } from '@cms/types'
+import { latestBoard } from './latestBoard'
 import type { PublicSection } from './publicSite.types'
 
 // 테마형 템플릿 홈페이지가 그릴 섹션 고르기 (T-057-A)
@@ -12,6 +14,7 @@ export const THEME_SECTION_TYPES: readonly string[] = [
   'GALLERY',
   'CONTACT',
   'MAP',
+  'BOARD_LATEST',
 ]
 
 export const isThemeRenderable = (section: PublicSection): boolean =>
@@ -31,6 +34,7 @@ const THEME_FIELDS: Record<string, readonly string[]> = {
   GALLERY: ['section_title', 'gallery_items'],
   CONTACT: ['section_title', 'description', 'require_phone', 'require_email'],
   MAP: ['address', 'address_detail', 'latitude', 'longitude'],
+  BOARD_LATEST: ['section_title', 'latest_board', 'post_count'],
 }
 
 const filledKeys = (section: PublicSection): string[] =>
@@ -48,10 +52,25 @@ export const isForeignContent = (section: PublicSection): boolean => {
   return filled.length > 0 && !filled.some((k) => fields.includes(k))
 }
 
+/**
+ * 최신 글 섹션인데 보여 줄 게시판이 없음 (T-185) — 본문 · 메뉴에서 뺀다.
+ * boards 를 모르면(undefined) 빼지 않는다.
+ */
+const lacksBoard = (section: PublicSection, boards: PublicBoard[] | null | undefined): boolean =>
+  boards !== undefined && section.section_type === 'BOARD_LATEST' && !latestBoard(section, boards)
+
 /** 홈 페이지 · 노출 중 · 그릴 수 있고 다른 템플릿용 내용이 아닌 섹션 (순서 유지) */
-export const themeHomeSections = (sections: PublicSection[]): PublicSection[] =>
+export const themeHomeSections = (
+  sections: PublicSection[],
+  boards?: PublicBoard[] | null,
+): PublicSection[] =>
   sections.filter(
-    (s) => s.is_active && onHomePage(s) && isThemeRenderable(s) && !isForeignContent(s),
+    (s) =>
+      s.is_active &&
+      onHomePage(s) &&
+      isThemeRenderable(s) &&
+      !isForeignContent(s) &&
+      !lacksBoard(s, boards),
   )
 
 /** 노출 중이지만 이 템플릿에서는 보이지 않는 섹션 수 — 미리보기 안내용 */

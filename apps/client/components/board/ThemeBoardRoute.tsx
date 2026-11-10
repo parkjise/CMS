@@ -72,7 +72,7 @@ export async function renderThemeBoard(tenant_slug: string, path: string[], sear
         tenantName={site.tenant.name}
         logoUrl={site.site_settings?.logo_url}
         menuItems={site.site_settings?.menu_items}
-        sections={themeHomeSections(site.sections)}
+        sections={themeHomeSections(site.sections, site.boards)}
         tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined}
         site={{ slug: tenant_slug, boards: site.boards, subPage: true }}
       />

@@ -1,6 +1,7 @@
 import type { PublicBoard } from '@cms/types'
 import { buildCssVarBody } from '@/lib/theme'
-import { NOTICE_BOARD, fetchPublicPosts } from '@/lib/publicPosts'
+import { latestBoard, latestCount } from '@/lib/latestBoard'
+import { NOTICE_BOARD, boardPageKey, fetchPublicPosts } from '@/lib/publicPosts'
 import type { PublicSite } from '@/lib/publicSite.types'
 import type { CodeTemplateEntry, MemberRoute } from './shared/contracts'
 import { resolvePageSections, resolveSiteInfo } from './shared/resolveSections'
@@ -56,11 +57,17 @@ export async function CodeTemplateRenderer({
     pageKey,
   )
   const siteInfo = useSample ? { ...entry.sample.site } : resolveSiteInfo(entry.sample, site)
-  // 메인 최신 공지 — 샘플 미리보기가 아닌 실제 섹션일 때만 실제 글을 읽는다 (T-139)
-  const latestNotices = sections.some(
+  // 메인 최신 공지 — 샘플 미리보기가 아닌 실제 섹션일 때만 실제 글을 읽는다 (T-139).
+  // 고객이 고른 게시판이 있으면 그 게시판, 없거나 찾을 수 없으면 공지 (T-185)
+  const latestSection = sections.find(
     (s) => s.section.section_type === 'NOTICE_LATEST' && s.editable,
-  )
-    ? await fetchPublicPosts(tenantSlug, NOTICE_BOARD, { size: LATEST_NOTICE_COUNT, order: 'latest' })
+  )?.section
+  const latestFrom = latestSection ? latestBoard(latestSection, site.boards) : null
+  const latestNotices = latestSection
+    ? await fetchPublicPosts(tenantSlug, latestFrom?.slug ?? NOTICE_BOARD, {
+        size: latestCount(latestSection, LATEST_NOTICE_COUNT),
+        order: 'latest',
+      })
     : null
   const overrideBody = preview ? '' : buildCssVarBody(site.template?.css_variables)
 
@@ -86,6 +93,7 @@ export async function CodeTemplateRenderer({
         board={board}
         previewQuery={previewQuery}
         latestNotices={latestNotices}
+        latestFrom={latestFrom ? { pageKey: boardPageKey(latestFrom.slug), name: latestFrom.name } : null}
         detailId={detailId}
         query={query}
         member={member}

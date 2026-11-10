@@ -73,7 +73,7 @@ export default async function TemplatePreviewPage({
   }
 
   // 홈 페이지의 그릴 수 있는 섹션만 — 메뉴가 넘치거나 하위 페이지 섹션이 섞이지 않게 (T-057-A)
-  const activeSections = themeHomeSections(site.sections)
+  const activeSections = themeHomeSections(site.sections, site.boards)
   const hiddenCount = hiddenInThemeCount(site.sections)
   // 미리보기 템플릿 CSS를 부모 레이아웃의 현재 템플릿 위에 덮어쓴다(소스 순서상 후순위 우선).
   const cssVarBody = buildCssVarBody(site.template?.css_variables)
@@ -104,6 +104,7 @@ export default async function TemplatePreviewPage({
               key={section.id}
               section={section}
               tenantSlug={tenant_slug}
+              boards={site.boards}
             />
           ))
         )}
