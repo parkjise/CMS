@@ -17,6 +17,8 @@ VIEWER_PASSWORD = "viewerpass123"
 EXEMPT = (
     re.compile(r"^/api/v1/auth/"),
     re.compile(r"^/api/v1/announcements/[^/]+/read$"),
+    # 개인 화면 설정 — 자기 보기만 바꾼다 (T-181, test_preferences 에서 검사)
+    re.compile(r"^/api/v1/me/preferences/"),
 )
 
 

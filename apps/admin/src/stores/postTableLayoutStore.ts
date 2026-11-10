@@ -32,6 +32,21 @@ export const postTableScope = (
 ): string | null =>
   [tenantId, userId, boardId].every(isId) ? JSON.stringify([tenantId, userId, boardId]) : null
 
+/** 저장된 값(브라우저 · 서버)에서 유효한 열 ID 순서와 크기만 꺼낸다 — 형식이 아니면 null */
+export const toTableLayout = (layout: unknown): PostTableLayout | null => {
+  if (!isRecord(layout)) return null
+  const order = Array.isArray(layout.order)
+    ? [...new Set(layout.order.filter(isId))].slice(0, 20)
+    : []
+  const sizes: Record<string, ColumnSize> = {}
+  if (isRecord(layout.sizes)) {
+    for (const [id, size] of Object.entries(layout.sizes).slice(0, 20)) {
+      if (isId(id) && isColumnSize(size)) sizes[id] = size
+    }
+  }
+  return { order, sizes }
+}
+
 export const parseTableLayouts = (raw: string | null): Record<string, PostTableLayout> => {
   try {
     const saved: unknown = JSON.parse(raw ?? 'null')
@@ -44,17 +59,9 @@ export const parseTableLayouts = (raw: string | null): Record<string, PostTableL
       } catch {
         continue
       }
-      if (!Array.isArray(ids) || ids.length !== 3 || !ids.every(isId) || !isRecord(layout)) continue
-      const order = Array.isArray(layout.order)
-        ? [...new Set(layout.order.filter(isId))].slice(0, 20)
-        : []
-      const sizes: Record<string, ColumnSize> = {}
-      if (isRecord(layout.sizes)) {
-        for (const [id, size] of Object.entries(layout.sizes).slice(0, 20)) {
-          if (isId(id) && isColumnSize(size)) sizes[id] = size
-        }
-      }
-      entries.push([scope, { order, sizes }])
+      if (!Array.isArray(ids) || ids.length !== 3 || !ids.every(isId)) continue
+      const parsed = toTableLayout(layout)
+      if (parsed) entries.push([scope, parsed])
     }
     return Object.fromEntries(entries)
   } catch {
@@ -89,13 +96,24 @@ export const orderTableFields = <T extends { id: string }>(
 
 interface PostTableLayoutState {
   layouts: Record<string, PostTableLayout>
+  /** 이 브라우저에 저장하지 못한 범위 */
   saveFailed: Record<string, boolean>
+  /** 계정(서버)에 저장하지 못한 범위 (T-181) */
+  serverFailed: Record<string, boolean>
   save: (scope: string, layout: PostTableLayout | null) => void
+  setServerFailed: (scope: string, failed: boolean) => void
 }
 
 export const usePostTableLayoutStore = create<PostTableLayoutState>((set, get) => ({
   layouts: readTableLayouts(),
   saveFailed: {},
+  serverFailed: {},
+  setServerFailed: (scope, failed) => {
+    const serverFailed = { ...get().serverFailed }
+    if (failed) serverFailed[scope] = true
+    else delete serverFailed[scope]
+    set({ serverFailed })
+  },
   save: (scope, layout) => {
     const layouts = { ...get().layouts }
     delete layouts[scope]

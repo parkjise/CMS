@@ -14,6 +14,7 @@ from app.api.v1.endpoints import (
     inquiries,
     notification_settings,
     notifications,
+    preferences,
     sections,
     seo,
     site_settings,
@@ -58,6 +59,7 @@ api_router.include_router(tenant_features.router, dependencies=_tenant_only)
 api_router.include_router(announcements.router, dependencies=_tenant_only)
 api_router.include_router(billing.router, dependencies=_tenant_only)
 api_router.include_router(domain.router, dependencies=_tenant_only)
+api_router.include_router(preferences.router, dependencies=_tenant_only)
 
 
 # 헬스체크 (인증 불필요)
