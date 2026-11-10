@@ -113,7 +113,7 @@ describe('게시판 예시 안내 (T-157)', () => {
       renderPage(`/admin/boards/new?example=${id}`)
       expect(await screen.findByLabelText(/게시판 이름/)).toHaveValue(name)
       expect(screen.getByLabelText('설명 (선택)')).not.toHaveValue('')
-      await userEvent.click(screen.getByRole('button', { name: '다음' }))
+      await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
       expect(screen.getByRole('radio', { name: new RegExp(type) })).toBeChecked()
       expect(post).not.toHaveBeenCalled()
     }
@@ -138,11 +138,13 @@ describe('게시판 예시 안내 (T-157)', () => {
     expect(name).toHaveValue('사진 모음')
     await userEvent.clear(name)
     await userEvent.type(name, '우리 소식')
-    await userEvent.click(screen.getByRole('button', { name: '다음' }))
+    await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
     await userEvent.click(screen.getByRole('radio', { name: /목록형/ }))
-    await userEvent.click(screen.getByRole('button', { name: '다음' }))
+    for (let i = 0; i < 3; i += 1) {
+      await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+    }
     expect(post).not.toHaveBeenCalled()
-    await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+    await userEvent.click(screen.getByRole('button', { name: '게시판 만들기' }))
     await screen.findByRole('heading', { name: '게시판을 만들었습니다' })
     await waitFor(() => expect(post).toHaveBeenCalledTimes(1))
     expect(post).toHaveBeenCalledWith(
