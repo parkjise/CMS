@@ -23,16 +23,16 @@
   }
 }
 
-// ── 팝업 래퍼 (세로 가운데 정렬) ──
+// ── 팝업 래퍼 (가로·세로 화면 정중앙 정렬) ──
 .main-popup-wrap {
   position: fixed;
   top: 50%;
-  right: clamp(24px, 4vw, 50px);
-  left: auto;
+  left: 50%;
+  right: auto;
   bottom: auto;
-  transform: translateY(-50%);
-  z-index: 10050; // 로딩 화면 및 딤 배경보다 위
-  width: min(360px, calc(100vw - 40px));
+  transform: translate(-50%, -50%);
+  z-index: 10050; // 딤 배경보다 위
+  width: min(380px, calc(100vw - 40px));
   border-radius: 20px;
   overflow: hidden;
   background-color: #ffffff;
@@ -44,26 +44,12 @@
   &.is-visible {
     opacity: 1;
     visibility: visible;
-    transform: translateY(-50%);
-  }
-
-  @media (max-width: 768px) {
-    right: 20px;
-    width: 320px;
-  }
-
-  // 모바일 (640px 이하: 화면 정중앙)
-  @media (max-width: 640px) {
-    top: 50%;
-    left: 50%;
-    right: auto;
-    bottom: auto;
     transform: translate(-50%, -50%);
-    width: min(340px, calc(100vw - 32px));
+  }
 
-    &.is-visible {
-      transform: translate(-50%, -50%);
-    }
+  // 모바일 (640px 이하)
+  @media (max-width: 640px) {
+    width: min(340px, calc(100vw - 32px));
   }
 }
 

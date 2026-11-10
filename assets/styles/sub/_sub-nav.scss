@@ -29,16 +29,16 @@
       color: var(--color-text-primary);
     }
     &[aria-current='page'] {
-      color: var(--color-text-primary);
-      font-weight: 600;
+      color: var(--color-primary);
+      font-weight: 700;
       &::after {
         content: '';
         position: absolute;
         left: 0;
         right: 0;
         bottom: -1px;
-        height: 2px;
-        background: var(--color-text-primary);
+        height: 3px;
+        background: var(--color-primary);
       }
     }
   }

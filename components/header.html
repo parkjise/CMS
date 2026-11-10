@@ -4,49 +4,69 @@
 <header class="header" id="header">
   <div class="header__inner">
     <h1 class="header__logo">
-      <a class="header__logo-link" href="_template.html" lang="en">
-        <img
-          class="header__logo-image"
-          src="./assets/images/logo.svg"
-          alt=""
-          width="2496"
-          height="1696"
-        />
+      <a class="header__logo-link" href="_template.html" lang="en" aria-label="DYNATECH 홈으로 이동">
+        <svg class="header__logo-image" viewBox="0 0 170 34" width="170" height="34" fill="none" aria-hidden="true">
+          <path d="M12 3L22 9V21L12 27L2 21V9L12 3Z" stroke="#0064FF" stroke-width="2.2" fill="none"/>
+          <path d="M12 9L17 12V18L12 21L7 18V12L12 9Z" fill="#0064FF"/>
+          <circle cx="21" cy="7" r="2.5" fill="#0EA5E9"/>
+          <text x="32" y="22" font-family="'Archivo', 'Pretendard', sans-serif" font-size="19" font-weight="800" fill="#0F2942" letter-spacing="0.05em">DYNATECH</text>
+        </svg>
       </a>
     </h1>
 
     <nav class="header__nav" id="header-nav" aria-label="주 메뉴">
       <ul class="header__menu">
+        <!-- 01 회사소개 -->
         <li class="header__menu-item">
           <a class="header__menu-link" href="about.html">회사소개</a>
           <ul class="header__sub-menu">
-            <li><a class="header__sub-link" href="about.html">브랜드 소개</a></li>
+            <li><a class="header__sub-link" href="about.html">회사개요</a></li>
+            <li><a class="header__sub-link" href="about-greeting.html">CEO 인사말</a></li>
             <li><a class="header__sub-link" href="about-history.html">연혁</a></li>
+            <li><a class="header__sub-link" href="about-vision.html">비전·핵심가치</a></li>
+            <li><a class="header__sub-link" href="about-organization.html">조직도</a></li>
             <li><a class="header__sub-link" href="about-location.html">오시는 길</a></li>
           </ul>
         </li>
+
+        <!-- 02 사업분야 -->
         <li class="header__menu-item">
-          <a class="header__menu-link" href="business.html">사업영역</a>
+          <a class="header__menu-link" href="business.html">사업분야</a>
           <ul class="header__sub-menu">
-            <li><a class="header__sub-link" href="business.html">핵심 솔루션</a></li>
-            <li><a class="header__sub-link" href="business.html#tech">보유 기술</a></li>
-            <li><a class="header__sub-link" href="business.html#partners">파트너십</a></li>
+            <li><a class="header__sub-link" href="business.html">사업소개</a></li>
+            <li><a class="header__sub-link" href="business-products.html">제품·서비스</a></li>
+            <li><a class="header__sub-link" href="business-tech.html">기술력·경쟁력</a></li>
+            <li><a class="header__sub-link" href="business-cert.html">인증 및 특허</a></li>
           </ul>
         </li>
+
+        <!-- 03 포트폴리오 -->
         <li class="header__menu-item">
-          <a class="header__menu-link" href="notice.html">공지사항</a>
+          <a class="header__menu-link" href="portfolio-achievements.html">포트폴리오</a>
           <ul class="header__sub-menu">
-            <li><a class="header__sub-link" href="notice.html">새소식</a></li>
-            <li><a class="header__sub-link" href="notice.html">언론보도</a></li>
-            <li><a class="header__sub-link" href="notice.html">채용공고</a></li>
+            <li><a class="header__sub-link" href="portfolio-achievements.html">주요 실적</a></li>
+            <li><a class="header__sub-link" href="portfolio-projects.html">프로젝트·납품 사례</a></li>
+            <li><a class="header__sub-link" href="portfolio-partners.html">고객사·파트너</a></li>
           </ul>
         </li>
+
+        <!-- 04 홍보센터 -->
         <li class="header__menu-item">
-          <a class="header__menu-link" href="consult.html">상담·예약</a>
+          <a class="header__menu-link" href="notice.html">홍보센터</a>
           <ul class="header__sub-menu">
-            <li><a class="header__sub-link" href="consult.html">1:1 맞춤 상담</a></li>
-            <li><a class="header__sub-link" href="consult.html#faq">자주 묻는 질문</a></li>
-            <li><a class="header__sub-link" href="#contact">고객센터 안내</a></li>
+            <li><a class="header__sub-link" href="notice.html">공지사항</a></li>
+            <li><a class="header__sub-link" href="news.html">회사소식·뉴스</a></li>
+            <li><a class="header__sub-link" href="downloads.html">자료실</a></li>
+          </ul>
+        </li>
+
+        <!-- 05 고객지원 -->
+        <li class="header__menu-item">
+          <a class="header__menu-link" href="inquiry.html">고객지원</a>
+          <ul class="header__sub-menu">
+            <li><a class="header__sub-link" href="inquiry.html">문의하기</a></li>
+            <li><a class="header__sub-link" href="faq.html">자주 묻는 질문</a></li>
+            <li><a class="header__sub-link" href="recruit.html">채용정보</a></li>
           </ul>
         </li>
       </ul>
@@ -122,20 +142,25 @@
         <!-- 상단 헤더 / 타이틀 (시각적 히든 & 스크린리더 타이틀) -->
         <h2 class="sr-only" id="all-menu-title">사이트 전체메뉴</h2>
 
-        <!-- 현대자산운용 스타일 카드 그리드 -->
+        <!-- 기업형 6카드 그리드 -->
         <ul class="all-menu__grid">
           <!-- 카드 1: 브랜드 하이라이트 카드 (Brand Card) -->
           <li class="all-menu__card all-menu__card--brand">
             <div class="all-menu__brand-inner">
-              <a class="all-menu__brand-logo" href="_template.html" aria-label="홈으로 이동">
-                <img src="./assets/images/logo.svg" alt="BAZZAR" />
+              <a class="all-menu__brand-logo" href="_template.html" aria-label="DYNATECH 홈으로 이동">
+                <svg viewBox="0 0 170 34" width="160" height="32" fill="none" aria-hidden="true">
+                  <path d="M12 3L22 9V21L12 27L2 21V9L12 3Z" stroke="#38BDF8" stroke-width="2.2" fill="none"/>
+                  <path d="M12 9L17 12V18L12 21L7 18V12L12 9Z" fill="#38BDF8"/>
+                  <circle cx="21" cy="7" r="2.5" fill="#60A5FA"/>
+                  <text x="32" y="22" font-family="'Archivo', 'Pretendard', sans-serif" font-size="19" font-weight="800" fill="#FFFFFF" letter-spacing="0.05em">DYNATECH</text>
+                </svg>
               </a>
               <p class="all-menu__brand-slogan">
-                신뢰와 전문성을 바탕으로<br />
-                최고의 미래 가치를 실현합니다.
+                미래를 연결하는 정밀 기술과<br />
+                지속 가능한 스마트 솔루션
               </p>
-              <a class="all-menu__brand-cta" href="consult.html">
-                <span>1:1 맞춤 상담 신청</span>
+              <a class="all-menu__brand-cta" href="inquiry.html">
+                <span>비즈니스 제휴 및 문의</span>
                 <i class="ri-arrow-right-line" aria-hidden="true"></i>
               </a>
             </div>
@@ -150,72 +175,81 @@
               </h3>
             </div>
             <ul class="all-menu__sub-list">
-              <li><a href="about.html">브랜드 소개</a></li>
+              <li><a href="about.html">회사개요</a></li>
+              <li><a href="about-greeting.html">CEO 인사말</a></li>
               <li><a href="about-history.html">연혁</a></li>
+              <li><a href="about-vision.html">비전·핵심가치</a></li>
+              <li><a href="about-organization.html">조직도</a></li>
               <li><a href="about-location.html">오시는 길</a></li>
             </ul>
           </li>
 
-          <!-- 카드 3: BUSINESS (사업영역) -->
+          <!-- 카드 3: BUSINESS (사업분야) -->
           <li class="all-menu__card">
             <div class="all-menu__card-head">
               <span class="all-menu__card-en">BUSINESS</span>
               <h3 class="all-menu__card-title">
-                <a href="business.html">사업영역</a>
+                <a href="business.html">사업분야</a>
               </h3>
             </div>
             <ul class="all-menu__sub-list">
-              <li><a href="business.html">핵심 솔루션</a></li>
-              <li><a href="business.html#tech">보유 기술</a></li>
-              <li><a href="business.html#partners">파트너십</a></li>
+              <li><a href="business.html">사업소개</a></li>
+              <li><a href="business-products.html">제품·서비스</a></li>
+              <li><a href="business-tech.html">기술력·경쟁력</a></li>
+              <li><a href="business-cert.html">인증 및 특허</a></li>
             </ul>
           </li>
 
-          <!-- 카드 4: NOTICE (공지사항) -->
+          <!-- 카드 4: PORTFOLIO (포트폴리오) -->
           <li class="all-menu__card">
             <div class="all-menu__card-head">
-              <span class="all-menu__card-en">NOTICE</span>
+              <span class="all-menu__card-en">PORTFOLIO</span>
               <h3 class="all-menu__card-title">
-                <a href="notice.html">공지사항</a>
+                <a href="portfolio-achievements.html">포트폴리오</a>
               </h3>
             </div>
             <ul class="all-menu__sub-list">
-              <li><a href="notice.html">새소식</a></li>
-              <li><a href="notice.html">언론보도</a></li>
-              <li><a href="notice.html">채용공고</a></li>
+              <li><a href="portfolio-achievements.html">주요 실적</a></li>
+              <li><a href="portfolio-projects.html">프로젝트·납품 사례</a></li>
+              <li><a href="portfolio-partners.html">고객사·파트너</a></li>
             </ul>
           </li>
 
-          <!-- 카드 5: RESERVATION (상담·예약) -->
+          <!-- 카드 5: PR CENTER (홍보센터) -->
           <li class="all-menu__card">
             <div class="all-menu__card-head">
-              <span class="all-menu__card-en">RESERVATION</span>
+              <span class="all-menu__card-en">PR CENTER</span>
               <h3 class="all-menu__card-title">
-                <a href="consult.html">상담·예약</a>
+                <a href="notice.html">홍보센터</a>
               </h3>
             </div>
             <ul class="all-menu__sub-list">
-              <li><a href="consult.html">1:1 맞춤 상담</a></li>
-              <li><a href="consult.html#faq">자주 묻는 질문</a></li>
-              <li><a href="#contact">고객센터 안내</a></li>
+              <li><a href="notice.html">공지사항</a></li>
+              <li><a href="news.html">회사소식·뉴스</a></li>
+              <li><a href="downloads.html">자료실</a></li>
             </ul>
           </li>
 
-          <!-- 카드 6: CUSTOMER CARE (고객지원) -->
+          <!-- 카드 6: CUSTOMER SUPPORT (고객지원) -->
           <li class="all-menu__card all-menu__card--support">
             <div class="all-menu__card-head">
-              <span class="all-menu__card-en">CUSTOMER CARE</span>
+              <span class="all-menu__card-en">CUSTOMER SUPPORT</span>
               <h3 class="all-menu__card-title">
-                <a href="#contact">고객지원</a>
+                <a href="inquiry.html">고객지원</a>
               </h3>
             </div>
-            <div class="all-menu__support-content">
+            <ul class="all-menu__sub-list">
+              <li><a href="inquiry.html">문의하기</a></li>
+              <li><a href="faq.html">자주 묻는 질문</a></li>
+              <li><a href="recruit.html">채용정보</a></li>
+            </ul>
+            <div class="all-menu__support-content" style="margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(226, 232, 240, 0.7);">
               <div class="all-menu__support-tel">
-                <span class="all-menu__support-label">대표 상담 전화</span>
+                <span class="all-menu__support-label">대표 고객센터</span>
                 <a class="all-menu__support-phone" href="tel:02-1234-5678">02-1234-5678</a>
               </div>
               <p class="all-menu__support-hours">
-                평일 09:00 - 18:00<br />
+                평일 09:00 - 18:00 (점심 12:00 - 13:00)<br />
                 <span>(토·일·공휴일 휴무)</span>
               </p>
             </div>

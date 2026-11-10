@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const hiddenUntil = localStorage.getItem('elev_main_popup_hidden_until');
       if (hiddenUntil && Date.now() < parseInt(hiddenUntil, 10)) return false;
-    } catch (e) {
+    } catch {
       return false;
     }
     return Boolean(document.querySelector('[data-include*="popup.html"], #mainPopup'));

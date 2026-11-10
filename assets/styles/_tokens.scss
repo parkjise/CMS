@@ -7,9 +7,9 @@
 // ════════════════════════════════════════════════════════════════
 
 // --- SCSS 변수 (lighten/darken 등 연산에 사용) ---
-$primary: #0ea5a0;
-$accent: #f59e0b;
-$text-primary: #333333;
+$primary: #0064ff;
+$accent: #0064ff;
+$text-primary: #0f172a;
 
 // --- 브레이크포인트 (미디어쿼리 믹스인은 _mixins.scss) ---
 $bp-sm: 480px;
@@ -19,26 +19,34 @@ $bp-xl: 1280px;
 
 // --- CSS 변수로 노출 (이식 대상) ---
 :root {
-  --color-primary: #{$primary};
-  --color-primary-hover: #0c8a86;
+  --color-primary: #0064ff;
+  --color-primary-hover: #0052cc;
+  --color-primary-light: #3383ff;
+  --color-primary-dark: #0052cc;
   --color-on-primary: #ffffff;
-  --color-secondary: #e8f6f5;
-  --color-accent: #{$accent};
+  --color-secondary: #f0f5fa;
+  --color-accent: #0064ff;
+  --color-accent-hover: #0052cc;
+  --color-blue: #0064ff;
+  --color-navy: #0f2942;
   --color-background: #ffffff;
   --color-surface: #f8fafc;
   --color-text-primary: #{$text-primary};
   --color-text-secondary: #475569;
+  --color-text-muted: #64748b;
   --color-border: #e2e8f0;
+  --color-border-subtle: #f1f5f9;
 
-  --font-heading: 'Pretendard', system-ui, sans-serif;
-  --font-body: 'Pretendard', system-ui, sans-serif;
-  --border-radius-base: 10px;
-  --border-radius-card: 16px;
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.06);
-  --spacing-section: 80px;
-  --spacing-gutter: 20px; // 화면 좌우 여백 (container)
-  --spacing-frame: 20px; // 헤더·히어로 좌우 기준선
-  --spacing-container: 1640px;
+  --font-heading: 'Archivo', 'Pretendard', system-ui, -apple-system, sans-serif;
+  --font-body: 'Archivo', 'Pretendard', system-ui, -apple-system, sans-serif;
+  --border-radius-base: 8px;
+  --border-radius-card: 14px;
+  --shadow-card: 0 4px 20px rgba(15, 41, 66, 0.06);
+  --shadow-card-hover: 0 12px 30px rgba(15, 41, 66, 0.12);
+  --spacing-section: 90px;
+  --spacing-gutter: 24px; // 화면 좌우 여백 (container)
+  --spacing-frame: 24px; // 헤더·히어로 좌우 기준선
+  --spacing-container: 1400px;
 }
 
 // 태블릿 이상 좌우 여백·섹션 간격

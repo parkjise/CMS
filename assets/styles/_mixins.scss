@@ -142,7 +142,7 @@ $breakpoints: (
 // ── 타이포그래피 ─────────────────────────────────────────────────
 // 영문 디스플레이 서체 (Typekit 'the-seasons')
 @mixin font-seasons($weight: 400) {
-  font-family: 'the-seasons', sans-serif;
+  font-family: 'Archivo', 'Pretendard', sans-serif;
   font-style: normal;
   font-weight: $weight;
 }
