@@ -148,12 +148,16 @@ export interface BoardCategory {
   display_order: number
   /** 이 분류의 글 수 (휴지통 글 제외) */
   post_count: number
+  /** 상위 분류 — 없으면 1단계 (T-179) */
+  parent_id?: string | null
 }
 
 /** 홈페이지 분류 탭 — 사용 중인 분류만 */
 export interface PublicCategory {
   id: string
   name: string
+  /** 상위 분류 — 없으면 1단계. 숨긴 상위의 하위는 오지 않는다 (T-179) */
+  parent_id?: string | null
 }
 
 /** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */

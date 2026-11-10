@@ -10,7 +10,6 @@ import {
 } from '@dnd-kit/core'
 import {
   SortableContext,
-  arrayMove,
   sortableKeyboardCoordinates,
   useSortable,
   verticalListSortingStrategy,
@@ -32,15 +31,51 @@ import {
   useUpdateCategory,
 } from '@/hooks/useBoardCategories'
 import { useCanEdit } from '@/hooks/useCanEdit'
+import { categoryLabel, childrenOf, isChild, moveAmongSiblings, orderTree } from '@/lib/categoryTree'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 const MAX_CATEGORIES = 30
 const NAME_MAX = 30
 const iconButton = 'rounded p-1.5 text-slate-500 hover:bg-slate-100 disabled:opacity-30'
+const selectClass = 'h-10 rounded-md border border-slate-300 bg-white px-3 text-sm'
+
+interface ParentSelectProps {
+  id?: string
+  value: string
+  /** 상위로 고를 수 있는 1단계 분류 */
+  options: BoardCategory[]
+  disabled?: boolean
+  onChange: (value: string) => void
+  className?: string
+}
+
+/** 상위 카테고리 고르기 (T-179) — 비우면 1단계 */
+function ParentSelect({ id, value, options, disabled, onChange, className }: ParentSelectProps) {
+  return (
+    <select
+      id={id}
+      aria-label="상위 카테고리"
+      className={className ?? selectClass}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      <option value="">없음 (1단계)</option>
+      {options.map((c) => (
+        <option key={c.id} value={c.id}>
+          {c.name}
+        </option>
+      ))}
+    </select>
+  )
+}
 
 interface CategoryRowProps {
   boardId: string
   category: BoardCategory
+  /** 같은 게시판의 전체 분류 — 상위 이름 · 하위 여부 */
+  categories: BoardCategory[]
+  /** 형제 안에서의 위치 · 형제 수 */
   index: number
   count: number
   canEdit: boolean
@@ -53,6 +88,7 @@ interface CategoryRowProps {
 function CategoryRow({
   boardId,
   category,
+  categories,
   index,
   count,
   canEdit,
@@ -68,8 +104,16 @@ function CategoryRow({
   })
   const [editing, setEditing] = useState(false)
   const [name, setName] = useState(category.name)
+  const [parentId, setParentId] = useState(category.parent_id ?? '')
+  const child = isChild(category, categories)
+  const children = childrenOf(category, categories)
+  // 하위가 있으면 다른 분류 아래로 옮길 수 없다 — 2단계까지만
+  const parentOptions = categories.filter((c) => c.id !== category.id && !isChild(c, categories))
 
-  const save = (payload: { name?: string; is_active?: boolean }, done?: () => void) =>
+  const save = (
+    payload: { name?: string; is_active?: boolean; parent_id?: string | null },
+    done?: () => void
+  ) =>
     updateCategory.mutate(
       { id: category.id, payload },
       {
@@ -84,18 +128,27 @@ function CategoryRow({
   const rename = () => {
     const trimmed = name.trim()
     if (!trimmed) return
-    if (trimmed === category.name) {
+    const payload: { name?: string; parent_id?: string | null } = {}
+    if (trimmed !== category.name) payload.name = trimmed
+    if (parentId !== (category.parent_id ?? '')) payload.parent_id = parentId || null
+    if (Object.keys(payload).length === 0) {
       setEditing(false)
       return
     }
-    save({ name: trimmed }, () => setEditing(false))
+    save(payload, () => setEditing(false))
+  }
+
+  const cancel = () => {
+    setName(category.name)
+    setParentId(category.parent_id ?? '')
+    setEditing(false)
   }
 
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className="flex items-center gap-2 bg-white p-3"
+      className={`flex items-center gap-2 bg-white p-3 ${child ? 'pl-10' : ''}`}
     >
       {canEdit && (
         <button
@@ -111,7 +164,7 @@ function CategoryRow({
       )}
       {editing ? (
         <form
-          className="flex min-w-0 flex-1 items-center gap-2"
+          className="flex min-w-0 flex-1 flex-wrap items-center gap-2"
           onSubmit={(e) => {
             e.preventDefault()
             rename()
@@ -125,6 +178,13 @@ function CategoryRow({
             autoFocus
             onChange={(e) => setName(e.target.value)}
           />
+          <ParentSelect
+            className="h-9 rounded-md border border-slate-300 bg-white px-2 text-sm"
+            value={parentId}
+            options={parentOptions}
+            disabled={children.length > 0}
+            onChange={setParentId}
+          />
           <Button
             type="submit"
             size="sm"
@@ -137,17 +197,24 @@ function CategoryRow({
             type="button"
             size="sm"
             variant="ghost"
-            onClick={() => {
-              setName(category.name)
-              setEditing(false)
-            }}
+            onClick={cancel}
           >
             취소
           </Button>
+          {children.length > 0 && (
+            <p className="w-full text-xs text-slate-500">
+              하위 카테고리가 있어 다른 카테고리 아래로 옮길 수 없습니다.
+            </p>
+          )}
         </form>
       ) : (
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-slate-900">
+            {child && (
+              <span className="mr-1 text-slate-400" aria-hidden>
+                ↳
+              </span>
+            )}
             {category.name}
             {!category.is_active && (
               <span className="ml-1.5 text-xs text-slate-500">홈페이지에서 숨김</span>
@@ -155,6 +222,8 @@ function CategoryRow({
           </p>
           <p className="mt-0.5 text-xs text-slate-500">
             글 {category.post_count.toLocaleString()}개
+            {children.length > 0 && ` · 하위 ${children.length}개`}
+            {child && <span className="sr-only"> · {categoryLabel(category, categories)}</span>}
           </p>
         </div>
       )}
@@ -194,6 +263,7 @@ function CategoryRow({
           <button
             type="button"
             aria-label={`${category.name} 이름 바꾸기`}
+            title="이름 · 상위 카테고리 바꾸기"
             className={iconButton}
             onClick={() => setEditing(true)}
           >
@@ -203,9 +273,13 @@ function CategoryRow({
             type="button"
             aria-label={`${category.name} 합치기`}
             className={iconButton}
-            disabled={count < 2}
+            disabled={categories.length < 2 || children.length > 0}
             onClick={onMerge}
-            title="다른 카테고리에 합치기"
+            title={
+              children.length > 0
+                ? '하위 카테고리가 있어 합칠 수 없습니다'
+                : '다른 카테고리에 합치기'
+            }
           >
             <Merge className="h-4 w-4" aria-hidden />
           </button>
@@ -235,6 +309,7 @@ function DeleteDialog({ boardId, target, categories, onClose }: DeleteDialogProp
   const deleteCategory = useDeleteCategory(boardId)
   const [moveTo, setMoveTo] = useState('')
   const others = categories.filter((c) => c.id !== target?.id)
+  const children = target ? childrenOf(target, categories) : []
 
   const submit = () => {
     if (!target) return
@@ -254,7 +329,21 @@ function DeleteDialog({ boardId, target, categories, onClose }: DeleteDialogProp
 
   return (
     <Modal open={target !== null} onClose={onClose} title="카테고리 삭제" size="sm">
-      {target && (
+      {target && children.length > 0 && (
+        <div className="space-y-4">
+          <p className="text-sm text-slate-700">
+            &lsquo;{target.name}&rsquo; 아래에 하위 카테고리 {children.length}개(
+            {children.map((c) => c.name).join(', ')})가 있어 삭제할 수 없습니다. 하위
+            카테고리를 먼저 다른 곳으로 옮기거나 삭제해 주세요.
+          </p>
+          <div className="flex justify-end">
+            <Button type="button" variant="ghost" onClick={onClose}>
+              닫기
+            </Button>
+          </div>
+        </div>
+      )}
+      {target && children.length === 0 && (
         <div className="space-y-4">
           <p className="text-sm text-slate-700">
             &lsquo;{target.name}&rsquo; 카테고리를 삭제합니다.
@@ -273,7 +362,7 @@ function DeleteDialog({ boardId, target, categories, onClose }: DeleteDialogProp
                 <option value="">분류 없음</option>
                 {others.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {categoryLabel(c, categories)}
                   </option>
                 ))}
               </select>
@@ -298,15 +387,25 @@ function DeleteDialog({ boardId, target, categories, onClose }: DeleteDialogProp
   )
 }
 
-function AddCategoryForm({ boardId, atLimit }: { boardId: string; atLimit: boolean }) {
+interface AddCategoryFormProps {
+  boardId: string
+  atLimit: boolean
+  /** 상위로 고를 수 있는 1단계 분류 */
+  parents: BoardCategory[]
+}
+
+function AddCategoryForm({ boardId, atLimit, parents }: AddCategoryFormProps) {
   const createCategory = useCreateCategory(boardId)
   const [name, setName] = useState('')
+  const [parentId, setParentId] = useState('')
+  // 고른 상위가 지워지면 1단계로
+  const parent = parents.some((c) => c.id === parentId) ? parentId : ''
 
   const submit = () => {
     const trimmed = name.trim()
     if (!trimmed) return
     createCategory.mutate(
-      { name: trimmed },
+      { name: trimmed, ...(parent ? { parent_id: parent } : {}) },
       {
         onSuccess: () => {
           setName('')
@@ -319,7 +418,7 @@ function AddCategoryForm({ boardId, atLimit }: { boardId: string; atLimit: boole
 
   return (
     <form
-      className="flex items-end gap-2"
+      className="flex flex-wrap items-end gap-2"
       onSubmit={(e) => {
         e.preventDefault()
         submit()
@@ -338,6 +437,18 @@ function AddCategoryForm({ boardId, atLimit }: { boardId: string; atLimit: boole
           onChange={(e) => setName(e.target.value)}
         />
       </div>
+      {parents.length > 0 && (
+        <label className="block text-sm" htmlFor="new-category-parent">
+          <span className="mb-1.5 block font-medium text-slate-700">상위 카테고리</span>
+          <ParentSelect
+            id="new-category-parent"
+            value={parent}
+            options={parents}
+            disabled={atLimit}
+            onChange={setParentId}
+          />
+        </label>
+      )}
       <Button type="submit" loading={createCategory.isPending} disabled={atLimit || !name.trim()}>
         추가
       </Button>
@@ -365,7 +476,7 @@ function CategoryManager({ boardId }: { boardId: string }) {
   )
 
   useEffect(() => {
-    if (categoriesQuery.data) setCategories(categoriesQuery.data)
+    if (categoriesQuery.data) setCategories(orderTree(categoriesQuery.data))
   }, [categoriesQuery.data])
 
   const sensors = useSensors(
@@ -384,10 +495,15 @@ function CategoryManager({ boardId }: { boardId: string }) {
 
   const handleDragEnd = ({ active, over }: DragEndEvent) => {
     if (!canReorder || !over || active.id === over.id) return
-    const from = categories.findIndex((c) => c.id === active.id)
-    const to = categories.findIndex((c) => c.id === over.id)
-    applyOrder(arrayMove(categories, from, to))
+    const next = moveAmongSiblings(categories, String(active.id), String(over.id))
+    if (next) applyOrder(next)
+    else toast.error('같은 상위 카테고리 안에서만 순서를 바꿀 수 있습니다.')
   }
+
+  /** 형제 목록 — 위아래 버튼은 형제 안에서만 움직인다 */
+  const siblingsOf = (category: BoardCategory) =>
+    categories.filter((c) => (c.parent_id ?? null) === (category.parent_id ?? null))
+  const parents = categories.filter((c) => !isChild(c, categories))
 
   if (categoriesQuery.isLoading) {
     return <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
@@ -399,11 +515,16 @@ function CategoryManager({ boardId }: { boardId: string }) {
     <div className="mx-auto max-w-2xl space-y-4">
       <p className="text-sm text-slate-500">
         글을 분류로 나눕니다. 홈페이지 글 목록 위에 &lsquo;전체&rsquo;와 함께 분류 탭이 나타납니다.
-        숨긴 분류는 탭에서만 빠지고, 글은 &lsquo;전체&rsquo;에 그대로 보입니다.
+        숨긴 분류는 탭에서만 빠지고, 글은 &lsquo;전체&rsquo;에 그대로 보입니다. 상위 카테고리를
+        고르면 2단계(예: 진료 › 임플란트)로 나눌 수 있고, 상위를 고르면 하위의 글도 함께 보입니다.
       </p>
       {canEdit && (
         <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <AddCategoryForm boardId={boardId} atLimit={categories.length >= MAX_CATEGORIES} />
+          <AddCategoryForm
+            boardId={boardId}
+            atLimit={categories.length >= MAX_CATEGORIES}
+            parents={parents}
+          />
         </div>
       )}
       {canEdit && (
@@ -478,24 +599,33 @@ function CategoryManager({ boardId }: { boardId: string }) {
                   items={visibleCategories.map((c) => c.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <ul className="divide-y divide-slate-100">
-                    {visibleCategories.map((category) => (
-                      <CategoryRow
-                        key={category.id}
-                        boardId={boardId}
-                        category={category}
-                        index={categories.findIndex((c) => c.id === category.id)}
-                        count={categories.length}
-                        canEdit={canEdit}
-                        canReorder={canReorder}
-                        onMove={(delta) => {
-                          const index = categories.findIndex((c) => c.id === category.id)
-                          applyOrder(arrayMove(categories, index, index + delta))
-                        }}
-                        onDelete={() => setDeleting(category)}
-                        onMerge={() => setMerging(category)}
-                      />
-                    ))}
+                  <ul className="divide-y divide-slate-100" aria-label="카테고리 목록">
+                    {visibleCategories.map((category) => {
+                      const siblings = siblingsOf(category)
+                      const index = siblings.findIndex((c) => c.id === category.id)
+                      return (
+                        <CategoryRow
+                          key={category.id}
+                          boardId={boardId}
+                          category={category}
+                          categories={categories}
+                          index={index}
+                          count={siblings.length}
+                          canEdit={canEdit}
+                          canReorder={canReorder}
+                          onMove={(delta) => {
+                            const next = moveAmongSiblings(
+                              categories,
+                              category.id,
+                              siblings[index + delta].id
+                            )
+                            if (next) applyOrder(next)
+                          }}
+                          onDelete={() => setDeleting(category)}
+                          onMerge={() => setMerging(category)}
+                        />
+                      )
+                    })}
                   </ul>
                 </SortableContext>
               </DndContext>

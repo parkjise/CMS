@@ -17,6 +17,7 @@ import {
 import { postDateFilters } from '@/lib/postDateFilters'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { STATUS_LABELS, STATUS_STYLES } from '@/pages/BoardPostsPage'
+import { categoryLabel, orderTree } from '@/lib/categoryTree'
 
 const PAGE_SIZE = 20
 
@@ -175,9 +176,9 @@ export function PostsOverviewPage() {
             onChange={(e) => changeFilters({ category_id: e.target.value || undefined })}
           >
             <option value="">{categoryPlaceholder}</option>
-            {categories.map((category) => (
+            {orderTree(categories).map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {categoryLabel(category, categories)}
                 {category.is_active ? '' : ' (숨김)'}
               </option>
             ))}

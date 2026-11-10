@@ -4,6 +4,7 @@ import { Button, Modal, toast } from '@cms/ui'
 import { useMergeCategories } from '@/hooks/useBoardCategories'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { categoryLabel } from '@/lib/categoryTree'
 
 interface BulkMergeCategoriesDialogProps {
   boardId: string
@@ -71,7 +72,7 @@ export const BulkMergeCategoriesDialog = ({
                   }}
                 />
                 <span>
-                  {category.name}
+                  {categoryLabel(category, categories)}
                   {category.is_active ? '' : ' (홈페이지에서 숨김)'}
                 </span>
               </label>
@@ -94,7 +95,7 @@ export const BulkMergeCategoriesDialog = ({
             <option value="">카테고리를 선택하세요</option>
             {targets.map((category) => (
               <option key={category.id} value={category.id}>
-                {category.name}
+                {categoryLabel(category, categories)}
                 {category.is_active ? '' : ' (홈페이지에서 숨김)'}
               </option>
             ))}

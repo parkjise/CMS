@@ -18,6 +18,7 @@ import {
   useRestorePost,
   useUpdatePost,
 } from '@/hooks/useBoards'
+import { categoryLabel, orderTree } from '@/lib/categoryTree'
 import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
@@ -66,7 +67,7 @@ export function BoardPostsPage() {
   // 기본 게시판에는 칸 · 분류가 없다
   const categories =
     useBoardCategories(boardId, { enabled: Boolean(board && !board.system_key) }).data ?? []
-  const categoryName = new Map(categories.map((c) => [c.id, c.name]))
+  const categoryName = new Map(categories.map((c) => [c.id, categoryLabel(c, categories)]))
   const fieldsQuery = useBoardFields(boardId, { enabled: Boolean(board && !board.system_key) })
   const listFields = (
     fieldsQuery.isSuccess && board && !board.system_key ? (fieldsQuery.data ?? []) : []
@@ -307,9 +308,9 @@ export function BoardPostsPage() {
             }
           >
             <option value="">모든 카테고리</option>
-            {categories.map((c) => (
+            {orderTree(categories).map((c) => (
               <option key={c.id} value={c.id}>
-                {c.name}
+                {categoryLabel(c, categories)}
               </option>
             ))}
           </select>

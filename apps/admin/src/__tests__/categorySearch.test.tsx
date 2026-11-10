@@ -40,6 +40,7 @@ const renderPage = (client = makeClient()) => {
   )
   return client
 }
+const inList = () => within(screen.getByRole('list', { name: '카테고리 목록' }))
 const searchBox = () => screen.findByRole('searchbox', { name: '카테고리 이름 검색' })
 beforeEach(() => {
   vi.resetAllMocks()
@@ -53,8 +54,8 @@ describe('카테고리 검색', () => {
     const input = await searchBox()
     const calls = get.mock.calls.length
     await userEvent.type(input, '  nEwS  ')
-    expect(screen.getByText(categories[0].name)).toBeInTheDocument()
-    expect(screen.queryByText(categories[1].name)).not.toBeInTheDocument()
+    expect(inList().getByText(categories[0].name)).toBeInTheDocument()
+    expect(inList().queryByText(categories[1].name)).not.toBeInTheDocument()
     expect(screen.getByText(/전체 \d+개 · 검색 결과 \d+개/)).toHaveTextContent(
       '전체 3개 · 검색 결과 1개'
     )
@@ -64,11 +65,11 @@ describe('카테고리 검색', () => {
     renderPage()
     await userEvent.type(await searchBox(), '소식')
     await userEvent.selectOptions(screen.getByLabelText('홈페이지 표시'), 'hidden')
-    expect(screen.queryByText(categories[0].name)).not.toBeInTheDocument()
-    expect(screen.getByText(categories[1].name)).toBeInTheDocument()
+    expect(inList().queryByText(categories[0].name)).not.toBeInTheDocument()
+    expect(inList().getByText(categories[1].name)).toBeInTheDocument()
     await userEvent.selectOptions(screen.getByLabelText('홈페이지 표시'), 'visible')
-    expect(screen.getByText(categories[0].name)).toBeInTheDocument()
-    expect(screen.queryByText(categories[1].name)).not.toBeInTheDocument()
+    expect(inList().getByText(categories[0].name)).toBeInTheDocument()
+    expect(inList().queryByText(categories[1].name)).not.toBeInTheDocument()
     await userEvent.click(screen.getByRole('button', { name: '검색 초기화' }))
     expect(await searchBox()).toHaveValue('')
     expect(screen.getByLabelText('홈페이지 표시')).toHaveValue('all')
