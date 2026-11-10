@@ -9,6 +9,10 @@ os.environ["DATABASE_URL"] = (
 os.environ["MIGRATION_DATABASE_URL"] = (
     "postgresql+asyncpg://cms_user:cms_password@localhost:5432/cms_test_db"
 )
+# 테스트가 만든 Celery 태스크가 실제 Redis 로 가서 개발용 워커가 실행하지 않게
+# 메모리 브로커로 보낸다 — 아무도 꺼내 가지 않는다 (T-178)
+os.environ["CELERY_BROKER_URL"] = "memory://"
+os.environ["CELERY_RESULT_BACKEND"] = "cache+memory://"
 
 import asyncio
 import importlib.util
