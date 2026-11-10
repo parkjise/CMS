@@ -2546,13 +2546,13 @@ input:checked ~ .main-popup__check-text {
   position: relative;
   margin-top: -80px;
   padding: 0;
-  height: 340px;
+  height: 360px;
   color: #fff;
   overflow: hidden;
 }
 @media (min-width: 768px) {
   .sub-hero {
-    height: 420px;
+    height: 100vh;
   }
 }
 .sub-hero::after {
@@ -2581,14 +2581,12 @@ input:checked ~ .main-popup__check-text {
   align-items: center;
   justify-content: center;
   gap: 0;
-  padding-top: 50px;
-  padding-bottom: 30px;
+  padding-bottom: 48px;
   text-align: center;
 }
 @media (min-width: 768px) {
   .sub-hero__content {
-    padding-top: 80px;
-    padding-bottom: 40px;
+    padding-bottom: 72px;
   }
 }
 .sub-hero__eyebrow {
