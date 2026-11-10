@@ -334,3 +334,100 @@ describe('middleware — 고객 도메인 (T-137)', () => {
     expect(fetchMock.mock.calls.every(([u]) => !String(u).includes('/public/domain/'))).toBe(true)
   })
 })
+
+describe('middleware — 다른 게시판으로 옮긴 글 (T-184)', () => {
+  const ID = '0b6c1d2e-3f40-4a5b-8c6d-7e8f90a1b2c3'
+  const location = (boardSlug: string | null) =>
+    boardSlug
+      ? new Response(JSON.stringify({ data: { board_slug: boardSlug, is_system: false } }), {
+          status: 200,
+        })
+      : new Response('{}', { status: 404 })
+  /** 템플릿 · 글 · 글 위치 조회 응답 */
+  const mockApi = (code: string | null, moved: string | null, postStatus = 404) =>
+    fetchMock.mockImplementation((url: string) =>
+      Promise.resolve(
+        url.includes('/public/domain/')
+          ? new Response(JSON.stringify({ data: { slug: 'clinic' } }), { status: 200 })
+          : url.endsWith('/location')
+            ? location(moved)
+            : url.includes('/boards/')
+              ? new Response('{}', { status: postStatus })
+              : templateResponse(code),
+      ),
+    )
+  const locationOf = (res: Response) => (res.status === 301 ? res.headers.get('location') : null)
+
+  it('테마형 — 게시판에 없는 글이 옮겨졌으면 새 주소로 영구 이동 (쿼리 유지)', async () => {
+    mockApi(null, 'jobs')
+    expect(locationOf(await run(`/clinic/b/news/${ID}?from=a`))).toBe(
+      `http://localhost:3000/clinic/b/jobs/${ID}?from=a`,
+    )
+  })
+
+  it('공지로 옮긴 글은 /notice, 공지에서 옮긴 글은 /b/{게시판}', async () => {
+    mockApi(null, 'notice')
+    expect(locationOf(await run(`/clinic/b/news/${ID}`))).toBe(
+      `http://localhost:3000/clinic/notice/${ID}`,
+    )
+    clearTemplateCache()
+    mockApi(null, 'news')
+    expect(locationOf(await run(`/clinic/notice/${ID}`))).toBe(
+      `http://localhost:3000/clinic/b/news/${ID}`,
+    )
+  })
+
+  it('테마형 — 글이 있으면 위치를 묻지 않는다', async () => {
+    mockApi(null, 'jobs', 200)
+    expect(rewriteOf(await run(`/clinic/b/news/${ID}`))).toBeNull()
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/location'))).toBe(false)
+  })
+
+  it('옮긴 글이 아니면(없는 글 · 같은 게시판) 그대로 404', async () => {
+    mockApi(null, null)
+    expect(rewriteOf(await run(`/clinic/b/news/${ID}`))).toBe('http://localhost:3000/clinic/b')
+    clearTemplateCache()
+    mockApi(null, 'news')
+    expect(rewriteOf(await run(`/clinic/b/news/${ID}`))).toBe('http://localhost:3000/clinic/b')
+  })
+
+  it('글 id 모양이 아니면 묻지 않는다', async () => {
+    mockApi(null, 'jobs')
+    await run('/clinic/b/news/p1')
+    await run('/clinic/notice/write')
+    expect(fetchMock.mock.calls.some(([url]) => String(url).endsWith('/location'))).toBe(false)
+  })
+
+  it('코드형 — 옮긴 글은 새 주소로, 아니면 템플릿 라우트로', async () => {
+    mockApi('TPL_HOSPITAL_A', 'jobs')
+    expect(locationOf(await run(`/clinic/b/news/${ID}`))).toBe(
+      `http://localhost:3000/clinic/b/jobs/${ID}`,
+    )
+    clearTemplateCache()
+    mockApi('TPL_HOSPITAL_A', 'news')
+    expect(rewriteOf(await run(`/clinic/b/news/${ID}`))).toBe(
+      `http://localhost:3000/tpl-hospital-a/clinic/b/news/${ID}`,
+    )
+  })
+
+  it('위치 확인 실패(장애)면 그대로', async () => {
+    fetchMock.mockImplementation((url: string) =>
+      url.endsWith('/location')
+        ? Promise.reject(new Error('down'))
+        : Promise.resolve(templateResponse('TPL_HOSPITAL_A')),
+    )
+    expect(rewriteOf(await run(`/clinic/b/news/${ID}`))).toBe(
+      `http://localhost:3000/tpl-hospital-a/clinic/b/news/${ID}`,
+    )
+  })
+
+  it('고객 도메인 — slug 없는 주소로, 접속한 스킴 · 호스트 기준', async () => {
+    mockApi('TPL_HOSPITAL_A', 'jobs')
+    const res = await middleware(
+      new NextRequest(new URL(`/b/news/${ID}`, 'http://localhost:3000'), {
+        headers: { host: 'www.oo.com', 'x-forwarded-proto': 'https' },
+      }),
+    )
+    expect(locationOf(res)).toBe(`https://www.oo.com/b/jobs/${ID}`)
+  })
+})
