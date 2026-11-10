@@ -1,4 +1,4 @@
-// ── BOARD TABS — 새 게시판 카테고리 탭 (T-149) ─────────────────────
+// ── BOARD TABS — 새 게시판 카테고리 탭 (T-149 · 2단계 T-179) ─────────
 // components/board/BoardCategoryTabs.tsx  /  현재 탭: [aria-current='page']
 @use '../mixins' as *;
 
@@ -16,6 +16,22 @@
     @include md {
       flex-wrap: wrap;
       overflow-x: visible;
+    }
+  }
+  // 고른 상위의 하위 — 첫 줄보다 작게
+  &__list--sub {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--color-border);
+    gap: 6px;
+
+    .board-tabs__link {
+      padding: 6px 14px;
+      font-size: 13px;
+      @include md {
+        padding: 7px 16px;
+        font-size: 14px;
+      }
     }
   }
   &__item {

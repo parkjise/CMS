@@ -9,6 +9,7 @@ import {
   useMemberPostForm,
 } from '@/components/board/useMemberPostForm'
 import { pageHref } from '../../../shared/contracts'
+import { categoryOptions } from '@/lib/categoryTabs'
 import { BoardGate } from './BoardGate'
 import type { BoardLink } from './CustomBoardViews'
 
@@ -192,7 +193,7 @@ export function CustomBoardWrite({
                       onChange={(e) => form.change({ categoryId: e.target.value })}
                     >
                       <option value="">분류 없음</option>
-                      {categories.map((category) => (
+                      {categoryOptions(categories).map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>
