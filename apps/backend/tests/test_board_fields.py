@@ -1292,3 +1292,322 @@ class TestChoiceRemap:
             headers={"Authorization": f"Bearer {token}"},
         )
         assert resp.status_code == 403
+
+
+class TestFieldConvert:
+    """값이 있는 칸의 유형 바꾸기 (T-182, 기획서 8.4)."""
+
+    def _url(self, board: dict, field: dict, preview: bool = False) -> str:
+        tail = "convert/preview" if preview else "convert"
+        return f"{board['fields']}/{field['id']}/{tail}"
+
+    async def _values(self, board: dict, key: str) -> dict[str, Any]:
+        rows = await _sql(
+            "SELECT title, custom_data -> :k FROM board_posts WHERE board_id = :b",
+            k=key,
+            b=board["id"],
+        )
+        return {title: value for title, value in rows or []}
+
+    async def _setup(self, client, headers, board, values: dict[str, Any], **field):
+        made = await _field(client, headers, board, **field)
+        for title, value in values.items():
+            resp = await _post(
+                client,
+                headers,
+                board,
+                title=title,
+                custom_data={made["field_key"]: value},
+            )
+            assert resp.status_code == 201, resp.text
+        return made
+
+    async def _convert(self, client, headers, board, field, **body):
+        return await client.post(self._url(board, field), json=body, headers=headers)
+
+    async def test_preview_does_not_change(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {"가": "12", "나": "3,500", "다": "많음"}
+        )
+        resp = await client.post(
+            self._url(board, field, preview=True),
+            json={"field_type": "NUMBER"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert (data["total"], data["convertible"], data["failed"]) == (3, 2, 1)
+        assert [(s["before"], s["after"]) for s in data["samples"]] == [
+            ("12", "12"),
+            ("3,500", "3500"),
+        ]
+        assert data["failures"][0]["title"] == "다"
+        assert data["failures"][0]["reason"]
+        assert await self._values(board, field["field_key"]) == {
+            "가": "12",
+            "나": "3,500",
+            "다": "많음",
+        }
+
+    async def test_abort_when_failures(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {"가": "12", "다": "많음"}
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="NUMBER"
+        )
+        assert resp.status_code == 409
+        assert "1개" in resp.json()["error"]["message"]
+        got = (await client.get(board["fields"], headers=auth_headers)).json()["data"]
+        assert got[0]["field_type"] == "TEXT"
+        assert await self._values(board, field["field_key"]) == {
+            "가": "12",
+            "다": "많음",
+        }
+
+    async def test_clear_failed(self, client, auth_headers, tenant, board, purged):
+        field = await self._setup(
+            client, auth_headers, board, {"가": "12", "다": "많음"}
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="NUMBER", clear_failed=True
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert (data["converted"], data["cleared"]) == (1, 1)
+        assert data["field"]["field_type"] == "NUMBER"
+        assert data["field"]["value_count"] == 1
+        assert await self._values(board, field["field_key"]) == {"가": 12, "다": None}
+        assert purged
+        rows = await _sql(
+            "SELECT before_value, after_value FROM audit_logs"
+            " WHERE action = 'BOARD_FIELD_TYPE_CONVERTED' AND tenant_id = :t",
+            t=tenant["id"],
+        )
+        assert rows and rows[0][0] == {"field_type": "TEXT"}
+        assert rows[0][1]["field_type"] == "NUMBER" and rows[0][1]["cleared"] == 1
+
+    async def test_required_cannot_clear(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {"가": "많음"}, is_required=True
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="NUMBER", clear_failed=True
+        )
+        assert resp.status_code == 409
+
+    async def test_text_to_select_builds_choices(self, client, auth_headers, board):
+        field = await self._setup(
+            client,
+            auth_headers,
+            board,
+            {"1": "소아과", "2": " 내과 ", "3": "소아과"},
+            default_value="내과",
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="SELECT"
+        )
+        assert resp.status_code == 200, resp.text
+        new = resp.json()["data"]["field"]
+        assert [o["label"] for o in new["options"]] == ["소아과", "내과"]
+        by_label = {o["label"]: o["value"] for o in new["options"]}
+        assert new["default_value"] == by_label["내과"]
+        assert new["choice_counts"] == {by_label["소아과"]: 2, by_label["내과"]: 1}
+        assert await self._values(board, field["field_key"]) == {
+            "1": by_label["소아과"],
+            "2": by_label["내과"],
+            "3": by_label["소아과"],
+        }
+
+    async def test_text_to_multi_splits_commas(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {"1": "주차, 와이파이", "2": "주차"}
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="MULTI_SELECT"
+        )
+        new = resp.json()["data"]["field"]
+        v = {o["label"]: o["value"] for o in new["options"]}
+        assert await self._values(board, field["field_key"]) == {
+            "1": [v["주차"], v["와이파이"]],
+            "2": [v["주차"]],
+        }
+
+    async def test_too_many_choices(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {str(i): f"값{i}" for i in range(51)}
+        )
+        resp = await client.post(
+            self._url(board, field, preview=True),
+            json={"field_type": "SELECT"},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 409
+
+    async def test_choice_to_text_and_multi_to_select(
+        self, client, auth_headers, board
+    ):
+        field = await self._setup(
+            client,
+            auth_headers,
+            board,
+            {"하나": ["a"], "둘": ["a", "b"]},
+            field_type="MULTI_SELECT",
+            options=CHOICES,
+        )
+        preview = await client.post(
+            self._url(board, field, preview=True),
+            json={"field_type": "SELECT"},
+            headers=auth_headers,
+        )
+        assert preview.json()["data"]["failed"] == 1
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="TEXT"
+        )
+        assert resp.status_code == 200, resp.text
+        assert await self._values(board, field["field_key"]) == {
+            "하나": "가",
+            "둘": "가, 나",
+        }
+
+    async def test_select_to_multi_keeps_choices(self, client, auth_headers, board):
+        field = await self._setup(
+            client,
+            auth_headers,
+            board,
+            {"1": "b"},
+            field_type="SELECT",
+            options=CHOICES,
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="MULTI_SELECT"
+        )
+        assert resp.json()["data"]["field"]["options"] == CHOICES
+        assert await self._values(board, field["field_key"]) == {"1": ["b"]}
+
+    @pytest.mark.parametrize(
+        ("field", "target", "values", "expected"),
+        [
+            ({"field_type": "NUMBER"}, "RATING", {"a": 4, "b": 4.5, "c": 9}, {"a": 4}),
+            ({"field_type": "RATING"}, "NUMBER", {"a": 3}, {"a": 3}),
+            (
+                {"field_type": "BOOLEAN"},
+                "TEXT",
+                {"a": True, "b": False},
+                {"a": "예", "b": "아니오"},
+            ),
+            (
+                {"field_type": "TEXT"},
+                "BOOLEAN",
+                {"a": "네", "b": "N", "c": "글쎄"},
+                {"a": True, "b": False},
+            ),
+            (
+                {"field_type": "TEXT"},
+                "DATE",
+                {"a": "2026.1.5", "b": "어제"},
+                {"a": "2026-01-05"},
+            ),
+            (
+                {"field_type": "TEXT"},
+                "EMAIL",
+                {"a": "a@b.co", "b": "메일"},
+                {"a": "a@b.co"},
+            ),
+            (
+                {"field_type": "NUMBER"},
+                "TEXT",
+                {"a": 3.5, "b": 2},
+                {"a": "3.5", "b": "2"},
+            ),
+            (
+                {"field_type": "URL"},
+                "TEXT",
+                {"a": "https://x.kr"},
+                {"a": "https://x.kr"},
+            ),
+        ],
+    )
+    async def test_rules(
+        self, client, auth_headers, board, field, target, values, expected
+    ):
+        made = await self._setup(client, auth_headers, board, values, **field)
+        resp = await self._convert(
+            client, auth_headers, board, made, field_type=target, clear_failed=True
+        )
+        assert resp.status_code == 200, resp.text
+        got = await self._values(board, made["field_key"])
+        assert {k: v for k, v in got.items() if v is not None} == expected
+
+    async def test_long_text_to_short_fails(self, client, auth_headers, board):
+        field = await self._setup(
+            client, auth_headers, board, {"긴": "가" * 300}, field_type="TEXTAREA"
+        )
+        preview = await client.post(
+            self._url(board, field, preview=True),
+            json={"field_type": "TEXT"},
+            headers=auth_headers,
+        )
+        assert preview.json()["data"]["failed"] == 1
+
+    @pytest.mark.parametrize(
+        ("source", "target"),
+        [("TEXT", "TEXT"), ("TEXT", "IMAGE"), ("IMAGE", "NUMBER")],
+    )
+    async def test_blocked_targets(self, client, auth_headers, board, source, target):
+        field = await _field(client, auth_headers, board, field_type=source)
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type=target
+        )
+        assert resp.status_code == 400
+
+    async def test_trash_posts_converted_and_empty_field(
+        self, client, auth_headers, board
+    ):
+        field = await self._setup(client, auth_headers, board, {"휴지통": "7"})
+        posts = (await client.get(board["posts"], headers=auth_headers)).json()["data"]
+        await client.delete(
+            f"{board['posts']}/{posts['items'][0]['id']}", headers=auth_headers
+        )
+        resp = await self._convert(
+            client, auth_headers, board, field, field_type="NUMBER"
+        )
+        assert resp.json()["data"]["converted"] == 1
+        assert await self._values(board, field["field_key"]) == {"휴지통": 7}
+        empty = await _field(client, auth_headers, board, label="빈 칸")
+        resp = await self._convert(
+            client, auth_headers, board, empty, field_type="DATE"
+        )
+        assert resp.json()["data"]["field"]["field_type"] == "DATE"
+
+    async def test_other_board_tenant_viewer(
+        self, client, auth_headers, other_headers, tenant, test_user, board
+    ):
+        field = await self._setup(client, auth_headers, board, {"가": "1"})
+        body = {"field_type": "NUMBER"}
+        for url in (self._url(board, field), self._url(board, field, preview=True)):
+            resp = await client.post(url, json=body, headers=other_headers)
+            assert resp.status_code == 404
+            assert (await client.post(url, json=body)).status_code == 401
+        other = (
+            await client.post(
+                BOARDS, json={"name": "다른", "slug": "other"}, headers=auth_headers
+            )
+        ).json()["data"]
+        resp = await client.post(
+            f"{BOARDS}/{other['id']}/fields/{field['id']}/convert",
+            json=body,
+            headers=auth_headers,
+        )
+        assert resp.status_code == 404
+        await _sql(
+            "UPDATE users SET role = 'TENANT_VIEWER' WHERE id = :i", i=test_user["id"]
+        )
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        viewer = {"Authorization": f"Bearer {token}"}
+        resp = await client.post(self._url(board, field), json=body, headers=viewer)
+        assert resp.status_code == 403
