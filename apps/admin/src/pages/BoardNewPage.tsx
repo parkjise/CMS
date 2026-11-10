@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import type { Board, BoardStatus, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
-import { useBoardLimits, useCreateBoard } from '@/hooks/useBoards'
+import { useBoardLimits, useBoardPresets, useCreateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { BOARD_EXAMPLES } from '@/lib/boardExamples'
 import { BOARD_TYPES, boardSlugError } from '@/lib/boardLabels'
+import { fieldTypeLabel } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 const STEPS = ['기본 정보', '유형', '공개 여부'] as const
@@ -26,6 +27,19 @@ export function BoardNewPage() {
   const [inMenu, setInMenu] = useState(true)
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
   const [created, setCreated] = useState<Board | null>(null)
+  // 유형별 추천 칸 (T-183) — 고르지 않은 유형은 전부 체크한 상태로 시작
+  const presetsQuery = useBoardPresets()
+  const [presetPicks, setPresetPicks] = useState<Partial<Record<BoardType, string[]>>>({})
+  const [createdPresets, setCreatedPresets] = useState(0)
+  const presets = presetsQuery.data?.[boardType] ?? []
+  const pickedPresets = presetPicks[boardType] ?? presets.map((p) => p.key)
+  const togglePreset = (key: string, checked: boolean) =>
+    setPresetPicks((picks) => ({
+      ...picks,
+      [boardType]: checked
+        ? [...pickedPresets, key]
+        : pickedPresets.filter((picked) => picked !== key),
+    }))
 
   const limits = limitsQuery.data
 
@@ -47,7 +61,10 @@ export function BoardNewPage() {
         board_type: boardType,
         status,
         in_menu: inMenu,
+        // 추천 칸을 못 불러왔으면 보내지 않는다 — 칸은 만든 뒤 필드 관리에서
+        preset_fields: presetsQuery.isSuccess ? pickedPresets : [],
       })
+      setCreatedPresets(presetsQuery.isSuccess ? pickedPresets.length : 0)
       setCreated(board)
     } catch (error) {
       toast.error(pickErrorMessage(error, '게시판을 만들지 못했습니다.'))
@@ -70,6 +87,12 @@ export function BoardNewPage() {
               : '상단 메뉴에는 넣지 않았습니다.'}{' '}
           메뉴 이름과 보이기는 공통 설정의 상단 메뉴에서 바꿀 수 있습니다.
         </p>
+        {createdPresets > 0 && (
+          <p className="text-sm text-slate-600">
+            추천 칸 {createdPresets}개를 함께 만들었습니다. 이름 · 선택지 · 순서는 칸 설정에서 바꿀 수
+            있습니다.
+          </p>
+        )}
         <div className="flex flex-wrap gap-2">
           <Link
             to={`/admin/boards/${created.id}/posts/new`}
@@ -199,6 +222,36 @@ export function BoardNewPage() {
                     </span>
                   </label>
                 ))}
+                {presets.length > 0 && (
+                  <fieldset className="mt-4 space-y-2 rounded-md bg-slate-50 p-3">
+                    <legend className="text-sm font-medium text-slate-700">함께 만들 추천 칸</legend>
+                    <p className="text-xs text-slate-500">
+                      필요 없는 칸은 체크를 풀어 주세요. 만든 뒤에도 칸 설정에서 고칠 수 있습니다.
+                    </p>
+                    {presets.map((preset) => (
+                      <label key={preset.key} className="flex items-start gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="mt-0.5"
+                          checked={pickedPresets.includes(preset.key)}
+                          onChange={(e) => togglePreset(preset.key, e.target.checked)}
+                        />
+                        <span>
+                          <span className="text-slate-900">{preset.label}</span>{' '}
+                          <span className="text-xs text-slate-500">
+                            ({fieldTypeLabel(preset.field_type)}
+                            {preset.choices.length > 0 && `: ${preset.choices.join(' · ')}`})
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
+                )}
+                {presetsQuery.isError && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    추천 칸을 불러오지 못했습니다. 칸은 만든 뒤 칸 설정에서 추가할 수 있습니다.
+                  </p>
+                )}
               </fieldset>
             )}
 

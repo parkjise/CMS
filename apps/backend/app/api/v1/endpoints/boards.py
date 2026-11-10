@@ -23,6 +23,7 @@ from app.models.user import User
 from app.schemas.board import (
     BoardCreate,
     BoardLimitsResponse,
+    BoardPresetField,
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
@@ -72,7 +73,7 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
-from app.services import board_access
+from app.services import board_access, board_presets
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import board_guest_post as guest_post_service
@@ -208,6 +209,17 @@ async def get_limits(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     return ApiResponse.ok(await board_service.get_limits(db, tenant_id))
+
+
+@router.get("/presets", response_model=ApiResponse[dict[str, list[BoardPresetField]]])
+async def list_board_presets():
+    """새 게시판 유형별 추천 칸 (T-183)."""
+    return ApiResponse.ok(
+        {
+            board_type: [BoardPresetField.model_validate(p) for p in presets]
+            for board_type, presets in board_presets.presets_response().items()
+        }
+    )
 
 
 @router.post("/clear-samples", response_model=ApiResponse[dict])

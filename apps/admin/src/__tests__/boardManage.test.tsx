@@ -70,14 +70,43 @@ const closedLimits: BoardLimits = {
 
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
 
+// 새 게시판 유형별 추천 칸 (T-183)
+const PRESETS = {
+  LIST: [],
+  FAQ: [],
+  GALLERY: [
+    { key: 'taken_on', label: '촬영일', field_type: 'DATE', choices: [], show_in_list: false },
+    { key: 'place', label: '장소', field_type: 'TEXT', choices: [], show_in_list: false },
+  ],
+  CARD: [
+    {
+      key: 'employment_type',
+      label: '근무 형태',
+      field_type: 'SELECT',
+      choices: ['정규직', '계약직'],
+      show_in_list: true,
+    },
+    { key: 'deadline', label: '마감일', field_type: 'DATE', choices: [], show_in_list: true },
+  ],
+}
+
 const mockApi = ({
   boards = [board],
   limits = openLimits,
   trash = [],
   mode = 'code',
-}: { boards?: Board[]; limits?: BoardLimits; trash?: Board[]; mode?: 'code' | 'theme' }) => {
+  presets = PRESETS,
+}: {
+  boards?: Board[]
+  limits?: BoardLimits
+  trash?: Board[]
+  mode?: 'code' | 'theme'
+  presets?: unknown
+}) => {
   get.mockImplementation((url: string, config?: { params?: { trash?: boolean } }) => {
     if (url === '/v1/boards/limits') return ok(limits)
+    if (url === '/v1/boards/presets')
+      return presets === 'error' ? Promise.reject(new Error('down')) : ok(presets)
     if (url === '/v1/boards') return ok(config?.params?.trash ? trash : boards)
     if (url === '/v1/site-settings/menu') return ok({ mode, reorderable: mode === 'code', items: [] })
     return ok(undefined)
@@ -199,6 +228,7 @@ describe('게시판 추가 마법사', () => {
         board_type: 'GALLERY',
         status: 'INACTIVE',
         in_menu: true,
+        preset_fields: ['taken_on', 'place'],
       }),
     )
     expect(await screen.findByRole('link', { name: '첫 글 쓰기' })).toHaveAttribute(
@@ -210,6 +240,62 @@ describe('게시판 추가 마법사', () => {
       '/admin/boards/new1/fields',
     )
     expect(screen.getByText(/상단 메뉴에 추가했습니다/)).toBeInTheDocument()
+    expect(screen.getByText(/추천 칸 2개를 함께 만들었습니다/)).toBeInTheDocument()
+  })
+
+  describe('유형별 추천 칸 (T-183)', () => {
+    const toTypeStep = async () => {
+      await userEvent.type(screen.getByLabelText(/게시판 이름/), '채용')
+      await next()
+    }
+
+    it('일반 목록은 추천 칸이 없고, 카드형은 모두 체크된 채 나온다', async () => {
+      mockApi({})
+      renderNew()
+      await toTypeStep()
+      expect(screen.queryByRole('group', { name: '함께 만들 추천 칸' })).not.toBeInTheDocument()
+      await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      const group = await screen.findByRole('group', { name: '함께 만들 추천 칸' })
+      expect(within(group).getByRole('checkbox', { name: /근무 형태/ })).toBeChecked()
+      expect(within(group).getByText(/하나 고르기: 정규직 · 계약직/)).toBeInTheDocument()
+    })
+
+    it('체크를 푼 칸은 빼고, 유형마다 선택을 기억한다', async () => {
+      mockApi({})
+      post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+      renderNew()
+      await toTypeStep()
+      await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      await userEvent.click(await screen.findByRole('checkbox', { name: /근무 형태/ }))
+      await userEvent.click(screen.getByRole('radio', { name: /갤러리형/ }))
+      expect(screen.getByRole('checkbox', { name: /촬영일/ })).toBeChecked()
+      await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      expect(screen.getByRole('checkbox', { name: /근무 형태/ })).not.toBeChecked()
+      await next()
+      await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith(
+          '/v1/boards',
+          expect.objectContaining({ board_type: 'CARD', preset_fields: ['deadline'] }),
+        ),
+      )
+      expect(await screen.findByText(/추천 칸 1개를 함께 만들었습니다/)).toBeInTheDocument()
+    })
+
+    it('추천 칸을 못 불러와도 게시판은 만든다', async () => {
+      mockApi({ presets: 'error' })
+      post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+      renderNew()
+      await toTypeStep()
+      await userEvent.click(screen.getByRole('radio', { name: /카드형/ }))
+      expect(await screen.findByText(/추천 칸을 불러오지 못했습니다/)).toBeInTheDocument()
+      await next()
+      await userEvent.click(screen.getByRole('button', { name: '만들기' }))
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith('/v1/boards', expect.objectContaining({ preset_fields: [] })),
+      )
+      expect(screen.queryByText(/추천 칸 .*개를 함께 만들었습니다/)).not.toBeInTheDocument()
+    })
   })
 
   const toLastStep = async () => {

@@ -61,6 +61,15 @@ export interface BoardField {
   choice_counts?: Record<string, number>
 }
 
+/** 새 게시판 유형별 추천 칸 (T-183) — 게시판을 만들 때 함께 만든다 */
+export interface BoardPresetField {
+  key: string
+  label: string
+  field_type: FieldType
+  choices: string[]
+  show_in_list: boolean
+}
+
 /** 값이 있는 칸의 유형 바꾸기 미리보기 (T-182) */
 export interface FieldConvertPreview {
   field_type: FieldType

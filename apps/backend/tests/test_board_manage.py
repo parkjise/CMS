@@ -564,3 +564,102 @@ class TestAccess:
         await feature_service.invalidate_cache(standard["id"])
         resp = await client.post(BOARDS, json={"name": "x"}, headers=auth_headers)
         assert resp.status_code == 403
+
+
+class TestPresetFields:
+    """새 게시판 유형별 추천 칸 (T-183, BM-02)."""
+
+    async def test_presets_list(self, client, auth_headers, standard):
+        resp = await client.get(f"{BOARDS}/presets", headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert set(data) == {"LIST", "GALLERY", "FAQ", "CARD"}
+        assert data["LIST"] == [] and data["FAQ"] == []
+        card = {p["key"]: p for p in data["CARD"]}
+        assert card["employment_type"]["choices"] == [
+            "정규직",
+            "계약직",
+            "아르바이트",
+            "인턴",
+        ]
+        assert card["deadline"]["show_in_list"] is True
+
+    async def test_create_with_presets(self, client, auth_headers, standard):
+        board = await _create(
+            client,
+            auth_headers,
+            board_type="CARD",
+            preset_fields=["apply_url", "employment_type", "deadline", "deadline"],
+        )
+        fields = (
+            await client.get(f"{BOARDS}/{board['id']}/fields", headers=auth_headers)
+        ).json()["data"]
+        # 정의 순서대로, 겹친 키는 하나로
+        assert [f["field_key"] for f in fields] == [
+            "employment_type",
+            "deadline",
+            "apply_url",
+        ]
+        by_key = {f["field_key"]: f for f in fields}
+        assert [o["label"] for o in by_key["employment_type"]["options"]] == [
+            "정규직",
+            "계약직",
+            "아르바이트",
+            "인턴",
+        ]
+        assert by_key["employment_type"]["show_in_list"] is True
+        assert by_key["apply_url"]["show_in_list"] is False
+        assert all(not f["is_required"] for f in fields)
+        # 만든 칸에 값을 넣을 수 있다
+        resp = await client.post(
+            f"{BOARDS}/{board['id']}/posts",
+            json={
+                "title": "간호사 채용",
+                "status": "PUBLISHED",
+                "custom_data": {"employment_type": "opt_1", "deadline": "2026-12-31"},
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201, resp.text
+
+    async def test_without_presets_has_no_fields(self, client, auth_headers, standard):
+        board = await _create(client, auth_headers, board_type="GALLERY")
+        fields = (
+            await client.get(f"{BOARDS}/{board['id']}/fields", headers=auth_headers)
+        ).json()["data"]
+        assert fields == []
+
+    @pytest.mark.parametrize(
+        ("board_type", "keys"),
+        [("LIST", ["deadline"]), ("GALLERY", ["deadline"]), ("CARD", ["nope"])],
+    )
+    async def test_other_type_keys_rejected_and_nothing_created(
+        self, client, auth_headers, standard, board_type, keys
+    ):
+        before = (await client.get(BOARDS, headers=auth_headers)).json()["data"]
+        resp = await client.post(
+            BOARDS,
+            json={"name": "x", "board_type": board_type, "preset_fields": keys},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["field"] == "preset_fields"
+        after = (await client.get(BOARDS, headers=auth_headers)).json()["data"]
+        assert len(after) == len(before)
+
+    async def test_viewer_cannot_create(self, client, standard, test_user):
+        token = create_access_token(
+            user_id=uuid.UUID(test_user["id"]),
+            tenant_id=uuid.UUID(standard["id"]),
+            role="TENANT_VIEWER",
+        )
+        await _sql(
+            "UPDATE users SET role = 'TENANT_VIEWER' WHERE id = :i", i=test_user["id"]
+        )
+        resp = await client.post(
+            BOARDS,
+            json={"name": "x", "board_type": "CARD", "preset_fields": ["deadline"]},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 403
+        assert (await client.get(f"{BOARDS}/presets")).status_code == 401
