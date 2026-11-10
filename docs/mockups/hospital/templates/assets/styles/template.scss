@@ -55,6 +55,7 @@
 @use 'sub/board-form'; // 게시판 입력 폼 (온라인 예약 · 상담 글쓰기 · 회원)
 @use 'sub/member-form'; // 회원 화면 전용 (로그인·가입·찾기·재설정·탈퇴)
 @use 'sub/mypage'; // 마이페이지 (내 예약·문의 내역·알림 설정·내 정보)
+@use 'sub/corporate-sub'; // 중소기업형 CMS 서브 컴포넌트
 
 @use 'footer/footer'; // Footer
 @use 'quick-menu/quick-menu'; // 퀵메뉴 · 간편상담 · 상단으로 (메인·서브 공통)

@@ -1,0 +1,81 @@
+<!-- CORP LOCATION: 오시는 길 컴포넌트 -->
+<section class="corp-section">
+  <div class="container">
+    <div class="corp-section__header">
+      <span class="corp-kicker">LOCATION &amp; CONTACT</span>
+      <h3 class="corp-section__title">다이나텍에 방문해 주셔서 환영합니다</h3>
+      <p class="corp-section__desc">
+        서울 강남 본사 R&amp;D 센터 및 인천 송도 스마트팩토리 오시는 길과 연락처를 안내해 드립니다.
+      </p>
+    </div>
+
+    <!-- 2개 거점 카드 (서울 본사 / 송도 공장) -->
+    <div class="corp-grid-2" style="margin-bottom: 48px;">
+      <!-- 거점 1: 서울 본사 -->
+      <div class="corp-card">
+        <div class="corp-card__body">
+          <span class="corp-card__tag">HEADQUARTERS &amp; R&amp;D</span>
+          <h4 class="corp-card__title">서울 본사 및 R&amp;D 이노베이션 센터</h4>
+          <p class="corp-card__desc">경영기획, 글로벌 비즈니스, 선행 모빌리티 R&amp;D 연구소</p>
+
+          <div style="border-top: 1px solid var(--color-border); padding-top: 16px; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 0 0 6px;"><strong>주소:</strong> 서울특별시 강남구 테헤란로 425 다이나텍 테크타워 12F</p>
+            <p style="margin: 0 0 6px;"><strong>대표전화:</strong> 02-555-8890 | <strong>팩스:</strong> 02-555-8891</p>
+            <p style="margin: 0 0 6px;"><strong>이메일:</strong> contact@dynatech.co.kr</p>
+            <p style="margin: 0 0 6px;"><strong>지하철:</strong> 2호선·수인분당선 <strong>선릉역 1번 출구</strong> 도보 3분</p>
+            <p style="margin: 0;"><strong>주차 안내:</strong> 건물 내 지하 3~5층 자주식 주차장 (방문 고객 2시간 무료)</p>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="https://map.kakao.com" target="_blank" rel="noopener noreferrer" class="corp-cta__btn corp-cta__btn--primary" style="padding: 10px 18px; font-size: 13px;">
+              <i class="ri-map-pin-2-line"></i> 카카오맵 길찾기
+            </a>
+            <a href="https://map.naver.com" target="_blank" rel="noopener noreferrer" class="corp-cta__btn corp-cta__btn--outline" style="padding: 10px 18px; font-size: 13px; color: var(--color-text-primary); border-color: var(--color-border); background: #F8FAFC;">
+              <i class="ri-navigation-line"></i> 네이버지도 길찾기
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- 거점 2: 송도 스마트팩토리 -->
+      <div class="corp-card">
+        <div class="corp-card__body">
+          <span class="corp-card__tag" style="background: #F0FDF4; color: #16A34A;">SMART FACTORY</span>
+          <h4 class="corp-card__title">인천 송도 스마트 제조센터 (제1·제2공장)</h4>
+          <p class="corp-card__desc">초정밀 CNC 가공 라인, 자동화 조립 클린룸, 신뢰성 시험소</p>
+
+          <div style="border-top: 1px solid var(--color-border); padding-top: 16px; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 0 0 6px;"><strong>주소:</strong> 인천광역시 연수구 송도바이오대로 234 송도지식정보단지</p>
+            <p style="margin: 0 0 6px;"><strong>공장직통:</strong> 032-830-7700 | <strong>품질센터:</strong> 032-830-7750</p>
+            <p style="margin: 0 0 6px;"><strong>이메일:</strong> factory@dynatech.co.kr</p>
+            <p style="margin: 0 0 6px;"><strong>대중교통:</strong> 인천 1호선 <strong>테크노파크역 2번 출구</strong> 버스 10분</p>
+            <p style="margin: 0;"><strong>차량 방문:</strong> 정문 안내실에서 신분증 확인 및 보안 서약 후 방문증 발급</p>
+          </div>
+
+          <div style="margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <a href="https://map.kakao.com" target="_blank" rel="noopener noreferrer" class="corp-cta__btn corp-cta__btn--primary" style="padding: 10px 18px; font-size: 13px;">
+              <i class="ri-map-pin-2-line"></i> 카카오맵 길찾기
+            </a>
+            <a href="https://map.naver.com" target="_blank" rel="noopener noreferrer" class="corp-cta__btn corp-cta__btn--outline" style="padding: 10px 18px; font-size: 13px; color: var(--color-text-primary); border-color: var(--color-border); background: #F8FAFC;">
+              <i class="ri-navigation-line"></i> 네이버지도 길찾기
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 지도 시각화 뷰 -->
+    <div style="border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--color-border); box-shadow: 0 12px 32px rgba(15, 41, 66, 0.06); background: #E2E8F0; position: relative;">
+      <iframe
+        src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3165.3618175402633!2d127.05315187652755!3d37.50529552731802!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x357ca40a6b5a329d%3A0x6b2bdfad503923ef!2z7ISc7Jq47Yq567OE7IucIOqwleuCqOq1rCDthYztlqTrnoDroZAgNDI1!5e0!3m2!1sko!2skr!4v1700000000000!5m2!1sko!2skr"
+        width="100%"
+        height="450"
+        style="border:0; display: block;"
+        allowfullscreen=""
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        title="다이나텍 본사 지도 위치"
+      ></iframe>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,637 @@
+// ════════════════════════════════════════════════════════════════
+// CORPORATE SUBPAGES STYLES — DYNATECH 코퍼레이트 서브 스타일
+// ════════════════════════════════════════════════════════════════
+@use '../mixins' as *;
+
+.corp-section {
+  padding-block: 72px;
+  background-color: var(--color-background);
+
+  @include md {
+    padding-block: 104px;
+  }
+
+  &--alt {
+    background-color: var(--color-background-alt);
+    border-block: 1px solid var(--color-border);
+  }
+
+  &--navy {
+    background: linear-gradient(135deg, #0b1e32 0%, #0f2942 60%, #173859 100%);
+    color: #fff;
+  }
+
+  &__header {
+    margin-bottom: 48px;
+    text-align: center;
+
+    @include md {
+      margin-bottom: 64px;
+    }
+
+    &--left {
+      text-align: left;
+    }
+  }
+
+  &__kicker {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--color-text-primary);
+    margin: 0 0 16px;
+
+    @include md {
+      font-size: 38px;
+    }
+  }
+
+  &__desc {
+    font-size: 16px;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+    max-width: 680px;
+    margin: 0 auto;
+
+    &--left {
+      margin: 0;
+    }
+  }
+}
+
+// ── 카드 그리드 ──────────────────────────────────────────────
+.corp-grid-4 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+
+  @include sm {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include lg {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.corp-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 28px;
+
+  @include md {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  @include lg {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.corp-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+
+  @include lg {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.corp-inquiry-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+  align-items: flex-start;
+
+  @include lg {
+    grid-template-columns: minmax(0, 1.4fr) minmax(280px, 1fr);
+    gap: 40px;
+  }
+}
+
+// ── 핵심 수치 카드 (Stat Card) ──────────────────────────────
+.corp-stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 24px;
+  text-align: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 32px rgba(15, 41, 66, 0.08);
+    border-color: var(--color-primary-light);
+  }
+
+  &__icon {
+    font-size: 32px;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+  }
+
+  &__num {
+    display: block;
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+    line-height: 1.2;
+    letter-spacing: -0.02em;
+
+    @include md {
+      font-size: 44px;
+    }
+
+    small {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-primary);
+      margin-left: 2px;
+    }
+  }
+
+  &__label {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 8px 0 6px;
+  }
+
+  &__text {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+// ── 테이블 (Spec / 기업정보) ───────────────────────────────
+.corp-table-wrap {
+  overflow-x: auto;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.corp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+
+  th, td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+    line-height: 1.6;
+  }
+
+  th {
+    width: 22%;
+    min-width: 130px;
+    background-color: #F8FAFC;
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+
+  td {
+    color: var(--color-text-secondary);
+  }
+
+  tr:last-child {
+    th, td {
+      border-bottom: 0;
+    }
+  }
+}
+
+// ── 카드 기본 (Corp Card) ──────────────────────────────────
+.corp-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px rgba(15, 41, 66, 0.08);
+    border-color: #CBD5E1;
+  }
+
+  &__media {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: #E2E8F0;
+    overflow: hidden;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+  }
+
+  &:hover &__media img {
+    transform: scale(1.05);
+  }
+
+  &__body {
+    padding: 24px;
+  }
+
+  &__tag {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #EFF6FF;
+    color: var(--color-primary);
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    font-size: 19px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 10px;
+    line-height: 1.4;
+  }
+
+  &__desc {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--color-text-secondary);
+    margin: 0 0 18px;
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--color-border);
+    padding-top: 16px;
+    font-size: 13px;
+    color: var(--color-text-muted);
+  }
+}
+
+// ── 필터 탭 (Filter Tabs) ─────────────────────────────────
+.corp-tabs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 40px;
+
+  &__btn {
+    padding: 10px 22px;
+    border-radius: 9999px;
+    border: 1px solid var(--color-border);
+    background: #fff;
+    color: var(--color-text-secondary);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--color-primary);
+      color: var(--color-primary);
+    }
+
+    &.is-active {
+      background: var(--color-primary);
+      border-color: var(--color-primary);
+      color: #fff;
+    }
+  }
+}
+
+// ── 아코디언 (Accordion FAQ) ──────────────────────────────
+.corp-accordion {
+  max-width: 920px;
+  margin: 0 auto;
+  border-top: 1px solid var(--color-border);
+
+  &__item {
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  &__header {
+    width: 100%;
+    text-align: left;
+    padding: 22px 16px;
+    background: none;
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    gap: 16px;
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      background-color: #F8FAFC;
+    }
+  }
+
+  &__question {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.45;
+  }
+
+  &__q-badge {
+    color: var(--color-primary);
+    font-weight: 800;
+    font-size: 18px;
+  }
+
+  &__icon {
+    font-size: 20px;
+    color: var(--color-text-muted);
+    transition: transform 0.25s ease;
+  }
+
+  &__item.is-open &__icon {
+    transform: rotate(180deg);
+    color: var(--color-primary);
+  }
+
+  &__body {
+    display: none;
+    padding: 0 16px 24px 44px;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--color-text-secondary);
+  }
+
+  &__item.is-open &__body {
+    display: block;
+  }
+}
+
+// ── B2B 문의 폼 (Inquiry Form) ────────────────────────────
+.corp-form {
+  max-width: 760px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  padding: 36px 28px;
+  box-shadow: 0 12px 32px rgba(15, 41, 66, 0.04);
+
+  @include md {
+    padding: 48px;
+  }
+
+  &__group {
+    margin-bottom: 22px;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+
+    @include md {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  &__label {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+
+    .required {
+      color: #DC2626;
+      margin-left: 2px;
+    }
+  }
+
+  &__input,
+  &__select,
+  &__textarea {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: #fff;
+    color: var(--color-text-primary);
+    transition: border-color 0.2s, box-shadow 0.2s;
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+    }
+  }
+
+  &__textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+
+  &__agree {
+    background: #F8FAFC;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+
+    &-checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      font-weight: 600;
+      color: var(--color-text-primary);
+      cursor: pointer;
+    }
+  }
+
+  &__submit {
+    width: 100%;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    background: var(--color-primary);
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+
+    &:hover {
+      background: var(--color-primary-dark);
+    }
+
+    &:active {
+      transform: translateY(1px);
+    }
+  }
+}
+
+// ── 기업 조직도 (Org Chart) ────────────────────────────────
+.corp-org {
+  max-width: 900px;
+  margin: 0 auto;
+
+  &__root {
+    background: var(--color-navy);
+    color: #fff;
+    padding: 20px;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    max-width: 320px;
+    margin: 0 auto 36px;
+    box-shadow: 0 10px 24px rgba(15, 41, 66, 0.15);
+
+    h4 {
+      font-size: 20px;
+      margin: 0 0 4px;
+      font-weight: 800;
+    }
+    p {
+      margin: 0;
+      font-size: 13px;
+      opacity: 0.85;
+    }
+  }
+
+  &__line {
+    width: 2px;
+    height: 30px;
+    background: #CBD5E1;
+    margin: -36px auto 0;
+  }
+
+  &__branches {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+
+    @include md {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  &__node {
+    background: #fff;
+    border: 1px solid var(--color-border);
+    border-top: 4px solid var(--color-primary);
+    border-radius: var(--radius-md);
+    padding: 20px 16px;
+    text-align: center;
+    box-shadow: 0 4px 16px rgba(15, 41, 66, 0.04);
+
+    h5 {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--color-text-primary);
+      margin: 0 0 8px;
+    }
+    p {
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--color-text-muted);
+      margin: 0;
+    }
+  }
+}
+
+// ── CTA 배너 (Call To Action) ─────────────────────────────
+.corp-cta {
+  background: linear-gradient(135deg, #0F2942 0%, #173859 100%);
+  color: #fff;
+  border-radius: var(--radius-xl);
+  padding: 48px 32px;
+  text-align: center;
+  margin-top: 56px;
+
+  @include md {
+    padding: 64px 48px;
+  }
+
+  &__title {
+    font-size: 26px;
+    font-weight: 800;
+    margin: 0 0 16px;
+
+    @include md {
+      font-size: 34px;
+    }
+  }
+
+  &__desc {
+    font-size: 16px;
+    line-height: 1.6;
+    color: #CBD5E1;
+    max-width: 600px;
+    margin: 0 auto 32px;
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    transition: all 0.2s ease;
+
+    &--primary {
+      background: var(--color-primary);
+      color: #fff;
+      &:hover {
+        background: #2563EB;
+        transform: translateY(-2px);
+      }
+    }
+
+    &--outline {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      color: #fff;
+      &:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: #fff;
+      }
+    }
+  }
+}

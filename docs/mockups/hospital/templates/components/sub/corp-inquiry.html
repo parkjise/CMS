@@ -1,0 +1,117 @@
+<!-- CORP INQUIRY: 문의하기 컴포넌트 -->
+<section class="corp-section">
+  <div class="container">
+    <div class="corp-section__header">
+      <span class="corp-kicker">CONTACT &amp; INQUIRY</span>
+      <h3 class="corp-section__title">신속하고 전문적인<br />B2B 엔지니어링 상담을 약속합니다</h3>
+      <p class="corp-section__desc">
+        부품 개발, 견적 문의, 기술 제휴 등 원하시는 문의 사항을 남겨주시면<br class="hidden-sm" />
+        담당 기술 엔지니어가 24시간 이내에 상세히 검토 후 연락드리겠습니다.
+      </p>
+    </div>
+
+    <div class="corp-inquiry-layout">
+      <!-- 왼쪽: B2B 문의 접수 폼 -->
+      <form class="corp-form" style="margin: 0; max-width: 100%;" onsubmit="event.preventDefault(); alert('문의가 성공적으로 접수되었습니다. 담당 엔지니어가 신속히 연락드리겠습니다.');">
+        <div class="corp-form__group">
+          <label class="corp-form__label" for="inquiry-type">문의 유형 <span class="required">*</span></label>
+          <select id="inquiry-type" class="corp-form__select" required>
+            <option value="">선택해 주세요</option>
+            <option value="quote">신규 부품 개발 및 견적 문의</option>
+            <option value="mass">양산 부품 공급 및 단가 협의</option>
+            <option value="tech">R&amp;D 기술 제휴 및 공동 개발</option>
+            <option value="quality">품질·인증 자료 및 시험 성적서 요청</option>
+            <option value="general">기타 비즈니스 협력 문의</option>
+          </select>
+        </div>
+
+        <div class="corp-form__row">
+          <div class="corp-form__group">
+            <label class="corp-form__label" for="company-name">회사명 <span class="required">*</span></label>
+            <input type="text" id="company-name" class="corp-form__input" placeholder="예: (주)글로벌테크" required />
+          </div>
+          <div class="corp-form__group">
+            <label class="corp-form__label" for="manager-name">담당자명 / 직급 <span class="required">*</span></label>
+            <input type="text" id="manager-name" class="corp-form__input" placeholder="예: 홍길동 팀장" required />
+          </div>
+        </div>
+
+        <div class="corp-form__row">
+          <div class="corp-form__group">
+            <label class="corp-form__label" for="email">업무용 이메일 <span class="required">*</span></label>
+            <input type="email" id="email" class="corp-form__input" placeholder="example@company.com" required />
+          </div>
+          <div class="corp-form__group">
+            <label class="corp-form__label" for="phone">연락처 <span class="required">*</span></label>
+            <input type="tel" id="phone" class="corp-form__input" placeholder="010-0000-0000" required />
+          </div>
+        </div>
+
+        <div class="corp-form__group">
+          <label class="corp-form__label" for="subject">문의 제목 <span class="required">*</span></label>
+          <input type="text" id="subject" class="corp-form__input" placeholder="문의 요약 제목을 입력해 주세요" required />
+        </div>
+
+        <div class="corp-form__group">
+          <label class="corp-form__label" for="message">상세 문의 내용 <span class="required">*</span></label>
+          <textarea id="message" class="corp-form__textarea" placeholder="부품 사양, 예상 소요 수량, 목표 양산 일정 등을 자유롭게 기술해 주세요." required></textarea>
+        </div>
+
+        <div class="corp-form__group">
+          <label class="corp-form__label" for="attachment">도면 및 사양서 첨부 (선택)</label>
+          <input type="file" id="attachment" class="corp-form__input" style="padding: 8px;" />
+          <span style="font-size: 12px; color: var(--color-text-muted); display: block; margin-top: 4px;">
+            첨부 가능 파일: PDF, ZIP, DWG, STEP, JPG (최대 30MB)
+          </span>
+        </div>
+
+        <!-- 개인정보 수집 및 이용 동의 -->
+        <div class="corp-form__agree">
+          <p style="margin: 0 0 6px; font-weight: 700; color: var(--color-text-primary);">개인정보 수집 및 이용 동의</p>
+          <p style="margin: 0; font-size: 12px; line-height: 1.6;">
+            1. 수집 항목: 회사명, 성명, 이메일, 연락처<br />
+            2. 수집 목적: 고객 문의 접수, 사실 확인 및 견적 상담 회신<br />
+            3. 보유 기간: 전자상거래법 등 관련 법령에 의거하여 3년간 보관 후 지체 없이 파기
+          </p>
+          <label class="corp-form__agree-checkbox">
+            <input type="checkbox" required />
+            <span>개인정보 수집 및 이용에 동의합니다. (필수)</span>
+          </label>
+        </div>
+
+        <button type="submit" class="corp-form__submit">
+          <i class="ri-send-plane-fill"></i> 문의 접수하기
+        </button>
+      </form>
+
+      <!-- 오른쪽: 지원 안내 사이드바 -->
+      <div>
+        <div class="corp-stat-card" style="text-align: left; padding: 32px; margin-bottom: 24px;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: #EFF6FF; color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
+            <i class="ri-customer-service-2-line"></i>
+          </div>
+          <h4 style="font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0 0 8px;">고객 상담 전담 센터</h4>
+          <p style="font-size: 14px; color: var(--color-text-secondary); line-height: 1.6; margin: 0 0 16px;">
+            긴급한 견적 문의나 기술 지원이 필요하신 경우 직통 번호로 연락 주시면 즉시 안내받으실 수 있습니다.
+          </p>
+          <div style="border-top: 1px solid var(--color-border); padding-top: 16px; font-size: 14px; line-height: 1.8;">
+            <p style="margin: 0;"><strong>대표전화:</strong> 02-555-8890</p>
+            <p style="margin: 0;"><strong>기술영업:</strong> 02-555-8895</p>
+            <p style="margin: 0;"><strong>이메일:</strong> sales@dynatech.co.kr</p>
+            <p style="margin: 0;"><strong>운영시간:</strong> 평일 09:00 ~ 18:00 (주말·공휴일 휴무)</p>
+          </div>
+        </div>
+
+        <div class="corp-stat-card" style="text-align: left; padding: 32px; background: #F8FAFC;">
+          <div style="width: 48px; height: 48px; border-radius: 12px; background: #F0FDF4; color: #16A34A; display: flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 16px;">
+            <i class="ri-lock-password-line"></i>
+          </div>
+          <h4 style="font-size: 18px; font-weight: 700; color: var(--color-text-primary); margin: 0 0 8px;">도면 및 기술 보안 보장 (NDA)</h4>
+          <p style="font-size: 13px; color: var(--color-text-secondary); line-height: 1.6; margin: 0;">
+            다이나텍은 고객사의 핵심 지식재산권과 도면을 완벽히 보호하기 위해 사내 망분리 및 강력한 보안 시스템을 적용하고 있으며, 필요 시 상호 비밀유지협약(NDA) 체결 후 프로젝트를 진행합니다.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

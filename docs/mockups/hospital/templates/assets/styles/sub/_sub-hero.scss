@@ -6,9 +6,9 @@
   position: relative;
   margin-top: -80px; // 헤더 높이만큼 당겨 비주얼 위로 겹침
   padding: 0;
-  height: 360px;
+  height: 340px;
   @include md {
-    height: 100vh;
+    height: 420px;
   }
   color: #fff;
   overflow: hidden;
@@ -38,9 +38,11 @@
     z-index: 1;
     height: 100%;
     @include flex(center, center, 0, column);
-    padding-bottom: 48px;
+    padding-top: 50px;
+    padding-bottom: 30px;
     @include md {
-      padding-bottom: 72px;
+      padding-top: 80px;
+      padding-bottom: 40px;
     }
     text-align: center;
   }

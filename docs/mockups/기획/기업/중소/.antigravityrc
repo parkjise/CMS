@@ -1,0 +1,5 @@
+{
+  "approval_level": "none",
+  "auto_approve_tools": ["file_edit", "shell_command", "file_read"],
+  "interactive": false
+}
