@@ -45,7 +45,7 @@ export default async function TenantHomePage({ params }: Props) {
   // 이 라우트는 테마형 전용 — 코드형 템플릿 화면을 import 하지 않아야 다른 템플릿 CSS·JS 가 섞이지 않는다.
 
   // 홈 페이지의 그릴 수 있는 섹션만 — 코드형 템플릿용 하위 페이지 섹션이 섞이지 않게 (T-057-A)
-  const activeSections = themeHomeSections(site.sections)
+  const activeSections = themeHomeSections(site.sections, site.boards)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
@@ -62,7 +62,7 @@ export default async function TenantHomePage({ params }: Props) {
           <EmptySectionsPlaceholder />
         ) : (
           activeSections.map((section) => (
-            <SectionRenderer key={section.id} section={section} tenantSlug={tenant_slug} />
+            <SectionRenderer key={section.id} section={section} tenantSlug={tenant_slug} boards={site.boards} />
           ))
         )}
       </main>

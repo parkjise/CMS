@@ -35,6 +35,8 @@ THEME_FIELDS: dict[str, frozenset[str]] = {
         {"section_title", "description", "require_phone", "require_email"}
     ),
     "MAP": frozenset({"address", "address_detail", "latitude", "longitude"}),
+    # 템플릿 기본 섹션(section_layouts)에 없어 전환 때 만들어지지 않는다 (T-185)
+    "BOARD_LATEST": frozenset({"section_title", "latest_board", "post_count"}),
 }
 
 # 값이 없어도 화면이 그려지는 섹션 — 문의 폼은 제목이 없으면 기본 제목으로 나온다

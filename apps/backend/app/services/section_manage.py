@@ -41,6 +41,8 @@ THEME_SECTION_TYPES: dict[str, str] = {
     "GALLERY": "갤러리",
     "CONTACT": "문의하기",
     "MAP": "지도",
+    # 게시판 최신 글 (T-185) — 템플릿 기본 섹션이 아니라 테마 전환 때 만들지 않는다
+    "BOARD_LATEST": "최신 글",
 }
 
 # 새 섹션이 빈 화면이 되지 않도록 넣는 시작 문구 — '샘플' 표시가 붙어 바꾸도록 안내된다
@@ -54,6 +56,8 @@ STARTER_SETTINGS: dict[str, dict[str, str]] = {
     "GALLERY": {"section_title": "갤러리", "gallery_items": "[]"},
     "CONTACT": {"section_title": "문의하기", "description": "궁금한 점을 남겨 주세요."},
     "MAP": {"address": "주소를 입력하세요"},
+    # 게시판은 고객이 고른다 — 고르기 전에는 홈페이지에 보이지 않는다
+    "BOARD_LATEST": {"section_title": "최신 글"},
 }
 
 PLAN_FIXED_MESSAGE = (

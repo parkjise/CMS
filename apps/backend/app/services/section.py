@@ -8,6 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.section import Section, SectionSetting
 from app.schemas.section import SectionOrderItem, SectionSettingUpdate, SectionUpdate
+from app.services import board_latest
 from app.services.gallery_settings import (
     GALLERY_FIELD,
     GALLERY_VALUE_TYPE,
@@ -91,6 +92,9 @@ async def update_section_settings(
     if data.settings:
         current = {s.field_key: s.field_value for s in section.settings}
         _validate_settings(data.settings, current)
+        if section.section_type in board_latest.LATEST_SECTION_TYPES:
+            # 최신 글 섹션의 게시판 · 개수 (T-185)
+            await board_latest.validate_settings(db, tenant_id, data.settings)
         for s in data.settings:
             existing_result = await db.execute(
                 select(SectionSetting).where(

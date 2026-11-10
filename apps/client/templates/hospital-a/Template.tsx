@@ -100,6 +100,7 @@ export default function HospitalATemplate({
   menuItems,
   onCustomDomain,
   latestNotices,
+  latestFrom,
   boards,
   board,
 }: CodeTemplateProps) {
@@ -241,8 +242,11 @@ export default function HospitalATemplate({
           <NoticeLatest
             {...props}
             latest={latestNotices}
-            listHref={hrefFor('notice')}
-            itemHref={(id) => pageHref(tenantSlug, 'notice', previewQuery, { id, noSlug })}
+            listHref={hrefFor(latestFrom?.pageKey ?? 'notice')}
+            listName={latestFrom?.name ?? '공지사항'}
+            itemHref={(id) =>
+              pageHref(tenantSlug, latestFrom?.pageKey ?? 'notice', previewQuery, { id, noSlug })
+            }
           />
         )
       case 'SUB_HERO':
