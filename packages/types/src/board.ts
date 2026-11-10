@@ -404,3 +404,26 @@ export interface BoardCategoryMergeResult {
   merged: number
   moved: number
 }
+
+/** 사업체 변경 기록 종류 필터 (T-186) — 게시판 · 글 · 칸과 카테고리 */
+export type AuditLogKind = 'board' | 'post' | 'setup'
+
+/** 사업체 변경 기록 한 줄 (T-186) — IP · 원본 값은 오지 않는다. */
+export interface AuditLogEntry {
+  id: string
+  action: string
+  target_type: string
+  /** 계정 이메일 · '운영사' · '삭제된 계정' */
+  actor: string
+  board_name: string | null
+  target_name: string | null
+  count: number | null
+  created_at: string
+}
+
+export interface AuditLogList {
+  items: AuditLogEntry[]
+  total: number
+  page: number
+  limit: number
+}

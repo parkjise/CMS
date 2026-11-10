@@ -24,6 +24,7 @@ export const ADMIN_NAVIGATION = [
       { to: '/admin/boards/new', label: '게시판 생성' },
       { to: '/admin/posts', label: '전체 글' },
       { to: '/admin/posts/reports', label: '신고된 글' },
+      { to: '/admin/boards/history', label: '변경 기록' },
     ],
   },
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의 관리' },
@@ -57,6 +58,7 @@ export function breadcrumbsFor(pathname: string) {
     if (base.to === '/admin/boards') {
       if (tail === '/new') crumbs.push({ label: '게시판 추가' })
       else if (tail === '/trash') crumbs.push({ label: '휴지통' })
+      else if (tail === '/history') crumbs.push({ label: '변경 기록' })
       else if (tail.endsWith('/settings')) crumbs.push({ label: '게시판 설정' })
       else if (tail.endsWith('/connection')) crumbs.push({ label: '홈페이지 연결' })
       else if (tail.endsWith('/fields')) crumbs.push({ label: '필드 관리' })

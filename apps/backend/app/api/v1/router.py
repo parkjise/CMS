@@ -4,6 +4,7 @@ from app.api.v1.endpoints import (
     ai,
     analytics,
     announcements,
+    audit_logs,
     auth,
     billing,
     boards,
@@ -60,6 +61,7 @@ api_router.include_router(announcements.router, dependencies=_tenant_only)
 api_router.include_router(billing.router, dependencies=_tenant_only)
 api_router.include_router(domain.router, dependencies=_tenant_only)
 api_router.include_router(preferences.router, dependencies=_tenant_only)
+api_router.include_router(audit_logs.router, dependencies=_tenant_only)
 
 
 # 헬스체크 (인증 불필요)
