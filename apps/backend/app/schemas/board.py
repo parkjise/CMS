@@ -117,6 +117,18 @@ class BoardCreate(BaseModel):
     status: BoardStatus = "ACTIVE"
     # 끄면 만들어 두기만 하고 상단 메뉴에는 숨긴다 (코드형 템플릿)
     in_menu: bool = True
+    # 함께 만들 추천 칸 키 — 유형마다 정해진 것만 (T-183, GET /boards/presets)
+    preset_fields: list[str] = Field(default_factory=list, max_length=20)
+
+
+class BoardPresetField(BaseModel):
+    """새 게시판 추천 칸 (T-183)."""
+
+    key: str
+    label: str
+    field_type: str
+    choices: list[str]
+    show_in_list: bool
 
 
 class BoardUpdate(BaseModel):

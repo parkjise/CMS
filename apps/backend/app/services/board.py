@@ -32,7 +32,7 @@ from app.schemas.board import (
     PostUpdate,
 )
 from app.schemas.rich_body import body_summary, first_image
-from app.services import board_access, member_features, site_cache
+from app.services import board_access, board_presets, member_features, site_cache
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services.board_search import body_contains
@@ -424,7 +424,12 @@ async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> 
         status=data.status,
         settings={DESCRIPTION_KEY: data.description},
     )
+    keys = board_presets.check_keys(data.board_type, data.preset_fields)
     db.add(board)
+    if keys:
+        # 추천 칸은 게시판과 같은 커밋으로 — 하나라도 실패하면 둘 다 안 만든다 (T-183)
+        await db.flush()
+        db.add_all(board_presets.preset_fields(board, keys))
     await _commit_board(db)
     await db.refresh(board)
     await site_cache.purge_site(db, tenant_id)

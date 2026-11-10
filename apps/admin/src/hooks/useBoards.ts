@@ -6,6 +6,7 @@ import type {
   BoardSortOrder,
   Board,
   BoardLimits,
+  BoardPresetField,
   BoardStatus,
   BoardType,
   BodyNode,
@@ -83,6 +84,8 @@ export interface BoardInput {
   operation?: BoardOperation
   /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
   in_menu?: boolean
+  /** 새 게시판과 함께 만들 추천 칸 키 (T-183) */
+  preset_fields?: string[]
 }
 
 /** 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) */
@@ -127,6 +130,18 @@ export function useBoardLimits() {
       const { data } = await api.get('/v1/boards/limits')
       return data.data
     },
+  })
+}
+
+/** 새 게시판 유형별 추천 칸 (T-183) */
+export function useBoardPresets() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'presets'],
+    queryFn: async (): Promise<Record<BoardType, BoardPresetField[]>> => {
+      const { data } = await api.get('/v1/boards/presets')
+      return data.data
+    },
+    staleTime: Infinity,
   })
 }
 
