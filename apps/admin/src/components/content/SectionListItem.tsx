@@ -14,6 +14,7 @@ import {
   Images,
   Layout,
   MapPin,
+  Newspaper,
   Phone,
   Trash2,
   Users,
@@ -34,6 +35,7 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   PORTFOLIO: FolderOpen,
   TEAM: Users,
   FAQ: HelpCircle,
+  BOARD_LATEST: Newspaper,
 }
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
@@ -47,6 +49,7 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   PORTFOLIO: '포트폴리오',
   TEAM: '팀 소개',
   FAQ: 'FAQ',
+  BOARD_LATEST: '최신 글',
 }
 
 interface SectionListItemProps {

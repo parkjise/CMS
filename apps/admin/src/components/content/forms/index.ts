@@ -1,4 +1,5 @@
 import type { ComponentType } from 'react'
+import { BoardLatestForm } from './BoardLatestForm'
 import { ContactForm } from './ContactForm'
 import { GalleryForm } from './GalleryForm'
 import { GenericForm } from './GenericForm'
@@ -17,6 +18,7 @@ export const SECTION_FORMS: Record<string, SectionFormComponent> = {
   GALLERY: GalleryForm,
   MAP: MapForm,
   CONTACT: ContactForm,
+  BOARD_LATEST: BoardLatestForm,
 }
 
 export function getFormForType(sectionType: string): SectionFormComponent {
