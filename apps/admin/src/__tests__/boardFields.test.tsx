@@ -413,6 +413,111 @@ describe('선택지 옮기기 (T-180)', () => {
   })
 })
 
+describe('유형 바꾸기 (T-182)', () => {
+  const dept = fieldOf({ id: 'f3', field_key: 'dept', label: '진료과', value_count: 3 })
+  const previewOf = (over = {}) => ({
+    field_type: 'SELECT',
+    total: 3,
+    convertible: 2,
+    failed: 1,
+    samples: [{ post_id: 'p1', title: '첫 글', before: '소아과', after: '소아과' }],
+    failures: [{ post_id: 'p3', title: '셋째 글', before: '?', reason: '선택할 수 없는 값입니다.' }],
+    choices: [
+      { value: 'opt_1', label: '소아과' },
+      { value: 'opt_2', label: '내과' },
+    ],
+    default_value_kept: true,
+    ...over,
+  })
+
+  const openConvert = async (field = dept) => {
+    mockApi({ fields: [field] })
+    renderFields()
+    await userEvent.click(await screen.findByRole('button', { name: '진료과 수정' }))
+    expect(screen.getByLabelText('유형')).toBeDisabled()
+    await userEvent.click(screen.getByRole('button', { name: '유형 바꾸기' }))
+    return screen.findByRole('dialog')
+  }
+
+  it('새 유형을 고르면 미리보기 — 바뀌는 예 · 선택지 · 바꿀 수 없는 글', async () => {
+    post.mockResolvedValueOnce({ data: { data: previewOf() } })
+    const dialog = await openConvert()
+    const select = within(dialog).getByLabelText('새 유형')
+    expect(within(select).queryByRole('option', { name: '짧은 글' })).not.toBeInTheDocument()
+    expect(within(select).queryByRole('option', { name: '사진' })).not.toBeInTheDocument()
+    await userEvent.selectOptions(select, 'SELECT')
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/boards/b1/fields/f3/convert/preview', { field_type: 'SELECT' }),
+    )
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('글 3개 중 2개를 바꿀 수 있습니다. 1개는 바꿀 수 없습니다.')
+    expect(within(dialog).getByText(/선택지: 소아과, 내과/)).toBeInTheDocument()
+    expect(within(dialog).getByRole('link', { name: '셋째 글' })).toHaveAttribute(
+      'href',
+      '/admin/boards/b1/posts/p3/edit',
+    )
+    // 바꿀 수 없는 글이 있으면 비우기를 골라야 진행
+    const run = within(dialog).getByRole('button', { name: '유형 바꾸기' })
+    expect(run).toBeDisabled()
+    await userEvent.click(within(dialog).getByRole('checkbox'))
+    expect(run).toBeEnabled()
+  })
+
+  it('바꾸면 보내고 편집을 닫는다', async () => {
+    post
+      .mockResolvedValueOnce({ data: { data: previewOf({ failed: 0, failures: [], convertible: 3 }) } })
+      .mockResolvedValueOnce({ data: { data: { converted: 3, cleared: 0, field: dept } } })
+    const dialog = await openConvert()
+    await userEvent.selectOptions(within(dialog).getByLabelText('새 유형'), 'SELECT')
+    await within(dialog).findByRole('status')
+    await userEvent.click(within(dialog).getByRole('button', { name: '유형 바꾸기' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenLastCalledWith('/v1/boards/b1/fields/f3/convert', {
+        field_type: 'SELECT',
+        clear_failed: false,
+      }),
+    )
+    expect(toast.success).toHaveBeenCalledWith('유형을 바꿨습니다. 글 3개를 바꿨습니다.')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByLabelText('유형')).not.toBeInTheDocument()
+  })
+
+  it('필수 칸은 비우기를 고를 수 없다', async () => {
+    post.mockResolvedValueOnce({ data: { data: previewOf() } })
+    const dialog = await openConvert({ ...dept, is_required: true })
+    await userEvent.selectOptions(within(dialog).getByLabelText('새 유형'), 'SELECT')
+    await within(dialog).findByRole('status')
+    expect(within(dialog).getByRole('checkbox')).toBeDisabled()
+    expect(within(dialog).getByRole('button', { name: '유형 바꾸기' })).toBeDisabled()
+  })
+
+  it('미리보기 실패 · 기본값을 못 옮기는 경우를 알린다', async () => {
+    post.mockRejectedValueOnce({
+      isAxiosError: true,
+      response: { status: 409, data: { error: { message: '서로 다른 값이 50개를 넘어 선택지를 만들 수 없습니다.' } } },
+    })
+    const dialog = await openConvert()
+    await userEvent.selectOptions(within(dialog).getByLabelText('새 유형'), 'SELECT')
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('50개를 넘어')
+    post.mockResolvedValueOnce({
+      data: { data: previewOf({ field_type: 'NUMBER', failed: 0, failures: [], choices: [], default_value_kept: false }) },
+    })
+    await userEvent.selectOptions(within(dialog).getByLabelText('새 유형'), 'NUMBER')
+    expect(await within(dialog).findByText(/기본값은 새 유형으로 바꿀 수 없어 비워집니다/)).toBeInTheDocument()
+  })
+
+  it('사진 칸은 글자 · 링크로만', async () => {
+    mockApi({ fields: [fieldOf({ id: 'f4', field_key: 'photo', label: '사진칸', field_type: 'IMAGE', value_count: 1 })] })
+    renderFields()
+    await userEvent.click(await screen.findByRole('button', { name: '사진칸 수정' }))
+    await userEvent.click(screen.getByRole('button', { name: '유형 바꾸기' }))
+    const dialog = await screen.findByRole('dialog')
+    const names = within(within(dialog).getByLabelText('새 유형'))
+      .getAllByRole('option')
+      .map((o) => o.textContent)
+    expect(names).toEqual(['선택하세요', '짧은 글', '긴 글', '링크'])
+  })
+})
+
 describe('글쓰기 폼', () => {
   const stored: Post = {
     id: 'p1',

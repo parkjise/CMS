@@ -61,6 +61,27 @@ export interface BoardField {
   choice_counts?: Record<string, number>
 }
 
+/** 값이 있는 칸의 유형 바꾸기 미리보기 (T-182) */
+export interface FieldConvertPreview {
+  field_type: FieldType
+  total: number
+  convertible: number
+  failed: number
+  samples: { post_id: string; title: string; before: string; after: string }[]
+  /** 앞에서부터 20개까지 */
+  failures: { post_id: string; title: string; before: string; reason: string }[]
+  /** 선택지 칸으로 바꾸면 쓰게 될 선택지 */
+  choices: FieldOption[]
+  /** 기본값을 그대로 옮길 수 있는지 — false 면 비워진다 */
+  default_value_kept: boolean
+}
+
+export interface FieldConvertResult {
+  converted: number
+  cleared: number
+  field: BoardField
+}
+
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
 export type BodyNode = BodyBlock | RichNode
 
