@@ -1,4 +1,3 @@
-import asyncio
 import io
 
 from PIL import Image
@@ -12,6 +11,7 @@ from app.models.section import SectionSetting
 from app.services import image as image_service
 from app.services import template_assets
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 THUMB_WIDTH = 400
 THUMB_HEIGHT = 300
@@ -25,7 +25,7 @@ ORPHAN_AGE_DAYS = 30
 @celery_app.task(name="app.workers.image.generate_thumbnail", bind=True, max_retries=3)
 def generate_thumbnail(self, file_id: str) -> None:
     try:
-        asyncio.run(_generate_thumbnail(file_id))
+        run_async(_generate_thumbnail(file_id))
     except Exception as exc:
         raise self.retry(exc=exc, countdown=60)
 
@@ -82,7 +82,7 @@ async def _generate_thumbnail(file_id: str) -> bool:
 )
 def cleanup_orphan_files(self) -> int:
     try:
-        return asyncio.run(_cleanup_orphan_files())
+        return run_async(_cleanup_orphan_files())
     except Exception as exc:
         raise self.retry(exc=exc, countdown=60)
 

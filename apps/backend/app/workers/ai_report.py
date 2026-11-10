@@ -4,7 +4,6 @@
 관리자에게 메일로 알린다. 같은 달 자동 리포트가 이미 있으면 건너뛴다.
 """
 
-import asyncio
 import logging
 from datetime import UTC, date, datetime
 
@@ -15,6 +14,7 @@ from app.models.ai import AiReport
 from app.models.tenant import Tenant
 from app.services import ai_report as report_service
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 logger = logging.getLogger("app.ai")
 
@@ -23,7 +23,7 @@ FEATURE_KEY = "AI_MONTHLY_REPORT"
 
 @celery_app.task(name="app.workers.ai_report.generate_monthly_reports")
 def generate_monthly_reports() -> dict:
-    return asyncio.run(_generate_monthly_reports())
+    return run_async(_generate_monthly_reports())
 
 
 async def _generate_monthly_reports(today: date | None = None) -> dict:

@@ -1,14 +1,13 @@
-import asyncio
-
 from app.db.session import set_super_admin_context
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 
 @celery_app.task(name="app.workers.analytics.flush_analytics", bind=True, max_retries=3)
 def flush_analytics(self):
     """매시 정각: Redis 분석 카운터 → PostgreSQL site_analytics upsert"""
     try:
-        asyncio.run(_flush())
+        run_async(_flush())
     except Exception as exc:
         raise self.retry(exc=exc, countdown=60)
 

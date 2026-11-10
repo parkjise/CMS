@@ -5,13 +5,13 @@
 - cleanup_old_analytics: 매일 02:30 플랜별 보관 기간 초과 통계 하드 삭제
 """
 
-import asyncio
 from datetime import date
 
 from sqlalchemy import text
 
 from app.db.session import affected_rows, set_super_admin_context
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 # 플랜별 보관 기간 (일). PREMIUM은 영구 보관 → None
 INQUIRY_RETENTION_DAYS: dict[str, int | None] = {
@@ -44,7 +44,7 @@ INQUIRY_CLIENT_INFO_RETENTION_DAYS = 90
     retry_backoff=True,
 )
 def reset_monthly_notification_count(self) -> int:
-    return asyncio.run(_reset_monthly_notification_count())
+    return run_async(_reset_monthly_notification_count())
 
 
 async def _reset_monthly_notification_count() -> int:
@@ -78,7 +78,7 @@ async def _reset_monthly_notification_count() -> int:
     retry_backoff=True,
 )
 def scrub_inquiry_client_info(self) -> int:
-    return asyncio.run(_scrub_inquiry_client_info())
+    return run_async(_scrub_inquiry_client_info())
 
 
 async def _scrub_inquiry_client_info() -> int:
@@ -116,7 +116,7 @@ async def _scrub_inquiry_client_info() -> int:
     retry_backoff=True,
 )
 def cleanup_old_inquiries(self) -> int:
-    return asyncio.run(_cleanup_old_inquiries())
+    return run_async(_cleanup_old_inquiries())
 
 
 async def _cleanup_old_inquiries() -> int:
@@ -161,7 +161,7 @@ async def _cleanup_old_inquiries() -> int:
     retry_backoff=True,
 )
 def cleanup_old_analytics(self) -> int:
-    return asyncio.run(_cleanup_old_analytics())
+    return run_async(_cleanup_old_analytics())
 
 
 async def _cleanup_old_analytics() -> int:
@@ -204,7 +204,7 @@ async def _cleanup_old_analytics() -> int:
     retry_backoff=True,
 )
 def cleanup_old_template_history(self) -> int:
-    return asyncio.run(_cleanup_old_template_history())
+    return run_async(_cleanup_old_template_history())
 
 
 async def _cleanup_old_template_history(

@@ -164,6 +164,7 @@ async def get_db_with_rls(
 > - **앱 DB 계정 분리** — 앱은 일반 권한 계정 `cms_app`(슈퍼유저 · BYPASSRLS 아님)으로 접속한다(`DATABASE_URL`). 이전에는 소유자 슈퍼유저로 접속해 RLS 가 통째로 무시됐다. 테이블 구조 변경 · 계정 생성 · 시드는 소유자 계정(`MIGRATION_DATABASE_URL`). 계정은 `scripts/init_db_roles.py` 가 만든다 (DML 권한만, 이후 테이블도 자동 부여, `alembic_version` 은 읽기만, 재실행 안전).
 > - **컨텍스트 수명** — `set_rls_context` · `set_super_admin_context` 는 세션(`session.info`)에 값을 두고, 세션 이벤트(`after_begin`)가 **트랜잭션마다** `set_config(..., true)` 로 다시 적용한다. 세션은 commit 때 커넥션을 풀에 돌려주므로 커넥션에 남기는 방식은 commit 뒤 사라지고, 반대로 세션 단위로 남기면 다음 요청에 새어 나간다. 이중 안전장치로 풀에서 커넥션을 꺼낼 때 컨텍스트를 초기화한다(`install_rls_reset`).
 > - 컨텍스트가 없으면 테넌트 테이블은 0건 — 공개 API 는 slug 로 테넌트를 찾은 뒤 `set_rls_context`, 여러 테넌트를 다루는 로그인 · 슈퍼 어드민 · Celery 작업은 `set_super_admin_context` 만 쓴다(직접 `set_config` 금지).
+> - **Celery 태스크 실행** (T-177) — 태스크의 비동기 본문은 `asyncio.run()` 이 아니라 `app/workers/runner.py` 의 `run_async()` 로 실행한다. 태스크마다 이벤트 루프가 새로 생기므로, 끝날 때 같은 루프에서 DB 풀 · Redis 연결을 닫지 않으면 커넥션이 닫힌 루프에 묶여 `idle in transaction` 으로 쌓이고 다음 태스크가 실패한다.
 > - 테스트도 `cms_app` 으로 요청을 처리해 DB 수준 격리를 검증한다(`tests/test_rls_enforcement.py`).
 
 ### 2.3 인증 아키텍처

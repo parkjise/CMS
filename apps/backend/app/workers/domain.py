@@ -4,7 +4,6 @@
 - renew_expiring_ssl: 매일 SSL 만료 D-30 이하 도메인 자동 갱신
 """
 
-import asyncio
 import uuid
 from datetime import UTC, datetime, timedelta
 
@@ -14,6 +13,7 @@ from app.core.config import settings
 from app.db.session import set_super_admin_context
 from app.models.domain import TenantDomain
 from app.workers.celery_app import celery_app
+from app.workers.runner import run_async
 
 POLL_INTERVAL_SECONDS = 60
 MAX_POLL_ATTEMPTS = 24 * 60  # 24시간 (60초 간격)
@@ -30,7 +30,7 @@ async def _bypass(db) -> None:
     default_retry_delay=POLL_INTERVAL_SECONDS,
 )
 def poll_domain_dns(self, domain_id: str) -> dict:
-    result = asyncio.run(_poll_domain_dns(domain_id))
+    result = run_async(_poll_domain_dns(domain_id))
     if result.get("status") == "PENDING_DNS":
         # DNS 미전파 → 재시도
         raise self.retry(countdown=POLL_INTERVAL_SECONDS)
@@ -61,7 +61,7 @@ async def _poll_domain_dns(domain_id: str) -> dict:
     max_retries=1,
 )
 def issue_domain_certificate(self, domain_id: str) -> dict:
-    return asyncio.run(_issue_domain_certificate(domain_id))
+    return run_async(_issue_domain_certificate(domain_id))
 
 
 async def _issue_domain_certificate(domain_id: str) -> dict:
@@ -80,7 +80,7 @@ async def _issue_domain_certificate(domain_id: str) -> dict:
 
 @celery_app.task(name="app.workers.domain.renew_domain_certificate")
 def renew_domain_certificate(domain_id: str) -> dict:
-    return asyncio.run(_renew_domain_certificate(domain_id))
+    return run_async(_renew_domain_certificate(domain_id))
 
 
 async def _renew_domain_certificate(domain_id: str) -> dict:
@@ -120,7 +120,7 @@ def delete_domain_certificate(domain: str) -> dict:
     retry_backoff=True,
 )
 def renew_expiring_ssl(self) -> dict:
-    return asyncio.run(_renew_expiring_ssl())
+    return run_async(_renew_expiring_ssl())
 
 
 async def _renew_expiring_ssl() -> dict:
