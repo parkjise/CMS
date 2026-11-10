@@ -88,3 +88,31 @@ export function useReorderFields(boardId: string) {
     onSettled: invalidate,
   })
 }
+
+/** 쓰고 있는 선택지의 글을 다른 선택지로 옮긴다 (T-180) — target 이 null 이면 값을 비운다 */
+export function useRemapChoice(boardId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      fieldId,
+      source,
+      target,
+    }: {
+      fieldId: string
+      source: string
+      target: string | null
+    }): Promise<number> => {
+      const { data } = await api.post(`/v1/boards/${boardId}/fields/${fieldId}/choices/remap`, {
+        source,
+        target,
+      })
+      return data.data.moved
+    },
+    // 글 값이 바뀌므로 칸(글 수)과 글 목록을 모두 다시 읽는다
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['boards', boardId] }),
+        queryClient.invalidateQueries({ queryKey: ['boards', 'overview'] }),
+      ]),
+  })
+}

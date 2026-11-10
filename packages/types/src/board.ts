@@ -57,6 +57,8 @@ export interface BoardField {
   deleted_at: string | null
   /** 값이 있는 글 수 (휴지통 글 포함) */
   value_count: number
+  /** 선택지마다 그 값을 쓰는 글 수 (휴지통 글 포함, T-180) — 선택지 칸만 */
+  choice_counts?: Record<string, number>
 }
 
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */

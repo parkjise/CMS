@@ -17,8 +17,10 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.audit import log_action
 from app.models.board import Board, BoardField, BoardPost
-from app.schemas.board import FieldCreate, FieldOption, FieldUpdate
+from app.models.user import User
+from app.schemas.board import ChoiceRemapRequest, FieldCreate, FieldOption, FieldUpdate
 from app.schemas.rich_body import SAFE_IMAGE_URL
 from app.services import site_cache
 
@@ -69,6 +71,9 @@ MSG_OPTION_IN_USE = (
     "글에서 쓰고 있는 선택지는 지울 수 없습니다. 이름은 바꿀 수 있습니다."
 )
 MSG_NEED_OPTIONS = "선택지를 하나 이상 입력해주세요."
+MSG_NOT_CHOICE = "선택지가 있는 칸만 값을 옮길 수 있습니다."
+MSG_REMAP_SAME = "같은 선택지로는 옮길 수 없습니다."
+MSG_REMAP_REQUIRED = "필수 칸은 값을 비울 수 없습니다. 옮길 선택지를 골라 주세요."
 MSG_MIN_MAX = "최솟값은 최댓값보다 클 수 없습니다."
 MSG_ORDER_MISMATCH = "칸 목록이 바뀌었습니다. 화면을 새로 고쳐 주세요."
 MSG_UNKNOWN_FIELD = "없는 칸입니다. 화면을 새로 고쳐 주세요."
@@ -474,6 +479,114 @@ async def _option_in_use(
         .limit(1)
     )
     return result.first() is not None
+
+
+async def choice_counts(
+    db: AsyncSession, board_id: UUID, fields: list[BoardField]
+) -> dict[UUID, dict[str, int]]:
+    """선택지 칸마다 {선택지 값: 그 값을 쓰는 글 수} — 휴지통 글도 센다 (T-180)."""
+    columns = []
+    for field in fields:
+        if field.field_type not in CHOICE_TYPES:
+            continue
+        for value in _choice_values(field.field_options):
+            needle: Any = [value] if field.field_type == "MULTI_SELECT" else value
+            columns.append(
+                (
+                    field.id,
+                    value,
+                    func.count().filter(
+                        BoardPost.custom_data.contains({field.field_key: needle})
+                    ),
+                )
+            )
+    if not columns:
+        return {}
+    row = (
+        await db.execute(
+            select(*(column for _, _, column in columns)).where(
+                BoardPost.board_id == board_id
+            )
+        )
+    ).one()
+    counts: dict[UUID, dict[str, int]] = {}
+    for i, (field_id, value, _) in enumerate(columns):
+        counts.setdefault(field_id, {})[value] = int(row[i])
+    return counts
+
+
+def _remapped(field: BoardField, value: Any, src: str, dst: str | None) -> Any:
+    """글 한 개의 칸 값을 옮긴 결과 — None 이면 값을 지운다."""
+    if field.field_type == "SELECT":
+        return dst if value == src else value
+    items = [dst if item == src else item for item in value or []]
+    kept = list(dict.fromkeys(item for item in items if item is not None))
+    return kept or None
+
+
+async def remap_choice(
+    db: AsyncSession,
+    board: Board,
+    field: BoardField,
+    data: ChoiceRemapRequest,
+    actor: User,
+) -> int:
+    """쓰고 있는 선택지를 다른 선택지로 옮긴다 (T-180, 기획서 8.4) — 옮긴 글 수.
+
+    휴지통 글도 옮긴다. 다중 선택은 겹치는 값을 하나로 합친다.
+    글 값 변경과 감사 기록을 한 번에 커밋한다 — 하나라도 실패하면 모두 취소.
+    """
+    if field.field_type not in CHOICE_TYPES:
+        raise _invalid(MSG_NOT_CHOICE, "field_type")
+    values = _choice_values(field.field_options)
+    src, dst = data.source, data.target
+    if src not in values:
+        raise _invalid(MSG_INVALID_OPTION, "source")
+    if dst is not None and dst not in values:
+        raise _invalid(MSG_INVALID_OPTION, "target")
+    if src == dst:
+        raise _invalid(MSG_REMAP_SAME, "target")
+    if dst is None and field.is_required:
+        raise _conflict(MSG_REMAP_REQUIRED, "target")
+    needle: Any = [src] if field.field_type == "MULTI_SELECT" else src
+    result = await db.execute(
+        select(BoardPost)
+        .where(
+            BoardPost.board_id == board.id,
+            BoardPost.tenant_id == board.tenant_id,
+            BoardPost.custom_data.contains({field.field_key: needle}),
+        )
+        .order_by(BoardPost.id)
+        .with_for_update()
+    )
+    posts = list(result.scalars())
+    for post in posts:
+        data_ = dict(post.custom_data or {})
+        value = _remapped(field, data_.get(field.field_key), src, dst)
+        if value is None:
+            data_.pop(field.field_key, None)
+        else:
+            data_[field.field_key] = value
+        # JSONB 는 새 dict 를 넣어야 바뀐 것으로 본다
+        post.custom_data = data_
+    # log_action 이 같은 세션의 글 변경과 감사 기록을 함께 커밋한다
+    await log_action(
+        db,
+        actor,
+        "BOARD_FIELD_CHOICE_REMAPPED",
+        "board_field",
+        field.id,
+        before={"source": src},
+        after={
+            "board_id": str(board.id),
+            "field_key": field.field_key,
+            "target": dst,
+            "moved_posts": len(posts),
+        },
+        tenant_id=board.tenant_id,
+    )
+    await site_cache.purge_site(db, board.tenant_id)
+    return len(posts)
 
 
 async def _commit_field(db: AsyncSession, board: Board) -> None:
