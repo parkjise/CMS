@@ -630,3 +630,202 @@ class TestBulkMerge:
         )
         assert resp.status_code == 200, resp.text
         assert resp.json()["data"] == {"merged": 2, "moved": 0}
+
+
+class TestTwoLevels:
+    """상위 · 하위 2단계 (T-179)."""
+
+    async def _patch(self, client, headers, board, category, **payload):
+        return await client.patch(
+            f"{board['categories']}/{category['id']}", json=payload, headers=headers
+        )
+
+    async def test_create_child_and_list(self, client, auth_headers, board):
+        parent = await _category(client, auth_headers, board, "진료")
+        child = await _category(
+            client, auth_headers, board, "임플란트", parent_id=parent["id"]
+        )
+        assert parent["parent_id"] is None
+        assert child["parent_id"] == parent["id"]
+        data = await _list(client, auth_headers, board)
+        assert [(c["name"], c["parent_id"]) for c in data] == [
+            ("진료", None),
+            ("임플란트", parent["id"]),
+        ]
+
+    async def test_parent_rules(self, client, auth_headers, board):
+        parent = await _category(client, auth_headers, board, "진료")
+        child = await _category(
+            client, auth_headers, board, "임플란트", parent_id=parent["id"]
+        )
+        # 하위의 하위
+        resp = await client.post(
+            board["categories"],
+            json={"name": "손자", "parent_id": child["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error"]["field"] == "parent_id"
+        # 없는 · 다른 게시판 상위
+        other = await _board(client, auth_headers, "후기", "reviews")
+        foreign = await _category(client, auth_headers, other, "남의 것")
+        for parent_id in (str(uuid.uuid4()), foreign["id"]):
+            resp = await client.post(
+                board["categories"],
+                json={"name": "새", "parent_id": parent_id},
+                headers=auth_headers,
+            )
+            assert resp.status_code == 400
+        # 자기 자신
+        resp = await self._patch(
+            client, auth_headers, board, parent, parent_id=parent["id"]
+        )
+        assert resp.status_code == 400
+        # 하위가 있는 분류는 다른 분류 아래로 못 간다
+        other_top = await _category(client, auth_headers, board, "상담")
+        resp = await self._patch(
+            client, auth_headers, board, parent, parent_id=other_top["id"]
+        )
+        assert resp.status_code == 409
+        # 이름은 상위가 달라도 게시판 안에서 하나
+        resp = await client.post(
+            board["categories"],
+            json={"name": "임플란트", "parent_id": other_top["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 409
+
+    async def test_move_under_and_back(self, client, auth_headers, board):
+        a = await _category(client, auth_headers, board, "가")
+        b = await _category(client, auth_headers, board, "나")
+        c = await _category(client, auth_headers, board, "다")
+        moved = await self._patch(client, auth_headers, board, a, parent_id=c["id"])
+        assert moved.status_code == 200, moved.text
+        assert moved.json()["data"]["parent_id"] == c["id"]
+        # 새 형제의 맨 뒤로
+        assert moved.json()["data"]["display_order"] > c["display_order"]
+        renamed = await self._patch(client, auth_headers, board, a, name="가가")
+        assert renamed.json()["data"]["parent_id"] == c["id"]
+        back = await self._patch(client, auth_headers, board, a, parent_id=None)
+        assert back.json()["data"]["parent_id"] is None
+        assert b["parent_id"] is None
+
+    async def test_delete_and_merge_blocked_with_children(
+        self, client, auth_headers, board
+    ):
+        parent = await _category(client, auth_headers, board, "진료")
+        child = await _category(
+            client, auth_headers, board, "임플란트", parent_id=parent["id"]
+        )
+        other = await _category(client, auth_headers, board, "상담")
+        resp = await client.delete(
+            f"{board['categories']}/{parent['id']}", headers=auth_headers
+        )
+        assert resp.status_code == 409
+        merge = f"{board['categories']}/merge"
+        resp = await client.post(
+            merge,
+            json={"source_ids": [parent["id"], other["id"]], "target_id": child["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 409
+        # 하위도 함께 합치면 된다
+        third = await _category(client, auth_headers, board, "기타")
+        resp = await client.post(
+            merge,
+            json={"source_ids": [parent["id"], child["id"]], "target_id": third["id"]},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        # 하위를 지우면 상위도 지울 수 있다
+        child2 = await _category(
+            client, auth_headers, board, "교정", parent_id=other["id"]
+        )
+        await client.delete(
+            f"{board['categories']}/{child2['id']}", headers=auth_headers
+        )
+        resp = await client.delete(
+            f"{board['categories']}/{other['id']}", headers=auth_headers
+        )
+        assert resp.status_code == 200
+
+    async def test_parent_filter_includes_children(
+        self, client, auth_headers, tenant, board
+    ):
+        parent = await _category(client, auth_headers, board, "진료")
+        child = await _category(
+            client, auth_headers, board, "임플란트", parent_id=parent["id"]
+        )
+        other = await _category(client, auth_headers, board, "상담")
+        await _post(client, auth_headers, board, title="상위", category_id=parent["id"])
+        await _post(client, auth_headers, board, title="하위", category_id=child["id"])
+        await _post(client, auth_headers, board, title="다른", category_id=other["id"])
+
+        def titles(resp) -> set[str]:
+            return {p["title"] for p in resp.json()["data"]["items"]}
+
+        admin = await client.get(
+            board["posts"], params={"category_id": parent["id"]}, headers=auth_headers
+        )
+        assert titles(admin) == {"상위", "하위"}
+        only_child = await client.get(
+            board["posts"], params={"category_id": child["id"]}, headers=auth_headers
+        )
+        assert titles(only_child) == {"하위"}
+        overview = await client.get(
+            "/api/v1/posts",
+            params={"board_id": board["id"], "category_id": parent["id"]},
+            headers=auth_headers,
+        )
+        assert titles(overview) == {"상위", "하위"}
+        url = f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        public = await client.get(url, params={"category": parent["id"]})
+        assert titles(public) == {"상위", "하위"}
+        assert public.json()["data"]["total"] == 2
+
+    async def test_public_hides_children_of_hidden_parent(
+        self, client, auth_headers, tenant, board
+    ):
+        shown = await _category(client, auth_headers, board, "진료")
+        await _category(client, auth_headers, board, "임플란트", parent_id=shown["id"])
+        hidden = await _category(client, auth_headers, board, "숨김", is_active=False)
+        await _category(client, auth_headers, board, "교정", parent_id=hidden["id"])
+        resp = await client.get(f"/api/public/site/{tenant['slug']}")
+        found = next(
+            b for b in resp.json()["data"]["boards"] if b["slug"] == board["slug"]
+        )
+        assert [(c["name"], c["parent_id"]) for c in found["categories"]] == [
+            ("진료", None),
+            ("임플란트", shown["id"]),
+        ]
+
+    async def test_duplicate_board_keeps_tree(self, client, auth_headers, board):
+        parent = await _category(client, auth_headers, board, "진료")
+        await _category(client, auth_headers, board, "임플란트", parent_id=parent["id"])
+        resp = await client.post(
+            f"{BOARDS}/{board['id']}/duplicate", headers=auth_headers
+        )
+        copy = resp.json()["data"]
+        copied = (
+            await client.get(f"{BOARDS}/{copy['id']}/categories", headers=auth_headers)
+        ).json()["data"]
+        by_name = {c["name"]: c for c in copied}
+        assert by_name["진료"]["id"] != parent["id"]
+        assert by_name["임플란트"]["parent_id"] == by_name["진료"]["id"]
+
+    async def test_viewer_cannot_set_parent(self, client, auth_headers, board, tenant):
+        parent = await _category(client, auth_headers, board, "진료")
+        child = await _category(client, auth_headers, board, "상담")
+        token = create_access_token(
+            user_id=uuid.uuid4(),
+            tenant_id=uuid.UUID(tenant["id"]),
+            role="TENANT_VIEWER",
+        )
+        resp = await self._patch(
+            client,
+            {"Authorization": f"Bearer {token}"},
+            board,
+            child,
+            parent_id=parent["id"],
+        )
+        assert resp.status_code in (401, 403)

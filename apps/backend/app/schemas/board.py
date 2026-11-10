@@ -305,6 +305,8 @@ class CategoryCreate(BaseModel):
 
     name: CategoryName
     is_active: bool = True
+    # 상위 분류 — 없으면 1단계 (T-179)
+    parent_id: UUID | None = None
 
 
 class CategoryUpdate(BaseModel):
@@ -312,6 +314,8 @@ class CategoryUpdate(BaseModel):
 
     name: CategoryName | None = None
     is_active: bool | None = None
+    # 보내면 상위 분류를 바꾼다 — null 이면 1단계로 (T-179)
+    parent_id: UUID | None = None
 
 
 class CategoryOrderRequest(BaseModel):
@@ -346,15 +350,17 @@ class CategoryResponse(BaseModel):
     name: str
     is_active: bool
     display_order: int
+    parent_id: UUID | None = None
     # 이 분류의 글 수 (휴지통 글 제외) — 목록에서만
     post_count: int = 0
 
 
 class PublicCategory(BaseModel):
-    """홈페이지 분류 탭 — 사용 중인 분류만."""
+    """홈페이지 분류 탭 — 사용 중인 분류만. 하위 분류는 parent_id 가 있다 (T-179)."""
 
     id: UUID
     name: str
+    parent_id: UUID | None = None
 
 
 class PostCreate(BaseModel):

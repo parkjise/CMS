@@ -351,9 +351,9 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 
 **T-174 공개 표 열 설정:** 표 모드의 디자인에서 추가 정보 열을 앞/뒤로 이동하고 좁게/보통/넓게(최소 128/160/256px)를 고른다. 제목·작성일 위치는 고정이며 여유 공간에 따라 실제 너비는 커질 수 있다. 기존 디자인 저장 버튼으로 `list_column_layout: [{key, size}]`를 저장하며 최대 20개, 키 형식/크기/중복을 검증한다. 빈 배열은 기본 필드 순서/보통 크기다. 필드의 원래 순서는 바꾸지 않고 제목 아래 보기/다른 유형/관리자 개인 보기에는 적용하지 않는다. 저장 실패 후 선택 유지/재시도, 뷰어 잠금, 필드 로딩/오류·재조회/표시 칸 없음 안내를 제공한다. 숨김/삭제/목록 비표시/없는 필드는 제외하고 미설정·새 필드는 저장된 열 뒤에 기존 필드 순서로 붙인다. 이후 다시 보이는 기존 키는 저장 설정이 남아 있으면 그 위치/크기로 복원한다. 열을 편집하면 현재 표시 칸 기준으로 저장 배열을 다시 구성한다. 원시 설정 키는 공개 게시판 디자인에서 빈 배열로 대체하고, 기존 읽기 확인 뒤 목록 API의 선별한 열에만 크기를 제공한다. 예전 응답에 size가 없으면 보통 크기다. 저장은 기존 JSON으로 DB 스키마 변경 없음. 픽셀 입력/드래그는 후속이다.
 
-### BM-09 카테고리 (`/admin/boards/:boardId/categories`) — T-149
+### BM-09 카테고리 (`/admin/boards/:boardId/categories`) — T-149 · T-179
 
-기획안 v2.2 의 BRD-005 중 1단계 분류만. 2단계(상위 · 하위) · 코드는 후속. 여러 원본 일괄 합치기는 T-168에서 구현했다. 분류 검색은 T-164에서 구현했다. 단일 카테고리 합치기 명시 동선은 T-162에서 기존 삭제/이동 API로 연결했다.
+기획안 v2.2 의 BRD-005 중 상위 · 하위 2단계 분류(T-179). 분류 코드 · 3단계 이상은 후속. 여러 원본 일괄 합치기는 T-168에서 구현했다. 분류 검색은 T-164에서 구현했다. 단일 카테고리 합치기 명시 동선은 T-162에서 기존 삭제/이동 API로 연결했다.
 
 - 검색(T-164): 카테고리 이름 부분 일치(앞뒤 공백 · 대소문자 무시)와 홈페이지 표시/숨김 상태를 함께 적용한다. 기존 전체 목록을 화면에서 즉시 필터링하고 전체/결과 수 · 검색 초기화를 제공한다. 검색 결과 없음과 분류 자체가 없는 상태는 구분한다. 검색 중에는 드래그 · 키보드 · 위아래 순서 변경을 잠그고 초기화하면 전체 순서 변경을 다시 제공한다. 이름 변경 · 표시/숨김 · 합치기 · 삭제는 유지한다. 합치기/삭제 이동 대상과 생성 한도는 필터 전 전체 분류를 기준으로 한다. 저장 뒤 조회 갱신에도 조건을 유지해 결과를 다시 걸러 주며, 다른 게시판으로 이동하면 초기화한다. 보기 전용도 검색할 수 있다. 검색 조건을 URL에 저장하지 않는다.
 - 추가 · 이름 바꾸기 · 홈페이지에서 숨기기 · 순서(끌기 · 위아래) · 삭제. 게시판당 30개, 이름은 30자이고 게시판 안에서 겹치지 않는다
@@ -366,6 +366,14 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - 홈페이지: 분류가 있으면 목록 위에 `전체` + 분류 탭. 주소는 `?c={분류 id}` 이고 검색 · 페이지 이동에 유지된다. 없는 · 숨긴 분류 주소는 `전체` 로 보여 준다. 코드형(hospital-a) · 테마형 모두
 - 게시판 복제 때 분류도 복제한다 (글은 복제하지 않으니 이름 · 순서 · 숨김만)
 - 표 `board_categories`, 글의 `board_posts.category_id` (마이그레이션 0042). 다른 게시판 · 지운 분류는 글에 붙일 수 없다
+- **2단계 (T-179):** `board_categories.parent_id` (마이그레이션 0046, 비어 있으면 1단계 — 기존 분류는 모두 1단계)
+  - 상위는 같은 게시판의 지우지 않은 1단계 분류만. 하위의 하위는 없다. 하위가 있는 분류는 다른 분류 아래로 옮길 수 없다(409). 상위를 바꾸면 새 형제의 맨 뒤로 간다
+  - 이름은 상위가 달라도 게시판 안에서 하나, 한도는 상하위 합쳐 30개. 순서는 형제끼리
+  - 글은 상위 · 하위 어디에나 붙인다. 관리자 글 목록 · 전체 글 · 공개 글 목록에서 상위로 걸러 보면 하위 분류 글도 함께 보인다
+  - 하위가 있는 분류는 지울 수 없다(409). 합치기는 하위가 남는 원본이 있으면 막고, 그 하위도 원본에 넣으면 함께 합친다
+  - 숨긴 상위의 하위는 홈페이지 탭에서도 빠진다(공개 `categories` 에서 뺌). 공개 `categories` 항목은 `{id, name, parent_id}`
+  - 게시판 복제 때 상하위 관계도 복제한다. 감사 기록에 `parent_id`
+  - 관리자 화면(T-179-B) · 홈페이지 2줄 탭(T-179-C)은 아래 단계에서
 
 ### BM-10 권한 (`/admin/boards/:boardId/permissions`) — T-150
 
@@ -449,7 +457,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | `boards` | `id`, `tenant_id`, `name`, `slug`, `type`, `status`, `system_key`(기본 게시판 — 삭제 보호), `settings`, `deleted_at` |
 | `board_fields` (4단계) | `id`, `tenant_id`, `board_id`, `field_key`, `label`, `field_type`, `field_options`, `is_required`, `display_order`, `deleted_at` |
 | `board_posts` | `id`, `tenant_id`, `board_id`, `title`, `body`(노드 JSONB), `status`, `is_pinned`, `custom_data`, `author_id`, `published_at`, `deleted_at` |
-| `board_categories` (T-149) | `id`, `tenant_id`, `board_id`, `name`, `is_active`, `display_order`, `deleted_at` — 이름은 지우지 않은 것 중 게시판 안에서 하나. 글은 `board_posts.category_id` |
+| `board_categories` (T-149 · T-179) | `id`, `tenant_id`, `board_id`, `parent_id`(상위, 비면 1단계), `name`, `is_active`, `display_order`, `deleted_at` — 이름은 지우지 않은 것 중 게시판 안에서 하나. 글은 `board_posts.category_id` |
 | `board_permissions` | 역할·행위별 읽기/쓰기/관리 정책 |
 | `post_files` | 게시글별 스토리지 객체 메타, 접근 레벨 |
 | `post_comments` | 댓글·대댓글, 상태 (P1) |
@@ -525,8 +533,8 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | PATCH | `/api/v1/boards/{board_id}/fields/order` | 필드 정렬 |
 | POST | `/api/v1/boards/{board_id}/fields/{field_id}/restore` | 삭제한 필드 복원 (T-142-A) |
 | GET | `/api/v1/boards/{board_id}/categories` | 카테고리 목록 (글 수 `post_count`, T-149) |
-| POST | `/api/v1/boards/{board_id}/categories` | 카테고리 추가 |
-| PATCH | `/api/v1/boards/{board_id}/categories/{category_id}` | 이름 · 숨김 |
+| POST | `/api/v1/boards/{board_id}/categories` | 카테고리 추가 (`parent_id` — 상위, T-179) |
+| PATCH | `/api/v1/boards/{board_id}/categories/{category_id}` | 이름 · 숨김 · 상위(`parent_id`, null 이면 1단계 — T-179) |
 | PATCH | `/api/v1/boards/{board_id}/categories/order` | 순서 |
 | POST | `/api/v1/boards/{board_id}/categories/merge` | 원본 source_ids 2~29개 → target_id 원자적 합치기, 응답 merged/moved (T-168) |
 | DELETE | `/api/v1/boards/{board_id}/categories/{category_id}?move_to=` | 삭제 + 글 옮기기 (없으면 분류 없음) |
@@ -740,6 +748,7 @@ packages/types/src/board.ts
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | 1.0 | 2026-11-04 | 기존 CMS와 게시판 가이드 비교를 바탕으로 신규 게시판 관리 모듈 통합 기획 초안 작성 |
+| 1.1 | 2026-11-10 | T-179-A: 카테고리 2단계 서버 — parent_id(0046), 상위 검사 · 하위 있는 분류 삭제/합치기/옮기기 차단, 상위 필터에 하위 글 포함, 공개 categories parent_id |
 | 1.1 | 2026-11-10 | T-176: 테마형 공지를 코드형과 같은 /notice 로 표시, 공개 boards · 메뉴 · 사이트맵 포함, 관리자 미표시 안내 제거 |
 | 1.1 | 2026-11-09 | T-175: 신고 자동 비공개 기준을 게시판 운영 설정으로(숨기지 않음 · 3 · 5 · 10, 기본 5), 신고 실시간 알림 |
 | 1.1 | 2026-11-09 | T-174: 공개 표 열 순서·최소 크기 공유 디자인 저장, 필드 변경/읽기 검사 뒤 열 선별 · 두 템플릿 적용 |
