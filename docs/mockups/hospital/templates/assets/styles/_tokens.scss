@@ -7,8 +7,8 @@
 // ════════════════════════════════════════════════════════════════
 
 // --- SCSS 변수 (lighten/darken 등 연산에 사용) ---
-$primary: #0f2942;
-$accent: #1d4ed8;
+$primary: #0064ff;
+$accent: #0064ff;
 $text-primary: #0f172a;
 
 // --- 브레이크포인트 (미디어쿼리 믹스인은 _mixins.scss) ---
@@ -19,13 +19,15 @@ $bp-xl: 1280px;
 
 // --- CSS 변수로 노출 (이식 대상) ---
 :root {
-  --color-primary: #{$primary};
-  --color-primary-hover: #1a3d60;
+  --color-primary: #0064ff;
+  --color-primary-hover: #0052cc;
+  --color-primary-light: #3383ff;
+  --color-primary-dark: #0052cc;
   --color-on-primary: #ffffff;
   --color-secondary: #f0f5fa;
-  --color-accent: #{$accent};
-  --color-accent-hover: #2563eb;
-  --color-blue: #2563eb;
+  --color-accent: #0064ff;
+  --color-accent-hover: #0052cc;
+  --color-blue: #0064ff;
   --color-navy: #0f2942;
   --color-background: #ffffff;
   --color-surface: #f8fafc;

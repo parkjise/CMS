@@ -3,13 +3,15 @@
 @import url("https://use.typekit.net/ley8ols.css");
 @import url("https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500&display=swap");
 :root {
-  --color-primary: #0f2942;
-  --color-primary-hover: #1a3d60;
+  --color-primary: #0064ff;
+  --color-primary-hover: #0052cc;
+  --color-primary-light: #3383ff;
+  --color-primary-dark: #0052cc;
   --color-on-primary: #ffffff;
   --color-secondary: #f0f5fa;
-  --color-accent: #1d4ed8;
-  --color-accent-hover: #2563eb;
-  --color-blue: #2563eb;
+  --color-accent: #0064ff;
+  --color-accent-hover: #0052cc;
+  --color-blue: #0064ff;
   --color-navy: #0f2942;
   --color-background: #ffffff;
   --color-surface: #f8fafc;
@@ -6406,7 +6408,7 @@ input:checked ~ .main-popup__check-text {
 .corp-form__input:focus, .corp-form__select:focus, .corp-form__textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.15);
 }
 .corp-form__textarea {
   min-height: 140px;
@@ -6564,7 +6566,7 @@ input:checked ~ .main-popup__check-text {
   color: #fff;
 }
 .corp-cta__btn--primary:hover {
-  background: #2563EB;
+  background: var(--color-primary-hover);
   transform: translateY(-2px);
 }
 .corp-cta__btn--outline {

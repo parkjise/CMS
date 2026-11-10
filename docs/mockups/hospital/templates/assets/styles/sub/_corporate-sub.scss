@@ -446,7 +446,7 @@
     &:focus {
       outline: none;
       border-color: var(--color-primary);
-      box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
+      box-shadow: 0 0 0 3px rgba(0, 100, 255, 0.15);
     }
   }
 
@@ -619,7 +619,7 @@
       background: var(--color-primary);
       color: #fff;
       &:hover {
-        background: #2563EB;
+        background: var(--color-primary-hover);
         transform: translateY(-2px);
       }
     }
