@@ -3,8 +3,9 @@
 import re
 import uuid
 from datetime import datetime
+from typing import Literal
 
-from pydantic import BaseModel, ValidationInfo, field_validator
+from pydantic import BaseModel, Field, ValidationInfo, field_validator
 
 # 02-1234-5678 · 031-123-4567 · 010-1234-5678 · 1588-1234
 _PHONE_RE = re.compile(r"^(\d{2,4}-?\d{3,4}-?\d{4}|1\d{3}-?\d{4})$")
@@ -171,3 +172,34 @@ class MenuResponse(BaseModel):
     mode: str
     reorderable: bool
     items: list[MenuItemResponse]
+
+
+# ── 이용약관 · 개인정보처리방침 (T-200) ─────────────────────────────────────
+
+PolicyKind = Literal["terms", "privacy"]
+
+
+class PolicyDocument(BaseModel):
+    """홈페이지에 보이는 문서 — 고친 것이 없으면 기본 문안."""
+
+    kind: PolicyKind
+    title: str
+    body: str
+    is_default: bool
+    # 사업체가 마지막으로 고친 시각 — 기본 문안이면 None
+    updated_at: datetime | None = None
+
+
+class PolicyAdminDocument(PolicyDocument):
+    # 되돌리기 · 비교용 기본 문안
+    default_body: str
+
+
+class PolicyAdminResponse(BaseModel):
+    terms: PolicyAdminDocument
+    privacy: PolicyAdminDocument
+
+
+class PolicyUpdate(BaseModel):
+    # None 이나 빈 글은 기본 문안으로 되돌린다
+    body: str | None = Field(default=None, max_length=30000)
