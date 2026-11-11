@@ -24,6 +24,9 @@ KIND_TARGETS: dict[str, tuple[str, ...]] = {
     "setup": ("board_field", "board_category"),
 }
 ACTOR_OPERATOR = "운영사"
+# 휴지통 30일 자동 정리 (T-196)
+ACTOR_SYSTEM = "자동 정리"
+ACTOR_SYSTEM_ROLE = "SYSTEM"
 ACTOR_UNKNOWN = "삭제된 계정"
 SUPER_ADMIN_ROLE = "SUPER_ADMIN"
 
@@ -154,6 +157,8 @@ async def list_entries(
                 )
         if log.actor_role == SUPER_ADMIN_ROLE:
             actor = ACTOR_OPERATOR
+        elif log.actor_role == ACTOR_SYSTEM_ROLE:
+            actor = ACTOR_SYSTEM
         else:
             actor = actors.get(log.actor_id, ACTOR_UNKNOWN)
         entries.append(

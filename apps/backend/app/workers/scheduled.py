@@ -4,6 +4,7 @@
 - cleanup_old_inquiries: 매일 02:00 플랜별 보관 기간 초과 문의 소프트 삭제
 - cleanup_old_analytics: 매일 02:30 플랜별 보관 기간 초과 통계 하드 삭제
 - release_scheduled_posts: 5분마다 공개 시각이 지난 예약 글 캐시 비우기 (T-189)
+- purge_board_trash: 매일 04:30 휴지통 30일 지난 게시판 · 글 영구 삭제 (T-196)
 """
 
 from datetime import date
@@ -253,3 +254,27 @@ async def _release_scheduled_posts() -> int:
     async with AsyncSessionLocal() as db:
         await set_super_admin_context(db)
         return await board_service.release_scheduled_posts(db)
+
+
+# ── purge_board_trash (T-196) ─────────────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.purge_board_trash",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def purge_board_trash(self) -> dict:
+    return run_async(_purge_board_trash())
+
+
+async def _purge_board_trash() -> dict:
+    """휴지통에 30일 넘게 있던 게시판 · 글을 지운다. 지운 개수 반환."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import board_trash as trash_service
+
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        return await trash_service.purge_expired(db)
