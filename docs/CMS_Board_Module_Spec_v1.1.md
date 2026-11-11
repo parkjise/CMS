@@ -106,7 +106,7 @@
 | **3. 테마형 표시 ✅** | T-141 | 테마형 템플릿의 게시판 화면 | 모든 템플릿에서 보인다 |
 | **4. 필드 빌더** | T-142-A · B | 필드 정의 · 변경 정책 · 글쓰기 폼 자동 생성 · 평점 등 타입 | 입력 칸을 바꾼다 |
 | **기획안 v2.2 ✅** | T-146 ~ T-152 | 정렬 · 글 수 · 검색 노출, 필드 기본값 · 타입, 디자인 · 카드형, 카테고리, 권한(회원만 읽기 · 회원 글쓰기), 운영 설정(비밀글 · 새 글 알림 · 비회원 글쓰기 · 신고) | 방문자가 쓰고 고객이 운영한다 |
-| **후속 (P1)** | 미정 | 댓글, 일반 · 비공개 파일, 콘텐츠 운영자 역할, 버전 이력, Q&A (예약 공개 T-189 · 자동 보관 T-190 완료) | |
+| **후속 (P1)** | 미정 | 댓글, 일반 · 비공개 파일, 콘텐츠 운영자 역할, Q&A (예약 공개 T-189 · 자동 보관 T-190 · 버전 이력 T-191 완료) | |
 | **후속 (P2)** | 미정 | 업종별 프리셋, AI 글쓰기, 승인 흐름, 다국어, 분석, 웹진 · 1:1 | |
 
 **전체 완료 기준:** 관리자가 게시판을 만들고 → 필드를 추가하고 → 글을 작성하고 → 홈페이지에서 조회하고 → 게시판/필드를 비활성화·복구할 수 있다.
@@ -338,6 +338,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - 상태: 초안 / 발행 / 비공개. 예약 공개(T-189): 발행할 때 "공개 시각" 지금 바로 / 예약(1년 안). 시각 전에는 홈페이지 어디에도 나오지 않고, 관리자 목록에 "예약 · MM/DD HH:mm". 공개를 거두면 예약도 풀린다
 - 저장·취소·미리보기(P1)·게시글 이동
 - 자동 보관(T-190): 쓰는 내용을 이 브라우저에만 2초마다 보관, 다시 열면 [이어서 쓰기] · [버리기]. 저장하면 지운다. 서버 자동 저장은 하지 않는다 — 공개 글이 쓰다 만 채로 나가지 않게
+- 이전 버전(T-191): 관리자가 고쳐 저장할 때마다 고치기 직전 내용을 `board_post_versions` 에 남긴다(글마다 최근 20개). 수정 화면 아래 "이전 버전" — 미리보기, [이 버전으로 되돌리기]는 편집 칸만 채우고 저장해야 바뀐다
 - 각 에러는 해당 필드 아래에 안내하고 포커스를 제공
 
 ### BM-07 휴지통 (`/admin/boards/trash`, `/admin/posts/trash`) — 글 복원은 1단계, 화면은 2단계
@@ -477,6 +478,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | `boards` | `id`, `tenant_id`, `name`, `slug`, `type`, `status`, `system_key`(기본 게시판 — 삭제 보호), `settings`, `deleted_at` |
 | `board_fields` (4단계) | `id`, `tenant_id`, `board_id`, `field_key`, `label`, `field_type`, `field_options`, `is_required`, `display_order`, `deleted_at` |
 | `board_posts` | `id`, `tenant_id`, `board_id`, `title`, `body`(노드 JSONB), `status`, `is_pinned`, `custom_data`, `author_id`, `published_at`, `deleted_at` |
+| `board_post_versions` (T-191) | `id`, `tenant_id`, `post_id`, `title`, `body`, `custom_data`, `category_id`, `status`, `is_pinned`, `is_secret`, `saved_at`, `edited_by` — 글마다 최근 20개 |
 | `board_categories` (T-149 · T-179) | `id`, `tenant_id`, `board_id`, `parent_id`(상위, 비면 1단계), `name`, `is_active`, `display_order`, `deleted_at` — 이름은 지우지 않은 것 중 게시판 안에서 하나. 글은 `board_posts.category_id` |
 | `board_permissions` | 역할·행위별 읽기/쓰기/관리 정책 |
 | `post_files` | 게시글별 스토리지 객체 메타, 접근 레벨 |
@@ -579,6 +581,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | GET | `/api/v1/boards/{board_id}/permission-options` | 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) |
 | POST | `/api/v1/boards/{board_id}/posts` | 게시글 작성 |
 | PATCH | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 수정 |
+| GET | `/api/v1/boards/{board_id}/posts/{post_id}/versions` · `.../versions/{version_id}` | 이전 버전 목록 · 하나 (T-191) |
 | DELETE | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 휴지통 이동 |
 
 ### 9.2 공개 API
@@ -784,6 +787,7 @@ packages/types/src/board.ts
 | 1.1 | 2026-11-11 | T-188: 게시판 만들기 5단계 — 기본 정보 · 유형 · 필드 구성 · 권한 · 운영 안내 · 검토 |
 | 1.1 | 2026-11-11 | T-189: 게시글 예약 공개 — `published_at` 미래 시각, 공개 조건 · 5분마다 캐시 비우기 |
 | 1.1 | 2026-11-11 | T-190: 글 자동 보관 — 브라우저에만, 이어서 쓰기 · 버리기 |
+| 1.1 | 2026-11-11 | T-191: 글 버전 이력 — `board_post_versions`, 이전 버전 미리보기 · 되돌리기 |
 | 1.1 | 2026-11-11 | T-187: 관리자 UI/UX 시안 v3 — 하위 메뉴 재구성 · 작업 중인 게시판 · 제목 도움말 · 목록 요약 · 디자인 미리보기 · 필드 구분 |
 | 1.1 | 2026-11-11 | T-186: 고객용 변경 기록 화면 — 자기 사업체 감사 로그 조회 API · 관리자 화면 |
 | 1.1 | 2026-11-11 | T-185: 메인 화면 최신 글 — 테마형 최신 글 섹션 · 코드형 최신 공지의 게시판 · 개수 고르기 |
