@@ -229,6 +229,27 @@ export interface Post extends PostListItem {
   custom_data: Record<string, unknown>
 }
 
+/** 글의 이전 버전 한 줄 (T-191) — 고치기 직전 내용 */
+export interface PostVersion {
+  id: string
+  title: string
+  status: PostStatus
+  /** 이 내용이 저장돼 있던 시각 */
+  saved_at: string
+  /** 다른 내용으로 바뀐 시각 */
+  replaced_at: string
+  /** 바꾼 관리자 이메일 — 지운 계정은 "삭제된 계정" */
+  editor: string
+}
+
+export interface PostVersionDetail extends PostVersion {
+  body: BodyNode[]
+  custom_data: Record<string, unknown>
+  category_id: string | null
+  is_pinned: boolean
+  is_secret: boolean
+}
+
 /** 전체 글 목록 한 줄 (BM-05, T-140-C) */
 export interface PostOverviewItem extends PostListItem {
   board_name: string

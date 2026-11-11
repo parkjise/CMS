@@ -21,6 +21,8 @@ import type {
   PostOverviewList,
   PermissionOptions,
   PostStatus,
+  PostVersion,
+  PostVersionDetail,
   ReportAction,
   ReportedPost,
 } from '@cms/types'
@@ -252,6 +254,29 @@ export function usePost(boardId: string, postId: string | undefined) {
       return data.data
     },
     enabled: Boolean(postId),
+  })
+}
+
+/** 글의 이전 버전 (T-191) — 글을 저장하면 하나 늘어난다 */
+export function usePostVersions(boardId: string, postId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: [...postsKey(boardId), 'detail', postId, 'versions'],
+    queryFn: async (): Promise<PostVersion[]> => {
+      const { data } = await api.get(`/v1/boards/${boardId}/posts/${postId}/versions`)
+      return data.data
+    },
+    enabled: Boolean(postId) && enabled,
+  })
+}
+
+export function usePostVersion(boardId: string, postId: string, versionId: string | null) {
+  return useQuery({
+    queryKey: [...postsKey(boardId), 'detail', postId, 'versions', versionId],
+    queryFn: async (): Promise<PostVersionDetail> => {
+      const { data } = await api.get(`/v1/boards/${boardId}/posts/${postId}/versions/${versionId}`)
+      return data.data
+    },
+    enabled: Boolean(versionId),
   })
 }
 

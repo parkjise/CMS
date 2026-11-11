@@ -2,11 +2,19 @@ import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
-import type { BoardCategory, BoardField, BodyNode, Post, PostStatus } from '@cms/types'
+import type {
+  BoardCategory,
+  BoardField,
+  BodyNode,
+  Post,
+  PostStatus,
+  PostVersionDetail,
+} from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
+import { PostVersionsPanel } from '@/components/boards/PostVersionsPanel'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -131,17 +139,36 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
     setBodyReady(true)
   }
 
+  /** 보관본 · 이전 버전으로 편집 칸을 채운다 — 저장은 관리자가 */
+  const fillForm = (content: Omit<PostDraft, 'saved_at'>) => {
+    setTitle(content.title)
+    setIsPinned(content.is_pinned)
+    setIsSecret(content.is_secret)
+    setCategoryId(content.category_id)
+    custom.reset({ ...custom.getValues(), ...content.custom })
+    setBody(content.body)
+    setEditorInitial(content.body)
+    setEditorKey((key) => key + 1)
+  }
+
   const restoreDraft = () => {
     if (!pendingDraft) return
-    setTitle(pendingDraft.title)
-    setIsPinned(pendingDraft.is_pinned)
-    setIsSecret(pendingDraft.is_secret)
-    setCategoryId(pendingDraft.category_id)
-    custom.reset({ ...custom.getValues(), ...pendingDraft.custom })
-    setBody(pendingDraft.body)
-    setEditorInitial(pendingDraft.body)
-    setEditorKey((key) => key + 1)
+    fillForm(pendingDraft)
     setPendingDraft(null)
+  }
+
+  // 이전 버전 (T-191)
+  const restoreVersion = (version: PostVersionDetail) => {
+    fillForm({
+      title: version.title,
+      body: version.body,
+      is_pinned: version.is_pinned,
+      is_secret: version.is_secret,
+      category_id: version.category_id ?? '',
+      custom: initialCustomValues(fields ?? [], version.custom_data),
+    })
+    toast.info('이전 버전 내용을 편집 칸에 불러왔어요. 저장해야 글이 바뀌어요.')
+    window.scrollTo?.({ top: 0, behavior: 'smooth' })
   }
 
   const discardDraft = () => {
@@ -364,6 +391,14 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
           )}
         </div>
       </ReadOnlyFieldset>
+
+      {post && (
+        <PostVersionsPanel
+          boardId={boardId}
+          postId={post.id}
+          onRestore={canEdit ? restoreVersion : undefined}
+        />
+      )}
 
       {canEdit && (
         <div className="flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">

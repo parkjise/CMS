@@ -65,6 +65,8 @@ from app.schemas.board import (
     PostResponse,
     PostStatus,
     PostUpdate,
+    PostVersionDetail,
+    PostVersionItem,
     PublicListColumn,
     PublicPostDetail,
     PublicPostItem,
@@ -85,10 +87,12 @@ from app.services import board_member_post as member_post_service
 from app.services import board_report as report_service
 from app.services import field_convert as convert_service
 from app.services import post_move as move_service
+from app.services import post_version as version_service
 from app.services import site_settings as site_settings_service
 
 MSG_BOARD_NOT_FOUND = "게시판을 찾을 수 없습니다."
 MSG_POST_NOT_FOUND = "게시글을 찾을 수 없습니다."
+MSG_VERSION_NOT_FOUND = "이전 버전을 찾을 수 없습니다."
 MSG_FIELD_NOT_FOUND = "칸을 찾을 수 없습니다."
 MSG_CATEGORY_NOT_FOUND = "카테고리를 찾을 수 없습니다."
 
@@ -784,12 +788,40 @@ async def update_post(
     board: Board = Depends(_board_or_404),
     post: BoardPost = Depends(_post_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
 ):
     if post.deleted_at is not None:
         raise _not_found(MSG_POST_NOT_FOUND)
     board_service.ensure_secret_allowed(board, data.is_secret)
-    updated = await board_service.update_post(db, post, data)
+    updated = await board_service.update_post(db, post, data, current_user.id)
     return ApiResponse.ok(PostResponse.model_validate(updated))
+
+
+@router.get(
+    "/{board_id}/posts/{post_id}/versions",
+    response_model=ApiResponse[list[PostVersionItem]],
+)
+async def list_post_versions(
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    """글의 이전 버전 (T-191) — 최근 것부터, 최대 20개."""
+    return ApiResponse.ok(await version_service.list_versions(db, post))
+
+
+@router.get(
+    "/{board_id}/posts/{post_id}/versions/{version_id}",
+    response_model=ApiResponse[PostVersionDetail],
+)
+async def get_post_version(
+    version_id: UUID,
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    version = await version_service.get_version(db, post, version_id)
+    if version is None:
+        raise _not_found(MSG_VERSION_NOT_FOUND)
+    return ApiResponse.ok(version)
 
 
 @router.delete("/{board_id}/posts/{post_id}", response_model=ApiResponse[dict])

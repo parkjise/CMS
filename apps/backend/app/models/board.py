@@ -198,3 +198,47 @@ class BoardPostReport(Base, TimestampMixin, SoftDeleteMixin):
     reporter_key: Mapped[str] = mapped_column(String(64), nullable=False)
     # OPEN | CLOSED
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="OPEN")
+
+
+class BoardPostVersion(Base, TimestampMixin):
+    """글을 고치기 직전 내용 (T-191) — 관리자가 저장할 때마다 하나, 글마다 최근 20개.
+
+    saved_at 은 이 내용이 저장돼 있던 시각(고치기 전 글의 updated_at), created_at 은
+    바뀐 시각, edited_by 는 바꾼 관리자. 오래된 것은 지운다
+    (복구용 사본이라 소프트 삭제 없음).
+    """
+
+    __tablename__ = "board_post_versions"
+    __table_args__ = (
+        Index("ix_board_post_versions_post_created", "post_id", "created_at"),
+        Index("ix_board_post_versions_tenant_id", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    post_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("board_posts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    title: Mapped[str] = mapped_column(String(200), nullable=False)
+    body: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )
+    custom_data: Mapped[dict[str, Any]] = mapped_column(
+        JSONB, nullable=False, default=dict
+    )
+    category_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
+    status: Mapped[str] = mapped_column(String(20), nullable=False)
+    is_pinned: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_secret: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    saved_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    edited_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
+    )
