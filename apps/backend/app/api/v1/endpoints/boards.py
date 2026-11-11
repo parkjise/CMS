@@ -97,6 +97,7 @@ from app.services import board_field as field_service
 from app.services import board_guest_post as guest_post_service
 from app.services import board_member_post as member_post_service
 from app.services import board_report as report_service
+from app.services import board_trash as trash_service
 from app.services import field_convert as convert_service
 from app.services import post_move as move_service
 from app.services import post_version as version_service
@@ -202,7 +203,20 @@ async def list_boards(
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    return ApiResponse.ok(await board_service.list_boards(db, tenant_id, trash=trash))
+    boards = await board_service.list_boards(db, tenant_id, trash=trash)
+    if trash:
+        deleters = await trash_service.deleted_by(
+            db, tenant_id, "board", [(b["id"], b["deleted_at"]) for b in boards]
+        )
+        boards = [
+            {
+                **b,
+                "purge_at": trash_service.purge_at(b["deleted_at"]),
+                "deleted_by": deleters.get(b["id"]),
+            }
+            for b in boards
+        ]
+    return ApiResponse.ok(boards)
 
 
 @router.post(
@@ -299,6 +313,14 @@ async def _with_member_names(db: AsyncSession, posts: list[BoardPost]) -> list[d
     attached = await attachment_service.posts_with_attachments(
         db, [p.id for p in posts]
     )
+    trashed = [p for p in posts if p.deleted_at]
+    deleters = (
+        await trash_service.deleted_by(
+            db, trashed[0].tenant_id, "post", [(p.id, p.deleted_at) for p in trashed]
+        )
+        if trashed
+        else {}
+    )
     return [
         {
             **PostListItem.model_validate(p).model_dump(),
@@ -306,6 +328,9 @@ async def _with_member_names(db: AsyncSession, posts: list[BoardPost]) -> list[d
             if p.author_member_id
             else None,
             "has_attachments": p.id in attached,
+            # 휴지통 글 (T-196)
+            "purge_at": trash_service.purge_at(p.deleted_at),
+            "deleted_by": deleters.get(p.id),
         }
         for p in posts
     ]
@@ -338,6 +363,21 @@ async def delete_board(
     await board_service.delete_board(db, board)
     await _audit_board(db, current_user, "BOARD_DELETED", board)
     return ApiResponse.ok({"deleted": True})
+
+
+@router.delete("/{board_id}/permanent", response_model=ApiResponse[dict])
+async def purge_board(
+    board_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    """휴지통의 게시판을 바로 영구 삭제 (T-196) — 글 · 필드 · 카테고리도 함께."""
+    board = await board_service.get_trashed_board(db, tenant_id, board_id)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    await trash_service.purge_board(db, board, current_user)
+    return ApiResponse.ok({"purged": True})
 
 
 @router.post("/{board_id}/restore", response_model=ApiResponse[BoardRestoreResponse])
@@ -887,6 +927,19 @@ async def delete_post(
     await board_service.delete_post(db, post)
     await _audit_post(db, current_user, "POST_DELETED", post)
     return ApiResponse.ok({"deleted": True})
+
+
+@router.delete(
+    "/{board_id}/posts/{post_id}/permanent", response_model=ApiResponse[dict]
+)
+async def purge_post(
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """휴지통의 글을 바로 영구 삭제 (T-196)."""
+    await trash_service.purge_post(db, post, current_user)
+    return ApiResponse.ok({"purged": True})
 
 
 @router.post(

@@ -5,14 +5,31 @@ import { Button, toast } from '@cms/ui'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { HELP_STRIP, LIST_CARD, PAGE, TD, TH } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useRestoreBoard, useTrashedBoards } from '@/hooks/useBoards'
+import { usePurgeBoard, useRestoreBoard, useTrashedBoards } from '@/hooks/useBoards'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { TRASH_RETENTION_DAYS, purgeLabel } from '@/lib/trash'
 
-/** 게시판 휴지통 (BM-07) — 자동 파기는 보관 기간(D-06)이 정해진 뒤 */
+/** 게시판 휴지통 (BM-07) — 30일 뒤 자동 영구 삭제 (D-06, T-196) */
 export function BoardTrashPage() {
   const canEdit = useCanEdit()
   const trashQuery = useTrashedBoards()
   const restoreBoard = useRestoreBoard()
+  const purgeBoard = usePurgeBoard()
+
+  const purge = async (id: string, name: string) => {
+    if (
+      !window.confirm(
+        `'${name}' 게시판을 영구 삭제할까요? 안의 글 · 필드 · 카테고리도 함께 지워지고 되돌릴 수 없습니다.`
+      )
+    )
+      return
+    try {
+      await purgeBoard.mutateAsync(id)
+      toast.success('게시판을 영구 삭제했습니다.')
+    } catch (error) {
+      toast.error(pickErrorMessage(error, '영구 삭제하지 못했습니다.'))
+    }
+  }
 
   const restore = async (id: string) => {
     try {
@@ -29,7 +46,7 @@ export function BoardTrashPage() {
     <div className={PAGE}>
       <BoardPageTitle
         title="휴지통"
-        description="지운 게시판을 복원할 수 있어요. 지운 글은 게시글 관리에서 상태를 '휴지통'으로 골라 복원하세요."
+        description={`지운 게시판을 복원할 수 있어요. 휴지통에 넣은 지 ${TRASH_RETENTION_DAYS}일이 지나면 자동으로 영구 삭제돼요.`}
       />
 
       {trashQuery.isError && <p className="text-sm text-red-600">휴지통을 불러오지 못했습니다.</p>}
@@ -49,6 +66,7 @@ export function BoardTrashPage() {
                     <th className={`${TH} pl-6`}>이름 / 주소</th>
                     <th className={TH}>게시글</th>
                     <th className={TH}>삭제일</th>
+                    <th className={TH}>영구 삭제</th>
                     <th className={TH}>관리</th>
                   </tr>
                 </thead>
@@ -66,17 +84,34 @@ export function BoardTrashPage() {
                         {board.deleted_at
                           ? `${dayjs(board.deleted_at).format('YYYY.MM.DD')} 삭제`
                           : '-'}
+                        {board.deleted_by && (
+                          <p className="mt-0.5 text-slate-400">{board.deleted_by}</p>
+                        )}
+                      </td>
+                      <td className={`${TD} whitespace-nowrap text-xs text-amber-700`}>
+                        {purgeLabel(board) ?? '-'}
                       </td>
                       <td className={TD}>
                         {canEdit && (
-                          <Button
-                            type="button"
-                            variant="secondary"
-                            size="sm"
-                            onClick={() => restore(board.id)}
-                          >
-                            복원
-                          </Button>
+                          <div className="flex flex-wrap gap-1">
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => restore(board.id)}
+                            >
+                              복원
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="text-red-600"
+                              onClick={() => purge(board.id, board.name)}
+                            >
+                              영구 삭제
+                            </Button>
+                          </div>
                         )}
                       </td>
                     </tr>

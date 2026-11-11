@@ -170,6 +170,9 @@ class BoardResponse(BaseModel):
     design: BoardDesign
     permissions: BoardPermissions
     operation: BoardOperation
+    # 휴지통 게시판 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람
+    purge_at: datetime | None = None
+    deleted_by: str | None = None
 
 
 class BoardRestoreResponse(BaseModel):
@@ -490,6 +493,9 @@ class PostListItem(BaseModel):
     guest_name: str | None = None
     # 첨부 파일이 있는 글 — 목록의 📎 (T-197)
     has_attachments: bool = False
+    # 휴지통 글 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람
+    purge_at: datetime | None = None
+    deleted_by: str | None = None
 
 
 class PostAttachment(BaseModel):

@@ -159,6 +159,9 @@ export interface Board {
   /** 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지 */
   has_samples: boolean
   deleted_at: string | null
+  /** 휴지통 게시판 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람 */
+  purge_at?: string | null
+  deleted_by?: string | null
   sort_order: BoardSortOrder
   /** null 이면 유형별 기본값 (목록 10 · 갤러리 12 · FAQ 20) */
   page_size: number | null
@@ -213,6 +216,9 @@ export interface PostListItem {
   created_at: string
   updated_at: string
   deleted_at: string | null
+  /** 휴지통 글 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람 */
+  purge_at?: string | null
+  deleted_by?: string | null
   custom_data?: Record<string, unknown>
   /** 분류 (T-149) — 없으면 null */
   category_id?: string | null

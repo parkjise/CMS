@@ -5,6 +5,7 @@ import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
 import { STATUS_LABELS, statusBadge } from '@/lib/postStatus'
+import { trashNote } from '@/lib/trash'
 import { PostTableLayoutControls } from '@/components/boards/PostTableLayoutControls'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
@@ -16,6 +17,7 @@ import {
   useClearSamples,
   useDeletePost,
   usePosts,
+  usePurgePost,
   useRestorePost,
   useUpdatePost,
 } from '@/hooks/useBoards'
@@ -76,6 +78,7 @@ export function BoardPostsPage() {
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
   const restorePost = useRestorePost(boardId)
+  const purgePost = usePurgePost(boardId)
   const clearSamples = useClearSamples()
 
   const fail = (fallback: string) => (error: unknown) =>
@@ -104,6 +107,14 @@ export function BoardPostsPage() {
       onSuccess: () => toast.success('글을 복원했습니다.'),
       onError: fail('복원하지 못했습니다.'),
     })
+
+  const handlePurge = (post: PostListItem) => {
+    if (!window.confirm(`'${post.title}' 글을 영구 삭제할까요? 되돌릴 수 없습니다.`)) return
+    purgePost.mutate(post.id, {
+      onSuccess: () => toast.success('글을 영구 삭제했습니다.'),
+      onError: fail('영구 삭제하지 못했습니다.'),
+    })
+  }
 
   const handleClearSamples = () => {
     if (!window.confirm('홈페이지에 보이는 샘플 공지를 지웁니다. 되돌릴 수 없습니다.')) return
@@ -164,6 +175,7 @@ export function BoardPostsPage() {
             {categoryName.get(post.category_id)}
           </span>
         )}
+        {post.deleted_at && <span className="text-amber-700">{trashNote(post)}</span>}
         <time dateTime={post.published_at ?? post.created_at}>
           {dayjs(post.published_at ?? post.created_at).format('YYYY.MM.DD')}
         </time>
@@ -188,9 +200,20 @@ export function BoardPostsPage() {
   const postActions = (post: PostListItem) => (
     <>
       {canEdit && post.deleted_at && (
-        <Button type="button" variant="secondary" size="sm" onClick={() => handleRestore(post)}>
-          복원
-        </Button>
+        <div className="flex flex-wrap items-center gap-1">
+          <Button type="button" variant="secondary" size="sm" onClick={() => handleRestore(post)}>
+            복원
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-red-600"
+            onClick={() => handlePurge(post)}
+          >
+            영구 삭제
+          </Button>
+        </div>
       )}
       {canEdit && !post.deleted_at && (
         <div className="flex flex-wrap items-center gap-1">

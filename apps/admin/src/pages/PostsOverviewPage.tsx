@@ -19,6 +19,7 @@ import {
 import { postDateFilters } from '@/lib/postDateFilters'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { STATUS_LABELS, statusBadge } from '@/lib/postStatus'
+import { trashNote } from '@/lib/trash'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
 
 const PAGE_SIZE = 20
@@ -469,6 +470,7 @@ export function PostsOverviewPage() {
                       회원 작성{post.author_member_name ? ` · ${post.author_member_name}` : ''}
                     </span>
                   )}
+                  {inTrash && <span className="text-amber-700">{trashNote(post)}</span>}
                   <time dateTime={post.updated_at}>
                     수정 {dayjs(post.updated_at).format('YYYY.MM.DD')}
                   </time>
