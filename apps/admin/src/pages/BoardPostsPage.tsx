@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import dayjs from 'dayjs'
-import { ChevronLeft, ChevronRight, ExternalLink, Pin, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ExternalLink, Paperclip, Pin, Plus } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
@@ -133,6 +133,13 @@ export function BoardPostsPage() {
           >
             {post.title}
           </Link>
+        )}
+        {post.has_attachments && (
+          <Paperclip
+            className="h-3.5 w-3.5 shrink-0 text-slate-400"
+            aria-label="첨부 파일"
+            role="img"
+          />
         )}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">

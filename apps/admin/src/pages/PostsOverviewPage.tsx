@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from 'react'
 import dayjs from 'dayjs'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Paperclip } from 'lucide-react'
 import { Link } from 'react-router'
 import type { PostBulkAction, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
@@ -448,6 +448,12 @@ export function PostsOverviewPage() {
                 )}
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span>{post.board_name}</span>
+                  {post.has_attachments && (
+                    <span className="inline-flex items-center gap-0.5">
+                      <Paperclip className="h-3 w-3" aria-hidden />
+                      첨부
+                    </span>
+                  )}
                   {!inTrash && (
                     <span className={`rounded px-1.5 py-0.5 ${statusBadge(post).className}`}>
                       {statusBadge(post).label}
