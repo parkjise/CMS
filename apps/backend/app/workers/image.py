@@ -95,6 +95,9 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
       - section_settings.field_value 에 file_url 이 들어 있는 행 없음
         (값 그대로 · 갤러리 목록 같은 JSON 안 모두 — T-064-A)
       - seo_settings.og_image_url 로 쓰이지 않음 (SEO 공유 이미지 — T-037-C)
+      - site_settings 의 로고 · 파비콘이 아님 (T-193)
+      - 같은 사업체 게시글 본문 · 사진 칸(custom_data) · 이전 버전에 없음 — 휴지통 글
+        포함, 되살릴 수 있으므로 (T-193)
 
     MinIO의 원본·썸네일 객체도 함께 삭제. 정리된 파일 개수 반환.
     """
@@ -122,6 +125,23 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
                   AND NOT EXISTS (
                       SELECT 1 FROM seo_settings seo
                       WHERE seo.og_image_url = uf.file_url
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM site_settings site
+                      WHERE site.logo_url = uf.file_url
+                         OR site.favicon_url = uf.file_url
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM board_posts bp
+                      WHERE bp.tenant_id = uf.tenant_id
+                        AND (strpos(bp.body::text, uf.file_url) > 0
+                             OR strpos(bp.custom_data::text, uf.file_url) > 0)
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM board_post_versions bv
+                      WHERE bv.tenant_id = uf.tenant_id
+                        AND (strpos(bv.body::text, uf.file_url) > 0
+                             OR strpos(bv.custom_data::text, uf.file_url) > 0)
                   )
                 """
             )
