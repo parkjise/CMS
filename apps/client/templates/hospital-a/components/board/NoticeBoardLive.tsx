@@ -1,11 +1,6 @@
 import { NOTICE_BOARD, fetchPublicPost, fetchPublicPosts, postDate } from '@/lib/publicPosts'
 import { getPlainString } from '@/lib/sectionSettings'
-import {
-  NoticeBoard,
-  type NoticeBoardProps,
-  NoticeDetailView,
-  NoticeListView,
-} from './NoticeBoard'
+import { NoticeBoard, type NoticeBoardProps, NoticeDetailView, NoticeListView } from './NoticeBoard'
 
 /**
  * 실제 사업체의 공지 — 공개 글이 있으면 게시글, 없으면 샘플(섹션 JSON) (게시판 모듈 기획서 2.2)
@@ -23,6 +18,7 @@ export async function NoticeBoardLive(props: NoticeBoardProps) {
         date={postDate(post.published_at)}
         body={post.body}
         fields={post.fields}
+        attachments={post.attachments}
         edit={{ board: NOTICE_BOARD, post: post.id }}
         prevHref={post.prev_id ? hrefFor({ id: post.prev_id }) : null}
         nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}

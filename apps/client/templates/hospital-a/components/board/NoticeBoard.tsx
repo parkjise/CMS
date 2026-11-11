@@ -1,8 +1,15 @@
 import type { ReactNode } from 'react'
-import type { BodyBlock, BodyNode, PublicFieldValue, PublicListColumn } from '@cms/types'
+import type {
+  BodyBlock,
+  BodyNode,
+  PostAttachment,
+  PublicFieldValue,
+  PublicListColumn,
+} from '@cms/types'
 import { PublicListTable } from '@/components/board/PublicListTable'
 import { ListFieldValues } from '@/components/board/ListFieldValues'
 import { FieldValue } from '@/components/board/FieldValue'
+import { fileSize } from '@/lib/fileSize'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { BoardBody } from './BoardBody'
@@ -57,6 +64,8 @@ interface NoticeDetailViewProps {
   edit?: { board: string; post: string }
   /** 회원이 쓴 글이면 [수정] [삭제] (T-150-B) */
   actions?: ReactNode
+  /** 첨부 파일 (T-194) */
+  attachments?: PostAttachment[]
 }
 
 /** 게시글 상세 — 목업 sub/board-view.html */
@@ -71,6 +80,7 @@ export function NoticeDetailView({
   fields = [],
   edit,
   actions,
+  attachments = [],
 }: NoticeDetailViewProps) {
   return (
     <section className="board-view" aria-labelledby="board-view-title">
@@ -105,6 +115,21 @@ export function NoticeDetailView({
             </dl>
           )}
           <BoardBody blocks={body} />
+          {attachments.length > 0 && (
+            <section className="board-view__files" aria-label="첨부 파일">
+              <h3 className="board-view__files-title">첨부 파일</h3>
+              <ul className="board-view__files-list">
+                {attachments.map((file) => (
+                  <li className="board-view__file" key={file.id}>
+                    <a className="board-view__file-link" href={file.url} download={file.name}>
+                      {file.name}
+                    </a>
+                    <span className="board-view__file-size">{fileSize(file.size)}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </article>
         <BoardViewNav prevHref={prevHref} nextHref={nextHref} listHref={listHref} />
       </div>
