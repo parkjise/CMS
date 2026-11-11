@@ -9,6 +9,8 @@ export interface TenantListItem {
   plan_type: string
   is_active: boolean
   created_at: string
+  /** 해지 · 정지 사업체 데이터 파기를 마친 시각 (T-198) */
+  data_purged_at?: string | null
 }
 
 export interface TenantListData {
