@@ -6,6 +6,7 @@ from uuid import UUID
 
 from pydantic import (
     AfterValidator,
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -445,6 +446,8 @@ class PostCreate(BaseModel):
     category_id: UUID | None = None
     # 필드 값 {field_key: 값} — 서버가 필드 정의로 검사한다
     custom_data: dict[str, Any] | None = None
+    # 예약 공개 (T-189) — 공개 글만, 지금보다 뒤 시각. 없으면 바로 공개
+    published_at: AwareDatetime | None = None
 
 
 class PostUpdate(BaseModel):
@@ -457,6 +460,8 @@ class PostUpdate(BaseModel):
     category_id: UUID | None = None
     # 보낸 칸만 바뀐다. 빈 값은 그 칸을 비운다
     custom_data: dict[str, Any] | None = None
+    # 보내면 바뀐다 — null 은 예약을 풀고 바로 공개 (T-189)
+    published_at: AwareDatetime | None = None
 
 
 class PostListItem(BaseModel):

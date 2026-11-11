@@ -18,7 +18,7 @@ import {
 } from '@/hooks/useBoards'
 import { postDateFilters } from '@/lib/postDateFilters'
 import { pickErrorMessage } from '@/lib/errorMessages'
-import { STATUS_LABELS, STATUS_STYLES } from '@/pages/BoardPostsPage'
+import { STATUS_LABELS, statusBadge } from '@/lib/postStatus'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
 
 const PAGE_SIZE = 20
@@ -449,8 +449,8 @@ export function PostsOverviewPage() {
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span>{post.board_name}</span>
                   {!inTrash && (
-                    <span className={`rounded px-1.5 py-0.5 ${STATUS_STYLES[post.status]}`}>
-                      {STATUS_LABELS[post.status]}
+                    <span className={`rounded px-1.5 py-0.5 ${statusBadge(post).className}`}>
+                      {statusBadge(post).label}
                     </span>
                   )}
                   {post.guest_name && (

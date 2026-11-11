@@ -46,6 +46,8 @@ export interface PostInput {
   is_secret?: boolean
   /** 분류 (T-149) — null 은 분류 없음 */
   category_id?: string | null
+  /** 예약 공개 시각 (T-189) — null 은 예약을 풀고 바로 공개 */
+  published_at?: string | null
 }
 
 export interface PostOverviewFilters extends PostFilters {
@@ -122,7 +124,13 @@ export function useReportedPosts() {
 export function useResolveReports() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async ({ postId, action }: { postId: string; action: ReportAction }): Promise<void> => {
+    mutationFn: async ({
+      postId,
+      action,
+    }: {
+      postId: string
+      action: ReportAction
+    }): Promise<void> => {
       await api.post(`/v1/posts/${postId}/reports/resolve`, { action })
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: BOARDS_KEY }),
@@ -203,7 +211,10 @@ export function usePostOverview(filters: PostOverviewFilters) {
 export function useBulkPosts() {
   const invalidate = useInvalidateBoards()
   return useMutation({
-    mutationFn: async (payload: { post_ids: string[]; action: PostBulkAction }): Promise<number> => {
+    mutationFn: async (payload: {
+      post_ids: string[]
+      action: PostBulkAction
+    }): Promise<number> => {
       const { data } = await api.post('/v1/posts/bulk', payload)
       return data.data.updated
     },

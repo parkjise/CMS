@@ -66,6 +66,10 @@ celery_app.conf.update(
             "task": "app.workers.announcement.publish_scheduled_announcements",
             "schedule": crontab(minute="*/5"),  # 5분마다 예약 공지 발행
         },
+        "release-scheduled-posts-every-5min": {
+            "task": "app.workers.scheduled.release_scheduled_posts",
+            "schedule": crontab(minute="*/5"),  # 5분마다 예약 게시글 캐시 비우기
+        },
         "deactivate-expired-announcements-daily-4am": {
             "task": "app.workers.announcement.deactivate_expired_announcements",
             "schedule": crontab(hour=4, minute=0),  # 매일 04:00 만료 공지 비노출

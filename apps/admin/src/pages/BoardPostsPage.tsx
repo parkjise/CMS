@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, ExternalLink, Pin, Plus } from 'lucide-react
 import { Link, useLocation, useParams } from 'react-router'
 import type { PostListItem, PostStatus } from '@cms/types'
 import { Button, Input, toast } from '@cms/ui'
+import { STATUS_LABELS, statusBadge } from '@/lib/postStatus'
 import { PostTableLayoutControls } from '@/components/boards/PostTableLayoutControls'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
@@ -32,18 +33,6 @@ import {
 } from '@/stores/postTableLayoutStore'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
-
-export const STATUS_LABELS: Record<PostStatus, string> = {
-  DRAFT: '임시저장',
-  PUBLISHED: '공개',
-  PRIVATE: '비공개',
-}
-
-export const STATUS_STYLES: Record<PostStatus, string> = {
-  DRAFT: 'bg-amber-50 text-amber-700',
-  PUBLISHED: 'bg-emerald-50 text-emerald-700',
-  PRIVATE: 'bg-slate-100 text-slate-600',
-}
 
 const PAGE_SIZE = 20
 
@@ -147,8 +136,8 @@ export function BoardPostsPage() {
         )}
       </div>
       <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-        <span className={`rounded px-1.5 py-0.5 ${STATUS_STYLES[post.status]}`}>
-          {STATUS_LABELS[post.status]}
+        <span className={`rounded px-1.5 py-0.5 ${statusBadge(post).className}`}>
+          {statusBadge(post).label}
         </span>
         {post.is_secret && (
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">비밀글</span>

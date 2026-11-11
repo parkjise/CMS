@@ -6,7 +6,7 @@ import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useReportedPosts, useResolveReports } from '@/hooks/useBoards'
 import { pickErrorMessage } from '@/lib/errorMessages'
-import { STATUS_LABELS, STATUS_STYLES } from '@/pages/BoardPostsPage'
+import { STATUS_LABELS, STATUS_STYLES } from '@/lib/postStatus'
 
 const REASON_LABELS: Record<ReportReason, string> = {
   SPAM: '스팸 · 광고',

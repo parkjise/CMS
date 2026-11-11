@@ -3,6 +3,7 @@
 - reset_monthly_notification_count: 매월 1일 00:00 (Asia/Seoul) 카운터 초기화
 - cleanup_old_inquiries: 매일 02:00 플랜별 보관 기간 초과 문의 소프트 삭제
 - cleanup_old_analytics: 매일 02:30 플랜별 보관 기간 초과 통계 하드 삭제
+- release_scheduled_posts: 5분마다 공개 시각이 지난 예약 글 캐시 비우기 (T-189)
 """
 
 from datetime import date
@@ -228,3 +229,27 @@ async def _cleanup_old_template_history(
         )
         await db.commit()
         return affected_rows(result)
+
+
+# ── release_scheduled_posts (T-189) ───────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.release_scheduled_posts",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def release_scheduled_posts(self) -> int:
+    return run_async(_release_scheduled_posts())
+
+
+async def _release_scheduled_posts() -> int:
+    """예약 글이 공개 시각에 홈페이지에 보이게 캐시를 비운다. 사업체 수 반환."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import board as board_service
+
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        return await board_service.release_scheduled_posts(db)

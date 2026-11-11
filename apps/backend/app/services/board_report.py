@@ -70,6 +70,7 @@ async def report_post(
                 BoardPost.board_id == board.id,
                 BoardPost.tenant_id == board.tenant_id,
                 BoardPost.status == STATUS_PUBLISHED,
+                BoardPost.published_at <= func.now(),
                 BoardPost.deleted_at.is_(None),
             )
         )
