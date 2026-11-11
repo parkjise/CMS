@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
@@ -23,10 +23,13 @@ import {
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
 import { isScheduled } from '@/lib/postStatus'
+import { type PostDraft, clearDraft, draftKey, readDraft, writeDraft } from '@/lib/postDraft'
 
 const TITLE_MAX = 200
 const LOCAL_MINUTE = 'YYYY-MM-DDTHH:mm'
 const SCHEDULE_MAX_DAYS = 365
+// 입력을 멈추고 이만큼 지나면 브라우저에 보관한다 (T-190)
+const AUTOSAVE_DELAY_MS = 2000
 
 interface PostFormProps {
   boardId: string
@@ -63,6 +66,88 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const custom = useForm<CustomValues>({
     defaultValues: initialCustomValues(fields ?? [], post ? post.custom_data : null),
   })
+
+  // 자동 보관 (T-190) — 저장하지 않은 내용을 이 브라우저에만 남긴다
+  const storageKey = draftKey(boardId, post?.id)
+  const [pendingDraft, setPendingDraft] = useState<PostDraft | null>(() => {
+    const draft = readDraft(storageKey)
+    // 보관한 뒤 다른 곳에서 저장했으면 보관본이 더 낡았다
+    if (draft && post && dayjs(draft.saved_at).isBefore(post.updated_at)) {
+      clearDraft(storageKey)
+      return null
+    }
+    return draft
+  })
+  const [editorInitial, setEditorInitial] = useState<BodyNode[]>(post?.body ?? [])
+  const [editorKey, setEditorKey] = useState(0)
+  const [bodyReady, setBodyReady] = useState(false)
+  const [customTick, setCustomTick] = useState(0)
+  const [autosavedAt, setAutosavedAt] = useState<string>()
+  // 편집기가 처음 알린 내용 기준 — 손대지 않은 글은 보관하지 않는다
+  const baseline = useRef<string | null>(null)
+
+  useEffect(() => {
+    const subscription = custom.watch(() => setCustomTick((tick) => tick + 1))
+    return () => subscription.unsubscribe()
+  }, [custom])
+
+  useEffect(() => {
+    if (!canEdit || !bodyReady || pendingDraft) return undefined
+    const draft = {
+      title,
+      body,
+      is_pinned: isPinned,
+      is_secret: isSecret,
+      category_id: categoryId,
+      custom: custom.getValues(),
+    }
+    const current = JSON.stringify(draft)
+    if (baseline.current === null) {
+      baseline.current = current
+      return undefined
+    }
+    if (current === baseline.current) return undefined
+    const timer = setTimeout(() => {
+      const savedAt = new Date().toISOString()
+      if (writeDraft(storageKey, { ...draft, saved_at: savedAt })) setAutosavedAt(savedAt)
+    }, AUTOSAVE_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [
+    canEdit,
+    bodyReady,
+    pendingDraft,
+    title,
+    body,
+    isPinned,
+    isSecret,
+    categoryId,
+    customTick,
+    custom,
+    storageKey,
+  ])
+
+  const changeBody = (next: BodyNode[]) => {
+    setBody(next)
+    setBodyReady(true)
+  }
+
+  const restoreDraft = () => {
+    if (!pendingDraft) return
+    setTitle(pendingDraft.title)
+    setIsPinned(pendingDraft.is_pinned)
+    setIsSecret(pendingDraft.is_secret)
+    setCategoryId(pendingDraft.category_id)
+    custom.reset({ ...custom.getValues(), ...pendingDraft.custom })
+    setBody(pendingDraft.body)
+    setEditorInitial(pendingDraft.body)
+    setEditorKey((key) => key + 1)
+    setPendingDraft(null)
+  }
+
+  const discardDraft = () => {
+    clearDraft(storageKey)
+    setPendingDraft(null)
+  }
 
   const saving = createPost.isPending || updatePost.isPending
   const status: PostStatus = post?.status ?? 'DRAFT'
@@ -113,6 +198,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       const saved = post
         ? await updatePost.mutateAsync({ id: post.id, payload })
         : await createPost.mutateAsync(payload)
+      clearDraft(storageKey)
       if (scheduling) {
         toast.success(
           `예약했습니다. ${dayjs(scheduledAt).format('M월 D일 HH:mm')}에 홈페이지에 공개돼요.`
@@ -126,8 +212,8 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       })
     } catch (error) {
       const message = pickErrorMessage(error, '저장하지 못했습니다.')
-      const key = customFieldOfError(error)
-      if (key) custom.setError(key, { message })
+      const fieldKey = customFieldOfError(error)
+      if (fieldKey) custom.setError(fieldKey, { message })
       toast.error(message)
     }
   }
@@ -140,6 +226,23 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
         save(status)
       }}
     >
+      {canEdit && pendingDraft && (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900"
+        >
+          <p className="mr-auto">
+            저장하지 않은 내용이 있어요 ({dayjs(pendingDraft.saved_at).format('MM/DD HH:mm')} 자동
+            보관). 이어서 쓸까요?
+          </p>
+          <Button type="button" variant="ghost" size="sm" onClick={discardDraft}>
+            버리기
+          </Button>
+          <Button type="button" size="sm" onClick={restoreDraft}>
+            이어서 쓰기
+          </Button>
+        </div>
+      )}
       <ReadOnlyFieldset>
         <div className="space-y-5">
           <Input
@@ -182,7 +285,12 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
           )}
           <div>
             <p className="mb-2 text-sm font-medium text-slate-700">내용</p>
-            <RichTextEditor initial={post?.body ?? []} editable={canEdit} onChange={setBody} />
+            <RichTextEditor
+              key={editorKey}
+              initial={editorInitial}
+              editable={canEdit}
+              onChange={changeBody}
+            />
           </div>
           <Toggle
             label="상단 고정"
@@ -269,6 +377,11 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
             >
               게시판 옮기기
             </Button>
+          )}
+          {autosavedAt && (
+            <span className="self-center text-xs text-slate-400" role="status">
+              자동 보관됨 {dayjs(autosavedAt).format('HH:mm')}
+            </span>
           )}
           <Link
             to={`/admin/boards/${boardId}/posts`}
