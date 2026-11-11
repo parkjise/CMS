@@ -4,7 +4,7 @@
 지우면 화면이 템플릿 샘플로 다시 채우므로(resolvePageSections) 빈 목록으로 남긴다.
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
@@ -46,6 +46,12 @@ MSG_DATE_RANGE = "작성일 시작은 종료 범위보다 빨라야 합니다."
 MSG_UPDATED_DATE_RANGE = "수정일 시작은 종료 범위보다 빨라야 합니다."
 MSG_PUBLISHED_DATE_RANGE = "공개일 시작은 종료 범위보다 빨라야 합니다."
 MSG_BULK_MISMATCH = "처리할 수 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
+MSG_SCHEDULE_NOT_PUBLISHED = "예약 공개는 공개 상태의 글에만 정할 수 있습니다."
+MSG_SCHEDULE_PAST = "예약 시각은 지금보다 뒤여야 합니다."
+MSG_SCHEDULE_TOO_FAR = "예약 공개는 1년 안으로만 정할 수 있습니다."
+SCHEDULE_MAX_DAYS = 365
+# 예약 글 확인 주기(5분)의 두 배 — 한 번 건너뛰어도 놓치지 않는다
+SCHEDULE_SWEEP_WINDOW = timedelta(minutes=10)
 SITEMAP_POST_LIMIT = 5000
 DESCRIPTION_KEY = "description"
 SORT_ORDER_KEY = "sort_order"
@@ -101,6 +107,28 @@ def _active_post(tenant_id: UUID, board_id: UUID) -> list[ColumnElement[bool]]:
         BoardPost.board_id == board_id,
         BoardPost.deleted_at.is_(None),
     ]
+
+
+def _published_now() -> ColumnElement[bool]:
+    """예약 글 (T-189) 은 공개 시각이 지나야 홈페이지에 나온다."""
+    return or_(BoardPost.published_at.is_(None), BoardPost.published_at <= func.now())
+
+
+def is_scheduled(post: BoardPost) -> bool:
+    return post.published_at is not None and post.published_at > datetime.now(UTC)
+
+
+def _check_schedule(published_at: datetime, post_status: str) -> None:
+    now = datetime.now(UTC)
+    if post_status != STATUS_PUBLISHED:
+        message = MSG_SCHEDULE_NOT_PUBLISHED
+    elif published_at <= now:
+        message = MSG_SCHEDULE_PAST
+    elif published_at > now + timedelta(days=SCHEDULE_MAX_DAYS):
+        message = MSG_SCHEDULE_TOO_FAR
+    else:
+        return
+    raise HTTPException(status_code=400, detail=message)
 
 
 def _title_contains(
@@ -656,10 +684,14 @@ async def get_post(
 
 
 async def _after_write(db: AsyncSession, post: BoardPost) -> None:
+    if post.status != STATUS_PUBLISHED and is_scheduled(post):
+        # 공개를 거두면 예약도 풀린다 — 다시 공개할 때 그때 시각으로
+        post.published_at = None
     if post.status == STATUS_PUBLISHED and post.deleted_at is None:
         post.published_at = post.published_at or datetime.now(UTC)
-        # 샘플은 공지 것뿐 — 다른 게시판 글로 공지 샘플이 사라지면 안 된다
-        board = await db.get(Board, post.board_id)
+        # 샘플은 공지 것뿐 — 다른 게시판 글로 공지 샘플이 사라지면 안 된다.
+        # 예약 글은 공개 시각에 release_scheduled_posts 가 비운다
+        board = None if is_scheduled(post) else await db.get(Board, post.board_id)
         if board is not None and board.system_key == NOTICE_KEY:
             await _clear_samples(db, post.tenant_id)
     await db.commit()
@@ -683,6 +715,8 @@ async def create_post(
         db, board_id, None, data.custom_data, data.status
     )
     await category_service.check_post_category(db, board_id, data.category_id)
+    if data.published_at is not None:
+        _check_schedule(data.published_at, data.status)
     post = BoardPost(
         tenant_id=tenant_id,
         board_id=board_id,
@@ -694,6 +728,7 @@ async def create_post(
         is_secret=data.is_secret,
         custom_data=custom_data,
         category_id=data.category_id,
+        published_at=data.published_at,
     )
     db.add(post)
     await _after_write(db, post)
@@ -717,6 +752,13 @@ async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> Bo
         post.is_pinned = data.is_pinned
     if data.is_secret is not None:
         post.is_secret = data.is_secret
+    if "published_at" in data.model_fields_set:
+        if data.published_at is not None:
+            _check_schedule(data.published_at, post.status)
+            post.published_at = data.published_at
+        elif is_scheduled(post):
+            # 예약을 풀면 지금 공개 (_after_write 가 지금 시각을 넣는다)
+            post.published_at = None
     await _after_write(db, post)
     return post
 
@@ -861,6 +903,9 @@ async def bulk_update_posts(
         else:
             post.status = STATUS_PUBLISHED
     # 낱개 저장(_after_write)과 같은 규칙 — 공개 글의 공개일, 공지 글이면 샘플 비우기
+    for post, _board in rows:
+        if post.status != STATUS_PUBLISHED and is_scheduled(post):
+            post.published_at = None
     public = [
         (post, board)
         for post, board in rows
@@ -868,7 +913,10 @@ async def bulk_update_posts(
     ]
     for post, _board in public:
         post.published_at = post.published_at or now
-    if any(board.system_key == NOTICE_KEY for _post, board in public):
+    if any(
+        board.system_key == NOTICE_KEY and not is_scheduled(post)
+        for post, board in public
+    ):
         await _clear_samples(db, tenant_id)
     await db.commit()
     await site_cache.purge_site(db, tenant_id)
@@ -931,6 +979,7 @@ async def public_post_location(
                 BoardPost.id == post_id,
                 BoardPost.tenant_id == tenant.id,
                 BoardPost.status == STATUS_PUBLISHED,
+                _published_now(),
                 BoardPost.deleted_at.is_(None),
                 Board.status == "ACTIVE",
                 Board.deleted_at.is_(None),
@@ -1026,6 +1075,7 @@ async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] |
         .where(
             BoardPost.tenant_id == tenant.id,
             BoardPost.status == STATUS_PUBLISHED,
+            _published_now(),
             BoardPost.deleted_at.is_(None),
             Board.status == "ACTIVE",
             Board.deleted_at.is_(None),
@@ -1112,6 +1162,7 @@ def _public_conditions(board: Board) -> list[ColumnElement[bool]]:
     return [
         *_active_post(board.tenant_id, board.id),
         BoardPost.status == STATUS_PUBLISHED,
+        _published_now(),
     ]
 
 
@@ -1199,3 +1250,32 @@ async def get_public_post(
     if post is None:
         return None
     return post, row.older, row.newer
+
+
+async def release_scheduled_posts(db: AsyncSession) -> int:
+    """공개 시각이 막 지난 예약 글 (T-189) — 공지 샘플을 비우고 홈페이지 캐시를 비운다.
+
+    5분마다 부른다. 바로 공개한 글도 창 안에 들 수 있지만 캐시를 한 번 더 비울 뿐이다.
+    비운 사업체 수를 돌려준다.
+    """
+    now = datetime.now(UTC)
+    rows = (
+        await db.execute(
+            select(BoardPost.tenant_id, Board.system_key)
+            .join(Board, Board.id == BoardPost.board_id)
+            .where(
+                BoardPost.status == STATUS_PUBLISHED,
+                BoardPost.deleted_at.is_(None),
+                BoardPost.published_at > now - SCHEDULE_SWEEP_WINDOW,
+                BoardPost.published_at <= now,
+            )
+            .distinct()
+        )
+    ).all()
+    tenants = {tenant_id for tenant_id, _key in rows}
+    for tenant_id in {tenant_id for tenant_id, key in rows if key == NOTICE_KEY}:
+        await _clear_samples(db, tenant_id)
+    await db.commit()
+    for tenant_id in tenants:
+        await site_cache.purge_site(db, tenant_id)
+    return len(tenants)
