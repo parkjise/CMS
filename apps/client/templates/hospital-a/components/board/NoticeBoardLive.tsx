@@ -45,6 +45,7 @@ export async function NoticeBoardLive(props: NoticeBoardProps) {
         subject: p.title,
         date: postDate(p.published_at),
         pinned: p.is_pinned,
+        attachment: p.has_attachments,
       }))}
       total={list.total}
       page={Math.min(page, totalPages)}

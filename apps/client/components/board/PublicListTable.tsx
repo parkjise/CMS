@@ -1,5 +1,6 @@
 import type { BoardColumnSize, PublicFieldValue, PublicListColumn } from '@cms/types'
 import { fieldValueText } from '@/lib/publicPosts'
+import { AttachmentMark } from './AttachmentMark'
 
 export interface PublicTableRow {
   id: string
@@ -7,6 +8,8 @@ export interface PublicTableRow {
   date: string
   pinned?: boolean
   secret?: boolean
+  /** 첨부 파일이 있는 글 (T-197) */
+  attachment?: boolean
   fields?: PublicFieldValue[] | null
 }
 interface PublicListTableProps {
@@ -66,6 +69,7 @@ export const PublicListTable = ({
                 {row.pinned && <span className={c.badge}>공지</span>}
                 {row.secret && <span className={c.badge}>비밀글</span>}
                 {row.title}
+                {row.attachment && <AttachmentMark />}
               </a>
             </td>
             {columns.map((column) => {

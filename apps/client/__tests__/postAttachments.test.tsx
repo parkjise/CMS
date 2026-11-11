@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import type { PublicBoard, PublicPost } from '@cms/types'
-import { ThemeBoardDetail } from '@/components/board/ThemeBoard'
+import { ThemeBoardDetail, ThemeBoardListView } from '@/components/board/ThemeBoard'
 import { fileSize } from '@/lib/fileSize'
 import { CustomBoardDetail } from '@/templates/hospital-a/components/board/CustomBoardViews'
 
@@ -88,5 +88,36 @@ describe('글 첨부 파일 — 홈페이지 (T-194)', () => {
     expect(fileSize(500)).toBe('1KB')
     expect(fileSize(34_000)).toBe('33KB')
     expect(fileSize(2_516_582)).toBe('2.4MB')
+  })
+})
+
+describe('글 목록 📎 표시 (T-197)', () => {
+  const list = (attached: boolean) => ({
+    posts: [
+      {
+        id: 'p1',
+        title: '진료 안내',
+        is_pinned: false,
+        published_at: '2026-11-06T00:00:00Z',
+        has_attachments: attached,
+      },
+    ],
+    total: 1,
+    page: 1,
+    totalPages: 1,
+    keyword: '',
+  })
+
+  it.each([true, false])('첨부가 있으면 제목 옆에 표시 (%s)', (attached) => {
+    const { unmount } = render(
+      <ThemeBoardListView
+        board={board}
+        list={list(attached)}
+        hrefFor={hrefFor}
+        searchAction="/demo/b/news"
+      />
+    )
+    expect(screen.queryAllByRole('img', { name: '첨부 파일' })).toHaveLength(attached ? 1 : 0)
+    unmount()
   })
 })

@@ -134,6 +134,15 @@ $badge-bg: #f1f5f9;
     line-height: 1.4;
     @include ellipsis;
   }
+  // 첨부 파일이 있는 글 — 제목 옆 클립 (T-197)
+  &__clip {
+    display: inline-block;
+    width: 0.75em;
+    height: 0.75em;
+    margin-left: 0.35em;
+    color: var(--color-text-secondary);
+    vertical-align: -0.05em;
+  }
   &__date {
     grid-area: date;
     font-size: 0.875rem;
