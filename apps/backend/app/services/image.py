@@ -103,15 +103,25 @@ def _get_s3_client():
     )
 
 
-def upload_to_storage(file_bytes: bytes, key: str, content_type: str) -> str:
-    """MinIO/S3에 업로드 후 CDN URL 반환. 공용 템플릿 원본 경로는 거부 (11.8)."""
+def upload_to_storage(
+    file_bytes: bytes,
+    key: str,
+    content_type: str,
+    content_disposition: str | None = None,
+) -> str:
+    """MinIO/S3에 업로드 후 CDN URL 반환. 공용 템플릿 원본 경로는 거부 (11.8).
+
+    content_disposition — 첨부 파일(T-194)을 원래 이름으로 내려받게 한다.
+    """
     template_assets.ensure_writable(key)
     client = _get_s3_client()
+    extra = {"ContentDisposition": content_disposition} if content_disposition else {}
     client.put_object(
         Bucket=settings.minio_bucket_name,
         Key=key,
         Body=file_bytes,
         ContentType=content_type,
+        **extra,
     )
     return get_cdn_url(key)
 

@@ -3,7 +3,17 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    UploadFile,
+    status,
+)
 from fastapi.security import HTTPAuthorizationCredentials
 from pydantic import AwareDatetime
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -52,6 +62,7 @@ from app.schemas.board import (
     MemberPostResponse,
     MemberPostUpdate,
     PermissionOptionsResponse,
+    PostAttachment,
     PostBulkRequest,
     PostBulkResponse,
     PostCreate,
@@ -80,6 +91,7 @@ from app.schemas.board import (
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
 from app.services import board_access, board_presets
+from app.services import board_attachment as attachment_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import board_guest_post as guest_post_service
@@ -771,15 +783,46 @@ async def create_post(
     current_user: User = Depends(get_current_user),
 ):
     board_service.ensure_secret_allowed(board, data.is_secret)
+    attachment_service.ensure_public_allowed(
+        board_service.is_member_only(board), data.is_secret, bool(data.attachment_ids)
+    )
     post = await board_service.create_post(
         db, board.tenant_id, board.id, current_user.id, data
     )
-    return ApiResponse.ok(PostResponse.model_validate(post))
+    return ApiResponse.ok(await _post_response(db, post))
+
+
+async def _post_response(db: AsyncSession, post: BoardPost) -> PostResponse:
+    attachments = await attachment_service.list_attachments(db, post.id)
+    return PostResponse.model_validate(post).model_copy(
+        update={"attachments": [PostAttachment(**item) for item in attachments]}
+    )
+
+
+@router.post(
+    "/{board_id}/attachments",
+    response_model=ApiResponse[PostAttachment],
+    status_code=status.HTTP_201_CREATED,
+)
+async def upload_attachment(
+    file: UploadFile = File(...),
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """글에 붙일 파일 (T-194) — 글을 저장할 때 attachment_ids 로 보내야 붙는다."""
+    uploaded = await attachment_service.upload(
+        db, board.tenant_id, current_user.id, file.filename, await file.read()
+    )
+    return ApiResponse.ok(PostAttachment(**attachment_service.file_item(uploaded)))
 
 
 @router.get("/{board_id}/posts/{post_id}", response_model=ApiResponse[PostResponse])
-async def get_post(post: BoardPost = Depends(_post_or_404)):
-    return ApiResponse.ok(PostResponse.model_validate(post))
+async def get_post(
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    return ApiResponse.ok(await _post_response(db, post))
 
 
 @router.patch("/{board_id}/posts/{post_id}", response_model=ApiResponse[PostResponse])
@@ -793,8 +836,15 @@ async def update_post(
     if post.deleted_at is not None:
         raise _not_found(MSG_POST_NOT_FOUND)
     board_service.ensure_secret_allowed(board, data.is_secret)
+    attachment_service.ensure_public_allowed(
+        board_service.is_member_only(board),
+        post.is_secret if data.is_secret is None else data.is_secret,
+        bool(data.attachment_ids)
+        if data.attachment_ids is not None
+        else await attachment_service.has_attachments(db, post.id),
+    )
     updated = await board_service.update_post(db, post, data, current_user.id)
-    return ApiResponse.ok(PostResponse.model_validate(updated))
+    return ApiResponse.ok(await _post_response(db, updated))
 
 
 @router.get(
@@ -844,7 +894,7 @@ async def restore_post(
     current_user: User = Depends(get_current_user),
 ):
     restored = await board_service.restore_post(db, post)
-    response = PostResponse.model_validate(restored)
+    response = await _post_response(db, restored)
     await _audit_post(db, current_user, "POST_RESTORED", restored)
     return ApiResponse.ok(response)
 
@@ -1119,6 +1169,12 @@ async def get_public_post(
             category_id=post.category_id,
             body=[] if locked else post.body,
             fields=[] if locked else await field_service.public_fields(db, post),  # type: ignore[arg-type]
+            attachments=[]
+            if locked
+            else [
+                PostAttachment(**item)
+                for item in await attachment_service.list_attachments(db, post.id)
+            ],
             prev_id=prev_id,
             next_id=next_id,
         )

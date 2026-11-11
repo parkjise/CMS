@@ -96,6 +96,7 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
         (값 그대로 · 갤러리 목록 같은 JSON 안 모두 — T-064-A)
       - seo_settings.og_image_url 로 쓰이지 않음 (SEO 공유 이미지 — T-037-C)
       - site_settings 의 로고 · 파비콘이 아님 (T-193)
+      - 글에 붙인 첨부 파일이 아님 (휴지통 글 포함, T-194)
       - 같은 사업체 게시글 본문 · 사진 칸(custom_data) · 이전 버전에 없음 — 휴지통 글
         포함, 되살릴 수 있으므로 (T-193)
 
@@ -130,6 +131,10 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
                       SELECT 1 FROM site_settings site
                       WHERE site.logo_url = uf.file_url
                          OR site.favicon_url = uf.file_url
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM board_post_attachments ba
+                      WHERE ba.file_id = uf.id AND ba.deleted_at IS NULL
                   )
                   AND NOT EXISTS (
                       SELECT 1 FROM board_posts bp
