@@ -5,6 +5,7 @@
 - check_expiring_subscriptions: 매일 09:00 D-7/D-3 만료 예정 공지
 - suspend_expired_subscriptions: 매일 00:10 만료 · 기간 끝난 해지 구독 접근 차단
 - delete_cancelled_tenant_data: 매일 03:00 해지 기간 종료 후 30일 지나면 소프트 삭제
+- purge_inactive_tenants: 매일 03:15 해지 30일 · 정지 90일 사업체 예고 · 파기 (T-198)
 
 모든 태스크는 AsyncSessionLocal + 슈퍼 어드민 모드(RLS 우회)로 동작한다.
 """
@@ -387,3 +388,27 @@ async def _process_trial_expirations() -> dict:
                 await billing_notice.suspended(db, sub.tenant_id)
                 suspended += 1
     return {"converted": converted, "suspended": suspended}
+
+
+# ── purge_inactive_tenants (T-198) ─────────────────────────────────────────
+@celery_app.task(
+    name="app.workers.billing.purge_inactive_tenants",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def purge_inactive_tenants(self) -> dict:
+    return run_async(_purge_inactive_tenants())
+
+
+async def _purge_inactive_tenants() -> dict:
+    """해지 30일 · 정지 90일 지난 사업체 — 7일 전 예고, 예고 7일 뒤 데이터 파기."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import tenant_purge
+
+    async with AsyncSessionLocal() as db:
+        await _bypass(db)
+        notified = await tenant_purge.notify_upcoming(db)
+        purged = await tenant_purge.purge_due(db)
+    return {"notified": notified, "purged": purged}

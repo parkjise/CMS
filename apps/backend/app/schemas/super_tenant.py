@@ -13,6 +13,8 @@ class TenantListItem(BaseModel):
     plan_type: str
     is_active: bool
     created_at: datetime
+    # 해지 · 정지 사업체 데이터 파기를 마친 시각 (T-198)
+    data_purged_at: datetime | None = None
 
     model_config = {"from_attributes": True}
 

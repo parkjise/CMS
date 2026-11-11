@@ -31,6 +31,13 @@ class Tenant(Base, TimestampMixin, SoftDeleteMixin):
     )
     custom_domain: Mapped[str | None] = mapped_column(String(255), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # 해지 · 정지 사업체 데이터 파기 (T-198) — 예고 메일 · 파기 마친 시각
+    purge_notified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    data_purged_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
 
     users: Mapped[list["User"]] = relationship(
         "User", back_populates="tenant", lazy="noload"

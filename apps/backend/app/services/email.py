@@ -180,6 +180,22 @@ async def send_service_suspended(to: str, *, tenant_name: str) -> dict:
     )
 
 
+async def send_data_deletion_notice(
+    to: str, *, tenant_name: str, delete_on: datetime
+) -> dict:
+    """파기 7일 전 예고 (T-198) — 다시 결제하면 지우지 않는다."""
+    return await send_email(
+        to,
+        subject="[CMS] 홈페이지 데이터 삭제 예정 안내",
+        template="data_deletion_notice",
+        variables={
+            "tenant_name": tenant_name,
+            "delete_on": delete_on.astimezone(KST).strftime("%Y년 %m월 %d일"),
+            "billing_url": f"{settings.admin_base_url}/admin/billing?tab=method",
+        },
+    )
+
+
 async def send_data_deleted(to: str) -> dict:
     return await send_email(
         to,

@@ -91,6 +91,12 @@ celery_app.conf.update(
             "task": "app.workers.billing.retry_billing",
             "schedule": crontab(hour=1, minute=0),  # 매일 01:00 연체 재청구
         },
+        "purge-inactive-tenants-daily-0315": {
+            "task": "app.workers.billing.purge_inactive_tenants",
+            "schedule": crontab(
+                hour=3, minute=15
+            ),  # 매일 03:15 해지 · 정지 사업체 파기
+        },
         "delete-cancelled-tenant-data-daily-0300": {
             "task": "app.workers.billing.delete_cancelled_tenant_data",
             "schedule": crontab(hour=3, minute=0),  # 매일 03:00 해지 30일 경과 삭제
