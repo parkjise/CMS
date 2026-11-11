@@ -16,6 +16,7 @@ import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { fileSize } from '@/lib/fileSize'
 import { type CategoryTab, categoryTabRows } from '@/lib/categoryTabs'
 import { FieldValue } from './FieldValue'
+import { AttachmentMark } from './AttachmentMark'
 import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeGuestPostActions, ThemeReportButton } from './ThemeGuestTools'
 import { ThemeMemberPostActions, ThemeMemberWriteLink, ThemeSecretNotice } from './ThemeMemberLinks'
@@ -354,6 +355,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
             date: postDate(post.published_at),
             pinned: post.is_pinned,
             secret: post.is_secret,
+            attachment: post.has_attachments,
             fields: post.list_fields,
           }))}
           columns={list.list_columns}
@@ -403,6 +405,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     />
                   )}
                   {post.title}
+                  {post.has_attachments && <AttachmentMark />}
                 </span>
                 {!post.is_secret && (
                   <ListFieldValues
@@ -455,6 +458,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                       />
                     )}
                     {post.title}
+                    {post.has_attachments && <AttachmentMark />}
                   </span>
                   {design.show_summary && post.summary && (
                     <span className={`line-clamp-3 text-sm ${muted}`}>{post.summary}</span>
@@ -498,6 +502,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     />
                   )}
                   {post.title}
+                  {post.has_attachments && <AttachmentMark />}
                   {!post.is_secret && (
                     <ListFieldValues
                       fields={post.list_fields}
@@ -544,6 +549,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                       />
                     )}
                     {post.title}
+                    {post.has_attachments && <AttachmentMark />}
                   </span>
                   {!post.is_secret && (
                     <ListFieldValues

@@ -221,6 +221,8 @@ export interface PostListItem {
   author_member_name?: string | null
   /** 비회원 글의 이름 (T-151-B) */
   guest_name?: string | null
+  /** 첨부 파일이 있는 글 — 목록의 📎 (T-197) */
+  has_attachments?: boolean
 }
 
 /** 글에 붙인 파일 (T-194) — url 로 원래 이름 그대로 내려받는다 */
@@ -348,6 +350,8 @@ export interface PublicPostItem {
   /** 목록형 · 갤러리 · FAQ의 제목/질문 아래에 표시할 칸 (T-160) */
   list_fields?: PublicFieldValue[] | null
   category_id?: string | null
+  /** 첨부 파일이 있는 글 — 목록의 📎 (T-197) */
+  has_attachments?: boolean
 }
 
 export interface PublicListColumn {

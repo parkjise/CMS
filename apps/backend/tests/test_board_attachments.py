@@ -250,3 +250,27 @@ class TestPostAttachments:
             "SELECT id FROM uploaded_files WHERE tenant_id = :t", t=tenant["id"]
         )
         assert {str(r[0]) for r in rows} == {kept["id"]}
+
+
+class TestListFlag:
+    async def test_lists_mark_posts_with_files(
+        self, client, auth_headers, tenant, board
+    ):
+        """T-197: 관리자 · 홈페이지 글 목록에 첨부 있는 글 표시."""
+        item = await _uploaded(client, auth_headers, board)
+        with_file = (
+            await _post(client, auth_headers, board, attachment_ids=[item["id"]])
+        ).json()["data"]
+        plain = (await _post(client, auth_headers, board, title="그냥 글")).json()[
+            "data"
+        ]
+
+        admin = await client.get(f"{BOARDS}/{board['id']}/posts", headers=auth_headers)
+        flags = {p["id"]: p["has_attachments"] for p in admin.json()["data"]["items"]}
+        assert flags == {with_file["id"]: True, plain["id"]: False}
+
+        public = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/news/posts"
+        )
+        flags = {p["id"]: p["has_attachments"] for p in public.json()["data"]["items"]}
+        assert flags == {with_file["id"]: True, plain["id"]: False}

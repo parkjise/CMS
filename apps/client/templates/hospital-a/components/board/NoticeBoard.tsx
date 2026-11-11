@@ -9,6 +9,7 @@ import type {
 import { PublicListTable } from '@/components/board/PublicListTable'
 import { ListFieldValues } from '@/components/board/ListFieldValues'
 import { FieldValue } from '@/components/board/FieldValue'
+import { AttachmentMark } from '@/components/board/AttachmentMark'
 import { fileSize } from '@/lib/fileSize'
 import { getJson, getPlainString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
@@ -27,6 +28,8 @@ export interface NoticeItem {
   pinned?: boolean
   /** 비밀글 — 제목 옆 자물쇠 (T-151-A) */
   secret?: boolean
+  /** 첨부 파일이 있는 글 — 제목 옆 클립 (T-197) */
+  attachment?: boolean
   listFields?: PublicFieldValue[] | null
   body?: BodyBlock[]
 }
@@ -206,6 +209,7 @@ export function NoticeListView({
             date: item.date,
             pinned: item.pinned,
             secret: item.secret,
+            attachment: item.attachment,
             fields: item.listFields,
           }))}
           columns={tableColumns}
@@ -242,6 +246,7 @@ export function NoticeListView({
                       <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
                     )}
                     {item.subject}
+                    {item.attachment && <AttachmentMark className="board-list__clip" />}
                   </span>
                   {!item.secret && (
                     <ListFieldValues

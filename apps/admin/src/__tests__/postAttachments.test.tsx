@@ -5,6 +5,7 @@ import { MemoryRouter, Route, Routes } from 'react-router'
 import type { Board, Post, PostAttachment } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { BoardPostEditPage } from '@/pages/BoardPostEditPage'
+import { BoardPostsPage } from '@/pages/BoardPostsPage'
 import { useAuthStore } from '@/stores/authStore'
 
 const { get, post, patch, toast } = vi.hoisted(() => ({
@@ -159,5 +160,31 @@ describe('글 첨부 파일 (T-194)', () => {
     renderNew()
     expect(await screen.findByText(/회원만 읽는 게시판에는 아직 파일을/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '파일 올리기' })).not.toBeInTheDocument()
+  })
+})
+
+describe('글 목록 📎 표시 (T-197)', () => {
+  it('첨부가 있는 글만 제목 옆에 클립', async () => {
+    const item = { ...existing, attachments: undefined, has_attachments: true }
+    get.mockImplementation((url: string) => {
+      if (url === '/v1/boards') return ok([board])
+      if (url.includes('/posts'))
+        return ok({
+          total: 2,
+          page: 1,
+          size: 20,
+          items: [item, { ...item, id: 'p2', title: '그냥 글', has_attachments: false }],
+        })
+      return ok([])
+    })
+    renderWithQuery(
+      <MemoryRouter initialEntries={['/admin/boards/b1/posts']}>
+        <Routes>
+          <Route path="/admin/boards/:boardId/posts" element={<BoardPostsPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+    await screen.findByRole('link', { name: '그냥 글' })
+    expect(screen.getAllByRole('img', { name: '첨부 파일' })).toHaveLength(1)
   })
 })

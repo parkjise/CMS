@@ -362,7 +362,8 @@ describe('표 열 순서·크기 개인 설정', () => {
     await waitFor(() => expect(headers()).toEqual(['게시글', '수량', '새 칸', '작업']))
     expect(screen.getByRole('columnheader', { name: '수량' })).toHaveClass('min-w-32')
     await userEvent.click(screen.getByRole('button', { name: '열 설정 초기화' }))
-    expect(headers()).toEqual(['게시글', '새 칸', '수량', '작업'])
+    // 초기화는 계정 설정 저장을 거쳐 다시 그리므로 느린 CI 에서는 한 박자 늦다
+    await waitFor(() => expect(headers()).toEqual(['게시글', '새 칸', '수량', '작업']))
     expect(screen.getByRole('columnheader', { name: '수량' })).toHaveClass('min-w-40')
   })
   it('저장 실패는 안내하고 선택은 유지하며 재시도할 수 있다', async () => {

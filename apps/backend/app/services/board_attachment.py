@@ -226,6 +226,21 @@ async def list_attachments(db: AsyncSession, post_id: UUID) -> list[dict[str, An
     return [file_item(file) for file in rows.scalars().all()]
 
 
+async def posts_with_attachments(db: AsyncSession, post_ids: list[UUID]) -> set[UUID]:
+    """글 목록의 📎 표시 (T-197) — 첨부가 하나라도 붙은 글 id."""
+    if not post_ids:
+        return set()
+    rows = await db.execute(
+        select(BoardPostAttachment.post_id)
+        .where(
+            BoardPostAttachment.post_id.in_(post_ids),
+            BoardPostAttachment.deleted_at.is_(None),
+        )
+        .distinct()
+    )
+    return set(rows.scalars().all())
+
+
 def file_item(file: UploadedFile) -> dict[str, Any]:
     return {
         "id": file.id,
