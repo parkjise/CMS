@@ -33,6 +33,7 @@ const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'B
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
 const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
+const PoliciesPage = lazyPage(() => import('@/pages/PoliciesPage'), 'PoliciesPage')
 const TemplatesPage = lazyPage(() => import('@/pages/TemplatesPage'), 'TemplatesPage')
 const BillingPage = lazyPage(() => import('@/pages/BillingPage'), 'BillingPage')
 const AnalyticsPage = lazyPage(() => import('@/pages/AnalyticsPage'), 'AnalyticsPage')
@@ -63,6 +64,7 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
   [/^\/admin\/seo\/?$/, SeoPage],
+  [/^\/admin\/policies\/?$/, PoliciesPage],
   [/^\/admin\/templates\/?$/, TemplatesPage],
   [/^\/admin\/reports\/?$/, ReportsPage],
   [/^\/admin\/analytics\/?$/, AnalyticsPage],
@@ -195,6 +197,7 @@ export const router = createBrowserRouter([
             path: '/admin/seo',
             element: withFeature('SEO_WIZARD', <SeoPage />),
           },
+          { path: '/admin/policies', element: <PoliciesPage /> },
           {
             path: '/admin/templates',
             element: withFeature('TEMPLATE_SELECT', <TemplatesPage />),
