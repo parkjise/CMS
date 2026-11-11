@@ -21,12 +21,11 @@ export function TenantsPage() {
     () => ({
       q: filter.q || undefined,
       plan_type: filter.plan_type || undefined,
-      is_active:
-        filter.is_active === '' ? undefined : filter.is_active === 'true',
+      is_active: filter.is_active === '' ? undefined : filter.is_active === 'true',
       page,
       limit: LIMIT,
     }),
-    [filter, page],
+    [filter, page]
   )
 
   const { data, isLoading, isError } = useTenants(queryFilters)
@@ -92,9 +91,15 @@ export function TenantsPage() {
                 <td className="px-4 py-3">{t.plan_type}</td>
                 <td className="px-4 py-3 text-slate-500">{t.template_type}</td>
                 <td className="px-4 py-3">
-                  <Badge variant={t.is_active ? 'success' : 'default'} dot>
-                    {t.is_active ? '활성' : '비활성'}
-                  </Badge>
+                  {t.data_purged_at ? (
+                    <Badge variant="default">
+                      데이터 파기됨 · {new Date(t.data_purged_at).toLocaleDateString('ko-KR')}
+                    </Badge>
+                  ) : (
+                    <Badge variant={t.is_active ? 'success' : 'default'} dot>
+                      {t.is_active ? '활성' : '비활성'}
+                    </Badge>
+                  )}
                 </td>
                 <td className="px-4 py-3 text-slate-500">
                   {new Date(t.created_at).toLocaleDateString('ko-KR')}

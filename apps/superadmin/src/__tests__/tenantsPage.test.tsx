@@ -42,7 +42,7 @@ function renderPage() {
   return render(
     <MemoryRouter>
       <TenantsPage />
-    </MemoryRouter>,
+    </MemoryRouter>
   )
 }
 
@@ -57,6 +57,25 @@ describe('TenantsPage (SA-02)', () => {
     expect(screen.getByText('gangnam')).toBeInTheDocument()
     // 상태 뱃지(활성/비활성)는 필터 옵션과 텍스트가 겹치므로 존재 여부만 확인
     expect(screen.getAllByText('활성').length).toBeGreaterThan(0)
+  })
+
+  it('데이터를 파기한 사업체는 파기일을 보여 준다 (T-198)', () => {
+    useTenants.mockReturnValue({
+      data: {
+        ...DATA,
+        items: [
+          {
+            ...DATA.items[1],
+            slug: 'deleted-abc',
+            data_purged_at: '2026-11-11T00:00:00Z',
+          },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    })
+    renderPage()
+    expect(screen.getByText(/데이터 파기됨/)).toBeInTheDocument()
   })
 
   it('빈 목록 안내', () => {
@@ -78,7 +97,7 @@ describe('TenantsPage (SA-02)', () => {
     rerender(
       <MemoryRouter>
         <TenantsPage />
-      </MemoryRouter>,
+      </MemoryRouter>
     )
     expect(screen.getByText('목록을 불러오지 못했습니다.')).toBeInTheDocument()
   })
