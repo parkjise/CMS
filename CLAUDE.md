@@ -445,6 +445,8 @@ export default SectionCard
    - 앱은 일반 권한 계정(`DATABASE_URL`=cms_app)으로 접속 — 소유자 · 슈퍼유저 계정은 마이그레이션 · 시드 전용(`MIGRATION_DATABASE_URL`)
    - RLS 컨텍스트는 `set_rls_context` / `set_super_admin_context` 로만 설정 (직접 `set_config` 금지 — commit 뒤 사라지거나 다음 요청에 새어 나감)
 5. **소프트 삭제** 원칙: `deleted_at` 컬럼 추가, 실제 DELETE 금지
+   - **예외 (2026-11-11 사용자 결정, T-196):** 게시판 휴지통에 30일 넘게 있던 게시판 · 글은 매일 실제로 지운다 (`services/board_trash.py`). 고객이 휴지통에서 [영구 삭제]를 누를 때도 같다. 변경 기록(`audit_logs`)에는 제목만 남긴다. 다른 데이터는 여전히 소프트 삭제
+   - 미사용 업로드 파일 · 변경 이력처럼 원래부터 실제 삭제하던 정리 작업(T-034 · T-064 등)은 그대로
 
 ### RLS 적용 패턴 (모든 테이블 동일)
 
