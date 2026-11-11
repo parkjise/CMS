@@ -4,7 +4,8 @@
  */
 
 /** 화면 바깥 틀 */
-export const PAGE = 'mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8'
+// 다른 관리자 화면과 같은 바깥 틀 — 최대 폭 없이 화면 가득 (T-192)
+export const PAGE = 'space-y-6 p-6 md:p-8'
 
 /** 흰 카드 */
 export const CARD = 'rounded-xl border border-slate-200 bg-white p-6 shadow-sm'
