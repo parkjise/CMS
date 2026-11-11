@@ -490,6 +490,26 @@ class PostResponse(PostListItem):
     body: list[BodyNode]
 
 
+class PostVersionItem(BaseModel):
+    """글의 이전 버전 한 줄 (T-191) — 고치기 직전 내용."""
+
+    id: UUID
+    title: str
+    status: str
+    # 이 내용이 저장돼 있던 시각 · 다른 내용으로 바뀐 시각 · 바꾼 관리자 이메일
+    saved_at: datetime
+    replaced_at: datetime
+    editor: str
+
+
+class PostVersionDetail(PostVersionItem):
+    body: list[BodyNode]
+    custom_data: dict[str, Any]
+    category_id: UUID | None
+    is_pinned: bool
+    is_secret: bool
+
+
 class PostListResponse(BaseModel):
     total: int
     page: int

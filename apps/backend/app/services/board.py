@@ -35,6 +35,7 @@ from app.schemas.rich_body import body_summary, first_image
 from app.services import board_access, board_presets, member_features, site_cache
 from app.services import board_category as category_service
 from app.services import board_field as field_service
+from app.services import post_version as version_service
 from app.services.board_search import body_contains
 
 NOTICE_KEY = "notice"
@@ -735,7 +736,11 @@ async def create_post(
     return post
 
 
-async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> BoardPost:
+async def update_post(
+    db: AsyncSession, post: BoardPost, data: PostUpdate, editor_id: UUID | None = None
+) -> BoardPost:
+    # 버전 이력 (T-191) — 고치기 직전 내용
+    before = version_service.snapshot(post)
     post.custom_data = await field_service.resolve_custom_data(
         db, post.board_id, post, data.custom_data, data.status or post.status
     )
@@ -759,6 +764,7 @@ async def update_post(db: AsyncSession, post: BoardPost, data: PostUpdate) -> Bo
         elif is_scheduled(post):
             # 예약을 풀면 지금 공개 (_after_write 가 지금 시각을 넣는다)
             post.published_at = None
+    await version_service.record(db, post, before, editor_id)
     await _after_write(db, post)
     return post
 

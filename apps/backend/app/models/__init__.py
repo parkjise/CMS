@@ -9,6 +9,7 @@ from app.models.board import (
     BoardField,
     BoardPost,
     BoardPostReport,
+    BoardPostVersion,
 )
 from app.models.domain import TenantDomain
 from app.models.feature import Feature, FeatureDeployment, TenantFeature
@@ -33,6 +34,7 @@ from app.models.user import User
 
 __all__ = [
     "AdminUserPreference",
+    "BoardPostVersion",
     "Tenant",
     "User",
     "Section",
