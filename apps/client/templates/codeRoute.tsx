@@ -19,6 +19,8 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { isFormScreen, resolveBoardRoute } from '@/lib/boardRoute'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/publicPosts'
+import { fetchSitePolicy } from '@/lib/fetchSitePolicy'
+import { type PolicyKind, type SitePolicy, isPolicyKind } from '@/lib/sitePolicy'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
 import { countSampleSettings } from '@/lib/sampleCount'
@@ -43,6 +45,8 @@ interface Resolved {
   board?: PublicBoard
   /** 새 게시판의 글 제목 — 메타 제목 */
   postTitle?: string
+  /** 이용약관 · 개인정보처리방침 (T-200) */
+  policy?: SitePolicy
 }
 
 /** 테넌트는 있는데 지금 다른 템플릿을 쓴다 — 방금 바꿨고 미들웨어가 아직 이전 템플릿을 기억하는 중 */
@@ -84,8 +88,24 @@ async function resolveBoard(
   }
 }
 
+async function resolvePolicy(
+  entry: CodeTemplateEntry,
+  params: CodeRouteParams,
+  kind: PolicyKind,
+): Promise<Resolution> {
+  if ((params.path ?? []).length !== 1) return null
+  const site = await fetchPublicSite(params.tenant_slug)
+  if (!site) return null
+  if (!usesTemplate(entry, site)) return SWITCHING
+  const policy = await fetchSitePolicy(params.tenant_slug, kind)
+  if (!policy) return null
+  return { site, pageKey: kind, pageTitle: policy.title, policy }
+}
+
 async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promise<Resolution> {
   if (params.path?.[0] === 'member') return resolveMember(entry, params)
+  const first = params.path?.[0]
+  if (isPolicyKind(first)) return resolvePolicy(entry, params, first)
   if (params.path?.[0] === BOARD_PATH) return resolveBoard(entry, params)
   const [pageKey = 'home', detailId, ...extra] = params.path ?? []
   if (extra.length > 0 || pageKey === 'home' && params.path?.length) return null
@@ -147,7 +167,7 @@ export async function CodeRoutePage({
   if (!resolved) notFound()
   if (resolved === SWITCHING) return <TemplateSwitching />
   const onCustomDomain = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
-  const { site, pageKey, detailId, memberPage, board } = resolved
+  const { site, pageKey, detailId, memberPage, board, policy } = resolved
   const pageSections = site.sections.filter((s) => (s.page_key ?? 'home') === pageKey)
 
   return (
@@ -169,6 +189,7 @@ export async function CodeRoutePage({
         query={{ q: searchParams.q, p: searchParams.p, c: searchParams.c }}
         member={memberPage ? { page: memberPage, query: searchParams } : undefined}
         board={board}
+        policy={policy}
       />
       {/* 관리자 로그인 · 편집 모드 진입 (T-125-A — 예전엔 코드형 템플릿에 입구가 없었음).
           카카오 · 상단으로는 템플릿 퀵메뉴가 맡으므로 끄고, 오른쪽 퀵메뉴와 겹치지 않게 왼쪽 */}

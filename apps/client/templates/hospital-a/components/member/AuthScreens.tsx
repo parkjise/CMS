@@ -264,7 +264,7 @@ export const JoinScreen = ({ slug, next }: ScreenProps) => {
             </div>
           </div>
 
-          <MemberAgree id="jn" register={register} all={join.agreeAll} />
+          <MemberAgree id="jn" slug={slug} register={register} all={join.agreeAll} />
 
           <StatusLine message={status} />
 
@@ -364,7 +364,7 @@ export const JoinSocialScreen = ({ slug }: ScreenProps) => {
             />
           </div>
 
-          <MemberAgree id="js" register={register} all={social.agreeAll} />
+          <MemberAgree id="js" slug={slug} register={register} all={social.agreeAll} />
 
           <StatusLine message={status} />
 

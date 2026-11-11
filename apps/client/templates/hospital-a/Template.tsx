@@ -46,6 +46,7 @@ import { memberEnabled } from '@/lib/publicSite.types'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { MEMBER_PAGES } from '../memberPages'
 import { MemberScreen } from './components/member/MemberScreen'
+import { PolicyView } from './components/PolicyView'
 import { MobileHideMarker } from '@/components/MobileHideMarker'
 import { isMobileHidden } from '@/lib/mobileSettings'
 import { applyMenu } from '@/lib/menuSettings'
@@ -97,6 +98,7 @@ export default function HospitalATemplate({
   detailId,
   query,
   member,
+  policy,
   menuItems,
   onCustomDomain,
   latestNotices,
@@ -303,6 +305,18 @@ export default function HospitalATemplate({
             />
             <MemberScreen slug={tenantSlug} brandName={siteInfo.brand_name} route={member} />
           </>
+        ) : policy ? (
+          // 이용약관 · 개인정보처리방침 (T-200)
+          <>
+            <SubHero
+              section={plainHero('Policy', policy.title, '약관 · 방침', pageKey)}
+              editable={false}
+              tenantSlug={tenantSlug}
+              homeHref={hrefFor('home')}
+              scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
+            />
+            <PolicyView policy={policy} />
+          </>
         ) : board ? (
           // 새 게시판 (T-140-B) — 템플릿 페이지가 아니라 섹션이 없다
           <>
@@ -337,7 +351,13 @@ export default function HospitalATemplate({
         )}
       </main>
 
-      <Footer info={siteInfo} />
+      <Footer
+        info={{
+          ...siteInfo,
+          // 약관 · 방침 페이지 (T-200) — 샘플의 '#' 대신. 미리보기는 샘플 그대로
+          ...(previewQuery ? {} : { terms_url: `${siteBase}/terms`, privacy_url: `${siteBase}/privacy` }),
+        }}
+      />
       <QuickMenu
         tenantSlug={tenantSlug}
         links={quickLinks}

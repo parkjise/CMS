@@ -67,7 +67,7 @@ export default async function TenantHomePage({ params }: Props) {
         )}
       </main>
 
-      <Footer tenantName={site.tenant.name} sns={site.sns_settings} info={site.site_settings} />
+      <Footer tenantName={site.tenant.name} sns={site.sns_settings} info={site.site_settings} policyBase={`/${tenant_slug}`} />
 
       <FloatingButtons
         tenantSlug={tenant_slug}

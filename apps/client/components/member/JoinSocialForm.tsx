@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { PolicyLinks } from '@/components/policy/PolicyLinks'
 import { useJoinSocialForm } from '@/hooks/member/useMemberForms'
 import { MESSAGES } from '@/lib/memberSchemas'
 import { providerLabel } from '@/lib/memberSocial'
@@ -64,6 +65,7 @@ const JoinSocialForm = ({ slug }: JoinSocialFormProps) => {
         <legend className="sr-only">약관 동의</legend>
         <Checkbox id="terms_agree" label="이용약관 동의 (필수)" {...register('terms_agree')} />
         <Checkbox id="privacy_agree" label="개인정보처리방침 (필수)" {...register('privacy_agree')} />
+        <PolicyLinks slug={slug} className="pl-6" />
         <Checkbox id="marketing_agree" label="마케팅 알림 수신 (선택)" {...register('marketing_agree')} />
         {errors.terms_agree && (
           <p role="alert" className="text-xs text-red-600">{MESSAGES.terms}</p>

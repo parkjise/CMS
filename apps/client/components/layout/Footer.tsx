@@ -6,6 +6,8 @@ interface FooterProps {
   sns: PublicSnsSettings | null
   /** 사업체 공통 정보 (T-036-A) — 입력한 칸만 보여 준다 */
   info?: PublicSiteSettings | null
+  /** 약관 · 방침 링크 앞 주소 (T-200) — '/{slug}', 고객 도메인이면 ''. 없으면 링크를 숨긴다 */
+  policyBase?: string
 }
 
 interface SnsLink {
@@ -100,7 +102,7 @@ function BusinessInfo({ tenantName, info }: { tenantName: string; info: PublicSi
   )
 }
 
-export function Footer({ tenantName, sns, info }: FooterProps) {
+export function Footer({ tenantName, sns, info, policyBase }: FooterProps) {
   const year = new Date().getFullYear()
   // 관리자 'SNS 노출 위치' 에서 푸터 아이콘을 끄면 숨긴다 (T-038-A)
   const links = sns?.show_in_footer === false ? [] : buildSnsLinks(sns)
@@ -129,6 +131,23 @@ export function Footer({ tenantName, sns, info }: FooterProps) {
               </li>
             ))}
           </ul>
+        )}
+
+        {policyBase !== undefined && (
+          <nav aria-label="약관 및 정책" className="flex gap-3 text-xs">
+            <a
+              href={`${policyBase}/terms`}
+              className="text-[color:var(--color-text-secondary)] hover:text-[color:var(--color-primary)]"
+            >
+              이용약관
+            </a>
+            <a
+              href={`${policyBase}/privacy`}
+              className="font-semibold text-[color:var(--color-text-secondary)] hover:text-[color:var(--color-primary)]"
+            >
+              개인정보처리방침
+            </a>
+          </nav>
         )}
 
         <p className="text-xs text-[color:var(--color-text-subtle)]">

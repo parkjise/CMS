@@ -1,0 +1,43 @@
+// ── POLICY VIEW — 이용약관 · 개인정보처리방침 (T-200) ─────────────────────
+@use '../mixins' as *;
+
+$muted: #64748b;
+
+.policy-view {
+  padding: 64px 0 100px;
+  @include md {
+    padding: 100px 0 150px;
+  }
+
+  > .page-container {
+    max-width: 880px;
+  }
+
+  &__head {
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--color-text-primary);
+  }
+  &__title {
+    @include fluid-type(1.25rem, 1.625rem);
+    font-weight: 600;
+  }
+  &__date {
+    margin-top: 8px;
+    font-size: 0.9375rem;
+    color: $muted;
+  }
+  &__body {
+    padding-top: 32px;
+  }
+  &__paragraph {
+    font-size: 0.9375rem;
+    line-height: 1.8;
+    white-space: pre-line;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
+
+    & + & {
+      margin-top: 20px;
+    }
+  }
+}

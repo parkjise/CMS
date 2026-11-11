@@ -3,6 +3,7 @@ import { buildCssVarBody } from '@/lib/theme'
 import { latestBoard, latestCount } from '@/lib/latestBoard'
 import { NOTICE_BOARD, boardPageKey, fetchPublicPosts } from '@/lib/publicPosts'
 import type { PublicSite } from '@/lib/publicSite.types'
+import type { SitePolicy } from '@/lib/sitePolicy'
 import type { CodeTemplateEntry, MemberRoute } from './shared/contracts'
 import { resolvePageSections, resolveSiteInfo } from './shared/resolveSections'
 
@@ -26,6 +27,8 @@ interface Props {
   member?: MemberRoute
   /** 지금 페이지가 새 게시판이면 그 게시판 (T-140-B) */
   board?: PublicBoard
+  /** 이용약관 · 개인정보처리방침 (T-200) */
+  policy?: SitePolicy
 }
 
 /**
@@ -47,6 +50,7 @@ export async function CodeTemplateRenderer({
   query,
   member,
   board,
+  policy,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -97,6 +101,7 @@ export async function CodeTemplateRenderer({
         detailId={detailId}
         query={query}
         member={member}
+        policy={policy}
       />
     </div>
   )
