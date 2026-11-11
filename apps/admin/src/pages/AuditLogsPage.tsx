@@ -23,7 +23,7 @@ export function AuditLogsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardPageTitle
         title="변경 기록"
         description="게시판을 만들거나 설정을 바꾸고, 글을 휴지통에 넣거나 옮긴 기록입니다. 글 내용을 저장한 것은 남기지 않습니다."

@@ -68,7 +68,7 @@ function BoardSettingsForm({ board }: { board: Board }) {
   }
 
   return (
-    <div className="max-w-4xl space-y-5">
+    <div className="space-y-5">
       <form
         className="space-y-5"
         onSubmit={(e) => {
@@ -154,7 +154,7 @@ export function BoardSettingsPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
 
       {boardsQuery.isLoading && (

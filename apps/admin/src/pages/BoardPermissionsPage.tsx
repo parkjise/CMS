@@ -102,7 +102,7 @@ function PermissionsForm({ board }: { board: Board }) {
 
   return (
     <form
-      className="max-w-4xl space-y-5"
+      className="space-y-5"
       onSubmit={(e) => {
         e.preventDefault()
         save()
@@ -175,7 +175,7 @@ export function BoardPermissionsPage() {
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardDetailHeader boardId={boardId} />
       {boardsQuery.isLoading && <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}

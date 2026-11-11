@@ -125,7 +125,7 @@ export function ReportedPostsPage() {
   const items = reportsQuery.data ?? []
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardPageTitle
         title="신고된 글"
         description="홈페이지 방문자가 신고한 글입니다. 신고가 게시판 운영 설정의 기준(기본 5건)만큼 모이면 글은 자동으로 비공개가 되고, 여기서 다시 공개하거나 지울 수 있습니다."

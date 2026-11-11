@@ -478,7 +478,7 @@ export function BoardPostEditPage() {
   const categoriesQuery = useBoardCategories(boardId)
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardPageTitle
         title={postId ? '글 수정' : '글쓰기'}
         description="제목, 공개 상태와 본문을 편집합니다. 저장하면 홈페이지에 바로 반영돼요."

@@ -137,7 +137,7 @@ export function BoardNewPage() {
   if (created) {
     return (
       <div className={PAGE}>
-        <h1 className="text-[26px] font-bold tracking-tight text-slate-900">
+        <h1 className="text-2xl font-bold text-slate-900">
           게시판을 만들었습니다
         </h1>
         <section className={`max-w-3xl space-y-4 ${CARD}`}>

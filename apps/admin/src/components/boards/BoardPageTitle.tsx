@@ -78,7 +78,7 @@ export function BoardPageTitle({ title, description, actions }: BoardPageTitlePr
   return (
     <div className="flex flex-wrap items-center justify-between gap-4">
       <div className="relative flex min-w-0 items-center gap-2">
-        <h1 className="truncate text-[26px] font-bold tracking-tight text-slate-900">{title}</h1>
+        <h1 className="truncate text-2xl font-bold text-slate-900">{title}</h1>
         <TitleHelp key={key} title={title} description={description} />
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}

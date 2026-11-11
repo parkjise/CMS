@@ -130,7 +130,7 @@ export function PostsOverviewPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1480px] space-y-6 p-6 md:p-8">
+    <div className="space-y-6 p-6 md:p-8">
       <BoardPageTitle
         title="게시글 관리"
         description="모든 게시판의 글을 한곳에서 찾고, 공개 · 비공개 · 휴지통 · 다른 게시판으로 옮기기를 한꺼번에 할 수 있어요."
