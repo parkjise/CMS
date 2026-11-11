@@ -374,6 +374,111 @@ class TestCleanupOrphanFiles:
                 )
                 await session.commit()
 
+    async def test_keeps_site_and_board_post_images(self, test_tenant, fake_s3):
+        """T-193: 로고 · 파비콘, 게시글 본문 · 사진 칸 · 휴지통 글 · 이전 버전 사진은
+        30일이 지나도 지우지 않는다. 다른 사업체 글에 같은 주소가 있어도 지운다."""
+        tenant_id = test_tenant["id"]
+        base = settings.cdn_base_url.rstrip("/")
+        names = ("logo", "favicon", "body", "field", "trashed", "version", "orphan")
+        ids = {name: uuid.uuid4() for name in names}
+        board_id, post_id, trashed_id = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
+
+        def _key(name):
+            return f"{tenant_id}/board/{ids[name]}.webp"
+
+        def _url(name):
+            return f"{base}/{_key(name)}"
+
+        for name in names:
+            fake_s3[(settings.minio_bucket_name, _key(name))] = {
+                "body": b"x",
+                "content_type": "image/webp",
+            }
+
+        async def _sql(sql: str, **params) -> None:
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                await session.execute(text(sql), params)
+                await session.commit()
+
+        for name in names:
+            await _sql(
+                "INSERT INTO uploaded_files (id, tenant_id, file_name, file_url,"
+                " file_size, mime_type, created_at, updated_at) VALUES (:id, :t,"
+                " 'x.webp', :url, 100, 'image/webp', NOW() - INTERVAL '100 days',"
+                " NOW())",
+                id=str(ids[name]),
+                t=tenant_id,
+                url=_url(name),
+            )
+        await _sql(
+            "INSERT INTO site_settings (id, tenant_id, logo_url, favicon_url,"
+            " created_at, updated_at) VALUES (gen_random_uuid(), :t, :logo, :fav,"
+            " NOW(), NOW())",
+            t=tenant_id,
+            logo=_url("logo"),
+            fav=_url("favicon"),
+        )
+        await _sql(
+            "INSERT INTO boards (id, tenant_id, name, slug, board_type, status,"
+            " settings, created_at, updated_at) VALUES (:id, :t, '소식', 'news',"
+            " 'LIST', 'ACTIVE', '{}', NOW(), NOW())",
+            id=str(board_id),
+            t=tenant_id,
+        )
+        body = json.dumps([{"type": "image", "src": _url("body"), "alt": ""}])
+        await _sql(
+            "INSERT INTO board_posts (id, tenant_id, board_id, title, body, status,"
+            " is_pinned, is_secret, custom_data, created_at, updated_at) VALUES"
+            " (:id, :t, :b, '글', CAST(:body AS jsonb), 'PUBLISHED', false, false,"
+            " CAST(:data AS jsonb), NOW(), NOW())",
+            id=str(post_id),
+            t=tenant_id,
+            b=str(board_id),
+            body=body,
+            data=json.dumps({"photo": _url("field")}),
+        )
+        await _sql(
+            "INSERT INTO board_posts (id, tenant_id, board_id, title, body, status,"
+            " is_pinned, is_secret, custom_data, created_at, updated_at, deleted_at)"
+            " VALUES (:id, :t, :b, '지운 글', CAST(:body AS jsonb), 'DRAFT', false,"
+            " false, '{}', NOW(), NOW(), NOW())",
+            id=str(trashed_id),
+            t=tenant_id,
+            b=str(board_id),
+            body=json.dumps([{"type": "image", "src": _url("trashed"), "alt": ""}]),
+        )
+        await _sql(
+            "INSERT INTO board_post_versions (tenant_id, post_id, title, body,"
+            " custom_data, status, saved_at) VALUES (:t, :p, '예전', CAST(:body AS"
+            " jsonb), '{}', 'PUBLISHED', NOW())",
+            t=tenant_id,
+            p=str(post_id),
+            body=json.dumps([{"type": "image", "src": _url("version"), "alt": ""}]),
+        )
+
+        try:
+            await image_worker._cleanup_orphan_files(age_days=30)
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                rows = await session.execute(
+                    text("SELECT id FROM uploaded_files WHERE tenant_id = :t"),
+                    {"t": tenant_id},
+                )
+                remaining = {str(r.id) for r in rows.all()}
+            kept = {str(ids[name]) for name in names if name != "orphan"}
+            assert remaining == kept
+            assert (settings.minio_bucket_name, _key("body")) in fake_s3
+            assert (settings.minio_bucket_name, _key("orphan")) not in fake_s3
+        finally:
+            await _sql("DELETE FROM boards WHERE tenant_id = :t", t=tenant_id)
+            await _sql("DELETE FROM site_settings WHERE tenant_id = :t", t=tenant_id)
+            await _sql("DELETE FROM uploaded_files WHERE tenant_id = :t", t=tenant_id)
+
     async def test_returns_zero_when_no_orphans(self, fake_s3):
         deleted = await image_worker._cleanup_orphan_files(age_days=10000)
         assert deleted == 0
