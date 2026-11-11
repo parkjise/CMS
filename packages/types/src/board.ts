@@ -223,8 +223,19 @@ export interface PostListItem {
   guest_name?: string | null
 }
 
+/** 글에 붙인 파일 (T-194) — url 로 원래 이름 그대로 내려받는다 */
+export interface PostAttachment {
+  id: string
+  name: string
+  size: number
+  url: string
+  content_type: string
+}
+
 export interface Post extends PostListItem {
   body: BodyNode[]
+  /** 첨부 파일 (T-194) */
+  attachments?: PostAttachment[]
   /** 필드 값 {field_key: 값} (T-142-A) */
   custom_data: Record<string, unknown>
 }
@@ -377,6 +388,8 @@ export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   fields?: PublicFieldValue[]
   /** 비밀글인데 작성 회원이 아니면 true — 본문 · 칸이 비어 있다 (T-151-A) */
   locked?: boolean
+  /** 첨부 파일 (T-194) — 잠긴 비밀글이면 빈 목록 */
+  attachments?: PostAttachment[]
   prev_id: string | null
   next_id: string | null
 }

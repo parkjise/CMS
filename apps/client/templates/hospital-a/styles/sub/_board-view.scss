@@ -82,6 +82,42 @@ $muted: #64748b;
     }
   }
 
+  // 첨부 파일 (T-194) — 본문 아래, 원래 이름으로 내려받기
+  &__files {
+    margin-top: 40px;
+    padding: 20px 24px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    @include md {
+      margin: 48px 40px 0;
+    }
+  }
+  &__files-title {
+    margin-bottom: 10px;
+    font-size: 0.9375rem;
+    font-weight: 600;
+  }
+  &__file {
+    @include flex(center, flex-start, 10px);
+    padding: 4px 0;
+    font-size: 0.9375rem;
+  }
+  &__file-link {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-underline-offset: 3px;
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+  &__file-size {
+    flex-shrink: 0;
+    font-size: 0.8125rem;
+    color: $muted;
+  }
+
   // 칸 값 — 이름 | 값 (T-142-B-2)
   &__fields {
     padding-top: 24px;

@@ -55,6 +55,7 @@ export function CustomBoardDetail({
       date={postDate(post.published_at)}
       body={post.body}
       fields={post.fields}
+      attachments={post.locked ? [] : post.attachments}
       edit={{ board: board.slug, post: post.id }}
       prevHref={post.prev_id ? hrefFor({ id: post.prev_id }) : null}
       nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}

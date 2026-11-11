@@ -33,6 +33,7 @@ from app.schemas.board import (
 )
 from app.schemas.rich_body import body_summary, first_image
 from app.services import board_access, board_presets, member_features, site_cache
+from app.services import board_attachment as attachment_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import post_version as version_service
@@ -732,6 +733,9 @@ async def create_post(
         published_at=data.published_at,
     )
     db.add(post)
+    if data.attachment_ids:
+        await db.flush()
+        await attachment_service.set_attachments(db, post, data.attachment_ids)
     await _after_write(db, post)
     return post
 
@@ -764,6 +768,8 @@ async def update_post(
         elif is_scheduled(post):
             # 예약을 풀면 지금 공개 (_after_write 가 지금 시각을 넣는다)
             post.published_at = None
+    if data.attachment_ids is not None:
+        await attachment_service.set_attachments(db, post, data.attachment_ids)
     await version_service.record(db, post, before, editor_id)
     await _after_write(db, post)
     return post

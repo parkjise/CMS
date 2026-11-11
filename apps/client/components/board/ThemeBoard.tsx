@@ -13,6 +13,7 @@ import {
   loadBoardPage,
 } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
+import { fileSize } from '@/lib/fileSize'
 import { type CategoryTab, categoryTabRows } from '@/lib/categoryTabs'
 import { FieldValue } from './FieldValue'
 import { RichBody } from '@/templates/shared/RichBody'
@@ -149,6 +150,25 @@ export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug, secretActio
         ) : (
           <>
             <Body blocks={post.body} />
+            {post.attachments && post.attachments.length > 0 && (
+              <section className={`mt-8 rounded-lg border p-4 ${line}`} aria-label="첨부 파일">
+                <h3 className={`mb-2 text-sm font-semibold ${primary}`}>첨부 파일</h3>
+                <ul className="space-y-1.5">
+                  {post.attachments.map((file) => (
+                    <li key={file.id} className="flex items-center gap-2 text-sm">
+                      <a
+                        className={`min-w-0 truncate underline-offset-2 hover:underline ${primary}`}
+                        href={file.url}
+                        download={file.name}
+                      >
+                        {file.name}
+                      </a>
+                      <span className={`shrink-0 text-xs ${muted}`}>{fileSize(file.size)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
             <ThemeReportButton board={board} tenantSlug={tenantSlug} postId={post.id} />
           </>
         )}

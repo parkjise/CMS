@@ -8,6 +8,7 @@ from app.models.board import (
     BoardCategory,
     BoardField,
     BoardPost,
+    BoardPostAttachment,
     BoardPostReport,
     BoardPostVersion,
 )
@@ -34,6 +35,7 @@ from app.models.user import User
 
 __all__ = [
     "AdminUserPreference",
+    "BoardPostAttachment",
     "BoardPostVersion",
     "Tenant",
     "User",

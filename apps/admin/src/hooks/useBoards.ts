@@ -20,6 +20,7 @@ import type {
   PostMoveResult,
   PostOverviewList,
   PermissionOptions,
+  PostAttachment,
   PostStatus,
   PostVersion,
   PostVersionDetail,
@@ -50,6 +51,8 @@ export interface PostInput {
   category_id?: string | null
   /** 예약 공개 시각 (T-189) — null 은 예약을 풀고 바로 공개 */
   published_at?: string | null
+  /** 첨부 (T-194) — 먼저 올린 파일 id, 이 순서대로. 빈 목록은 모두 뺀다 */
+  attachment_ids?: string[]
 }
 
 export interface PostOverviewFilters extends PostFilters {
@@ -352,6 +355,20 @@ export function useCreatePost(boardId: string) {
       return data.data
     },
     onSuccess: invalidate,
+  })
+}
+
+/** 글에 붙일 파일을 올린다 (T-194) — 글을 저장해야 붙는다 */
+export function useUploadAttachment(boardId: string) {
+  return useMutation({
+    mutationFn: async (file: File): Promise<PostAttachment> => {
+      const formData = new FormData()
+      formData.append('file', file)
+      const { data } = await api.post(`/v1/boards/${boardId}/attachments`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+      return data.data
+    },
   })
 }
 

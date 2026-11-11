@@ -7,6 +7,7 @@ import type {
   BoardField,
   BodyNode,
   Post,
+  PostAttachment,
   PostStatus,
   PostVersionDetail,
 } from '@cms/types'
@@ -14,6 +15,7 @@ import { Button, Input, Toggle, toast } from '@cms/ui'
 import { RichTextEditor } from '@/components/boards/RichTextEditor'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
+import { PostAttachmentsField } from '@/components/boards/PostAttachmentsField'
 import { PostVersionsPanel } from '@/components/boards/PostVersionsPanel'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
@@ -63,6 +65,15 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
   const [moving, setMoving] = useState(false)
+  // 첨부 파일 (T-194) — 공개 첨부라 비밀글 · 회원만 읽는 게시판에는 붙이지 않는다
+  const [attachments, setAttachments] = useState<PostAttachment[]>(post?.attachments ?? [])
+  const attachmentsBlocked =
+    isSecret || board?.permissions?.read === 'MEMBER'
+      ? '비밀글과 회원만 읽는 게시판에는 아직 파일을 붙일 수 없어요. 첨부 파일은 주소를 아는 누구나 받을 수 있기 때문이에요.'
+      : undefined
+  const attachmentIds = attachments.map((file) => file.id)
+  const attachmentsChanged =
+    attachmentIds.join() !== (post?.attachments ?? []).map((file) => file.id).join()
   // 예약 공개 (T-189) — 아직 홈페이지에 나온 적 없는 글이나 예약 글만 고른다
   const scheduledBefore = Boolean(post && isScheduled(post))
   const scheduleChoice = !post?.published_at || scheduledBefore
@@ -217,6 +228,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       status: next,
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
       ...(categories ? { category_id: categoryId || null } : {}),
+      ...(attachmentsChanged ? { attachment_ids: attachmentIds } : {}),
       ...(scheduling ? { published_at: dayjs(scheduledAt).toISOString() } : {}),
       // 예약을 풀고 바로 공개
       ...(scheduledBefore && next === 'PUBLISHED' && !scheduling ? { published_at: null } : {}),
@@ -332,6 +344,12 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
               onChange={(e) => setIsSecret(e.target.checked)}
             />
           )}
+          <PostAttachmentsField
+            boardId={boardId}
+            value={attachments}
+            onChange={setAttachments}
+            blockedReason={attachmentsBlocked}
+          />
           {scheduleChoice && (
             <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
               <legend className="px-1 text-sm font-medium text-slate-700">공개 시각</legend>

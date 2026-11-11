@@ -448,6 +448,8 @@ class PostCreate(BaseModel):
     custom_data: dict[str, Any] | None = None
     # 예약 공개 (T-189) — 공개 글만, 지금보다 뒤 시각. 없으면 바로 공개
     published_at: AwareDatetime | None = None
+    # 첨부 (T-194) — 먼저 올린 파일 id, 이 순서대로. 최대 5개
+    attachment_ids: list[UUID] | None = None
 
 
 class PostUpdate(BaseModel):
@@ -462,6 +464,8 @@ class PostUpdate(BaseModel):
     custom_data: dict[str, Any] | None = None
     # 보내면 바뀐다 — null 은 예약을 풀고 바로 공개 (T-189)
     published_at: AwareDatetime | None = None
+    # 보내면 이 목록 · 순서로 맞춘다 — 빈 목록은 모두 뺀다 (T-194)
+    attachment_ids: list[UUID] | None = None
 
 
 class PostListItem(BaseModel):
@@ -486,8 +490,19 @@ class PostListItem(BaseModel):
     guest_name: str | None = None
 
 
+class PostAttachment(BaseModel):
+    """글에 붙인 파일 (T-194) — url 로 원래 이름 그대로 내려받는다."""
+
+    id: UUID
+    name: str
+    size: int
+    url: str
+    content_type: str
+
+
 class PostResponse(PostListItem):
     body: list[BodyNode]
+    attachments: list[PostAttachment] = []
 
 
 class PostVersionItem(BaseModel):
@@ -673,6 +688,8 @@ class PublicPostDetail(PublicPostItem):
     locked: bool = False
     # 홈페이지에 표시하는 칸 중 값이 있는 것만, 정한 순서대로
     fields: list[PublicFieldValue] = []
+    # 첨부 파일 (T-194) — 잠긴 비밀글이면 빈 목록
+    attachments: list[PostAttachment] = []
     prev_id: UUID | None
     next_id: UUID | None
 

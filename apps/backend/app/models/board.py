@@ -242,3 +242,35 @@ class BoardPostVersion(Base, TimestampMixin):
     edited_by: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="SET NULL"), nullable=True
     )
+
+
+class BoardPostAttachment(Base, TimestampMixin, SoftDeleteMixin):
+    """글에 붙인 파일 (T-194) — 파일 자체는 uploaded_files, 여기는 글과의 연결 · 순서.
+
+    공개 첨부만 — 저장소가 익명 읽기라 주소를 알면 누구나 받는다. 그래서 비밀글 ·
+    회원만 읽는 게시판에는 붙이지 않는다 (비공개 첨부는 후속).
+    """
+
+    __tablename__ = "board_post_attachments"
+    __table_args__ = (
+        Index("ix_board_post_attachments_post", "post_id", "display_order"),
+        Index("ix_board_post_attachments_tenant_id", "tenant_id"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    tenant_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tenants.id", ondelete="CASCADE"), nullable=False
+    )
+    post_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("board_posts.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    file_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("uploaded_files.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    display_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
