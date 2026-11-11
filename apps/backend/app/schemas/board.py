@@ -488,6 +488,8 @@ class PostListItem(BaseModel):
     author_member_name: str | None = None
     # 비회원 글의 이름 (T-151-B)
     guest_name: str | None = None
+    # 첨부 파일이 있는 글 — 목록의 📎 (T-197)
+    has_attachments: bool = False
 
 
 class PostAttachment(BaseModel):
@@ -663,6 +665,8 @@ class PublicPostItem(BaseModel):
     # 목록형 · 갤러리 · FAQ의 제목/질문 아래에 표시할 칸 (T-160)
     list_fields: list[PublicFieldValue] | None = None
     category_id: UUID | None = None
+    # 첨부 파일이 있는 글 — 목록의 📎 (T-197). 비밀글은 제목만이라 표시하지 않는다
+    has_attachments: bool = False
 
 
 class PublicListColumn(BaseModel):

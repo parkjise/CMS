@@ -296,12 +296,16 @@ async def _with_member_names(db: AsyncSession, posts: list[BoardPost]) -> list[d
     names = await member_post_service.member_names(
         db, {p.author_member_id for p in posts if p.author_member_id}
     )
+    attached = await attachment_service.posts_with_attachments(
+        db, [p.id for p in posts]
+    )
     return [
         {
             **PostListItem.model_validate(p).model_dump(),
             "author_member_name": names.get(p.author_member_id)
             if p.author_member_id
             else None,
+            "has_attachments": p.id in attached,
         }
         for p in posts
     ]
@@ -1111,6 +1115,9 @@ async def list_public_posts(
         category_id=category,
     )
     list_fields = await field_service.list_display_fields(db, board)
+    attached = await attachment_service.posts_with_attachments(
+        db, [p.id for p in posts if not p.is_secret]
+    )
     return ApiResponse.ok(
         PublicPostListResponse(
             list_columns=(
@@ -1124,7 +1131,10 @@ async def list_public_posts(
             size=size,
             has_posts=has_posts,
             items=[
-                PublicPostItem(**board_service.public_post_item(board, p, list_fields))
+                PublicPostItem(
+                    **board_service.public_post_item(board, p, list_fields),
+                    has_attachments=p.id in attached,
+                )
                 for p in posts
             ],
         )
