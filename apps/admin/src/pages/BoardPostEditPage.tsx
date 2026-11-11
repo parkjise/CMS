@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
 import { Link, useNavigate, useParams } from 'react-router'
 import type { BoardCategory, BoardField, BodyNode, Post, PostStatus } from '@cms/types'
@@ -21,8 +22,11 @@ import {
 } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
+import { isScheduled } from '@/lib/postStatus'
 
 const TITLE_MAX = 200
+const LOCAL_MINUTE = 'YYYY-MM-DDTHH:mm'
+const SCHEDULE_MAX_DAYS = 365
 
 interface PostFormProps {
   boardId: string
@@ -48,6 +52,14 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
   const [titleError, setTitleError] = useState<string>()
   const [moving, setMoving] = useState(false)
+  // 예약 공개 (T-189) — 아직 홈페이지에 나온 적 없는 글이나 예약 글만 고른다
+  const scheduledBefore = Boolean(post && isScheduled(post))
+  const scheduleChoice = !post?.published_at || scheduledBefore
+  const [scheduleLater, setScheduleLater] = useState(scheduledBefore)
+  const [scheduledAt, setScheduledAt] = useState(
+    scheduledBefore ? dayjs(post?.published_at).format(LOCAL_MINUTE) : ''
+  )
+  const [scheduleError, setScheduleError] = useState<string>()
   const custom = useForm<CustomValues>({
     defaultValues: initialCustomValues(fields ?? [], post ? post.custom_data : null),
   })
@@ -61,6 +73,16 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       return
     }
     setTitleError(undefined)
+    const scheduling = scheduleChoice && scheduleLater && next === 'PUBLISHED'
+    if (scheduling && !scheduledAt) {
+      setScheduleError('공개할 날짜와 시각을 골라 주세요.')
+      return
+    }
+    if (scheduling && !dayjs(scheduledAt).isAfter(dayjs())) {
+      setScheduleError('예약 시각은 지금보다 뒤여야 합니다.')
+      return
+    }
+    setScheduleError(undefined)
     custom.clearErrors()
     const stored = post?.custom_data ?? {}
     const values = custom.getValues()
@@ -83,15 +105,24 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
       status: next,
       ...(fields?.length ? { custom_data: toCustomData(fields, values) } : {}),
       ...(categories ? { category_id: categoryId || null } : {}),
+      ...(scheduling ? { published_at: dayjs(scheduledAt).toISOString() } : {}),
+      // 예약을 풀고 바로 공개
+      ...(scheduledBefore && next === 'PUBLISHED' && !scheduling ? { published_at: null } : {}),
     }
     try {
       const saved = post
         ? await updatePost.mutateAsync({ id: post.id, payload })
         : await createPost.mutateAsync(payload)
-      toast.success(next === 'PUBLISHED' ? '홈페이지에 공개했습니다.' : '저장했습니다.')
+      if (scheduling) {
+        toast.success(
+          `예약했습니다. ${dayjs(scheduledAt).format('M월 D일 HH:mm')}에 홈페이지에 공개돼요.`
+        )
+      } else {
+        toast.success(next === 'PUBLISHED' ? '홈페이지에 공개했습니다.' : '저장했습니다.')
+      }
       // 공개했으면 글 목록에서 "홈페이지에서 보기"를 보여 준다
       navigate(`/admin/boards/${boardId}/posts`, {
-        state: next === 'PUBLISHED' ? { publishedId: saved.id } : undefined,
+        state: next === 'PUBLISHED' && !scheduling ? { publishedId: saved.id } : undefined,
       })
     } catch (error) {
       const message = pickErrorMessage(error, '저장하지 못했습니다.')
@@ -166,6 +197,63 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
               onChange={(e) => setIsSecret(e.target.checked)}
             />
           )}
+          {scheduleChoice && (
+            <fieldset className="rounded-lg border border-slate-200 bg-white p-4">
+              <legend className="px-1 text-sm font-medium text-slate-700">공개 시각</legend>
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-700">
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="publish-when"
+                    checked={!scheduleLater}
+                    onChange={() => {
+                      setScheduleLater(false)
+                      setScheduleError(undefined)
+                    }}
+                  />
+                  지금 바로
+                </label>
+                <label className="inline-flex items-center gap-2">
+                  <input
+                    type="radio"
+                    name="publish-when"
+                    checked={scheduleLater}
+                    onChange={() => setScheduleLater(true)}
+                  />
+                  예약
+                </label>
+              </div>
+              {scheduleLater && (
+                <div className="mt-3">
+                  <label className="block text-sm">
+                    <span className="mb-1.5 block text-slate-600">공개할 날짜와 시각</span>
+                    <input
+                      type="datetime-local"
+                      className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm sm:w-64"
+                      value={scheduledAt}
+                      min={dayjs().format(LOCAL_MINUTE)}
+                      max={dayjs().add(SCHEDULE_MAX_DAYS, 'day').format(LOCAL_MINUTE)}
+                      aria-invalid={scheduleError ? true : undefined}
+                      onChange={(e) => {
+                        setScheduledAt(e.target.value)
+                        setScheduleError(undefined)
+                      }}
+                    />
+                  </label>
+                  {scheduleError ? (
+                    <p className="mt-1.5 text-xs text-red-600" role="alert">
+                      {scheduleError}
+                    </p>
+                  ) : (
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      [예약 공개]를 누르면 정한 시각에 홈페이지에 나타나요. 그 전에는 관리자만 볼 수
+                      있어요.
+                    </p>
+                  )}
+                </div>
+              )}
+            </fieldset>
+          )}
         </div>
       </ReadOnlyFieldset>
 
@@ -199,7 +287,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
                 비공개로 저장
               </Button>
               <Button type="button" loading={saving} onClick={() => save('PUBLISHED')}>
-                저장
+                {scheduleChoice && scheduleLater ? '예약 공개' : '저장'}
               </Button>
             </>
           ) : (
@@ -213,7 +301,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
                 {status === 'PRIVATE' ? '비공개로 저장' : '임시저장'}
               </Button>
               <Button type="button" loading={saving} onClick={() => save('PUBLISHED')}>
-                공개하기
+                {scheduleChoice && scheduleLater ? '예약 공개' : '공개하기'}
               </Button>
             </>
           )}
