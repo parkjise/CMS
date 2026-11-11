@@ -347,6 +347,17 @@ export function useRestoreBoard() {
   })
 }
 
+/** 휴지통 게시판 영구 삭제 (T-196) — 글 · 필드 · 카테고리도 함께 */
+export function usePurgeBoard() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await api.delete(`/v1/boards/${id}/permanent`)
+    },
+    onSuccess: invalidate,
+  })
+}
+
 export function useCreatePost(boardId: string) {
   const invalidate = useInvalidateBoards()
   return useMutation({
@@ -398,6 +409,17 @@ export function useRestorePost(boardId: string) {
   return useMutation({
     mutationFn: async (id: string): Promise<void> => {
       await api.post(`/v1/boards/${boardId}/posts/${id}/restore`)
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** 휴지통 글 영구 삭제 (T-196) */
+export function usePurgePost(boardId: string) {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (id: string): Promise<void> => {
+      await api.delete(`/v1/boards/${boardId}/posts/${id}/permanent`)
     },
     onSuccess: invalidate,
   })
