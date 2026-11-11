@@ -34,7 +34,9 @@ services:
       - internal
 
   minio:
-    image: minio/minio:latest
+    # Chainguard 빌드 (B6, T-199) — 무료는 latest 만이라 S3 로 옮기기 전까지의 다리.
+    # 비루트(uid 65532) 실행, 새 볼륨은 그대로 쓰인다
+    image: cgr.dev/chainguard/minio:latest
     container_name: cms-minio
     command: server /data --console-address ":9001"
     environment:
