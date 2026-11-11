@@ -33,7 +33,10 @@ services:
     restart: unless-stopped
 
   minio:
-    image: minio/minio:latest
+    # 공식 이미지(minio/minio)는 Docker Hub · Quay 에서 내려가 Chainguard 빌드를 쓴다 (B6, T-199)
+    # 비루트(uid 65532)로 돈다 — 예전 공식 이미지로 만든 볼륨은 한 번 권한을 바꿔야 한다:
+    #   docker run --rm -v cms_minio_data:/data alpine:3.20 chown -R 65532:65532 /data
+    image: cgr.dev/chainguard/minio:latest
     container_name: cms-minio
     command: server /data --console-address ":9001"
     environment:
