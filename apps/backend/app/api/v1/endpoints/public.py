@@ -31,7 +31,7 @@ from app.schemas.public_site import (
 from app.schemas.site import PolicyDocument, PolicyKind, PublicSiteSettingsResponse
 from app.services import board as board_service
 from app.services import domain as domain_service
-from app.services import member_features
+from app.services import member_features, section_draft
 from app.services import site_policy as policy_service
 
 router = APIRouter(tags=["public"])
@@ -181,6 +181,27 @@ async def get_site(
     await redis.setex(cache_key, _CACHE_TTL, serialized)
 
     return ApiResponse.ok(data)
+
+
+@router.get(
+    "/site/{tenant_slug}/draft/{token}",
+    response_model=ApiResponse[PublicSiteResponse],
+)
+async def get_site_draft(
+    tenant_slug: str,
+    token: str,
+    db: AsyncSession = Depends(get_db),
+):
+    """저장 전 미리보기 (T-206) — 보관한 설정을 덮은 사이트, 캐시 안 함."""
+    draft = await section_draft.load_draft(token)
+    if draft is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    await set_super_admin_context(db)
+    tenant = await _get_tenant(db, tenant_slug)
+    if not tenant or not tenant.is_active or str(tenant.id) != draft["tenant_id"]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    data = await _build_site_data(db, tenant)
+    return ApiResponse.ok(section_draft.apply_draft(data, draft))
 
 
 @router.get(

@@ -17,12 +17,14 @@ from app.schemas.section import (
     SectionCreate,
     SectionLimitsResponse,
     SectionOrderUpdate,
+    SectionPreviewRequest,
+    SectionPreviewResponse,
     SectionResponse,
     SectionUpdate,
 )
 from app.services import feature as feature_service
 from app.services import section as section_service
-from app.services import section_manage, site_cache
+from app.services import section_draft, section_manage, site_cache
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -168,6 +170,35 @@ async def update_section(
 
     await site_cache.purge_site(db, tenant_id)
     return ApiResponse.ok(SectionResponse.model_validate(section))
+
+
+@router.post(
+    "/{section_id}/preview", response_model=ApiResponse[SectionPreviewResponse]
+)
+async def preview_section(
+    section_id: UUID,
+    body: SectionPreviewRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """저장 전 미리보기 (T-206, AD-02) — 설정을 10분 보관하고 미리보기 토큰을 준다."""
+    try:
+        created = await section_draft.create_draft(
+            db, tenant_id, section_id, body.settings
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    if created is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    token, page_key = created
+    return ApiResponse.ok(
+        SectionPreviewResponse(
+            token=token,
+            page_key=page_key,
+            expires_in=section_draft.DRAFT_TTL_SECONDS,
+        )
+    )
 
 
 @router.patch("/{section_id}/toggle", response_model=ApiResponse[SectionResponse])

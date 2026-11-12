@@ -42,6 +42,19 @@ class SectionUpdate(BaseModel):
     settings: list[SectionSettingUpdate] | None = None
 
 
+class SectionPreviewRequest(BaseModel):
+    """저장 전 미리보기 (T-206) — 저장과 같은 설정 목록."""
+
+    settings: list[SectionSettingUpdate] = Field(..., max_length=100)
+
+
+class SectionPreviewResponse(BaseModel):
+    token: str
+    # 섹션이 있는 페이지 — 홈페이지 미리보기가 그 페이지를 연다
+    page_key: str
+    expires_in: int
+
+
 class SectionCreate(BaseModel):
     """섹션 추가 (T-037-A) — 종류는 GET /sections/limits 의 addable_types 중 하나"""
 
