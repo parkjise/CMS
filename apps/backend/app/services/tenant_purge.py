@@ -209,11 +209,11 @@ async def purge_tenant(
             text(f"DELETE FROM {table} WHERE tenant_id = :t"),  # noqa: S608 — 고정 목록
             {"t": tenant_id},
         )
-    # 결제 수단(빌링키)은 결제 기록이 아니다
+    # 결제 수단(빌링키 · 카드 표시)은 결제 기록이 아니다
     await db.execute(
         update(Subscription)
         .where(Subscription.tenant_id == tenant_id)
-        .values(billing_key=None)
+        .values(billing_key=None, card_company=None, card_last4=None)
     )
     tenant.slug = f"{PURGED_SLUG_PREFIX}{tenant_id.hex[:12]}"
     tenant.custom_domain = None
