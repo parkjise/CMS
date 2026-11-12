@@ -41,3 +41,20 @@ export function useUpdateSection(sectionId: string) {
     },
   })
 }
+
+export interface SectionPreview {
+  token: string
+  /** 섹션이 있는 페이지 — 홈페이지 미리보기가 그 페이지를 연다 */
+  page_key: string
+  expires_in: number
+}
+
+/** 저장 전 미리보기 (T-206) — 설정을 서버에 10분 보관하고 토큰을 받는다 */
+export function usePreviewSection(sectionId: string) {
+  return useMutation({
+    mutationFn: async (settings: SettingUpdate[]): Promise<SectionPreview> => {
+      const { data } = await api.post(`/v1/sections/${sectionId}/preview`, { settings })
+      return data.data
+    },
+  })
+}
