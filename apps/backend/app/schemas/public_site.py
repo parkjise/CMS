@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -19,6 +20,18 @@ class PublicTenantResponse(BaseModel):
 
 class PublicDomainResponse(BaseModel):
     slug: str
+
+
+class PublicSiteAvailability(BaseModel):
+    """홈페이지를 지금 보여 줄 수 있는지 (T-201, 기획서 10.2 #11).
+
+    PAUSED — 구독이 끝나 잠시 닫힌 사이트. 방문자에게 404 대신 안내 화면을 보인다.
+    """
+
+    status: Literal["ACTIVE", "PAUSED"]
+    name: str
+    # 방문자가 직접 연락할 수 있게 — 사이트 설정에 넣은 대표 전화
+    phone: str | None = None
 
 
 class PublicSettingItem(BaseModel):
