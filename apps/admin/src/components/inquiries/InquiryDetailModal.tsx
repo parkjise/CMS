@@ -1,7 +1,7 @@
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useEffect, useState } from 'react'
 import dayjs from 'dayjs'
-import { Copy, Trash2 } from 'lucide-react'
+import { ArrowRight, Copy, Trash2 } from 'lucide-react'
 import { Button, Modal, Textarea, toast } from '@cms/ui'
 import {
   type InquiryStatus,
@@ -9,6 +9,7 @@ import {
   useInquiry,
   useUpdateInquiry,
 } from '@/hooks/useInquiries'
+import { InquiryReplyPanel } from './InquiryReplyPanel'
 import { MemberReservationPanel } from './MemberReservationPanel'
 import { STATUS_OPTIONS, StatusBadge, TYPE_LABELS } from './StatusBadge'
 
@@ -29,9 +30,11 @@ export function InquiryDetailModal({
   const [memo, setMemo] = useState('')
   const [status, setStatus] = useState<InquiryStatus>('PENDING')
   const [answer, setAnswer] = useState('')
+  const [replyOpen, setReplyOpen] = useState(false)
 
   // 데이터 도착 시 폼 동기화 + 자동 읽음 처리
   useEffect(() => {
+    setReplyOpen(false)
     if (!inquiryQuery.data) return
     setMemo(inquiryQuery.data.admin_memo ?? '')
     setStatus(inquiryQuery.data.status)
@@ -257,6 +260,14 @@ export function InquiryDetailModal({
             />
           </div>
 
+          {/* 알림톡으로 답장 (T-203) — 보낸 기록 · 입력란 */}
+          <InquiryReplyPanel
+            inquiry={inquiryQuery.data}
+            open={replyOpen}
+            onClose={() => setReplyOpen(false)}
+            onSent={(updated) => setStatus(updated.status)}
+          />
+
           {/* 액션 */}
           <div className="flex items-center justify-between border-t border-slate-200 pt-4">
             <Button
@@ -284,6 +295,15 @@ export function InquiryDetailModal({
                 disabled={!canEdit || updateMutation.isPending}
               >
                 {updateMutation.isPending ? '저장 중...' : '저장'}
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setReplyOpen(true)}
+                disabled={!canEdit || replyOpen}
+              >
+                알림톡으로 답장
+                <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </div>
           </div>

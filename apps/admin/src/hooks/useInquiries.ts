@@ -60,6 +60,10 @@ export interface InquiryDetail extends InquiryListItem {
   is_secret?: boolean
   /** 상담 게시판에 공개되는 답변 */
   answer?: string | null
+  /** 알림톡으로 보낸 마지막 답장 (T-203) */
+  reply_message?: string | null
+  reply_channel?: ReplyChannel | null
+  replied_at?: string | null
   attachments: Array<{
     id: string
     file_url: string
@@ -73,6 +77,15 @@ export interface InquiryDetail extends InquiryListItem {
   /** 회원 정보 · 회원 예약 (T-115) */
   member?: InquiryMemberInfo | null
   reservation?: InquiryReservationInfo | null
+}
+
+export type ReplyChannel = 'KAKAO' | 'SMS'
+
+export interface InquiryReplyResult {
+  inquiry: InquiryDetail
+  channel: ReplyChannel
+  /** 테스트 모드 — 실제로 발송되지 않음 */
+  test_mode: boolean
 }
 
 export interface InquiryFilters {
@@ -171,6 +184,28 @@ export function useUpdateMemberReservation() {
     },
     onSuccess: (updated) => {
       queryClient.setQueryData(['inquiry', updated.id], updated)
+      queryClient.invalidateQueries({ queryKey: ['inquiries'] })
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
+    },
+  })
+}
+
+/** 알림톡으로 답장 — 실패 · 꺼짐이면 문자 (T-203) */
+export function useReplyInquiry() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({
+      id,
+      message,
+    }: {
+      id: string
+      message: string
+    }): Promise<InquiryReplyResult> => {
+      const { data } = await api.post(`/v1/inquiries/${id}/reply`, { message })
+      return data.data
+    },
+    onSuccess: ({ inquiry }) => {
+      queryClient.setQueryData(['inquiry', inquiry.id], inquiry)
       queryClient.invalidateQueries({ queryKey: ['inquiries'] })
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'stats'] })
     },
