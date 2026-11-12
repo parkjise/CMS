@@ -1,5 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { superApi } from '@/lib/superApi'
+import type { TenantSort } from '@/lib/tenantList'
 
 export interface TenantListItem {
   id: string
@@ -11,6 +12,11 @@ export interface TenantListItem {
   created_at: string
   /** 해지 · 정지 사업체 데이터 파기를 마친 시각 (T-198) */
   data_purged_at?: string | null
+  /** 구독 만료일 — 체험 중이면 체험 종료일, 구독 없으면 null (T-205) */
+  expires_at?: string | null
+  /** 최근 30일 방문자 · 문의 수 */
+  visitors_30d?: number
+  inquiries_30d?: number
 }
 
 export interface TenantListData {
@@ -23,7 +29,9 @@ export interface TenantListData {
 export interface TenantFilters {
   q?: string
   plan_type?: string
+  template_type?: string
   is_active?: boolean
+  sort?: TenantSort
   page: number
   limit: number
 }
@@ -38,6 +46,8 @@ export function useTenants(filters: TenantFilters) {
       }
       if (filters.q) params.q = filters.q
       if (filters.plan_type) params.plan_type = filters.plan_type
+      if (filters.template_type) params.template_type = filters.template_type
+      if (filters.sort) params.sort = filters.sort
       if (filters.is_active !== undefined) params.is_active = filters.is_active
       const { data } = await superApi.get('/v1/tenants', { params })
       return data.data as TenantListData
