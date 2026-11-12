@@ -1,5 +1,7 @@
+import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
-import { fetchPublicSite, fetchTemplatePreview } from '@/lib/publicSite'
+import { fetchPublicSite, fetchSectionDraft, fetchTemplatePreview } from '@/lib/publicSite'
+import type { PublicSite } from '@/lib/publicSite.types'
 import { boardPageKey } from '@/lib/publicPosts'
 import { buildCssVarBody } from '@/lib/theme'
 import { hiddenInThemeCount, themeHomeSections } from '@/lib/themeSections'
@@ -12,7 +14,7 @@ import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string; content?: string; page?: string; id?: string; q?: string; p?: string; c?: string }>
+  searchParams: Promise<{ tpl?: string; draft?: string; content?: string; page?: string; id?: string; q?: string; p?: string; c?: string }>
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -26,7 +28,12 @@ export default async function TemplatePreviewPage({
   searchParams,
 }: Props) {
   const { tenant_slug } = await params
-  const { tpl, content, page, id, q, p, c } = await searchParams
+  const { tpl, draft, content, page, id, q, p, c } = await searchParams
+
+  // 저장 전 미리보기 (T-206) — 관리자 섹션 편집의 [미리보기]
+  if (draft) {
+    return <SectionDraftPreview tenantSlug={tenant_slug} token={draft} pageKey={page} detailId={id} query={{ q, p, c }} />
+  }
 
   if (!tpl) {
     notFound()
@@ -72,11 +79,79 @@ export default async function TemplatePreviewPage({
     notFound()
   }
 
+  return (
+    <ThemePreview
+      site={site}
+      tenantSlug={tenant_slug}
+      cssVarBody={buildCssVarBody(site.template?.css_variables)}
+      banner={<PreviewBanner templateName={site.template?.name} hiddenCount={hiddenInThemeCount(site.sections)} />}
+    />
+  )
+}
+
+interface DraftProps {
+  tenantSlug: string
+  token: string
+  pageKey?: string
+  detailId?: string
+  query: { q?: string; p?: string; c?: string }
+}
+
+/** 저장하지 않은 섹션 설정을 덮어 지금 템플릿으로 그린다 (T-206). 토큰은 10분 */
+async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query }: DraftProps) {
+  const site = await fetchSectionDraft(tenantSlug, token)
+  if (!site) {
+    return (
+      <>
+        <PreviewBanner draft />
+        <section className="px-6 py-24 text-center">
+          <p className="text-base text-slate-600">
+            미리보기 시간이 지났어요. 관리자 화면에서 [미리보기]를 다시 눌러주세요.
+          </p>
+        </section>
+      </>
+    )
+  }
+  const codeTemplate = site.template?.code ? findCodeTemplate(site.template.code) : undefined
+  if (codeTemplate) {
+    const key = pageKey ?? 'home'
+    const board = site.boards?.find((b) => boardPageKey(b.slug) === key)
+    if (!board && !codeTemplate.manifest.pages.some((pg) => pg.key === key)) {
+      notFound()
+    }
+    return (
+      <>
+        <PreviewBanner draft />
+        <CodeTemplateRenderer
+          entry={codeTemplate}
+          site={site}
+          tenantSlug={tenantSlug}
+          pageKey={key}
+          preview
+          contentSource="tenant"
+          previewQuery={`draft=${encodeURIComponent(token)}`}
+          detailId={detailId}
+          query={query}
+          board={board}
+        />
+      </>
+    )
+  }
+  // 테마형은 지금 템플릿 CSS 가 레이아웃에 이미 있다
+  return <ThemePreview site={site} tenantSlug={tenantSlug} banner={<PreviewBanner draft />} />
+}
+
+interface ThemePreviewProps {
+  site: PublicSite
+  tenantSlug: string
+  banner: ReactNode
+  /** 미리보는 템플릿 CSS — 부모 레이아웃의 현재 템플릿 위에 덮어쓴다 */
+  cssVarBody?: string
+}
+
+function ThemePreview({ site, tenantSlug, banner, cssVarBody }: ThemePreviewProps) {
   // 홈 페이지의 그릴 수 있는 섹션만 — 메뉴가 넘치거나 하위 페이지 섹션이 섞이지 않게 (T-057-A)
   const activeSections = themeHomeSections(site.sections, site.boards)
-  const hiddenCount = hiddenInThemeCount(site.sections)
-  // 미리보기 템플릿 CSS를 부모 레이아웃의 현재 템플릿 위에 덮어쓴다(소스 순서상 후순위 우선).
-  const cssVarBody = buildCssVarBody(site.template?.css_variables)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
@@ -86,7 +161,7 @@ export default async function TemplatePreviewPage({
         />
       )}
 
-      <PreviewBanner templateName={site.template?.name} hiddenCount={hiddenCount} />
+      {banner}
 
       {/* 편집 UI(EditToolbar·FloatingButtons) 없이 순수 미리보기만 렌더링 */}
       <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} sections={activeSections} />
@@ -103,7 +178,7 @@ export default async function TemplatePreviewPage({
             <SectionRenderer
               key={section.id}
               section={section}
-              tenantSlug={tenant_slug}
+              tenantSlug={tenantSlug}
               boards={site.boards}
             />
           ))

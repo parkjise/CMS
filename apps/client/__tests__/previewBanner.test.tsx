@@ -13,4 +13,12 @@ describe('PreviewBanner (T-057)', () => {
     render(<PreviewBanner templateName="모던 미니멀" />)
     expect(screen.getByRole('status')).toHaveTextContent('모던 미니멀')
   })
+
+  it('저장 전 미리보기는 반영 전 · 10분 안내 (T-206)', () => {
+    render(<PreviewBanner draft templateName="모던" />)
+    const banner = screen.getByRole('status')
+    expect(banner).toHaveTextContent('저장 전 미리보기')
+    expect(banner).toHaveTextContent('10분')
+    expect(banner).not.toHaveTextContent('모던')
+  })
 })

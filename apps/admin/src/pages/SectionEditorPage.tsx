@@ -1,5 +1,5 @@
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Smartphone, Sliders } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router'
 import { toast } from '@cms/ui'
@@ -7,7 +7,11 @@ import { getFormForType } from '@/components/content/forms'
 import { MobileSettingsForm } from '@/components/content/forms/MobileSettingsForm'
 import { preserveRichText } from '@/components/content/forms/utils'
 import type { SettingUpdate } from '@/hooks/useSection'
-import { useSection, useUpdateSection } from '@/hooks/useSection'
+import { usePreviewSection, useSection, useUpdateSection } from '@/hooks/useSection'
+import { SectionPreviewContext } from '@/components/content/forms/previewContext'
+import { buildSectionDraftUrl } from '@/lib/previewUrl'
+import { pickErrorMessage } from '@/lib/errorMessages'
+import { useAuthStore } from '@/stores/authStore'
 import { sampleKeys } from '@/lib/sampleContent'
 
 type SubTab = 'desktop' | 'mobile'
@@ -19,11 +23,55 @@ export function SectionEditorPage() {
 
   const sectionQuery = useSection(sectionId)
   const updateMutation = useUpdateSection(sectionId ?? '')
+  const previewMutation = usePreviewSection(sectionId ?? '')
+  const tenantSlug = useAuthStore((s) => s.tenantSlug)
+  // [미리보기] 로 제출 — 저장 대신 그 순간 연 새 탭을 미리보기 주소로 보낸다 (T-206).
+  // 탭이 막혀 null 이어도 미리보기 제출이므로 저장하지 않는다
+  const previewIntent = useRef<{ win: Window | null } | null>(null)
+
+  const previewActions = useMemo(
+    () => ({
+      markPreview: () => {
+        const intent = { win: window.open('', '_blank') }
+        previewIntent.current = intent
+        // 폼이 제출되지 않으면(브라우저 입력 검사 등) 빈 탭을 닫고 다음 [저장]은 저장으로
+        window.setTimeout(() => {
+          if (previewIntent.current === intent) {
+            intent.win?.close()
+            previewIntent.current = null
+          }
+        }, 0)
+      },
+      isPreviewing: previewMutation.isPending,
+    }),
+    [previewMutation.isPending],
+  )
+
+  const handlePreview = async (settings: SettingUpdate[], win: Window | null) => {
+    if (!win) {
+      toast.error('새 탭이 차단되었습니다. 브라우저에서 팝업을 허용해주세요.')
+      return
+    }
+    try {
+      const { token, page_key } = await previewMutation.mutateAsync(settings)
+      win.opener = null
+      win.location.href = buildSectionDraftUrl(tenantSlug ?? '', token, page_key)
+    } catch (e) {
+      win.close()
+      toast.error(pickErrorMessage(e, '미리보기를 열지 못했습니다.'))
+    }
+  }
 
   const handleSubmit = async (settings: SettingUpdate[]) => {
+    // 고치지 않은 서식 글은 서식 그대로 (T-065-A)
+    const original = sectionQuery.data?.settings ?? []
+    const intent = previewIntent.current
+    if (intent) {
+      previewIntent.current = null
+      await handlePreview(preserveRichText(original, settings), intent.win)
+      return
+    }
     try {
-      // 고치지 않은 서식 글은 서식 그대로 (T-065-A)
-      const original = sectionQuery.data?.settings ?? []
       await updateMutation.mutateAsync({ settings: preserveRichText(original, settings) })
       toast.success('변경사항을 저장했습니다.')
     } catch {
@@ -83,7 +131,8 @@ export function SectionEditorPage() {
           </span>
         </div>
         <p className="mt-1 text-sm text-slate-500">
-          입력한 내용은 [변경사항 저장] 버튼을 눌러야 반영됩니다.
+          입력한 내용은 [변경사항 저장] 버튼을 눌러야 반영됩니다. 저장 전에 [미리보기]로
+          홈페이지에서 어떻게 보이는지 확인할 수 있어요.
         </p>
       </div>
 
@@ -121,6 +170,7 @@ export function SectionEditorPage() {
 
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
         <ReadOnlyFieldset>
+        <SectionPreviewContext.Provider value={previewActions}>
         {subTab === 'desktop' ? (
           <Form
             section={section}
@@ -135,6 +185,7 @@ export function SectionEditorPage() {
             onSubmit={handleSubmit}
           />
         )}
+        </SectionPreviewContext.Provider>
         </ReadOnlyFieldset>
       </div>
     </div>

@@ -5,13 +5,15 @@ interface PreviewBannerProps {
   templateName?: string
   /** 지금 내용 중 이 템플릿에서 보이지 않는 섹션 수 (T-057-A) */
   hiddenCount?: number
+  /** 저장 전 미리보기 — 관리자 섹션 편집의 [미리보기] (T-206) */
+  draft?: boolean
 }
 
 /**
  * 미리보기 모드 상단 고정 배너 (T-057).
  * 실제 사이트가 아니라 미리보기임을 명확히 알린다.
  */
-export function PreviewBanner({ templateName, hiddenCount = 0 }: PreviewBannerProps) {
+export function PreviewBanner({ templateName, hiddenCount = 0, draft = false }: PreviewBannerProps) {
   return (
     <div
       role="status"
@@ -19,11 +21,15 @@ export function PreviewBanner({ templateName, hiddenCount = 0 }: PreviewBannerPr
     >
       <span className="flex items-center gap-2">
         <Eye className="h-4 w-4 shrink-0" aria-hidden />
-        <span>
-          미리보기 모드
-          {templateName ? ` · ${templateName}` : ''} — 실제 사이트에는 아직
-          적용되지 않았습니다.
-        </span>
+        {draft ? (
+          <span>저장 전 미리보기 — 아직 홈페이지에 반영되지 않았습니다. (10분 동안 볼 수 있어요)</span>
+        ) : (
+          <span>
+            미리보기 모드
+            {templateName ? ` · ${templateName}` : ''} — 실제 사이트에는 아직
+            적용되지 않았습니다.
+          </span>
+        )}
       </span>
       {hiddenCount > 0 && (
         <span className="text-xs font-normal text-amber-300" data-testid="preview-hidden-notice">

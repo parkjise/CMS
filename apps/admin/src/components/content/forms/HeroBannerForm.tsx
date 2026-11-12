@@ -3,6 +3,7 @@ import { Button, Input } from '@cms/ui'
 import { CharCounter } from './CharCounter'
 import { FormField } from './FormField'
 import { ImageUploadField } from './ImageUploadField'
+import { useSectionPreview } from './previewContext'
 import { getSetting, isRichSetting, strSetting, urlSetting } from './utils'
 import type { SectionFormProps } from './types'
 
@@ -138,12 +139,24 @@ export function SaveBar({
   isSaving: boolean
   disabled?: boolean
 }) {
+  // 편집 화면이면 [미리보기] — 저장하지 않고 홈페이지 모습을 새 탭으로 (T-206)
+  const preview = useSectionPreview()
   return (
     <div className="flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
       {disabled && (
         <span className="text-xs text-rose-600">
           글자 수 제한을 확인해주세요.
         </span>
+      )}
+      {preview && (
+        <Button
+          type="submit"
+          variant="secondary"
+          onClick={preview.markPreview}
+          disabled={isSaving || disabled || preview.isPreviewing}
+        >
+          {preview.isPreviewing ? '여는 중...' : '미리보기'}
+        </Button>
       )}
       <Button type="submit" disabled={isSaving || disabled}>
         {isSaving ? '저장 중...' : '변경사항 저장'}

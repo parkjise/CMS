@@ -80,3 +80,28 @@ export async function fetchTemplatePreview(
   const body = (await res.json()) as ApiSuccess<PublicSite>
   return body.data
 }
+
+/**
+ * 저장 전 미리보기 (T-206) — 관리자가 보관한 섹션 설정을 덮은 사이트.
+ * 토큰이 없거나 10분이 지나면 null. 캐시하지 않는다.
+ */
+export async function fetchSectionDraft(
+  tenantSlug: string,
+  token: string,
+): Promise<PublicSite | null> {
+  const url =
+    `${serverApiBase()}/public/site/${encodeURIComponent(tenantSlug)}` +
+    `/draft/${encodeURIComponent(token)}`
+  try {
+    const res = await fetch(url, {
+      cache: 'no-store',
+      headers: { Accept: 'application/json' },
+    })
+    if (!res.ok) return null
+    const body = (await res.json()) as ApiSuccess<PublicSite>
+    return body.data
+  } catch (error) {
+    console.error('[fetchSectionDraft] network error', { tenantSlug, error })
+    return null
+  }
+}

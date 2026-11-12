@@ -23,6 +23,17 @@ export function previewTemplateRef(template: { id: string; code?: string | null 
   return template.code ?? template.id
 }
 
+/** 저장 전 미리보기 주소 (T-206) — 섹션이 있는 페이지를 연다 */
+export function buildSectionDraftUrl(
+  tenantSlug: string,
+  token: string,
+  pageKey: string,
+): string {
+  const base = CLIENT_BASE_URL.replace(/\/$/, '')
+  const page = pageKey && pageKey !== 'home' ? `&page=${encodeURIComponent(pageKey)}` : ''
+  return `${base}/${encodeURIComponent(tenantSlug)}/preview?draft=${encodeURIComponent(token)}${page}`
+}
+
 /** 미리보기 URL을 새 탭에서 연다 (noopener). */
 export function openTemplatePreview(
   tenantSlug: string,

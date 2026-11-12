@@ -91,7 +91,7 @@ async def update_section_settings(
     # settings upsert
     if data.settings:
         current = {s.field_key: s.field_value for s in section.settings}
-        _validate_settings(data.settings, current)
+        validate_settings(data.settings, current)
         if section.section_type in board_latest.LATEST_SECTION_TYPES:
             # 최신 글 섹션의 게시판 · 개수 (T-185)
             await board_latest.validate_settings(db, tenant_id, data.settings)
@@ -142,7 +142,7 @@ def _normalize_bool(field: str, value: str | None) -> str:
     raise ValueError(f"{field} 값은 true 또는 false 여야 합니다.")
 
 
-def _validate_settings(
+def validate_settings(
     settings: list[SectionSettingUpdate], current: dict[str, str | None]
 ) -> None:
     for s in settings:
