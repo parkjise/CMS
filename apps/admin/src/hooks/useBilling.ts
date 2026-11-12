@@ -14,7 +14,14 @@ export interface Subscription {
   current_period_end: string
   cancelled_at: string | null
   created_at: string
+  /** 결제 수단 (T-207) — 등록 여부 · 카드사 · 끝 4자리 (예전 등록 카드는 비어 있음) */
+  has_card?: boolean
+  card_company?: string | null
+  card_last4?: string | null
 }
+
+/** 자동 결제 중이라 카드를 지울 수 없는 상태 — 백엔드 CARD_LOCKED_STATUSES 와 같다 */
+export const CARD_LOCKED_STATUSES = ['ACTIVE', 'PAST_DUE']
 
 export interface PaymentHistoryItem {
   id: string
@@ -91,6 +98,18 @@ export function useRegisterCard() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['billing'] })
     },
+  })
+}
+
+/** 결제 수단 삭제 (T-207) — 자동 결제 중이면 서버가 409 */
+export function useDeleteCard() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await api.delete('/v1/billing/card')
+      return data.data as Subscription
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['billing'] }),
   })
 }
 
