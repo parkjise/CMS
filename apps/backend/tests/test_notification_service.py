@@ -8,7 +8,7 @@ from sqlalchemy import text
 
 from app.models.sns import NotificationSetting
 from app.services import notification as svc
-from tests.conftest import _TestSession
+from tests.conftest import _TestSession, verify_alert_phone
 
 # ── mask_phone 단위 테스트 ────────────────────────────────────────────────
 
@@ -326,6 +326,9 @@ class TestEndpointWireUp:
             json={
                 "alimtalk_enabled": True,
                 "recipient_phone": "010-1234-5678",
+                "phone_verification_id": await verify_alert_phone(
+                    client, auth_headers, "010-1234-5678"
+                ),
             },
             headers=auth_headers,
         )
@@ -351,6 +354,9 @@ class TestEndpointWireUp:
             json={
                 "alimtalk_enabled": True,
                 "recipient_phone": "010-1234-5678",
+                "phone_verification_id": await verify_alert_phone(
+                    client, auth_headers, "010-1234-5678"
+                ),
             },
             headers=auth_headers,
         )

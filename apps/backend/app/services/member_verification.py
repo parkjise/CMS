@@ -9,6 +9,7 @@
 import hmac
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -24,7 +25,8 @@ from app.schemas.site_member import VerificationPurpose
 from app.services import notification as notification_service
 
 # 용도 목록은 요청 스키마와 같아야 한다 — 따로 두면 MYPAGE 가 빠진다 (T-082-B)
-Purpose = VerificationPurpose
+# ADMIN_ALERT 는 관리자 알림 받을 번호 인증 (T-204) — 방문자 API 로는 요청할 수 없다
+Purpose = VerificationPurpose | Literal["ADMIN_ALERT"]
 
 CODE_TTL_MINUTES = 3
 MAX_ATTEMPTS = 5

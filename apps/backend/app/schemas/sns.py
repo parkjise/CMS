@@ -95,6 +95,8 @@ class NotificationSettingsUpdate(BaseModel):
     email_enabled: bool | None = None
     recipient_phone: str | None = None
     recipient_email: EmailStr | None = None
+    # 번호를 바꾸거나 인증할 때 — /phone/verify 로 인증 완료한 id (T-204)
+    phone_verification_id: uuid.UUID | None = None
 
     @field_validator("recipient_phone", mode="before")
     @classmethod
@@ -109,6 +111,7 @@ class NotificationSettingsResponse(BaseModel):
     sms_enabled: bool
     email_enabled: bool
     recipient_phone: str | None
+    recipient_phone_verified_at: datetime | None = None
     recipient_email: str | None
     monthly_kakao_count: int
     updated_at: datetime
@@ -120,3 +123,17 @@ class NotificationTestResponse(BaseModel):
     sent: bool
     channels: list[str]
     message: str
+
+
+class AlertPhoneSendRequest(BaseModel):
+    """알림 받을 번호 인증번호 발송 (T-204)."""
+
+    phone: str
+
+    @field_validator("phone", mode="before")
+    @classmethod
+    def validate_phone(cls, v: str) -> str:
+        phone = _normalize_phone(v)
+        if phone is None:
+            raise ValueError("휴대폰 번호를 입력해주세요.")
+        return phone

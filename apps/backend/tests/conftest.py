@@ -290,3 +290,21 @@ async def test_inquiry(test_tenant: dict) -> dict:
             {"iid": str(inquiry_id)},
         )
         await session.commit()
+
+
+async def verify_alert_phone(client, headers: dict, phone: str) -> str:
+    """알림 받을 번호 문자 인증 (T-204) — 설정 저장에 보낼 phone_verification_id."""
+    sent = await client.post(
+        "/api/v1/notification-settings/phone/send-code",
+        json={"phone": phone},
+        headers=headers,
+    )
+    assert sent.status_code == 200, sent.text
+    data = sent.json()["data"]
+    verified = await client.post(
+        "/api/v1/notification-settings/phone/verify",
+        json={"verification_id": data["verification_id"], "code": data["debug_code"]},
+        headers=headers,
+    )
+    assert verified.status_code == 200, verified.text
+    return data["verification_id"]
