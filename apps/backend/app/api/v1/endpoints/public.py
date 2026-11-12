@@ -27,10 +27,11 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
-from app.schemas.site import PublicSiteSettingsResponse
+from app.schemas.site import PolicyDocument, PolicyKind, PublicSiteSettingsResponse
 from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features
+from app.services import site_policy as policy_service
 
 router = APIRouter(tags=["public"])
 
@@ -251,3 +252,21 @@ async def get_site_template(
             renderer=template.renderer if template else "theme",
         )
     )
+
+
+@router.get(
+    "/site/{tenant_slug}/policies/{kind}",
+    response_model=ApiResponse[PolicyDocument],
+)
+async def get_site_policy(
+    tenant_slug: str,
+    kind: PolicyKind,
+    db: AsyncSession = Depends(get_db),
+):
+    """이용약관 · 개인정보처리방침 (T-200) — 회원가입 · 문의의 [보기], 푸터 링크."""
+    await set_super_admin_context(db)
+    tenant = await _get_tenant(db, tenant_slug)
+    if not tenant or not tenant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    await set_rls_context(db, tenant.id)
+    return ApiResponse.ok(await policy_service.get_policy(db, tenant, kind))

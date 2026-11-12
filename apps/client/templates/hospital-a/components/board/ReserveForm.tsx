@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type FormEvent } from 'react'
+import { policyHref } from '@/lib/sitePolicy'
 import { publicApi } from '@/lib/api'
 import { executeRecaptcha } from '@/lib/recaptcha'
 import { digitsOnly, formatPhone, validateBoardForm } from './formValidation'
@@ -154,7 +155,7 @@ export function ReserveForm({ tenantSlug, times }: Props) {
                 <label className="board-form__check" htmlFor="rv-agree">
                   이용약관 및 개인정보 수집·이용 동의<span className="board-form__req" aria-hidden="true">*</span>
                 </label>
-                <a className="board-form__terms" href="#">
+                <a className="board-form__terms" href={policyHref(tenantSlug, 'privacy')} target="_blank" rel="noreferrer">
                   [보기]
                 </a>
               </div>

@@ -124,7 +124,12 @@ export async function renderThemeBoard(tenant_slug: string, path: string[], sear
           />
         )}
       </main>
-      <Footer tenantName={site.tenant.name} sns={site.sns_settings} info={site.site_settings} />
+      <Footer
+        tenantName={site.tenant.name}
+        sns={site.sns_settings}
+        info={site.site_settings}
+        policyBase={noSlug ? '' : `/${tenant_slug}`}
+      />
       <FloatingButtons
         tenantSlug={tenant_slug}
         kakaoUrl={site.sns_settings?.kakao_url ?? null}

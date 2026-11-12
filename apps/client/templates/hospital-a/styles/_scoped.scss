@@ -34,6 +34,7 @@
 @use 'sub/pagination'; // 페이지 이동 (공용)
 @use 'sub/board-list'; // 공지 목록
 @use 'sub/board-view'; // 공지·상담 상세 (+ 답변 박스)
+@use 'sub/policy-view'; // 이용약관 · 개인정보처리방침 (T-200)
 @use 'sub/board-gallery'; // 새 게시판 갤러리형 (T-140-B)
 @use 'sub/board-faq'; // 새 게시판 FAQ형 (T-140-B)
 @use 'sub/board-card'; // 새 게시판 카드형 (T-148)

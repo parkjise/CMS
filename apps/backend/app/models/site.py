@@ -1,6 +1,7 @@
 import uuid
+from datetime import datetime
 
-from sqlalchemy import String, UniqueConstraint
+from sqlalchemy import DateTime, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -33,3 +34,9 @@ class SiteSetting(Base, TimestampMixin):
     favicon_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # 상단 메뉴 (T-036-B) — 순서대로 [{key, label, visible}], 없으면 템플릿 기본
     menu_items: Mapped[list[dict] | None] = mapped_column(JSONB, nullable=True)
+    # 이용약관 · 개인정보처리방침 (T-200) — 비어 있으면 기본 문안을 그때그때 만든다
+    terms_body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    privacy_body: Mapped[str | None] = mapped_column(Text, nullable=True)
+    policies_updated_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )

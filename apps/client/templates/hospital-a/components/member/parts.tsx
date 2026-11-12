@@ -5,6 +5,7 @@
  * member-sns · find-tabs}.html 마크업 그대로. 로직은 hooks/member (공통 화면과 같은 훅).
  */
 import { forwardRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { policyHref } from '@/lib/sitePolicy'
 import type { FieldErrors, FieldValues, UseFormRegister } from 'react-hook-form'
 import { useAuthOptions } from '@/hooks/member/useMemberAuth'
 import { usePhoneVerification, type PhoneVerificationArgs } from '@/hooks/member/useMemberForms'
@@ -169,12 +170,14 @@ export const PhoneVerify = ({
 
 interface AgreeProps<T extends FieldValues> {
   id: string
+  /** 약관 · 방침 [보기] 주소 (T-200) */
+  slug: string
   register: UseFormRegister<T>
   all: { checked: boolean; toggle: (on: boolean) => void }
 }
 
 /** 약관 동의 묶음 + 전체 동의 (목업 member-agree.html) */
-export const MemberAgree = <T extends FieldValues>({ id, register, all }: AgreeProps<T>) => (
+export const MemberAgree = <T extends FieldValues>({ id, slug, register, all }: AgreeProps<T>) => (
   <fieldset className="member-form__agree">
     <legend className="sr-only">약관 동의</legend>
     <div className="board-form__row board-form__row--check member-form__agree-all">
@@ -194,12 +197,18 @@ export const MemberAgree = <T extends FieldValues>({ id, register, all }: AgreeP
       <label className="board-form__check" htmlFor={`${id}-ag-terms`}>
         이용약관 동의 <span className="member-form__must">(필수)</span>
       </label>
+      <a className="board-form__terms" href={policyHref(slug, 'terms')} target="_blank" rel="noreferrer">
+        [보기]
+      </a>
     </div>
     <div className="board-form__row board-form__row--check">
       <input className="board-form__checkbox" type="checkbox" id={`${id}-ag-privacy`} {...register('privacy_agree' as never)} />
       <label className="board-form__check" htmlFor={`${id}-ag-privacy`}>
         개인정보처리방침 동의 <span className="member-form__must">(필수)</span>
       </label>
+      <a className="board-form__terms" href={policyHref(slug, 'privacy')} target="_blank" rel="noreferrer">
+        [보기]
+      </a>
     </div>
     <div className="board-form__row board-form__row--check">
       <input className="board-form__checkbox" type="checkbox" id={`${id}-ag-mkt`} {...register('marketing_agree' as never)} />

@@ -5,6 +5,7 @@
  * 그래서 관리자 편집(AD-02)·인라인 편집(12)·AI 어시스턴트(13)는 템플릿 종류를 몰라도 동작한다.
  */
 import type { ComponentType } from 'react'
+import type { SitePolicy } from '@/lib/sitePolicy'
 import type { SectionType, TemplateManifest } from '@cms/types'
 import type { PublicSection, PublicSite } from '@/lib/publicSite.types'
 import type { MemberPageKey } from '../memberPages'
@@ -57,6 +58,8 @@ export interface CodeTemplateProps {
    * 템플릿 디자인의 회원 화면을 헤더 · 서브 히어로 · 푸터 안에 그린다
    */
   member?: MemberRoute
+  /** 이용약관 · 개인정보처리방침 (/{slug}/terms · /privacy, T-200) — 있으면 섹션 대신 문서 */
+  policy?: SitePolicy
 }
 
 export interface MemberRoute {
