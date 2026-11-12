@@ -6,7 +6,7 @@ from datetime import date, timedelta
 from sqlalchemy import text
 
 from app.services import notification_settings as svc
-from tests.conftest import _TestSession
+from tests.conftest import _TestSession, verify_alert_phone
 
 # ── GET /api/v1/notification-settings ─────────────────────────────────────
 
@@ -55,6 +55,9 @@ class TestUpdateSettings:
                 "sms_enabled": True,
                 "email_enabled": True,
                 "recipient_phone": "010-1234-5678",
+                "phone_verification_id": await verify_alert_phone(
+                    client, auth_headers, "010-1234-5678"
+                ),
                 "recipient_email": "admin@example.com",
             },
             headers=auth_headers,
@@ -85,7 +88,12 @@ class TestUpdateSettings:
         # 하이픈 없는 입력도 정규화되어 저장
         resp = await client.put(
             "/api/v1/notification-settings",
-            json={"recipient_phone": "01012345678"},
+            json={
+                "recipient_phone": "01012345678",
+                "phone_verification_id": await verify_alert_phone(
+                    client, auth_headers, "01012345678"
+                ),
+            },
             headers=auth_headers,
         )
         assert resp.status_code == 200
@@ -162,6 +170,9 @@ class TestSendTest:
                 "alimtalk_enabled": True,
                 "sms_enabled": True,
                 "recipient_phone": "010-9999-8888",
+                "phone_verification_id": await verify_alert_phone(
+                    client, auth_headers, "010-9999-8888"
+                ),
             },
             headers=auth_headers,
         )

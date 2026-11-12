@@ -1,7 +1,15 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import Boolean, Date, Integer, String, UniqueConstraint, true
+from sqlalchemy import (
+    Boolean,
+    Date,
+    DateTime,
+    Integer,
+    String,
+    UniqueConstraint,
+    true,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -55,6 +63,10 @@ class NotificationSetting(Base, TimestampMixin):
     sms_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     email_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     recipient_phone: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    # 알림 받을 번호 문자 인증 시각 (T-204) — 번호를 바꾸면 새로 인증해야 저장
+    recipient_phone_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     recipient_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     monthly_kakao_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     monthly_reset_at: Mapped[date] = mapped_column(Date, nullable=False)

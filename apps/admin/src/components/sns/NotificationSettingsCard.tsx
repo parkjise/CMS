@@ -9,26 +9,32 @@ import {
 } from '@/hooks/useNotificationSettings'
 import { MonthlyQuotaBar } from './MonthlyQuotaBar'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { type PhoneVerified, phoneDigits } from '@/lib/phone'
+import { AlertPhoneField } from './AlertPhoneField'
 
 interface NotificationSettingsCardProps {
   settings: NotificationSettings
 }
 
-export function NotificationSettingsCard({
-  settings,
-}: NotificationSettingsCardProps) {
+export function NotificationSettingsCard({ settings }: NotificationSettingsCardProps) {
   const [alimtalk, setAlimtalk] = useState(settings.alimtalk_enabled)
   const [sms, setSms] = useState(settings.sms_enabled)
   const [email, setEmail] = useState(settings.email_enabled)
   const [phone, setPhone] = useState(settings.recipient_phone ?? '')
-  const [recipientEmail, setRecipientEmail] = useState(
-    settings.recipient_email ?? ''
-  )
+  const [phoneVerified, setPhoneVerified] = useState<PhoneVerified | null>(null)
+  const [recipientEmail, setRecipientEmail] = useState(settings.recipient_email ?? '')
 
   const updateMutation = useUpdateNotificationSettings()
   const testMutation = useTestNotification()
 
   const handleSave = async () => {
+    const digits = phoneDigits(phone)
+    const useVerified = phoneVerified !== null && phoneVerified.digits === digits
+    // 새 번호는 문자 인증을 마쳐야 저장된다 (T-204)
+    if (digits && digits !== phoneDigits(settings.recipient_phone) && !useVerified) {
+      toast.error('휴대폰 번호 [인증]을 먼저 완료해주세요.')
+      return
+    }
     try {
       await updateMutation.mutateAsync({
         alimtalk_enabled: alimtalk,
@@ -36,7 +42,10 @@ export function NotificationSettingsCard({
         email_enabled: email,
         recipient_phone: phone || null,
         recipient_email: recipientEmail || null,
+        ...(useVerified ? { phone_verification_id: phoneVerified.verificationId } : {}),
       })
+      // 인증은 한 번만 쓴다 — 저장된 번호는 이제 '인증됨'
+      if (useVerified) setPhoneVerified(null)
       toast.success('알림 설정을 저장했습니다.')
     } catch (e) {
       toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
@@ -60,9 +69,7 @@ export function NotificationSettingsCard({
     <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-4 flex items-baseline justify-between">
         <h2 className="text-base font-semibold text-slate-900">알림 채널</h2>
-        <span className="text-xs text-slate-500">
-          새 문의 접수 시 자동 발송
-        </span>
+        <span className="text-xs text-slate-500">새 문의 접수 시 자동 발송</span>
       </div>
 
       <div className="mb-5">
@@ -91,13 +98,14 @@ export function NotificationSettingsCard({
       </div>
 
       <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-        <FormField label="휴대폰 번호" hint="형식: 010-1234-5678">
-          <Input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="010-1234-5678"
-          />
-        </FormField>
+        <AlertPhoneField
+          phone={phone}
+          onPhoneChange={setPhone}
+          savedPhone={settings.recipient_phone}
+          savedVerifiedAt={settings.recipient_phone_verified_at}
+          verified={phoneVerified}
+          onVerified={setPhoneVerified}
+        />
         <FormField label="이메일 주소">
           <Input
             type="email"
@@ -118,11 +126,7 @@ export function NotificationSettingsCard({
           <Send className="h-3.5 w-3.5" />
           {testMutation.isPending ? '발송 중...' : '테스트 발송'}
         </Button>
-        <Button
-          type="button"
-          onClick={handleSave}
-          disabled={updateMutation.isPending}
-        >
+        <Button type="button" onClick={handleSave} disabled={updateMutation.isPending}>
           {updateMutation.isPending ? '저장 중...' : '알림 설정 저장'}
         </Button>
       </div>

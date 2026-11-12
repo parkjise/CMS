@@ -4,9 +4,12 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.member_errors import PHONE_NOT_VERIFIED, MemberAuthError
+from app.models.site_member import PhoneVerification
 from app.models.sns import NotificationSetting
 from app.models.tenant import Tenant
 from app.schemas.sns import NotificationSettingsUpdate
+from app.services import member_verification
 from app.services import notification as notification_service
 
 
@@ -61,14 +64,49 @@ async def update_settings(
         setting.sms_enabled = data.sms_enabled
     if data.email_enabled is not None:
         setting.email_enabled = data.email_enabled
-    if data.recipient_phone is not None:
+    if data.recipient_phone is not None and (
+        data.recipient_phone != setting.recipient_phone
+        or data.phone_verification_id is not None
+    ):
+        # 새 번호 · 다시 인증 — 그 번호로 문자 인증을 마쳐야 저장 (T-204)
+        if data.phone_verification_id is None:
+            raise MemberAuthError(
+                400, "PHONE_NOT_VERIFIED", PHONE_NOT_VERIFIED, field="recipient_phone"
+            )
+        await member_verification.take_verified(
+            db,
+            tenant_id,
+            data.phone_verification_id,
+            "ADMIN_ALERT",
+            phone=data.recipient_phone,
+        )
         setting.recipient_phone = data.recipient_phone
+        setting.recipient_phone_verified_at = datetime.now(UTC)
     if data.recipient_email is not None:
         setting.recipient_email = str(data.recipient_email)
 
     await db.commit()
     await db.refresh(setting)
     return setting
+
+
+async def send_phone_code(
+    db: AsyncSession, tenant_id: UUID, phone: str
+) -> tuple[PhoneVerification, int]:
+    """알림 받을 번호로 인증번호 문자 (T-204) — 방문자 인증과 같은 제한."""
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise MemberAuthError(404, "NOT_FOUND", "사업체를 찾을 수 없습니다")
+    return await member_verification.send_code(db, tenant, phone, "ADMIN_ALERT")
+
+
+async def verify_phone_code(
+    db: AsyncSession, tenant_id: UUID, verification_id: UUID, code: str
+) -> PhoneVerification:
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None:
+        raise MemberAuthError(404, "NOT_FOUND", "사업체를 찾을 수 없습니다")
+    return await member_verification.verify_code(db, tenant, verification_id, code)
 
 
 async def prepare_test(
