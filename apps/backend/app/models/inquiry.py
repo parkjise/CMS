@@ -56,6 +56,12 @@ class Inquiry(Base, TimestampMixin, SoftDeleteMixin):
     answered_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # 알림톡으로 답장 (T-203) — 마지막으로 보낸 답장, 채널 KAKAO | SMS
+    reply_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reply_channel: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    replied_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     reserved_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     reserved_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     # 업종별 문의 폼 추가 항목 (T-051-A) — 칸 정의는 services/inquiry_fields.py

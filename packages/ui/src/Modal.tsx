@@ -69,12 +69,14 @@ export function Modal({
         tabIndex={-1}
         className={[
           'relative w-full bg-white rounded-2xl shadow-2xl',
+          // 화면보다 길면 제목은 두고 내용만 스크롤 (T-203)
+          'flex max-h-full flex-col',
           'outline-none',
           sizeClasses[size],
         ].join(' ')}
       >
         {title && (
-          <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
+          <div className="flex shrink-0 items-center justify-between px-6 pt-6 pb-4 border-b border-slate-100">
             <h2 id="modal-title" className="text-lg font-semibold text-slate-900">
               {title}
             </h2>
@@ -89,7 +91,7 @@ export function Modal({
             </button>
           </div>
         )}
-        <div className="px-6 py-5">{children}</div>
+        <div className="min-h-0 overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>,
     document.body

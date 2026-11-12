@@ -23,6 +23,8 @@ from app.schemas.inquiry import (
     InquiryCreate,
     InquiryDetailItem,
     InquiryListResponse,
+    InquiryReplyRequest,
+    InquiryReplyResult,
     InquiryResponse,
     InquiryUpdate,
     ReservationStatusUpdate,
@@ -37,6 +39,7 @@ from app.services import inquiry as inquiry_service
 from app.services import inquiry_board as board_service
 from app.services import inquiry_fields, member_activity, recaptcha
 from app.services import member_reservation_admin as reservation_admin
+from app.services import notification as notification_service
 
 # 관리자 전용 라우터 — main.py에서 /api/v1 prefix로 등록
 router = APIRouter(prefix="/inquiries", tags=["inquiries"])
@@ -299,6 +302,35 @@ async def update_member_reservation(
     await reservation_admin.change_status(db, inquiry, body.status)
     await db.refresh(inquiry)
     return ApiResponse.ok(await _detail(db, inquiry))
+
+
+@router.post("/{inquiry_id}/reply", response_model=ApiResponse[InquiryReplyResult])
+async def reply_inquiry(
+    inquiry_id: UUID,
+    body: InquiryReplyRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """알림톡으로 답장 — 실패 · 꺼짐이면 문자 (T-203, AD-04-M)."""
+    inquiry = await inquiry_service.get_inquiry_by_id(db, inquiry_id, tenant_id)
+    if not inquiry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    try:
+        channel = await inquiry_service.reply_inquiry(db, inquiry, body.message)
+    except notification_service.MonthlyLimitExceeded as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)
+        )
+    except inquiry_service.ReplyFailed as e:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(e))
+    return ApiResponse.ok(
+        InquiryReplyResult(
+            inquiry=await _detail(db, inquiry),
+            channel=channel,
+            test_mode=settings.notification_mode != "live",
+        )
+    )
 
 
 @router.patch("/{inquiry_id}", response_model=ApiResponse[InquiryResponse])

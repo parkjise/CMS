@@ -56,6 +56,15 @@ def format_kr_time(dt: datetime) -> str:
     return dt.strftime("%Y-%m-%d %H:%M")
 
 
+# 단문(SMS)은 90바이트 (한글 2바이트) — 넘으면 장문(LMS, 2,000바이트)
+_SMS_MAX_BYTES = 90
+
+
+def sms_type(message: str) -> str:
+    size = len(message.encode("euc-kr", errors="replace"))
+    return "SMS" if size <= _SMS_MAX_BYTES else "LMS"
+
+
 def _sens_signature(method: str, uri: str, timestamp: str) -> str:
     """NCloud SENS HMAC-SHA256 서명 생성."""
     msg = f"{method} {uri}\n{timestamp}\n{settings.ncloud_sens_access_key}"
@@ -134,7 +143,7 @@ async def send_sms(to: str, message: str) -> bool:
     signature = _sens_signature("POST", uri, timestamp)
 
     payload = {
-        "type": "SMS",
+        "type": sms_type(message),
         "from": settings.ncloud_sens_from_no,
         "content": message,
         "messages": [{"to": to.replace("-", "")}],
@@ -342,3 +351,34 @@ async def notify_member_joined(
         "skipped": False,
         "reason": "",
     }
+
+
+async def send_inquiry_reply(
+    db: AsyncSession,
+    tenant_id: UUID,
+    to: str,
+    customer_name: str,
+    message: str,
+    tenant_name: str = "사이트",
+) -> str | None:
+    """문의자에게 답장 (T-203, AD-04-M). 알림톡 → 실패 · 꺼짐이면 문자.
+
+    보낸 채널(KAKAO | SMS)을 돌려주고, 둘 다 실패하면 None.
+    요금제 한도를 넘으면 MonthlyLimitExceeded — 문의 알림과 같은 월 한도를 쓴다.
+    """
+    plan_type = await _get_plan_type(db, tenant_id)
+    await check_monthly_limit(db, tenant_id, plan_type)
+
+    channel: str | None = None
+    if await _kakao_on(db, tenant_id) and await send_kakao_alimtalk(
+        to=to,
+        template_code="INQUIRY_REPLY_V1",
+        variables={"사이트명": tenant_name, "이름": customer_name, "답변": message},
+    ):
+        channel = "KAKAO"
+    elif await send_sms(to=to, message=f"[{tenant_name}] {message}"):
+        channel = "SMS"
+
+    if channel:
+        await increment_monthly_count(db, tenant_id)
+    return channel

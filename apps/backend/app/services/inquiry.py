@@ -18,6 +18,7 @@ from app.schemas.inquiry import (
     InquiryListResponse,
     InquiryUpdate,
 )
+from app.services import notification as notification_service
 from app.services.inquiry_fields import clean_detail
 
 KST = ZoneInfo("Asia/Seoul")
@@ -214,6 +215,40 @@ async def update_inquiry(
     await db.commit()
     db.expire_all()
     return await get_inquiry_by_id(db, inquiry_id, tenant_id)
+
+
+class ReplyFailed(RuntimeError):
+    """알림톡 · 문자 모두 실패"""
+
+
+async def reply_inquiry(db: AsyncSession, inquiry: Inquiry, message: str) -> str:
+    """문의자에게 알림톡으로 답장하고 기록한다 (T-203). 보낸 채널을 돌려준다.
+
+    한도 초과는 notification.MonthlyLimitExceeded, 발송 실패는 ReplyFailed.
+    """
+    tenant = await db.get(Tenant, inquiry.tenant_id)
+    channel = await notification_service.send_inquiry_reply(
+        db,
+        inquiry.tenant_id,
+        to=inquiry.phone,
+        customer_name=inquiry.name,
+        message=message,
+        tenant_name=tenant.name if tenant else "사이트",
+    )
+    if channel is None:
+        raise ReplyFailed("답장을 보내지 못했습니다. 잠시 후 다시 시도해주세요.")
+
+    now = datetime.now(UTC)
+    inquiry.reply_message = message
+    inquiry.reply_channel = channel
+    inquiry.replied_at = now
+    # 답장하면 처리 완료로 (스팸 · 완료는 그대로)
+    if inquiry.status in ("PENDING", "IN_PROGRESS"):
+        inquiry.status = "DONE"
+    inquiry.is_read = True
+    inquiry.updated_at = now
+    await db.commit()
+    return channel
 
 
 async def delete_inquiry(db: AsyncSession, inquiry_id: UUID, tenant_id: UUID) -> bool:
