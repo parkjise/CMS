@@ -50,6 +50,8 @@ export interface InquiryListResponse {
   page: number
   limit: number
   items: InquiryListItem[]
+  /** 상태별 건수 — 상태 조건만 빼고 나머지 조건 안에서 (T-202) */
+  status_counts?: Partial<Record<InquiryStatus, number>>
 }
 
 export interface InquiryDetail extends InquiryListItem {

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
-import { Download } from 'lucide-react'
+import dayjs from 'dayjs'
+import { Download, RefreshCw } from 'lucide-react'
 import { Button, toast } from '@cms/ui'
 import { InquiryDetailModal } from '@/components/inquiries/InquiryDetailModal'
 import { InquiryFilters } from '@/components/inquiries/InquiryFilters'
+import { InquiryStatusTabs } from '@/components/inquiries/InquiryStatusTabs'
 import { InquiryTable } from '@/components/inquiries/InquiryTable'
 import {
   type InquiryFilters as InquiryFiltersValue,
@@ -34,6 +36,12 @@ export function InquiriesPage() {
     }
   }
 
+  // 새 문의를 바로 확인 (T-202) — 목록 · 미처리 건수를 다시 읽는다
+  const refresh = () => {
+    void inquiriesQuery.refetch()
+    void pendingQuery.refetch()
+  }
+
   // 미처리 배지는 헤더에 표시
   const headerBadge = useMemo(() => {
     if (pendingCount === 0) return null
@@ -57,19 +65,44 @@ export function InquiriesPage() {
             문의를 검색·정렬하고 상태와 메모를 관리하세요.
           </p>
         </div>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={handleExport}
-          disabled={downloading}
-        >
-          <Download className="h-3.5 w-3.5" />
-          {downloading ? '내려받는 중...' : '엑셀 내보내기'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          {inquiriesQuery.dataUpdatedAt > 0 && (
+            <span className="text-xs text-slate-400">
+              {dayjs(inquiriesQuery.dataUpdatedAt).format('HH:mm')} 기준
+            </span>
+          )}
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={refresh}
+            disabled={inquiriesQuery.isFetching}
+          >
+            <RefreshCw
+              className={`h-3.5 w-3.5 ${inquiriesQuery.isFetching ? 'animate-spin' : ''}`}
+            />
+            새로고침
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleExport}
+            disabled={downloading}
+          >
+            <Download className="h-3.5 w-3.5" />
+            {downloading ? '내려받는 중...' : '엑셀 내보내기'}
+          </Button>
+        </div>
       </div>
 
       {/* 필터 */}
       <InquiryFilters value={filters} onChange={setFilters} />
+
+      {/* 처리 상태별 건수 (T-202) */}
+      <InquiryStatusTabs
+        counts={inquiriesQuery.data?.status_counts}
+        value={filters.status || undefined}
+        onChange={(status) => setFilters({ ...filters, status, page: 1 })}
+      />
 
       {/* 테이블 */}
       <InquiryTable
