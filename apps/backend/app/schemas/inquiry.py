@@ -68,6 +68,9 @@ class InquiryResponse(BaseModel):
     is_secret: bool = False
     answer: str | None = None
     answered_at: datetime | None = None
+    reply_message: str | None = None
+    reply_channel: str | None = None
+    replied_at: datetime | None = None
     reserved_date: date | None = None
     reserved_time: str | None = None
     detail: dict[str, Any] = {}
@@ -149,6 +152,27 @@ class InquiryUpdate(BaseModel):
     admin_memo: str | None = None
     # 상담 게시판 답변 (빈 문자열이면 답변 삭제) — T-123
     answer: str | None = Field(None, max_length=5000)
+
+
+class InquiryReplyRequest(BaseModel):
+    """알림톡으로 답장 (T-203) — 알림톡 변수 · 장문 문자(LMS) 한도 안."""
+
+    message: str = Field(..., max_length=1000)
+
+    @field_validator("message")
+    @classmethod
+    def not_blank(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("답장 내용을 입력해주세요.")
+        return v
+
+
+class InquiryReplyResult(BaseModel):
+    inquiry: InquiryResponse
+    channel: str  # KAKAO | SMS
+    # 테스트 모드 — 실제로 발송하지 않고 기록만 (NOTIFICATION_MODE != live)
+    test_mode: bool
 
 
 InquiryResponse.model_rebuild()
