@@ -18,6 +18,7 @@ from app.schemas.super_tenant import (
     TenantListItem,
     TenantListResponse,
     TenantPlanUpdateRequest,
+    TenantSort,
     TenantStatsResponse,
     TenantUpdateRequest,
     ViewerCreate,
@@ -42,27 +43,31 @@ async def list_tenants(
     plan_type: str | None = Query(None),
     template_type: str | None = Query(None),
     is_active: bool | None = Query(None),
+    sort: TenantSort = Query("created_desc"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db_with_rls),
     _: User = Depends(get_super_admin),
 ):
-    items, total = await svc.list_tenants(
+    rows, total = await svc.list_tenants(
         db,
         q=q,
         plan_type=plan_type,
         template_type=template_type,
         is_active=is_active,
+        sort=sort,
         page=page,
         limit=limit,
     )
+    items = []
+    for row in rows:
+        item = TenantListItem.model_validate(row["tenant"])
+        item.expires_at = row["expires_at"]
+        item.visitors_30d = row["visitors_30d"]
+        item.inquiries_30d = row["inquiries_30d"]
+        items.append(item)
     return ApiResponse.ok(
-        TenantListResponse(
-            items=[TenantListItem.model_validate(t) for t in items],
-            total=total,
-            page=page,
-            limit=limit,
-        )
+        TenantListResponse(items=items, total=total, page=page, limit=limit)
     )
 
 

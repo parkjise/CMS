@@ -15,6 +15,10 @@ class TenantListItem(BaseModel):
     created_at: datetime
     # 해지 · 정지 사업체 데이터 파기를 마친 시각 (T-198)
     data_purged_at: datetime | None = None
+    # 목록 계산 칸 (T-205, SA-02) — 구독 만료일(체험이면 체험 종료), 최근 30일
+    expires_at: datetime | None = None
+    visitors_30d: int = 0
+    inquiries_30d: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -28,6 +32,15 @@ class TenantListResponse(BaseModel):
 
 # DB 제약과 같은 값 (마이그레이션 0034, T-131)
 TemplateType = Literal["HOSPITAL", "PENSION", "STARTUP", "GENERAL"]
+# 사업체 목록 정렬 (T-205, SA-02) — 만료 · 방문자 · 문의는 계산 값
+TenantSort = Literal[
+    "created_desc",
+    "created_asc",
+    "name",
+    "expires_asc",
+    "visitors_desc",
+    "inquiries_desc",
+]
 PlanType = Literal["FREE", "BASIC", "STANDARD", "PREMIUM"]
 
 

@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
 import type { TenantListData } from '@/hooks/useTenants'
 
 const useTenants = vi.fn()
 const mutateAsync = vi.fn()
 vi.mock('@/hooks/useTenants', () => ({
-  useTenants: () => useTenants(),
+  useTenants: (filters: unknown) => useTenants(filters),
   useCreateTenant: () => ({ mutateAsync, isPending: false }),
 }))
 
@@ -106,5 +107,57 @@ describe('TenantsPage (SA-02)', () => {
     useTenants.mockReturnValue({ data: DATA, isLoading: false, isError: false })
     renderPage()
     expect(screen.getByRole('button', { name: '이전' })).toBeDisabled()
+  })
+
+  it('업종 · 만료일 · 30일 방문자 · 문의 수 칸 (T-205)', () => {
+    useTenants.mockReturnValue({
+      data: {
+        ...DATA,
+        items: [
+          {
+            ...DATA.items[0],
+            template_type: 'HOSPITAL',
+            expires_at: '2026-12-01T00:00:00Z',
+            visitors_30d: 1234,
+            inquiries_30d: 7,
+          },
+          { ...DATA.items[1], expires_at: null },
+        ],
+      },
+      isLoading: false,
+      isError: false,
+    })
+    renderPage()
+    const [, first, second] = screen.getAllByRole('row')
+    const cells = within(first)
+      .getAllByRole('cell')
+      .map((c) => c.textContent)
+    expect(cells).toContain('병원')
+    expect(cells).toContain(new Date('2026-12-01T00:00:00Z').toLocaleDateString('ko-KR'))
+    expect(cells).toContain('1,234')
+    expect(cells).toContain('7')
+    // 구독 없는 사업체는 '-', 계산 값이 없으면 0
+    const other = within(second)
+      .getAllByRole('cell')
+      .map((c) => c.textContent)
+    expect(other).toContain('펜션')
+    expect(other).toContain('-')
+    expect(other.filter((t) => t === '0')).toHaveLength(2)
+  })
+
+  it('업종 필터 · 정렬을 바꾸면 그 조건으로 1쪽부터 다시 조회 (T-205)', async () => {
+    const user = userEvent.setup()
+    useTenants.mockReturnValue({ data: DATA, isLoading: false, isError: false })
+    renderPage()
+    expect(useTenants).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sort: 'created_desc', page: 1 })
+    )
+    await user.selectOptions(screen.getByLabelText('업종'), 'PENSION')
+    await user.selectOptions(screen.getByLabelText('정렬'), 'expires_asc')
+    expect(useTenants).toHaveBeenLastCalledWith(
+      expect.objectContaining({ template_type: 'PENSION', sort: 'expires_asc', page: 1 })
+    )
+    expect(screen.getByRole('option', { name: '만료 임박순' })).toBeInTheDocument()
+    expect(screen.getByRole('option', { name: '문의 많은순' })).toBeInTheDocument()
   })
 })

@@ -2,10 +2,10 @@
 
 import secrets
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from fastapi import HTTPException, status
-from sqlalchemy import ColumnElement, func, or_, select
+from sqlalchemy import ColumnElement, case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -13,11 +13,13 @@ from app.core.security import create_access_token, hash_password
 from app.models.ai import AiUsageLog
 from app.models.analytics import SiteAnalytics
 from app.models.audit import AuditLog
+from app.models.billing import Subscription
 from app.models.file import UploadedFile
 from app.models.inquiry import Inquiry
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
 from app.models.user import User
+from app.schemas.super_tenant import TenantSort
 
 # 신규 테넌트 기본 섹션 (section_type, label)
 DEFAULT_SECTIONS: list[tuple[str, str]] = [
@@ -65,6 +67,46 @@ async def _primary_admin(db: AsyncSession, tenant_id: uuid.UUID) -> User | None:
     return result.scalar_one_or_none()
 
 
+# 사업체 목록에서 방문자 · 문의 수를 세는 기간 (T-205, SA-02)
+LIST_STATS_DAYS = 30
+
+
+def _list_columns() -> tuple[ColumnElement, ColumnElement, ColumnElement]:
+    """만료일(체험이면 체험 종료) · 최근 30일 방문자 · 문의 수 — 사업체별 하위 쿼리."""
+    since = datetime.now(UTC) - timedelta(days=LIST_STATS_DAYS)
+    expires = (
+        select(
+            case(
+                (Subscription.status == "TRIAL", Subscription.trial_ends_at),
+                else_=Subscription.current_period_end,
+            )
+        )
+        .where(Subscription.tenant_id == Tenant.id)
+        .scalar_subquery()
+        .label("expires_at")
+    )
+    visitors = (
+        select(func.coalesce(func.sum(SiteAnalytics.unique_visitors), 0))
+        .where(
+            SiteAnalytics.tenant_id == Tenant.id,
+            SiteAnalytics.date >= since.date(),
+        )
+        .scalar_subquery()
+        .label("visitors_30d")
+    )
+    inquiries = (
+        select(func.count(Inquiry.id))
+        .where(
+            Inquiry.tenant_id == Tenant.id,
+            Inquiry.deleted_at.is_(None),
+            Inquiry.created_at >= since,
+        )
+        .scalar_subquery()
+        .label("inquiries_30d")
+    )
+    return expires, visitors, inquiries
+
+
 async def list_tenants(
     db: AsyncSession,
     *,
@@ -72,9 +114,11 @@ async def list_tenants(
     plan_type: str | None = None,
     template_type: str | None = None,
     is_active: bool | None = None,
+    sort: TenantSort = "created_desc",
     page: int = 1,
     limit: int = 20,
-) -> tuple[list[Tenant], int]:
+) -> tuple[list[dict], int]:
+    """사업체 목록 — 각 항목은 Tenant 칸 + 만료일 · 30일 방문자 · 문의 수."""
     conditions: list[ColumnElement[bool]] = [Tenant.deleted_at.is_(None)]
     if q:
         like = f"%{q}%"
@@ -93,14 +137,32 @@ async def list_tenants(
             )
         ).scalar_one()
     )
+    expires, visitors, inquiries = _list_columns()
+    orders: dict[str, list[ColumnElement]] = {
+        "created_desc": [Tenant.created_at.desc()],
+        "created_asc": [Tenant.created_at.asc()],
+        "name": [Tenant.name.asc()],
+        # 만료일 없는(구독 없음) 사업체는 뒤로
+        "expires_asc": [expires.asc().nulls_last()],
+        "visitors_desc": [visitors.desc()],
+        "inquiries_desc": [inquiries.desc()],
+    }
     rows = await db.execute(
-        select(Tenant)
+        select(Tenant, expires, visitors, inquiries)
         .where(*conditions)
-        .order_by(Tenant.created_at.desc())
+        .order_by(*orders[sort], Tenant.created_at.desc(), Tenant.id)
         .offset((page - 1) * limit)
         .limit(limit)
     )
-    return list(rows.scalars().all()), total
+    return [
+        {
+            "tenant": tenant,
+            "expires_at": expires_at,
+            "visitors_30d": int(visitor_count or 0),
+            "inquiries_30d": int(inquiry_count or 0),
+        }
+        for tenant, expires_at, visitor_count, inquiry_count in rows.all()
+    ], total
 
 
 async def create_tenant(

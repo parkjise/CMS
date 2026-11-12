@@ -5,6 +5,7 @@ import { Badge, Button } from '@cms/ui'
 import { TenantFilters, type FilterValue } from '@/components/tenants/TenantFilters'
 import { CreateTenantModal } from '@/components/tenants/CreateTenantModal'
 import { useTenants } from '@/hooks/useTenants'
+import { TEMPLATE_LABELS } from '@/lib/tenantList'
 
 const LIMIT = 20
 
@@ -12,7 +13,9 @@ export function TenantsPage() {
   const [filter, setFilter] = useState<FilterValue>({
     q: '',
     plan_type: '',
+    template_type: '',
     is_active: '',
+    sort: 'created_desc',
   })
   const [page, setPage] = useState(1)
   const [createOpen, setCreateOpen] = useState(false)
@@ -21,6 +24,8 @@ export function TenantsPage() {
     () => ({
       q: filter.q || undefined,
       plan_type: filter.plan_type || undefined,
+      template_type: filter.template_type || undefined,
+      sort: filter.sort,
       is_active: filter.is_active === '' ? undefined : filter.is_active === 'true',
       page,
       limit: LIMIT,
@@ -60,8 +65,11 @@ export function TenantsPage() {
           <thead className="bg-slate-50 text-left text-xs font-semibold text-slate-500">
             <tr>
               <th className="px-4 py-3">사업체</th>
+              <th className="px-4 py-3">업종</th>
               <th className="px-4 py-3">플랜</th>
-              <th className="px-4 py-3">템플릿</th>
+              <th className="px-4 py-3">만료일</th>
+              <th className="px-4 py-3 text-right">방문자 (30일)</th>
+              <th className="px-4 py-3 text-right">문의 (30일)</th>
               <th className="px-4 py-3">상태</th>
               <th className="px-4 py-3">가입일</th>
               <th className="px-4 py-3" />
@@ -70,14 +78,14 @@ export function TenantsPage() {
           <tbody className="divide-y divide-slate-100">
             {isLoading && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                   불러오는 중…
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-red-500">
+                <td colSpan={9} className="px-4 py-8 text-center text-red-500">
                   목록을 불러오지 못했습니다.
                 </td>
               </tr>
@@ -88,8 +96,19 @@ export function TenantsPage() {
                   <div className="font-medium text-slate-800">{t.name}</div>
                   <div className="text-xs text-slate-400">{t.slug}</div>
                 </td>
+                <td className="px-4 py-3 text-slate-500">
+                  {TEMPLATE_LABELS[t.template_type] ?? t.template_type}
+                </td>
                 <td className="px-4 py-3">{t.plan_type}</td>
-                <td className="px-4 py-3 text-slate-500">{t.template_type}</td>
+                <td className="px-4 py-3 text-slate-500">
+                  {t.expires_at ? new Date(t.expires_at).toLocaleDateString('ko-KR') : '-'}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  {(t.visitors_30d ?? 0).toLocaleString()}
+                </td>
+                <td className="px-4 py-3 text-right tabular-nums">
+                  {(t.inquiries_30d ?? 0).toLocaleString()}
+                </td>
                 <td className="px-4 py-3">
                   {t.data_purged_at ? (
                     <Badge variant="default">
@@ -116,7 +135,7 @@ export function TenantsPage() {
             ))}
             {data && data.items.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-400">
+                <td colSpan={9} className="px-4 py-8 text-center text-slate-400">
                   조건에 맞는 테넌트가 없습니다.
                 </td>
               </tr>
