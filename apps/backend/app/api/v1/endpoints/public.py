@@ -22,6 +22,7 @@ from app.schemas.public_site import (
     PublicMemberFlags,
     PublicSectionResponse,
     PublicSeoResponse,
+    PublicSiteAvailability,
     PublicSiteResponse,
     PublicSnsResponse,
     PublicTemplateResponse,
@@ -270,3 +271,28 @@ async def get_site_policy(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     await set_rls_context(db, tenant.id)
     return ApiResponse.ok(await policy_service.get_policy(db, tenant, kind))
+
+
+@router.get(
+    "/site/{tenant_slug}/availability",
+    response_model=ApiResponse[PublicSiteAvailability],
+)
+async def get_site_availability(tenant_slug: str, db: AsyncSession = Depends(get_db)):
+    """사이트가 열려 있는지 (T-201) — 구독이 끝나 닫힌 사이트는 PAUSED.
+
+    없는 주소 · 해지 뒤 삭제된 사업체는 404 (다른 사이트와 구분하지 않는다).
+    """
+    await set_super_admin_context(db)
+    tenant = await _get_tenant(db, tenant_slug)
+    if not tenant or tenant.data_purged_at is not None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    setting = (
+        await db.execute(select(SiteSetting).where(SiteSetting.tenant_id == tenant.id))
+    ).scalar_one_or_none()
+    return ApiResponse.ok(
+        PublicSiteAvailability(
+            status="ACTIVE" if tenant.is_active else "PAUSED",
+            name=tenant.name,
+            phone=setting.phone if setting else None,
+        )
+    )
