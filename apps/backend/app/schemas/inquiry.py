@@ -139,6 +139,8 @@ class InquiryListResponse(BaseModel):
     page: int
     limit: int
     items: list[InquiryListItem]
+    # 상태별 건수 (T-202, AD-04) — 상태 조건만 빼고 나머지 조건 안에서
+    status_counts: dict[str, int] = {}
 
 
 class InquiryUpdate(BaseModel):

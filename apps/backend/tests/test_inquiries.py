@@ -493,3 +493,57 @@ class TestInquiryValueChecks:
             )
             names = {r[0] for r in rows}
         assert {"idx_inquiries_tenant_status", "idx_inquiries_tenant_created"} <= names
+
+
+class TestStatusCounts:
+    """T-202 (AD-04): 상태 탭의 건수 — 상태 조건만 빼고 나머지 조건 안에서."""
+
+    async def test_counts_ignore_status_but_follow_other_filters(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        rows = [
+            ("PENDING", "GENERAL"),
+            ("PENDING", "GENERAL"),
+            ("IN_PROGRESS", "GENERAL"),
+            ("DONE", "RESERVATION"),
+            ("SPAM", "GENERAL"),
+        ]
+        async with _TestSession() as s:
+            await s.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            for status, kind in rows:
+                await s.execute(
+                    text(
+                        "INSERT INTO inquiries (id, tenant_id, name, phone, message,"
+                        " status, inquiry_type, created_at, updated_at) VALUES"
+                        " (gen_random_uuid(), :t, '방문자', '010-0000-0000', '문의',"
+                        " :st, :k, now(), now())"
+                    ),
+                    {"t": test_tenant["id"], "st": status, "k": kind},
+                )
+            await s.commit()
+
+        resp = await client.get(
+            "/api/v1/inquiries", params={"status": "DONE"}, headers=auth_headers
+        )
+        data = resp.json()["data"]
+        assert data["total"] == 1
+        assert data["status_counts"] == {
+            "PENDING": 2,
+            "IN_PROGRESS": 1,
+            "DONE": 1,
+            "SPAM": 1,
+        }
+
+        resp = await client.get(
+            "/api/v1/inquiries",
+            params={"inquiry_type": "GENERAL"},
+            headers=auth_headers,
+        )
+        assert resp.json()["data"]["status_counts"] == {
+            "PENDING": 2,
+            "IN_PROGRESS": 1,
+            "DONE": 0,
+            "SPAM": 1,
+        }

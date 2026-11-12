@@ -13,6 +13,8 @@ import { InquiryMobileCard } from './InquiryMobileCard'
 import { MemberBadge } from './MemberBadge'
 import { STATUS_OPTIONS, TYPE_LABELS } from './StatusBadge'
 
+const PAGE_SIZES = [10, 20, 50, 100]
+
 interface InquiryTableProps {
   data?: InquiryListResponse
   isLoading: boolean
@@ -184,9 +186,26 @@ export function InquiryTable({
 
       {/* 페이지네이션 */}
       <div className="flex items-center justify-between border-t border-slate-200 bg-slate-50 px-4 py-2.5 text-xs text-slate-500">
-        <span>
-          총 <strong className="text-slate-700">{total.toLocaleString()}</strong>건
-          · {page} / {totalPages} 페이지
+        <span className="flex flex-wrap items-center gap-2">
+          <span>
+            총 <strong className="text-slate-700">{total.toLocaleString()}</strong>건 · {page} /{' '}
+            {totalPages} 페이지
+          </span>
+          {/* 페이지당 개수 (T-202, AD-04) */}
+          <label className="inline-flex items-center gap-1">
+            <span>페이지당</span>
+            <select
+              className="h-7 rounded border border-slate-300 bg-white px-1.5 text-xs text-slate-700"
+              value={limit}
+              onChange={(e) => onFiltersChange({ ...filters, limit: Number(e.target.value), page: 1 })}
+            >
+              {PAGE_SIZES.map((n) => (
+                <option key={n} value={n}>
+                  {n}개
+                </option>
+              ))}
+            </select>
+          </label>
         </span>
         <div className="flex items-center gap-1">
           <Button

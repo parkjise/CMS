@@ -21,7 +21,9 @@ from app.schemas.inquiry import (
 from app.services.inquiry_fields import clean_detail
 
 KST = ZoneInfo("Asia/Seoul")
-_VALID_STATUSES = {"PENDING", "IN_PROGRESS", "DONE", "SPAM"}
+# 상태 탭 순서 (T-202)
+INQUIRY_STATUSES = ("PENDING", "IN_PROGRESS", "DONE", "SPAM")
+_VALID_STATUSES = set(INQUIRY_STATUSES)
 
 
 async def create_inquiry(
@@ -129,8 +131,6 @@ async def get_inquiries(
         *_in_period(from_date, to_date),
     )
 
-    if status:
-        base = base.where(Inquiry.status == status)
     if inquiry_type:
         base = base.where(Inquiry.inquiry_type == inquiry_type)
     if is_read is not None:
@@ -145,6 +145,17 @@ async def get_inquiries(
             )
         )
 
+    # 상태 탭의 건수 — 상태 조건을 걸기 전 (T-202)
+    count_rows = await db.execute(
+        select(Inquiry.status, func.count())
+        .where(Inquiry.id.in_(base.with_only_columns(Inquiry.id)))
+        .group_by(Inquiry.status)
+    )
+    counted = {row_status: count for row_status, count in count_rows.all()}
+    status_counts = {name: counted.get(name, 0) for name in INQUIRY_STATUSES}
+    if status:
+        base = base.where(Inquiry.status == status)
+
     total_result = await db.execute(select(func.count()).select_from(base.subquery()))
     total = total_result.scalar_one()
 
@@ -153,7 +164,9 @@ async def get_inquiries(
     )
     items = [InquiryListItem.model_validate(i) for i in rows.scalars().all()]
 
-    return InquiryListResponse(total=total, page=page, limit=limit, items=items)
+    return InquiryListResponse(
+        total=total, page=page, limit=limit, items=items, status_counts=status_counts
+    )
 
 
 async def get_inquiry_by_id(
