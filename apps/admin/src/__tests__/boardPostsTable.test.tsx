@@ -12,6 +12,10 @@ import {
   usePostTableLayoutStore,
 } from '@/stores/postTableLayoutStore'
 
+// 글 표 전체를 그리고 클릭을 여러 번 하는 무거운 파일 — CI 는 여러 파일을 함께 돌려
+// 로컬보다 5배쯤 느려 기본 5초를 넘길 때가 있다 (T-207). 멈춘 게 아니라 느린 것
+vi.setConfig({ testTimeout: 20_000 })
+
 const { get, patch, del, post, put } = vi.hoisted(() => ({
   get: vi.fn(),
   patch: vi.fn(),

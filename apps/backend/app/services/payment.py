@@ -9,6 +9,7 @@ stub을 반환한다. 실제 결제는 live 모드에서만 일어난다.
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import NamedTuple
 
 import httpx
 from fastapi import HTTPException, status
@@ -47,10 +48,22 @@ def _is_live() -> bool:
 
 
 # ── 토스 API 래퍼 ─────────────────────────────────────────────────────────
-async def issue_billing_key(customer_key: str, auth_key: str) -> str:
-    """빌링키 발급 (카드 등록)."""
+class BillingKey(NamedTuple):
+    key: str
+    # 결제 수단 표시용 (T-207) — 카드사 · 끝 4자리
+    card_company: str | None
+    card_last4: str | None
+
+
+def _last4(number: str | None) -> str | None:
+    digits = "".join(ch for ch in (number or "") if ch.isdigit())
+    return digits[-4:] if len(digits) >= 4 else None
+
+
+async def issue_billing_key(customer_key: str, auth_key: str) -> BillingKey:
+    """빌링키 발급 (카드 등록) — 카드사 · 끝 4자리도 함께."""
     if not _is_live():
-        return f"billing_test_{customer_key}"
+        return BillingKey(f"billing_test_{customer_key}", "테스트카드", "1234")
 
     async with httpx.AsyncClient(timeout=10.0) as client:
         resp = await client.post(
@@ -61,7 +74,13 @@ async def issue_billing_key(customer_key: str, auth_key: str) -> str:
     data = resp.json()
     if resp.status_code not in (200, 201) or "billingKey" not in data:
         raise PaymentError(data.get("message", "빌링키 발급 실패"))
-    return data["billingKey"]
+    # 토스 응답: cardCompany, cardNumber(가운데가 가려진 번호)
+    card = data.get("card") or {}
+    return BillingKey(
+        data["billingKey"],
+        (data.get("cardCompany") or "")[:30] or None,
+        _last4(data.get("cardNumber") or card.get("number")),
+    )
 
 
 async def charge_billing(
@@ -153,7 +172,7 @@ async def register_card(
     billing_name: str | None,
 ) -> Subscription:
     """빌링키 발급 후 구독에 저장(없으면 생성)."""
-    billing_key = await issue_billing_key(customer_key, auth_key)
+    issued = await issue_billing_key(customer_key, auth_key)
     now = datetime.now(UTC)
     sub = await _get_subscription(db, tenant_id)
     plan = await _tenant_plan(db, tenant_id)
@@ -172,7 +191,9 @@ async def register_card(
         db.add(sub)
 
     # 빌링키는 암호화하여 저장 (T-106)
-    sub.billing_key = encrypt_secret(billing_key)
+    sub.billing_key = encrypt_secret(issued.key)
+    sub.card_company = issued.card_company
+    sub.card_last4 = issued.card_last4
     sub.billing_email = billing_email
     sub.billing_name = billing_name
     await db.commit()
@@ -270,6 +291,38 @@ async def list_payments(
         .all()
     )
     return list(rows), total
+
+
+# 자동 결제가 도는 상태 — 이때는 카드를 지울 수 없다 (T-207, 사용자 결정 2026-11-12)
+CARD_LOCKED_STATUSES = ("ACTIVE", "PAST_DUE")
+
+
+async def delete_card(db: AsyncSession, tenant_id: uuid.UUID) -> Subscription:
+    """결제 수단 삭제 — 해지 · 체험 · 정지 상태에서만. 결제 기록은 그대로 둔다.
+
+    자동 결제 중이면 409 (카드 변경 또는 구독 해지 뒤 삭제), 카드가 없으면 404.
+    토스 쪽 빌링키는 우리 비밀키 없이는 결제에 쓸 수 없어 여기서만 지운다.
+    """
+    sub = await _get_subscription(db, tenant_id)
+    if sub is None or not sub.billing_key:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="등록된 결제 수단이 없습니다.",
+        )
+    if sub.status in CARD_LOCKED_STATUSES:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "자동 결제 중에는 카드를 삭제할 수 없습니다. "
+                "카드를 변경하거나 구독을 해지한 뒤 삭제해주세요."
+            ),
+        )
+    sub.billing_key = None
+    sub.card_company = None
+    sub.card_last4 = None
+    await db.commit()
+    await db.refresh(sub)
+    return sub
 
 
 async def cancel_subscription(

@@ -25,6 +25,11 @@ class SubscriptionResponse(BaseModel):
     current_period_end: datetime
     cancelled_at: datetime | None
     created_at: datetime
+    # 결제 수단 (T-207) — 등록 여부(빌링키는 싣지 않음) · 카드사 · 끝 4자리
+    # (예전에 등록한 카드는 카드사 · 끝 4자리가 비어 있다)
+    has_card: bool = False
+    card_company: str | None = None
+    card_last4: str | None = None
 
     model_config = {"from_attributes": True}
 

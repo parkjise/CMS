@@ -49,6 +49,19 @@ async def register_card(
     return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
 
 
+@router.delete("/card", response_model=ApiResponse[SubscriptionResponse])
+@_limiter.limit("5/minute")
+async def delete_card(
+    request: Request,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """결제 수단 삭제 (T-207, AD-08) — 자동 결제 중이면 409."""
+    sub = await svc.delete_card(db, tenant_id)
+    return ApiResponse.ok(SubscriptionResponse.model_validate(sub))
+
+
 @router.get("/subscription", response_model=ApiResponse[SubscriptionResponse])
 async def get_subscription(
     db: AsyncSession = Depends(get_db_with_rls),

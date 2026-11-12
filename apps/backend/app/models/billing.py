@@ -45,6 +45,9 @@ class Subscription(Base, TimestampMixin):
     # ACTIVE, PAST_DUE, SUSPENDED, CANCELLED, TRIAL
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
     billing_key: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    # 결제 수단 표시 (T-207) — 카드사 · 끝 4자리만, 전체 번호는 저장하지 않는다
+    card_company: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    card_last4: Mapped[str | None] = mapped_column(String(4), nullable=True)
     billing_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
     billing_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     monthly_amount: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -61,6 +64,11 @@ class Subscription(Base, TimestampMixin):
         DateTime(timezone=True), nullable=True
     )
     cancel_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+
+    @property
+    def has_card(self) -> bool:
+        """결제 수단이 등록돼 있는지 — 응답에는 빌링키 대신 이것만 (T-207)."""
+        return bool(self.billing_key)
 
 
 class PaymentHistory(Base):
