@@ -431,3 +431,33 @@ describe('middleware — 다른 게시판으로 옮긴 글 (T-184)', () => {
     expect(locationOf(res)).toBe(`https://www.oo.com/b/jobs/${ID}`)
   })
 })
+
+describe('닫힌 사이트 — 404 대신 안내 화면 (T-201)', () => {
+  const paused = (status: 'PAUSED' | 'ACTIVE' | null) => (url: string) =>
+    Promise.resolve(
+      url.includes('/template')
+        ? new Response('{}', { status: 404 })
+        : status
+          ? new Response(JSON.stringify({ data: { status, name: '병원', phone: null } }), {
+              status: 200,
+            })
+          : new Response('{}', { status: 404 })
+    )
+
+  it('닫힌 사이트는 어느 주소든 안내 화면으로', async () => {
+    fetchMock.mockImplementation(paused('PAUSED'))
+    for (const path of ['/clinic', '/clinic/about', '/clinic/b/news/p1', '/clinic/member/login']) {
+      expect(rewriteOf(await run(path))).toBe('http://localhost:3000/clinic/paused')
+    }
+  })
+
+  it('없는 사이트는 그대로 지나가 404 화면', async () => {
+    fetchMock.mockImplementation(paused(null))
+    expect(rewriteOf(await run('/nowhere'))).toBeNull()
+  })
+
+  it('열린 사이트에서 안내 화면 주소를 직접 열면 404', async () => {
+    fetchMock.mockResolvedValue(templateResponse(null, 'theme'))
+    expect((await run('/clinic/paused')).status).toBe(404)
+  })
+})

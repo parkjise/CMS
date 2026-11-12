@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { CODE_ROUTE_PREFIX, codeTemplateKey } from './templates/manifests'
 import { MEMBER_SCREEN_TEMPLATES, isMemberPage } from './templates/memberPages'
 import { serverApiBase } from './lib/apiBase'
+import { PAUSED_PAGE, fetchSiteAvailability } from './lib/siteAvailability'
 import { BOARD_PATH, NOTICE_BOARD, boardPageKey } from './lib/publicPosts'
 import { CUSTOM_HOST_HEADER, hostnameFromHeader, isCustomHost } from './lib/siteHost'
 
@@ -30,6 +31,8 @@ interface SiteRoute {
   code: string | null
   /** 방문자 회원 기능 (SITE_MEMBER) */
   memberEnabled: boolean
+  /** 구독이 끝나 닫힌 사이트 (T-201) — 모든 주소를 안내 화면으로 */
+  paused?: boolean
 }
 
 const cache = new Map<string, SiteRoute & { expires: number }>()
@@ -44,6 +47,14 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(2000),
     })
+    if (res.status === 404) {
+      // 닫힌 사이트면 안내 화면으로 (T-201) — 정말 없는 주소면 그대로 404
+      const availability = await fetchSiteAvailability(slug, { timeoutMs: 2000 })
+      if (availability?.status !== 'PAUSED') return null
+      route = { code: null, memberEnabled: false, paused: true }
+      cache.set(slug, { ...route, expires: Date.now() + CACHE_TTL_MS })
+      return route
+    }
     if (!res.ok) return null
     const body = (await res.json()) as {
       data?: { code?: string | null; renderer?: string; member_enabled?: boolean }
@@ -184,6 +195,12 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
   if (!slug || RESERVED_ROOTS.has(slug) || slug === 'sitemap.xml') return pass()
   if (slug.startsWith(CODE_ROUTE_PREFIX) || (segments.length > 1 && segments[1].startsWith(CODE_ROUTE_PREFIX))) {
     return new NextResponse('Not Found', { status: 404 })
+  }
+  // 닫힌 사이트 (T-201) — 404 대신 안내 화면. 열린 사이트는 /{slug}/paused 를 404 로.
+  // 미리보기 · 관리자 로그인 · 사이트맵은 묻지 않는다 (사업자는 로그인해 결제해야 한다)
+  if (!(page && RESERVED_PAGES.has(page))) {
+    if ((await siteRouteOf(slug))?.paused) return rewriteTo(`/${slug}/${PAUSED_PAGE}`)
+    if (page === PAUSED_PAGE) return new NextResponse('Not Found', { status: 404 })
   }
   if (page === MEMBER_PAGE) {
     const route = await siteRouteOf(slug)
