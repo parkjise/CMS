@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   LineChart,
   LogOut,
+  Palette,
   ToggleRight,
   Wallet,
 } from 'lucide-react'
@@ -15,6 +16,7 @@ const NAV_ITEMS = [
   { to: '/dashboard', icon: LayoutDashboard, label: '대시보드' },
   { to: '/tenants', icon: Building2, label: '테넌트 관리' },
   { to: '/features', icon: ToggleRight, label: '기능 배포' },
+  { to: '/templates', icon: Palette, label: '템플릿 관리' },
   { to: '/announcements', icon: Bell, label: '공지 관리' },
   { to: '/monitoring', icon: LineChart, label: '모니터링' },
   { to: '/revenue', icon: Wallet, label: '수익 관리' },
