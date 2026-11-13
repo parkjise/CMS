@@ -8,6 +8,7 @@ import { LoginPage } from '@/pages/LoginPage'
 import { MonitoringPage } from '@/pages/MonitoringPage'
 import { RevenuePage } from '@/pages/RevenuePage'
 import { TenantDetailPage } from '@/pages/TenantDetailPage'
+import { TemplatesPage } from '@/pages/TemplatesPage'
 import { TenantsPage } from '@/pages/TenantsPage'
 import { useSuperAuthStore } from '@/stores/superAuthStore'
 
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
           { path: '/tenants', element: <TenantsPage /> },
           { path: '/tenants/:id', element: <TenantDetailPage /> },
           { path: '/features', element: <FeaturesPage /> },
+          { path: '/templates', element: <TemplatesPage /> },
           { path: '/announcements', element: <AnnouncementsPage /> },
           { path: '/monitoring', element: <MonitoringPage /> },
           { path: '/revenue', element: <RevenuePage /> },
