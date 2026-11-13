@@ -10,6 +10,7 @@ from app.api.super.endpoints import (
     features,
     health,
     monitoring,
+    templates,
     tenants,
 )
 
@@ -26,3 +27,4 @@ super_router.include_router(monitoring.router)
 super_router.include_router(audit.router)
 super_router.include_router(domains.router)
 super_router.include_router(billing.router)
+super_router.include_router(templates.router)
