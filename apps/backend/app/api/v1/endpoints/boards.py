@@ -89,6 +89,7 @@ from app.schemas.board import (
     ReportCreate,
     ReportedPostItem,
     ReportResolveRequest,
+    SlugCheckResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
@@ -246,6 +247,17 @@ async def get_limits(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     return ApiResponse.ok(await board_service.get_limits(db, tenant_id))
+
+
+@router.get("/slug-check", response_model=ApiResponse[SlugCheckResponse])
+async def check_slug(
+    slug: str = Query(..., max_length=100),
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """주소 이름 미리 확인 (T-210) — 형식 · 쓸 수 없는 이름 · 사용 중, 이유와 함께."""
+    available, reason = await board_service.check_slug_available(db, tenant_id, slug)
+    return ApiResponse.ok(SlugCheckResponse(available=available, reason=reason))
 
 
 @router.get("/presets", response_model=ApiResponse[dict[str, list[BoardPresetField]]])
