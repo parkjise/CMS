@@ -1,8 +1,8 @@
-import { useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useBlocker, useNavigate, useSearchParams } from 'react-router'
 import type { Board, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
-import { useBoardLimits, useBoardPresets, useCreateBoard } from '@/hooks/useBoards'
+import { useBoardLimits, useBoardPresets, useCreateBoard, useSlugCheck } from '@/hooks/useBoards'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import {
   CARD,
@@ -16,6 +16,11 @@ import { BOARD_EXAMPLES } from '@/lib/boardExamples'
 import { BASE_FIELDS, BOARD_TYPES, boardSlugError, boardTypeLabel } from '@/lib/boardLabels'
 import { fieldTypeLabel } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
+
+/** 서버 오류의 칸 — 주소 이름 · 이름이면 1단계로 돌아가 칸 아래에 보인다 (T-210) */
+const errorField = (error: unknown): string | undefined =>
+  (error as { response?: { data?: { error?: { field?: string | null } } } })?.response?.data?.error
+    ?.field ?? undefined
 
 const STEPS = ['기본 정보', '유형 · 디자인', '필드 구성', '권한 · 운영', '검토'] as const
 const STEP_TITLES = [
@@ -54,10 +59,29 @@ function TypeSketch({ type }: { type: BoardType }) {
   )
 }
 
-const SummaryRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="flex justify-between gap-4 border-b border-slate-100 py-3.5 text-sm last:border-0">
+interface SummaryRowProps {
+  label: string
+  value: string
+  /** 검토 단계 — 그 값을 고치는 단계로 바로 간다 (T-210) */
+  onEdit?: () => void
+}
+
+const SummaryRow = ({ label, value, onEdit }: SummaryRowProps) => (
+  <div className="flex items-center justify-between gap-4 border-b border-slate-100 py-3.5 text-sm last:border-0">
     <span className="text-slate-500">{label}</span>
-    <strong className="text-right font-medium text-slate-800">{value}</strong>
+    <span className="flex items-center gap-3">
+      <strong className="text-right font-medium text-slate-800">{value}</strong>
+      {onEdit && (
+        <button
+          type="button"
+          onClick={onEdit}
+          className="text-xs font-medium text-blue-600 hover:underline"
+          aria-label={`${label} 수정`}
+        >
+          수정
+        </button>
+      )}
+    </span>
   </div>
 )
 
@@ -70,6 +94,8 @@ export function BoardNewPage() {
   const [searchParams] = useSearchParams()
   const example = BOARD_EXAMPLES.find((item) => item.id === searchParams.get('example'))
   const [step, setStep] = useState(0)
+  // 가 본 단계까지는 위 단계 표시에서 바로 이동 (T-210)
+  const [reached, setReached] = useState(0)
   const [name, setName] = useState(example?.name ?? '')
   const [description, setDescription] = useState(example?.description ?? '')
   const [slug, setSlug] = useState('')
@@ -78,6 +104,19 @@ export function BoardNewPage() {
   const [inMenu, setInMenu] = useState(true)
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
   const [created, setCreated] = useState<Board | null>(null)
+  const slugInput = useRef<HTMLInputElement>(null)
+  // 주소 이름 — 입력을 멈추면 서버에 미리 확인 (T-210)
+  const [checkedSlug, setCheckedSlug] = useState('')
+  useEffect(() => {
+    const timer = window.setTimeout(() => setCheckedSlug(slug), 400)
+    return () => window.clearTimeout(timer)
+  }, [slug])
+  const formatError = slug ? boardSlugError(slug) : undefined
+  const slugCheck = useSlugCheck(!formatError && checkedSlug === slug ? slug : '')
+  const slugReason =
+    errors.slug ??
+    formatError ??
+    (slugCheck.data?.available === false ? slugCheck.data.reason : null)
   // 유형별 추천 칸 (T-183) — 고르지 않은 유형은 전부 체크한 상태로 시작
   const presetsQuery = useBoardPresets()
   const [presetPicks, setPresetPicks] = useState<Partial<Record<BoardType, string[]>>>({})
@@ -97,22 +136,54 @@ export function BoardNewPage() {
   const limits = limitsQuery.data
   const last = STEPS.length - 1
 
+  const goTo = (target: number) => {
+    setStep(target)
+    setReached((r) => Math.max(r, target))
+  }
+
   const next = () => {
     if (step === 0) {
       const found = {
         name: name.trim() ? undefined : '이름을 입력해주세요.',
-        slug: slug ? boardSlugError(slug) : undefined,
+        slug: slug
+          ? (boardSlugError(slug) ??
+            (slugCheck.data?.available === false
+              ? (slugCheck.data.reason ?? undefined)
+              : undefined))
+          : undefined,
       }
       setErrors(found)
       if (found.name || found.slug) return
     }
-    setStep(step + 1)
+    goTo(step + 1)
   }
 
+  // 입력한 뒤 다른 메뉴로 가면 확인 (T-210) — 만든 뒤 · [취소] 로 나갈 때는 묻지 않는다
+  const typed = Boolean(name.trim() || description.trim() || slug)
+  const leaving = useRef(false)
+  const blocker = useBlocker(
+    ({ currentLocation, nextLocation }) =>
+      typed && !created && !leaving.current && currentLocation.pathname !== nextLocation.pathname
+  )
+  useEffect(() => {
+    if (blocker.state !== 'blocked') return
+    if (window.confirm('게시판 만들기를 그만두고 나갈까요? 입력한 내용은 저장되지 않습니다.')) {
+      blocker.proceed()
+    } else {
+      blocker.reset()
+    }
+  }, [blocker])
+  useEffect(() => {
+    if (!typed || created) return
+    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
+    window.addEventListener('beforeunload', warn)
+    return () => window.removeEventListener('beforeunload', warn)
+  }, [typed, created])
+
   const cancel = () => {
-    const typed = name.trim() || description.trim() || slug
     if (typed && !window.confirm('게시판 만들기를 그만둘까요? 입력한 내용은 저장되지 않습니다.'))
       return
+    leaving.current = true
     navigate('/admin/boards')
   }
 
@@ -130,7 +201,16 @@ export function BoardNewPage() {
       setCreatedPresets(sendPresets.length)
       setCreated(board)
     } catch (error) {
-      toast.error(pickErrorMessage(error, '게시판을 만들지 못했습니다.'))
+      const message = pickErrorMessage(error, '게시판을 만들지 못했습니다.')
+      const field = errorField(error)
+      // 칸 오류면 그 칸이 있는 단계로 돌아가 칸 아래에 보인다 — 토스트만 띄우지 않는다
+      if (field === 'slug' || field === 'name') {
+        setErrors({ [field]: message })
+        setStep(0)
+        window.setTimeout(() => slugInput.current?.focus(), 0)
+        return
+      }
+      toast.error(message)
     }
   }
 
@@ -224,28 +304,52 @@ export function BoardNewPage() {
             className="flex gap-2 rounded-xl border border-slate-200 bg-white p-4 sm:p-5"
             aria-label="게시판 만들기 단계"
           >
-            {STEPS.map((label, i) => (
-              <li
-                key={label}
-                aria-current={i === step ? 'step' : undefined}
-                className={`flex flex-1 flex-col items-center gap-1.5 text-center text-[10px] sm:flex-row sm:text-left sm:text-xs ${
-                  i === step ? 'font-semibold text-blue-700' : 'text-slate-400'
-                }`}
-              >
-                <b
-                  className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs ${
-                    i === step
-                      ? 'bg-blue-600 text-white'
-                      : i < step
-                        ? 'bg-blue-50 text-blue-600'
-                        : 'bg-slate-100 text-slate-400'
-                  }`}
+            {STEPS.map((label, i) => {
+              const canJump = i !== step && i <= reached
+              const content = (
+                <>
+                  <b
+                    className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs ${
+                      i === step
+                        ? 'bg-blue-600 text-white'
+                        : i <= reached
+                          ? 'bg-blue-50 text-blue-600'
+                          : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {i !== step && i < reached ? '✓' : i + 1}
+                  </b>
+                  {label}
+                </>
+              )
+              const look = `flex flex-1 flex-col items-center gap-1.5 text-center text-[10px] sm:flex-row sm:text-left sm:text-xs ${
+                i === step
+                  ? 'font-semibold text-blue-700'
+                  : i <= reached
+                    ? 'text-slate-600'
+                    : 'text-slate-400'
+              }`
+              return (
+                <li
+                  key={label}
+                  aria-current={i === step ? 'step' : undefined}
+                  className="flex flex-1"
                 >
-                  {i < step ? '✓' : i + 1}
-                </b>
-                {label}
-              </li>
-            ))}
+                  {canJump ? (
+                    <button
+                      type="button"
+                      onClick={() => goTo(i)}
+                      className={`${look} rounded-md hover:text-blue-700`}
+                      aria-label={`${i + 1}단계 ${label}로 이동`}
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <span className={look}>{content}</span>
+                  )}
+                </li>
+              )
+            })}
           </ol>
 
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
@@ -265,13 +369,17 @@ export function BoardNewPage() {
                     onChange={(e) => setName(e.target.value)}
                   />
                   <Input
+                    ref={slugInput}
                     label="주소 이름"
                     maxLength={60}
                     value={slug}
-                    error={errors.slug}
+                    error={slugReason ?? undefined}
                     placeholder="예: news"
                     helperText="비워 두면 자동으로 만듭니다. 영문 소문자 · 숫자 · 하이픈만 쓸 수 있습니다."
-                    onChange={(e) => setSlug(e.target.value)}
+                    onChange={(e) => {
+                      setSlug(e.target.value)
+                      setErrors((prev) => ({ ...prev, slug: undefined }))
+                    }}
                   />
                   <div className="md:col-span-2">
                     <Textarea
@@ -444,11 +552,22 @@ export function BoardNewPage() {
                     입력한 내용을 확인해 주세요. 아래 버튼을 누르면 게시판이 만들어집니다.
                   </p>
                   <div>
-                    <SummaryRow label="게시판 이름" value={name.trim()} />
-                    <SummaryRow label="주소 이름" value={slug || '자동으로 만듦'} />
-                    {description.trim() && <SummaryRow label="설명" value={description.trim()} />}
-                    <SummaryRow label="유형" value={boardTypeLabel(boardType)} />
+                    <SummaryRow label="게시판 이름" value={name.trim()} onEdit={() => goTo(0)} />
                     <SummaryRow
+                      label="주소 이름"
+                      value={slug || '자동으로 만듦'}
+                      onEdit={() => goTo(0)}
+                    />
+                    {description.trim() && (
+                      <SummaryRow label="설명" value={description.trim()} onEdit={() => goTo(0)} />
+                    )}
+                    <SummaryRow
+                      label="유형"
+                      value={boardTypeLabel(boardType)}
+                      onEdit={() => goTo(1)}
+                    />
+                    <SummaryRow
+                      onEdit={() => goTo(0)}
                       label="운영 상태"
                       value={
                         active
@@ -461,15 +580,20 @@ export function BoardNewPage() {
                     <SummaryRow
                       label="필드 구성"
                       value={`기본 필드 ${BASE_FIELDS.length}개 / 추천 칸 ${sendPresets.length}개`}
+                      onEdit={() => goTo(2)}
                     />
-                    <SummaryRow label="권한" value="누구나 읽기 / 관리자 글쓰기" />
+                    <SummaryRow
+                      label="권한"
+                      value="누구나 읽기 / 관리자 글쓰기"
+                      onEdit={() => goTo(3)}
+                    />
                   </div>
                 </>
               )}
 
               <div className="flex items-center gap-2 border-t border-slate-200 pt-5">
                 {step > 0 && (
-                  <Button type="button" variant="secondary" onClick={() => setStep(step - 1)}>
+                  <Button type="button" variant="secondary" onClick={() => goTo(step - 1)}>
                     ← 이전
                   </Button>
                 )}

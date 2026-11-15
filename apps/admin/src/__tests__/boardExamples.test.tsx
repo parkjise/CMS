@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { screen, within, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Board } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { BoardsPage } from '@/pages/BoardsPage'
@@ -31,14 +31,18 @@ const mockApi = ({ boards = [notice], canCreate = true } = {}) => {
     return ok(undefined)
   })
 }
+// 게시판 만들기의 나가기 확인(useBlocker)은 데이터 라우터가 필요하다 (T-210)
 const renderPage = (path = '/admin/boards') =>
   renderWithQuery(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path="/admin/boards" element={<BoardsPage />} />
-        <Route path="/admin/boards/new" element={<BoardNewPage />} />
-      </Routes>
-    </MemoryRouter>
+    <RouterProvider
+      router={createMemoryRouter(
+        [
+          { path: '/admin/boards', element: <BoardsPage /> },
+          { path: '/admin/boards/new', element: <BoardNewPage /> },
+        ],
+        { initialEntries: [path] }
+      )}
+    />
   )
 
 beforeEach(() => {
@@ -63,6 +67,13 @@ describe('게시판 예시 안내 (T-157)', () => {
       expect(post).not.toHaveBeenCalled()
     }
   )
+
+  it('넓은 화면에서는 예시를 4열로 보여 준다 (T-210)', async () => {
+    mockApi({ boards: [notice] })
+    renderPage()
+    const section = await screen.findByRole('region', { name: '이런 게시판으로 시작해 보세요' })
+    expect(within(section).getByRole('list')).toHaveClass('lg:grid-cols-4')
+  })
 
   it('추가 게시판이 있으면 검색 결과가 없어도 첫 생성 안내를 보여 주지 않는다', async () => {
     mockApi({ boards: [{ ...notice, system_key: null, slug: 'news' }] })

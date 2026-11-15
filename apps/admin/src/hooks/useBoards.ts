@@ -164,6 +164,20 @@ export function useBoardPresets() {
   })
 }
 
+/** 주소 이름 미리 확인 (T-210) — 형식이 맞을 때만 서버에 묻는다 (쓸 수 없는 이름 · 사용 중) */
+export function useSlugCheck(slug: string) {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'slug-check', slug],
+    enabled: slug.length >= 2,
+    queryFn: async (): Promise<{ available: boolean; reason: string | null }> => {
+      const { data } = await api.get('/v1/boards/slug-check', { params: { slug } })
+      return data.data
+    },
+    staleTime: 10 * 1000,
+    meta: { suppressGlobalError: true },
+  })
+}
+
 export function useTrashedBoards() {
   return useQuery({
     queryKey: [...BOARDS_KEY, 'trash'],
