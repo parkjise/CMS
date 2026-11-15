@@ -425,6 +425,18 @@ export function usePurgePost(boardId: string) {
   })
 }
 
+/** 휴지통 글 여러 개 영구 삭제 (T-209) — 휴지통에 없는 글이 섞이면 서버가 하나도 지우지 않는다 */
+export function usePurgePosts() {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async (postIds: string[]): Promise<number> => {
+      const { data } = await api.post('/v1/posts/purge', { post_ids: postIds })
+      return data.data.purged
+    },
+    onSuccess: invalidate,
+  })
+}
+
 export function useClearSamples() {
   const invalidate = useInvalidateBoards()
   return useMutation({
