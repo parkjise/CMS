@@ -79,6 +79,49 @@ async def purge_post(db: AsyncSession, post: BoardPost, actor: User) -> None:
     await site_cache.purge_site(db, post.tenant_id)
 
 
+MSG_PURGE_MISMATCH = "휴지통에 없는 글이 섞여 있습니다. 화면을 새로 고쳐 주세요."
+
+
+async def purge_posts(
+    db: AsyncSession, tenant_id: UUID, post_ids: list[UUID], actor: User
+) -> int:
+    """휴지통의 글 여러 개를 한 번에 영구 삭제한다 (T-209).
+
+    전부 지우거나 하나도 지우지 않는다 — 이 사업체의 휴지통에 없는 글이 섞이면 404.
+    """
+    ids = set(post_ids)
+    posts = list(
+        (
+            await db.execute(
+                select(BoardPost).where(
+                    BoardPost.tenant_id == tenant_id,
+                    BoardPost.id.in_(ids),
+                    BoardPost.deleted_at.is_not(None),
+                )
+            )
+        ).scalars()
+    )
+    if len(posts) != len(ids):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=MSG_PURGE_MISMATCH
+        )
+    for post in posts:
+        _log(
+            db,
+            tenant_id,
+            actor.id,
+            actor.role,
+            "POST_PURGED",
+            "board_post",
+            post.id,
+            post.title,
+        )
+    await db.execute(delete(BoardPost).where(BoardPost.id.in_(ids)))
+    await db.commit()
+    await site_cache.purge_site(db, tenant_id)
+    return len(posts)
+
+
 async def purge_board(db: AsyncSession, board: Board, actor: User) -> None:
     """휴지통의 게시판을 바로 영구 삭제한다 — 글 · 필드 · 카테고리도 함께."""
     if board.deleted_at is None:

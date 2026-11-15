@@ -565,6 +565,16 @@ class PostBulkResponse(BaseModel):
     updated: int
 
 
+class PostPurgeRequest(BaseModel):
+    """휴지통 글 여러 개 영구 삭제 (T-209)."""
+
+    post_ids: list[UUID] = Field(min_length=1, max_length=100)
+
+
+class PostPurgeResponse(BaseModel):
+    purged: int
+
+
 class PostMoveRequest(BaseModel):
     """다른 게시판으로 글 옮기기 (T-184) — 분류는 받을 게시판의 것, 없으면 분류 없음."""
 

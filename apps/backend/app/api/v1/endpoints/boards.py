@@ -73,6 +73,8 @@ from app.schemas.board import (
     PostMoveResult,
     PostOverviewItem,
     PostOverviewListResponse,
+    PostPurgeRequest,
+    PostPurgeResponse,
     PostResponse,
     PostStatus,
     PostUpdate,
@@ -1037,6 +1039,18 @@ async def bulk_update_posts(
         tenant_id=tenant_id,
     )
     return ApiResponse.ok(PostBulkResponse(updated=len(ids)))
+
+
+@posts_router.post("/purge", response_model=ApiResponse[PostPurgeResponse])
+async def purge_posts(
+    data: PostPurgeRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    """휴지통 글 여러 개 영구 삭제 (T-209, BM-07) — 되돌릴 수 없다."""
+    purged = await trash_service.purge_posts(db, tenant_id, data.post_ids, current_user)
+    return ApiResponse.ok(PostPurgeResponse(purged=purged))
 
 
 @posts_router.post("/move/preview", response_model=ApiResponse[PostMovePreview])
