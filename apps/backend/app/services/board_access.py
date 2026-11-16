@@ -132,19 +132,29 @@ async def post_owner(
     )
 
 
-async def member_read_blocked(db: AsyncSession, board: Board) -> str | None:
-    tenant = await db.get(Tenant, board.tenant_id)
+async def tenant_read_blocked(db: AsyncSession, tenant_id: UUID) -> str | None:
+    """회원만 읽기를 고를 수 없는 이유 — 사업체 단위 (게시판을 만들기 전에도, T-211)."""
+    tenant = await db.get(Tenant, tenant_id)
     if tenant is None or not (await member_features.flags_for(db, tenant)).enabled:
         return MSG_MEMBER_FEATURE_OFF
     return None
 
 
-async def member_write_blocked(db: AsyncSession, board: Board) -> str | None:
-    """회원 글쓰기를 켤 수 없는 이유 — 켤 수 있으면 None."""
-    tenant = await db.get(Tenant, board.tenant_id)
+async def tenant_write_blocked(db: AsyncSession, tenant_id: UUID) -> str | None:
+    """회원 · 비회원 글쓰기를 고를 수 없는 이유 — 사업체 단위 (병원 · 회원 기능)."""
+    tenant = await db.get(Tenant, tenant_id)
     if tenant is not None and tenant.template_type == HOSPITAL:
         return MSG_HOSPITAL
-    blocked = await member_read_blocked(db, board)
+    return await tenant_read_blocked(db, tenant_id)
+
+
+async def member_read_blocked(db: AsyncSession, board: Board) -> str | None:
+    return await tenant_read_blocked(db, board.tenant_id)
+
+
+async def member_write_blocked(db: AsyncSession, board: Board) -> str | None:
+    """회원 글쓰기를 켤 수 없는 이유 — 켤 수 있으면 None."""
+    blocked = await tenant_write_blocked(db, board.tenant_id)
     if blocked:
         return blocked
     fields = await field_service.list_fields(db, board.id)
