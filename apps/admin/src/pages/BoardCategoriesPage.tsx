@@ -22,6 +22,7 @@ import { Button, Input, Modal, toast } from '@cms/ui'
 import { BulkMergeCategoriesDialog } from '@/components/boards/BulkMergeCategoriesDialog'
 import { MergeCategoryDialog } from '@/components/boards/MergeCategoryDialog'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { PAGE } from '@/components/boards/boardStyles'
 import { useBoards } from '@/hooks/useBoards'
 import {
   useBoardCategories,
@@ -668,14 +669,12 @@ function CategoryManager({ boardId }: { boardId: string }) {
 }
 
 /** 카테고리 관리 (BM-09, T-149) */
-export function BoardCategoriesPage() {
-  const { boardId = '' } = useParams()
+export function BoardCategoriesSection({ boardId }: { boardId: string }) {
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <BoardDetailHeader boardId={boardId} />
+    <>
       {boardsQuery.isSuccess && !board && (
         <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>
       )}
@@ -683,6 +682,17 @@ export function BoardCategoriesPage() {
         <p className="text-sm text-slate-500">기본 게시판에는 카테고리를 만들 수 없습니다.</p>
       )}
       {board && !board.system_key && <CategoryManager key={boardId} boardId={boardId} />}
+    </>
+  )
+}
+
+/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
+export function BoardCategoriesPage() {
+  const { boardId = '' } = useParams()
+  return (
+    <div className={PAGE}>
+      <BoardDetailHeader boardId={boardId} />
+      <BoardCategoriesSection boardId={boardId} />
     </div>
   )
 }

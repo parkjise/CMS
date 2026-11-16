@@ -32,24 +32,13 @@ export function BoardDetailHeader({ boardId, actions }: BoardDetailHeaderProps) 
     if (board) saveBoardContext(board.id)
   }, [board])
 
+  // 탭 4개 — 설정 · 필드와 카테고리는 한 화면의 구역 (T-212, 1113 #13)
   const tabs = [
     { to: 'posts', label: '글 관리' },
-    { to: 'settings', label: '기본 정보' },
     // 기본 게시판에는 칸 · 카테고리를 만들 수 없다
-    ...(board?.system_key
-      ? []
-      : [
-          { to: 'fields', label: '필드 관리' },
-          { to: 'categories', label: '카테고리' },
-        ]),
-    { to: 'design', label: '게시판 디자인' },
-    ...(board?.system_key
-      ? []
-      : [
-          { to: 'permissions', label: '권한' },
-          { to: 'operation', label: '운영 설정' },
-        ]),
-    { to: 'connection', label: '홈페이지 연결' },
+    ...(board?.system_key ? [] : [{ to: 'fields', label: '필드 · 카테고리' }]),
+    { to: 'design', label: '디자인' },
+    { to: 'settings', label: '설정' },
   ]
 
   return (

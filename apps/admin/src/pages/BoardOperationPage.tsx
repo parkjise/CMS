@@ -3,6 +3,7 @@ import { useParams } from 'react-router'
 import type { Board, BoardOperation, ReportHideCount } from '@cms/types'
 import { Button, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { PAGE } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -54,7 +55,7 @@ function OperationForm({ board }: { board: Board }) {
     >
       {!memberWrite && (
         <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-          아래 설정은 회원이 홈페이지에서 쓰는 글에 쓰입니다. 권한 탭에서 글쓰기를 회원도로 바꾸면 적용됩니다.
+          아래 설정은 회원이 홈페이지에서 쓰는 글에 쓰입니다. 위 권한에서 글쓰기를 회원도로 바꾸면 적용됩니다.
         </p>
       )}
       <ReadOnlyFieldset>
@@ -124,19 +125,28 @@ function OperationForm({ board }: { board: Board }) {
 }
 
 /** 운영 설정 (BM-11, T-151) */
-export function BoardOperationPage() {
-  const { boardId = '' } = useParams()
+export function BoardOperationSection({ boardId }: { boardId: string }) {
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <BoardDetailHeader boardId={boardId} />
+    <>
       {boardsQuery.isLoading && <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
       {boardsQuery.isSuccess && !board && <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>}
       {board?.system_key && <p className="text-sm text-slate-500">기본 게시판에는 운영 설정이 없습니다.</p>}
       {board && !board.system_key && <OperationForm key={board.id} board={board} />}
+    </>
+  )
+}
+
+/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
+export function BoardOperationPage() {
+  const { boardId = '' } = useParams()
+  return (
+    <div className={PAGE}>
+      <BoardDetailHeader boardId={boardId} />
+      <BoardOperationSection boardId={boardId} />
     </div>
   )
 }
