@@ -95,6 +95,21 @@ class TestPostTableLayout:
         got = (await client.get(url, headers=auth_headers)).json()["data"]
         assert (got["order"], got["sizes"]) == (["f1"], {})
 
+    async def test_widths_saved_and_old_layout_reads_empty(
+        self, client, auth_headers, board
+    ):
+        """끌어서 정한 넓이 (T-215) — 예전 저장값(넓이 없음)은 빈 넓이로 읽힌다."""
+        url = f"{PREFS}/{board['id']}"
+        await client.put(url, json=LAYOUT, headers=auth_headers)
+        got = (await client.get(url, headers=auth_headers)).json()["data"]
+        assert got["widths"] == {}
+        body = {**LAYOUT, "widths": {"f1": 96, "f2": 640}}
+        assert (
+            await client.put(url, json=body, headers=auth_headers)
+        ).status_code == 200
+        got = (await client.get(url, headers=auth_headers)).json()["data"]
+        assert got["widths"] == {"f1": 96, "f2": 640}
+
     async def test_reset_then_save_again(self, client, auth_headers, board):
         url = f"{PREFS}/{board['id']}"
         await client.put(url, json=LAYOUT, headers=auth_headers)
@@ -141,6 +156,11 @@ class TestPostTableLayout:
             {"order": ["a" * 201], "sizes": {}},
             {"order": [], "sizes": {}, "label": "글 값"},
             {"order": "a", "sizes": {}},
+            # 끌어서 정한 넓이는 96 ~ 640px, 20개까지 (T-215)
+            {"order": [], "sizes": {}, "widths": {"a": 95}},
+            {"order": [], "sizes": {}, "widths": {"a": 641}},
+            {"order": [], "sizes": {}, "widths": {"a": "wide"}},
+            {"order": [], "sizes": {}, "widths": {f"f{i}": 200 for i in range(21)}},
         ],
     )
     async def test_invalid_payload(self, client, auth_headers, board, payload):
