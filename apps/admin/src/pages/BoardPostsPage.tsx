@@ -2,10 +2,11 @@ import { useState } from 'react'
 import dayjs from 'dayjs'
 import { ChevronLeft, ChevronRight, ExternalLink, Paperclip, Pin, Plus } from 'lucide-react'
 import { Link, useLocation, useParams } from 'react-router'
-import type { PostListItem, PostStatus } from '@cms/types'
-import { Button, Input, toast } from '@cms/ui'
-import { STATUS_LABELS, statusBadge } from '@/lib/postStatus'
+import type { PostListItem } from '@cms/types'
+import { Button, toast } from '@cms/ui'
+import { statusBadge } from '@/lib/postStatus'
 import { trashNote } from '@/lib/trash'
+import { PostSearchBar } from '@/components/boards/PostSearchBar'
 import { PostTableLayoutControls } from '@/components/boards/PostTableLayoutControls'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { useBoardCategories } from '@/hooks/useBoardCategories'
@@ -22,7 +23,7 @@ import {
   useUpdatePost,
 } from '@/hooks/useBoards'
 import { usePostTableLayoutSync } from '@/hooks/usePostTableLayoutSync'
-import { categoryLabel, orderTree } from '@/lib/categoryTree'
+import { categoryLabel } from '@/lib/categoryTree'
 import { fieldValueLabel, isEmptyValue } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
@@ -43,7 +44,6 @@ export function BoardPostsPage() {
   const { boardId = '' } = useParams()
   const canEdit = useCanEdit()
   const [filters, setFilters] = useState<PostFilters>({ page: 1, size: PAGE_SIZE })
-  const [keyword, setKeyword] = useState('')
   const [tableBoards, setTableBoards] = useState<Record<string, boolean>>({})
 
   const boardsQuery = useBoards()
@@ -282,65 +282,6 @@ export function BoardPostsPage() {
         </div>
       )}
 
-      <form
-        className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-4 shadow-sm"
-        onSubmit={(e) => {
-          e.preventDefault()
-          setFilters({ ...filters, page: 1, q: keyword.trim() || undefined })
-        }}
-      >
-        <div className="w-full sm:w-64">
-          <Input
-            aria-label="제목 검색"
-            placeholder="제목 검색"
-            value={keyword}
-            maxLength={100}
-            onChange={(e) => setKeyword(e.target.value)}
-          />
-        </div>
-        <select
-          aria-label="상태"
-          className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-          value={filters.trash ? 'TRASH' : (filters.status ?? '')}
-          onChange={(e) => {
-            const value = e.target.value
-            setFilters({
-              ...filters,
-              page: 1,
-              trash: value === 'TRASH' || undefined,
-              status: value && value !== 'TRASH' ? (value as PostStatus) : undefined,
-            })
-          }}
-        >
-          <option value="">전체</option>
-          {Object.entries(STATUS_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-          <option value="TRASH">휴지통</option>
-        </select>
-        {categories.length > 0 && (
-          <select
-            aria-label="카테고리"
-            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-            value={filters.category_id ?? ''}
-            onChange={(e) =>
-              setFilters({ ...filters, page: 1, category_id: e.target.value || undefined })
-            }
-          >
-            <option value="">모든 카테고리</option>
-            {orderTree(categories).map((c) => (
-              <option key={c.id} value={c.id}>
-                {categoryLabel(c, categories)}
-              </option>
-            ))}
-          </select>
-        )}
-        <Button type="submit" variant="secondary">
-          검색
-        </Button>
-      </form>
 
       {board && !board.system_key && (
         <div className="space-y-2">
@@ -395,7 +336,14 @@ export function BoardPostsPage() {
         />
       )}
 
+      {/* 검색 영역과 글 목록을 한 카드에 (T-214, 와이어프레임 v2 postsPage) */}
       <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
+        <PostSearchBar
+          filters={filters}
+          onChange={setFilters}
+          categories={categories}
+          pageSize={PAGE_SIZE}
+        />
         {postsQuery.isLoading && (
           <p className="p-8 text-center text-sm text-slate-400">불러오는 중…</p>
         )}

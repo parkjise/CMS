@@ -408,10 +408,12 @@ describe('글 관리', () => {
     mockApi({})
     renderPosts()
     await screen.findByText('휴진 안내')
-    await userEvent.selectOptions(screen.getByLabelText('상태'), 'TRASH')
+    // 휴지통은 상태 선택 대신 토글 버튼 (T-214)
+    await userEvent.click(screen.getByRole('button', { name: '휴지통' }))
     await waitFor(() =>
       expect(get.mock.lastCall?.[1].params).toMatchObject({ trash: true, page: 1 })
     )
+    expect(screen.getByRole('button', { name: '휴지통' })).toHaveAttribute('aria-pressed', 'true')
     await userEvent.type(screen.getByLabelText('제목 검색'), '휴진')
     await userEvent.click(screen.getByRole('button', { name: '검색' }))
     await waitFor(() => expect(get.mock.lastCall?.[1].params).toMatchObject({ q: '휴진' }))
