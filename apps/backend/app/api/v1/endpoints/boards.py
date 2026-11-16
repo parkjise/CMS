@@ -61,6 +61,7 @@ from app.schemas.board import (
     MemberPostCreate,
     MemberPostResponse,
     MemberPostUpdate,
+    MenuParentOption,
     PermissionOptionsResponse,
     PostAttachment,
     PostBulkRequest,
@@ -93,7 +94,7 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
-from app.services import board_access, board_presets
+from app.services import board_access, board_menu, board_presets
 from app.services import board_attachment as attachment_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
@@ -247,6 +248,16 @@ async def get_limits(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     return ApiResponse.ok(await board_service.get_limits(db, tenant_id))
+
+
+@router.get("/menu-parents", response_model=ApiResponse[list[MenuParentOption]])
+async def get_menu_parents(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """게시판을 넣을 수 있는 페이지 묶음 (T-216) — 테마형이면 빈 목록."""
+    options = await board_menu.parent_options(db, tenant_id)
+    return ApiResponse.ok([MenuParentOption(**o) for o in options])
 
 
 @router.get(
