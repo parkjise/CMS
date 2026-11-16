@@ -1,5 +1,6 @@
 """게시판 · 게시글 스키마 (T-139, 게시판 모듈 기획서 8 · 9장)."""
 
+import re
 from datetime import datetime
 from typing import Annotated, Any, Literal
 from uuid import UUID
@@ -28,11 +29,11 @@ BoardName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)
 ]
 # 영문 소문자 · 숫자 · 하이픈 — 홈페이지 주소에 들어간다
+SLUG_REGEX = r"^[a-z0-9]+(-[a-z0-9]+)*$"
+SLUG_PATTERN = re.compile(SLUG_REGEX)
 BoardSlug = Annotated[
     str,
-    StringConstraints(
-        min_length=2, max_length=SLUG_MAX_LENGTH, pattern=r"^[a-z0-9]+(-[a-z0-9]+)*$"
-    ),
+    StringConstraints(min_length=2, max_length=SLUG_MAX_LENGTH, pattern=SLUG_REGEX),
 ]
 PostTitle = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)
@@ -186,6 +187,14 @@ class PermissionOptionsResponse(BaseModel):
 
     member_read_blocked: str | None
     member_write_blocked: str | None
+
+
+class SlugCheckResponse(BaseModel):
+    """주소 이름 미리 확인 (T-210)."""
+
+    available: bool
+    # 쓸 수 없는 이유 — 화면에 그대로 보인다
+    reason: str | None = None
 
 
 class BoardLimitsResponse(BaseModel):

@@ -170,6 +170,90 @@ class TestCreate:
             BOARDS, json={"name": "또", "slug": slug}, headers=auth_headers
         )
         assert resp.status_code == 409
+        # 이유 · 대신 쓸 주소 · 칸 (T-210) — 만들기 화면이 주소 칸 단계로 돌아간다
+        error = resp.json()["error"]
+        assert error["field"] == "slug"
+        assert f"'{slug}'는" in error["message"]
+        assert f"{slug}-2" in error["message"]
+
+    async def test_duplicate_slug_has_field(self, client, auth_headers, standard):
+        await _create(client, auth_headers, slug="news")
+        resp = await client.post(
+            BOARDS, json={"name": "또", "slug": "news"}, headers=auth_headers
+        )
+        assert resp.json()["error"]["field"] == "slug"
+
+
+class TestSlugCheck:
+    """주소 이름 미리 확인 (T-210)."""
+
+    async def _check(self, client, headers, slug: str) -> dict:
+        resp = await client.get(
+            f"{BOARDS}/slug-check", params={"slug": slug}, headers=headers
+        )
+        assert resp.status_code == 200, resp.text
+        return resp.json()["data"]
+
+    async def test_available(self, client, auth_headers, standard):
+        assert await self._check(client, auth_headers, "news") == {
+            "available": True,
+            "reason": None,
+        }
+
+    @pytest.mark.parametrize(
+        ("slug", "reason"),
+        [
+            ("notice", "기본 '공지사항' 게시판"),
+            ("consult", "기본 '온라인 상담'"),
+            ("posts", "관리자 · 홈페이지 주소와 겹치는"),
+        ],
+    )
+    async def test_reserved_with_reason(
+        self, client, auth_headers, standard, slug, reason
+    ):
+        data = await self._check(client, auth_headers, slug)
+        assert data["available"] is False
+        assert reason in data["reason"]
+
+    @pytest.mark.parametrize("slug", ["A", "a", "with space", "end-", "한글"])
+    async def test_bad_format(self, client, auth_headers, standard, slug):
+        data = await self._check(client, auth_headers, slug)
+        assert data == {
+            "available": False,
+            "reason": "영문 소문자 · 숫자 · 하이픈으로 2자 이상 입력해 주세요.",
+        }
+
+    async def test_taken(self, client, auth_headers, standard):
+        await _create(client, auth_headers, slug="news")
+        data = await self._check(client, auth_headers, "news")
+        assert data["available"] is False
+        assert "이미 다른 게시판" in data["reason"]
+
+    async def test_other_tenant_slug_is_free(self, client, auth_headers, standard):
+        """다른 사업체가 쓰는 주소는 이 사업체에서 쓸 수 있다."""
+        other_id = str(uuid.uuid4())
+        await _sql(
+            "INSERT INTO tenants (id, name, slug, plan_type, is_active, created_at,"
+            " updated_at) VALUES (:id, 'o', :s, 'STANDARD', true, now(), now())",
+            id=other_id,
+            s=f"o-{other_id[:8]}",
+        )
+        await _sql(
+            "INSERT INTO boards (id, tenant_id, name, slug, board_type, status,"
+            " settings, created_at, updated_at) VALUES (gen_random_uuid(), :t,"
+            " 'o', 'shared-slug', 'LIST', 'ACTIVE', '{}', now(), now())",
+            t=other_id,
+        )
+        try:
+            data = await self._check(client, auth_headers, "shared-slug")
+            assert data["available"] is True
+        finally:
+            await _sql("DELETE FROM boards WHERE tenant_id = :t", t=other_id)
+            await _sql("DELETE FROM tenants WHERE id = :t", t=other_id)
+
+    async def test_unauthenticated_401(self, client):
+        resp = await client.get(f"{BOARDS}/slug-check", params={"slug": "news"})
+        assert resp.status_code == 401
 
     @pytest.mark.parametrize(
         "payload",

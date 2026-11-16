@@ -22,6 +22,7 @@ from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.board import (
     SLUG_MAX_LENGTH,
+    SLUG_PATTERN,
     BoardCreate,
     BoardDesign,
     BoardOperation,
@@ -87,14 +88,24 @@ BOARD_LIMITS: dict[str, int | None] = {
     "STANDARD": 5,
     "PREMIUM": None,
 }
-# /{slug}/b/{게시판} 아래 주소 · 관리자 주소와 헷갈리는 이름 · 기본 게시판 키
-RESERVED_BOARD_SLUGS = frozenset(
-    {"notice", "consult", "reservation", "new", "trash", "write", "settings", "posts"}
-)
+# 쓸 수 없는 주소와 그 이유 (T-210) — 기본 게시판 주소, /{slug}/b/{게시판} 아래 ·
+# 관리자 주소와 헷갈리는 이름. 이유는 게시판 만들기 첫 단계에서 그대로 보인다
+_PATH_CLASH = "관리자 · 홈페이지 주소와 겹치는 이름이에요."
+RESERVED_SLUG_REASONS: dict[str, str] = {
+    "notice": "기본 '공지사항' 게시판이 쓰는 주소예요.",
+    "consult": "기본 '온라인 상담'이 쓰는 주소예요.",
+    "reservation": "기본 '예약' 화면이 쓰는 주소예요.",
+    "new": _PATH_CLASH,
+    "trash": _PATH_CLASH,
+    "write": _PATH_CLASH,
+    "settings": _PATH_CLASH,
+    "posts": _PATH_CLASH,
+}
+RESERVED_BOARD_SLUGS = frozenset(RESERVED_SLUG_REASONS)
 
 MSG_BOARD_PLAN_BLOCKED = "게시판 추가는 STANDARD 요금제부터 쓸 수 있습니다."
-MSG_SLUG_RESERVED = "쓸 수 없는 주소입니다. 다른 주소를 입력해 주세요."
-MSG_SLUG_TAKEN = "이미 쓰고 있는 주소입니다."
+MSG_SLUG_TAKEN = "이미 다른 게시판이 쓰는 주소예요. 다른 주소를 입력해 주세요."
+MSG_SLUG_FORMAT = "영문 소문자 · 숫자 · 하이픈으로 2자 이상 입력해 주세요."
 MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다."
 MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
@@ -425,11 +436,40 @@ async def _next_auto_slug(db: AsyncSession, tenant_id: UUID) -> str:
     return f"{AUTO_SLUG_PREFIX}-{number}"
 
 
+def reserved_slug_message(slug: str) -> str | None:
+    """쓸 수 없는 주소면 이유와 대신 쓸 주소 예 — "'notice'는 기본 '공지사항' ..."."""
+    reason = RESERVED_SLUG_REASONS.get(slug)
+    if reason is None:
+        return None
+    return f"'{slug}'는 {reason} 다른 주소를 입력해 주세요. (예: {slug}-2)"
+
+
+def _slug_conflict(message: str) -> HTTPException:
+    # field — 게시판 만들기가 주소 칸이 있는 단계로 돌아가 칸 아래에 보인다 (T-210)
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={"code": "CONFLICT", "message": message, "field": "slug"},
+    )
+
+
 def _check_slug(slug: str) -> None:
-    if slug in RESERVED_BOARD_SLUGS:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_RESERVED
-        )
+    message = reserved_slug_message(slug)
+    if message:
+        raise _slug_conflict(message)
+
+
+async def check_slug_available(
+    db: AsyncSession, tenant_id: UUID, slug: str
+) -> tuple[bool, str | None]:
+    """주소 이름을 미리 확인 (T-210) — [만들기] 와 같은 검사, 결과와 이유."""
+    if not SLUG_PATTERN.match(slug) or not 2 <= len(slug) <= SLUG_MAX_LENGTH:
+        return False, MSG_SLUG_FORMAT
+    message = reserved_slug_message(slug)
+    if message:
+        return False, message
+    if await _slug_taken(db, tenant_id, slug):
+        return False, MSG_SLUG_TAKEN
+    return True, None
 
 
 async def _commit_board(db: AsyncSession) -> None:
@@ -438,9 +478,7 @@ async def _commit_board(db: AsyncSession) -> None:
         await db.commit()
     except IntegrityError as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
-        ) from e
+        raise _slug_conflict(MSG_SLUG_TAKEN) from e
 
 
 async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> Board:
@@ -448,9 +486,7 @@ async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> 
     if data.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, tenant_id, data.slug):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
-            )
+            raise _slug_conflict(MSG_SLUG_TAKEN)
     board = Board(
         tenant_id=tenant_id,
         name=data.name,
@@ -556,9 +592,7 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
     if data.slug is not None and data.slug != board.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, board.tenant_id, data.slug, exclude=board.id):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT, detail=MSG_SLUG_TAKEN
-            )
+            raise _slug_conflict(MSG_SLUG_TAKEN)
         board.slug = data.slug
     if data.name is not None:
         board.name = data.name

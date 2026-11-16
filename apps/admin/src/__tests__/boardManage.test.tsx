@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { screen, waitFor, within } from '@testing-library/react'
+import { act, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Board, BoardLimits } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { boardSlugError } from '@/lib/boardLabels'
@@ -115,14 +115,18 @@ const mockApi = ({
 
 const Where = () => <p>이동한 화면</p>
 
+// 게시판 만들기의 나가기 확인(useBlocker)은 데이터 라우터가 필요하다 (T-210)
 const renderAt = (path: string, page: React.ReactElement, route: string) =>
   renderWithQuery(
-    <MemoryRouter initialEntries={[path]}>
-      <Routes>
-        <Route path={route} element={page} />
-        <Route path="*" element={<Where />} />
-      </Routes>
-    </MemoryRouter>,
+    <RouterProvider
+      router={createMemoryRouter(
+        [
+          { path: route, element: page },
+          { path: '*', element: <Where /> },
+        ],
+        { initialEntries: [path] },
+      )}
+    />,
   )
 
 const setRole = (role: string) =>
@@ -822,5 +826,116 @@ describe('모든 추가 게시판 유형의 목록 표시 선택 (T-160)', () =>
     await screen.findByRole('heading', { name: '목록 표시' })
     expect(screen.queryByRole('heading', { name: '목록에 표시할 추가 정보' })).not.toBeInTheDocument()
     expect(get.mock.calls.some(([url]) => String(url).endsWith('/fields'))).toBe(false)
+  })
+})
+
+describe('게시판 만들기 개선 (T-210)', () => {
+  const renderNew = () => renderAt('/admin/boards/new', <BoardNewPage />, '/admin/boards/new')
+  const next = () => userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+  const steps = () => within(screen.getByRole('list', { name: '게시판 만들기 단계' }))
+  const current = () =>
+    steps()
+      .getAllByRole('listitem')
+      .find((li) => li.getAttribute('aria-current') === 'step')?.textContent
+
+  /** 주소 미리 확인 응답까지 붙인 mockApi */
+  const mockWithSlugCheck = (
+    check: (slug: string) => { available: boolean; reason: string | null }
+  ) => {
+    mockApi({})
+    const base = get.getMockImplementation()!
+    get.mockImplementation((url: string, config?: { params?: Record<string, string> }) =>
+      url === '/v1/boards/slug-check' ? ok(check(config!.params!.slug)) : base(url, config)
+    )
+  }
+
+  it('쓸 수 없는 주소는 입력을 멈추면 이유를 보여 주고 다음으로 가지 않는다', async () => {
+    mockWithSlugCheck((slug) =>
+      slug === 'notice'
+        ? { available: false, reason: "'notice'는 기본 '공지사항' 게시판이 쓰는 주소예요." }
+        : { available: true, reason: null }
+    )
+    renderNew()
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    await userEvent.type(screen.getByLabelText('주소 이름'), 'notice')
+    expect(await screen.findByText(/기본 '공지사항' 게시판이 쓰는 주소/)).toBeInTheDocument()
+    await next()
+    expect(current()).toContain('기본 정보')
+  })
+
+  it('지나간 단계는 단계 표시에서, 검토에서는 [수정]으로 바로 간다', async () => {
+    mockWithSlugCheck(() => ({ available: true, reason: null }))
+    renderNew()
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    for (let i = 0; i < 4; i += 1) await next()
+    expect(current()).toContain('검토')
+    // 아직 안 간 단계는 없지만, 가 본 단계는 모두 버튼
+    await userEvent.click(steps().getByRole('button', { name: '2단계 유형 · 디자인로 이동' }))
+    expect(current()).toContain('유형 · 디자인')
+    // 가 본 마지막 단계(검토)로 다시
+    await userEvent.click(steps().getByRole('button', { name: '5단계 검토로 이동' }))
+    await userEvent.click(screen.getByRole('button', { name: '권한 수정' }))
+    expect(current()).toContain('권한 · 운영')
+  })
+
+  it('만들기가 주소 오류로 실패하면 1단계로 돌아가 칸 아래에 보인다', async () => {
+    mockWithSlugCheck(() => ({ available: true, reason: null }))
+    post.mockRejectedValue({
+      response: {
+        status: 409,
+        data: {
+          success: false,
+          error: { code: 'CONFLICT', message: '이미 다른 게시판이 쓰는 주소예요.', field: 'slug' },
+        },
+      },
+    })
+    renderNew()
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
+    await userEvent.type(screen.getByLabelText('주소 이름'), 'news')
+    for (let i = 0; i < 4; i += 1) await next()
+    await userEvent.click(screen.getByRole('button', { name: '게시판 만들기' }))
+    expect(await screen.findByText('이미 다른 게시판이 쓰는 주소예요.')).toBeInTheDocument()
+    expect(current()).toContain('기본 정보')
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
+  it('입력한 뒤 다른 화면으로 가려 하면 확인하고, 취소하면 남는다', async () => {
+    mockWithSlugCheck(() => ({ available: true, reason: null }))
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
+    const router = createMemoryRouter(
+      [
+        { path: '/admin/boards/new', element: <BoardNewPage /> },
+        { path: '*', element: <Where /> },
+      ],
+      { initialEntries: ['/admin/boards/new'] }
+    )
+    renderWithQuery(<RouterProvider router={router} />)
+    await userEvent.type(await screen.findByLabelText(/게시판 이름/), '소식')
+    await act(() => router.navigate('/admin/inquiries'))
+    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('그만두고 나갈까요'))
+    expect(screen.queryByText('이동한 화면')).not.toBeInTheDocument()
+
+    confirm.mockReturnValue(true)
+    await act(() => router.navigate('/admin/inquiries'))
+    expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
+    confirm.mockRestore()
+  })
+
+  it('아무것도 입력하지 않았으면 묻지 않고 나간다', async () => {
+    mockWithSlugCheck(() => ({ available: true, reason: null }))
+    const confirm = vi.spyOn(window, 'confirm')
+    const router = createMemoryRouter(
+      [
+        { path: '/admin/boards/new', element: <BoardNewPage /> },
+        { path: '*', element: <Where /> },
+      ],
+      { initialEntries: ['/admin/boards/new'] }
+    )
+    renderWithQuery(<RouterProvider router={router} />)
+    await screen.findByLabelText(/게시판 이름/)
+    await act(() => router.navigate('/admin/inquiries'))
+    expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
+    expect(confirm).not.toHaveBeenCalled()
+    confirm.mockRestore()
   })
 })
