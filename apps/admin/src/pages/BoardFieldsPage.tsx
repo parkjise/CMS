@@ -369,14 +369,12 @@ function FieldBuilder({ boardId }: { boardId: string }) {
 }
 
 /** 필드 관리 (BM-04) */
-export function BoardFieldsPage() {
-  const { boardId = '' } = useParams()
+export function BoardFieldsSection({ boardId }: { boardId: string }) {
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className={PAGE}>
-      <BoardDetailHeader boardId={boardId} />
+    <>
       {boardsQuery.isSuccess && !board && (
         <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>
       )}
@@ -395,6 +393,17 @@ export function BoardFieldsPage() {
           </span>
         </p>
       )}
+    </>
+  )
+}
+
+/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
+export function BoardFieldsPage() {
+  const { boardId = '' } = useParams()
+  return (
+    <div className={PAGE}>
+      <BoardDetailHeader boardId={boardId} />
+      <BoardFieldsSection boardId={boardId} />
     </div>
   )
 }

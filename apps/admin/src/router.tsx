@@ -8,6 +8,7 @@ import { ErrorPage } from '@/pages/ErrorPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 import { BOARD_SECTIONS } from '@/lib/boardWorkspace'
 import { type LazyPage, lazyPage } from '@/lib/lazyPage'
+import { BoardSectionRedirect } from '@/components/boards/BoardSectionNav'
 
 // 로그인 화면도 따로 — 폼 라이브러리(react-hook-form · zod)가 다른 화면 첫 로딩에 섞이지 않게 (T-043-B)
 const LoginPage = lazyPage(() => import('@/pages/LoginPage'), 'LoginPage')
@@ -17,19 +18,16 @@ const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'S
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
 const BoardsPage = lazyPage(() => import('@/pages/BoardsPage'), 'BoardsPage')
-const BoardConnectionPage = lazyPage(() => import('@/pages/BoardConnectionPage'), 'BoardConnectionPage')
-const BoardFieldsPage = lazyPage(() => import('@/pages/BoardFieldsPage'), 'BoardFieldsPage')
+// 게시판 상세 탭 4개 — 설정 · 필드와 카테고리는 합친 화면 (T-212)
+const BoardSetupPage = lazyPage(() => import('@/pages/BoardSetupPage'), 'BoardSetupPage')
+const BoardStructurePage = lazyPage(() => import('@/pages/BoardStructurePage'), 'BoardStructurePage')
 const BoardDesignPage = lazyPage(() => import('@/pages/BoardDesignPage'), 'BoardDesignPage')
-const BoardCategoriesPage = lazyPage(() => import('@/pages/BoardCategoriesPage'), 'BoardCategoriesPage')
-const BoardPermissionsPage = lazyPage(() => import('@/pages/BoardPermissionsPage'), 'BoardPermissionsPage')
-const BoardOperationPage = lazyPage(() => import('@/pages/BoardOperationPage'), 'BoardOperationPage')
 const ReportedPostsPage = lazyPage(() => import('@/pages/ReportedPostsPage'), 'ReportedPostsPage')
 const PostsOverviewPage = lazyPage(() => import('@/pages/PostsOverviewPage'), 'PostsOverviewPage')
 const BoardNewPage = lazyPage(() => import('@/pages/BoardNewPage'), 'BoardNewPage')
 const BoardTrashPage = lazyPage(() => import('@/pages/BoardTrashPage'), 'BoardTrashPage')
 const AuditLogsPage = lazyPage(() => import('@/pages/AuditLogsPage'), 'AuditLogsPage')
 const BoardWorkspacePage = lazyPage(() => import('@/pages/BoardWorkspacePage'), 'BoardWorkspacePage')
-const BoardSettingsPage = lazyPage(() => import('@/pages/BoardSettingsPage'), 'BoardSettingsPage')
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
 const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
@@ -54,13 +52,9 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/posts\/reports\/?$/, ReportedPostsPage],
   [/^\/admin\/boards\/new\/?$/, BoardNewPage],
   [/^\/admin\/boards\/trash\/?$/, BoardTrashPage],
-  [/^\/admin\/boards\/[^/]+\/settings\/?$/, BoardSettingsPage],
-  [/^\/admin\/boards\/[^/]+\/connection\/?$/, BoardConnectionPage],
-  [/^\/admin\/boards\/[^/]+\/fields\/?$/, BoardFieldsPage],
+  [/^\/admin\/boards\/[^/]+\/settings\/?$/, BoardSetupPage],
+  [/^\/admin\/boards\/[^/]+\/fields\/?$/, BoardStructurePage],
   [/^\/admin\/boards\/[^/]+\/design\/?$/, BoardDesignPage],
-  [/^\/admin\/boards\/[^/]+\/categories\/?$/, BoardCategoriesPage],
-  [/^\/admin\/boards\/[^/]+\/permissions\/?$/, BoardPermissionsPage],
-  [/^\/admin\/boards\/[^/]+\/operation\/?$/, BoardOperationPage],
   [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
   [/^\/admin\/seo\/?$/, SeoPage],
@@ -155,32 +149,28 @@ export const router = createBrowserRouter([
           })),
           {
             path: '/admin/boards/:boardId/settings',
-            element: withFeature('BOARD_MANAGER', <BoardSettingsPage />),
-          },
-          {
-            path: '/admin/boards/:boardId/connection',
-            element: withFeature('BOARD_MANAGER', <BoardConnectionPage />),
+            element: withFeature('BOARD_MANAGER', <BoardSetupPage />),
           },
           {
             path: '/admin/boards/:boardId/fields',
-            element: withFeature('BOARD_MANAGER', <BoardFieldsPage />),
+            element: withFeature('BOARD_MANAGER', <BoardStructurePage />),
           },
           {
             path: '/admin/boards/:boardId/design',
             element: withFeature('BOARD_MANAGER', <BoardDesignPage />),
           },
-          {
-            path: '/admin/boards/:boardId/categories',
-            element: withFeature('BOARD_MANAGER', <BoardCategoriesPage />),
-          },
-          {
-            path: '/admin/boards/:boardId/permissions',
-            element: withFeature('BOARD_MANAGER', <BoardPermissionsPage />),
-          },
-          {
-            path: '/admin/boards/:boardId/operation',
-            element: withFeature('BOARD_MANAGER', <BoardOperationPage />),
-          },
+          // 예전 탭 주소 → 합친 화면의 그 구역 (T-212)
+          ...(
+            [
+              ['connection', 'settings'],
+              ['permissions', 'settings'],
+              ['operation', 'settings'],
+              ['categories', 'fields'],
+            ] as const
+          ).map(([section, page]) => ({
+            path: `/admin/boards/:boardId/${section}`,
+            element: <BoardSectionRedirect page={page} section={section} />,
+          })),
           {
             path: '/admin/boards/:boardId/posts',
             element: withFeature('BOARD_MANAGER', <BoardPostsPage />),

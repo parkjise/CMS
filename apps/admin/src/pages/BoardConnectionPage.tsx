@@ -4,6 +4,7 @@ import { useParams } from 'react-router'
 import type { Board } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { PAGE } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -141,20 +142,29 @@ function ConnectionForm({ board }: { board: Board }) {
 }
 
 /** 홈페이지 연결 — 주소 · 사용 여부 · 메뉴 표시 (게시판 모듈 기획서 4장). 유형은 게시판 디자인 탭 (T-148) */
-export function BoardConnectionPage() {
-  const { boardId = '' } = useParams()
+export function BoardConnectionSection({ boardId }: { boardId: string }) {
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <BoardDetailHeader boardId={boardId} />
+    <>
       {boardsQuery.isLoading && (
         <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />
       )}
       {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
       {boardsQuery.isSuccess && !board && <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>}
       {board && <ConnectionForm key={board.id} board={board} />}
+    </>
+  )
+}
+
+/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
+export function BoardConnectionPage() {
+  const { boardId = '' } = useParams()
+  return (
+    <div className={PAGE}>
+      <BoardDetailHeader boardId={boardId} />
+      <BoardConnectionSection boardId={boardId} />
     </div>
   )
 }
