@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useBlocker, useNavigate, useSearchParams } from 'react-router'
-import type { Board, BoardType } from '@cms/types'
+import type { Board, BoardOperation, BoardPermissions, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
-import { useBoardLimits, useBoardPresets, useCreateBoard, useSlugCheck } from '@/hooks/useBoards'
+import {
+  useBoardLimits,
+  useBoardPresets,
+  useCreateBoard,
+  useNewBoardPermissionOptions,
+  useSlugCheck,
+} from '@/hooks/useBoards'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import {
   CARD,
@@ -13,6 +19,7 @@ import {
 } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { BOARD_EXAMPLES } from '@/lib/boardExamples'
+import { READ_OPTIONS, WRITE_OPTIONS } from '@/lib/boardPermissions'
 import { BASE_FIELDS, BOARD_TYPES, boardSlugError, boardTypeLabel } from '@/lib/boardLabels'
 import { fieldTypeLabel } from '@/lib/customFields'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -27,17 +34,18 @@ const STEP_TITLES = [
   '기본 정보를 입력해 주세요',
   '게시판의 유형을 선택하세요',
   '글에 담을 정보를 확인하세요',
-  '접근 권한을 확인하세요',
+  '누가 읽고 쓸지 고르세요',
   '마지막으로 설정을 확인하세요',
 ]
-/** 새 게시판의 처음 권한 · 운영 값 — 서버 기본값과 같다 (schemas/board.py) */
-const DEFAULT_POLICY = [
-  ['읽기 권한', '누구나'],
-  ['글쓰기', '관리자만'],
-  ['비밀글', '사용 안 함'],
-  ['새 글 알림', '받지 않음'],
-  ['비회원 글쓰기', '사용 안 함'],
-] as const
+/** 새 게시판의 처음 권한 · 운영 — 서버 기본값과 같다 (schemas/board.py) */
+const DEFAULT_PERMISSIONS: BoardPermissions = { read: 'PUBLIC', write: 'ADMIN' }
+const DEFAULT_OPERATION: BoardOperation = {
+  allow_secret: false,
+  notify_new_post: false,
+  allow_guest: false,
+}
+const label = <T extends string>(options: { value: T; label: string }[], value: T) =>
+  options.find((o) => o.value === value)?.label ?? value
 const HINT =
   'rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs leading-relaxed text-slate-600'
 
@@ -85,6 +93,60 @@ const SummaryRow = ({ label, value, onEdit }: SummaryRowProps) => (
   </div>
 )
 
+interface AccessChoiceProps<T extends string> {
+  legend: string
+  name: string
+  options: { value: T; label: string; hint: string }[]
+  value: T
+  /** 회원 값을 고를 수 없는 이유 (회원 기능 꺼짐 · 병원 업종) */
+  blocked: string | null
+  onChange: (value: T) => void
+}
+
+/** 4단계 권한 하나 — 권한 구역과 같은 선택지 · 막힘 (T-211) */
+function AccessChoice<T extends string>({
+  legend,
+  name,
+  options,
+  value,
+  blocked,
+  onChange,
+}: AccessChoiceProps<T>) {
+  return (
+    <fieldset>
+      <legend className="mb-2 text-sm font-medium text-slate-700">{legend}</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {options.map((option) => {
+          const disabled = option.value === 'MEMBER' && Boolean(blocked)
+          return (
+            <label
+              key={option.value}
+              className={`flex gap-3 rounded-lg border p-3 text-sm ${
+                value === option.value ? 'border-blue-600 bg-blue-50' : 'border-slate-200'
+              } ${disabled ? 'opacity-50' : 'cursor-pointer'}`}
+            >
+              <input
+                type="radio"
+                name={name}
+                className="mt-0.5 accent-blue-600"
+                checked={value === option.value}
+                disabled={disabled}
+                onChange={() => onChange(option.value)}
+              />
+              <span>
+                <span className="block font-medium text-slate-900">{option.label}</span>
+                <span className="text-xs text-slate-500">
+                  {disabled ? blocked : option.hint}
+                </span>
+              </span>
+            </label>
+          )
+        })}
+      </div>
+    </fieldset>
+  )
+}
+
 /** 게시판 만들기 마법사 (BM-02 · UI/UX 시안 v3, T-188) — 다섯 단계, 권한 · 운영은 만든 뒤 바꾼다 */
 export function BoardNewPage() {
   const canEdit = useCanEdit()
@@ -102,6 +164,18 @@ export function BoardNewPage() {
   const [boardType, setBoardType] = useState<BoardType>(example?.board_type ?? 'LIST')
   const [active, setActive] = useState(true)
   const [inMenu, setInMenu] = useState(true)
+  // 4단계 권한 · 운영 (T-211) — 권한 구역과 같은 막힘 조건
+  const [permissions, setPermissions] = useState<BoardPermissions>(DEFAULT_PERMISSIONS)
+  const [operation, setOperation] = useState<BoardOperation>(DEFAULT_OPERATION)
+  const optionsQuery = useNewBoardPermissionOptions()
+  const readBlocked = optionsQuery.data?.member_read_blocked ?? null
+  const writeBlocked = optionsQuery.data?.member_write_blocked ?? null
+  const accessSummary = [
+    `${label(READ_OPTIONS, permissions.read)} 읽기`,
+    `${label(WRITE_OPTIONS, permissions.write)} 글쓰기`,
+    ...(operation.allow_guest ? ['비회원 글쓰기'] : []),
+    ...(operation.allow_secret ? ['비밀글'] : []),
+  ].join(' / ')
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
   const [created, setCreated] = useState<Board | null>(null)
   const slugInput = useRef<HTMLInputElement>(null)
@@ -197,6 +271,8 @@ export function BoardNewPage() {
         status: active ? 'ACTIVE' : 'INACTIVE',
         in_menu: inMenu,
         preset_fields: sendPresets,
+        permissions,
+        operation,
       })
       setCreatedPresets(sendPresets.length)
       setCreated(board)
@@ -533,16 +609,83 @@ export function BoardNewPage() {
               {step === 3 && (
                 <>
                   <p className={HINT}>
-                    새 게시판은 누구나 읽고, 관리자만 글을 쓰는 설정으로 시작합니다.
+                    누가 글을 읽고 쓸지 고르세요. 처음 값은 누구나 읽기 · 관리자 글쓰기이고, 만든 뒤
+                    설정 › 권한 · 운영 설정에서 바꿀 수 있어요.
                   </p>
-                  <div>
-                    {DEFAULT_POLICY.map(([label, value]) => (
-                      <SummaryRow key={label} label={label} value={value} />
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    회원 글쓰기, 비밀글, 새 글 알림은 만든 뒤 권한 · 운영 설정에서 바꿀 수 있어요.
-                  </p>
+                  <AccessChoice
+                    legend="글 읽기"
+                    name="new-board-read"
+                    options={READ_OPTIONS}
+                    value={permissions.read}
+                    blocked={readBlocked}
+                    onChange={(read) => setPermissions((p) => ({ ...p, read }))}
+                  />
+                  <AccessChoice
+                    legend="글쓰기"
+                    name="new-board-write"
+                    options={WRITE_OPTIONS}
+                    value={permissions.write}
+                    blocked={writeBlocked}
+                    onChange={(write) => {
+                      setPermissions((p) => ({ ...p, write }))
+                      // 비밀글은 회원 글에 쓰인다 — 관리자만이면 끈다
+                      if (write === 'ADMIN') setOperation((o) => ({ ...o, allow_secret: false }))
+                    }}
+                  />
+                  <fieldset className="space-y-2.5">
+                    <legend className="mb-2 text-sm font-medium text-slate-700">운영</legend>
+                    <label className="flex items-start gap-2.5 text-sm text-slate-800">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-blue-600"
+                        checked={operation.allow_guest}
+                        disabled={Boolean(writeBlocked)}
+                        onChange={(e) => setOperation((o) => ({ ...o, allow_guest: e.target.checked }))}
+                      />
+                      <span>
+                        비회원 글쓰기
+                        <span className="block text-xs text-slate-500">
+                          {writeBlocked ??
+                            '로그인하지 않은 방문자도 이름 · 글 비밀번호로 씁니다.'}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2.5 text-sm text-slate-800">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-blue-600"
+                        checked={operation.allow_secret}
+                        disabled={permissions.write !== 'MEMBER'}
+                        onChange={(e) =>
+                          setOperation((o) => ({ ...o, allow_secret: e.target.checked }))
+                        }
+                      />
+                      <span>
+                        비밀글
+                        <span className="block text-xs text-slate-500">
+                          {permissions.write === 'MEMBER'
+                            ? '회원이 비밀글을 고를 수 있습니다. 내용은 쓴 회원과 관리자만 봅니다.'
+                            : '글쓰기를 회원도로 고르면 쓸 수 있어요.'}
+                        </span>
+                      </span>
+                    </label>
+                    <label className="flex items-start gap-2.5 text-sm text-slate-800">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 accent-blue-600"
+                        checked={operation.notify_new_post}
+                        onChange={(e) =>
+                          setOperation((o) => ({ ...o, notify_new_post: e.target.checked }))
+                        }
+                      />
+                      <span>
+                        새 글 알림
+                        <span className="block text-xs text-slate-500">
+                          회원 · 비회원이 새 글을 쓰면 관리자 화면에 알림이 뜹니다.
+                        </span>
+                      </span>
+                    </label>
+                  </fieldset>
                 </>
               )}
 
@@ -584,7 +727,7 @@ export function BoardNewPage() {
                     />
                     <SummaryRow
                       label="권한"
-                      value="누구나 읽기 / 관리자 글쓰기"
+                      value={accessSummary}
                       onEdit={() => goTo(3)}
                     />
                   </div>
