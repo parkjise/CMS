@@ -121,6 +121,10 @@ class BoardCreate(BaseModel):
     in_menu: bool = True
     # 함께 만들 추천 칸 키 — 유형마다 정해진 것만 (T-183, GET /boards/presets)
     preset_fields: list[str] = Field(default_factory=list, max_length=20)
+    # 만들 때 고르는 권한 · 운영 (T-211) — 없으면 누구나 읽기 · 관리자 글쓰기.
+    # 권한 · 운영 탭과 같은 검사(회원 기능 · 병원 업종 · 필수 칸)를 거친다
+    permissions: BoardPermissions | None = None
+    operation: BoardOperation | None = None
 
 
 class BoardPresetField(BaseModel):

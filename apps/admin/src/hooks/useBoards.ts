@@ -112,6 +112,17 @@ export function usePermissionOptions(boardId: string) {
   })
 }
 
+/** 게시판 만들기 4단계 — 아직 게시판이 없어 사업체 단위로 고를 수 없는 권한과 이유 (T-211) */
+export function useNewBoardPermissionOptions() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'new', 'permission-options'],
+    queryFn: async (): Promise<PermissionOptions> => {
+      const { data } = await api.get('/v1/boards/permission-options')
+      return data.data
+    },
+  })
+}
+
 const REPORTS_KEY = [...BOARDS_KEY, 'reports'] as const
 
 /** 처리하지 않은 신고가 있는 글 (T-151-B) */

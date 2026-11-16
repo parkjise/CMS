@@ -298,3 +298,110 @@ class TestMemberOnlyRead:
         resp = await client.get(f"{BOARDS}/{board['id']}/posts", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json()["data"]["total"] == 1
+
+
+class TestCreateWithAccess:
+    """게시판 만들기에서 권한 · 운영 고르기 (T-211)."""
+
+    async def _create(self, client, headers, **body):
+        return await client.post(
+            BOARDS, json={"name": "자유게시판", "slug": "free", **body}, headers=headers
+        )
+
+    async def test_default_when_omitted(self, client, auth_headers, tenant):
+        resp = await self._create(client, auth_headers)
+        data = resp.json()["data"]
+        assert data["permissions"] == {"read": "PUBLIC", "write": "ADMIN"}
+        assert data["operation"]["allow_guest"] is False
+
+    async def test_saves_chosen(self, client, auth_headers, tenant):
+        resp = await self._create(
+            client,
+            auth_headers,
+            permissions={"read": "MEMBER", "write": "MEMBER"},
+            operation={
+                "allow_secret": True,
+                "notify_new_post": True,
+                "allow_guest": False,
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        data = resp.json()["data"]
+        assert data["permissions"] == {"read": "MEMBER", "write": "MEMBER"}
+        assert data["operation"]["allow_secret"] is True
+        assert data["operation"]["notify_new_post"] is True
+
+    async def test_guest_writing(self, client, auth_headers, tenant):
+        resp = await self._create(
+            client,
+            auth_headers,
+            operation={
+                "allow_secret": False,
+                "notify_new_post": False,
+                "allow_guest": True,
+            },
+        )
+        assert resp.status_code == 201, resp.text
+        assert resp.json()["data"]["operation"]["allow_guest"] is True
+
+    async def _not_created(self, tenant_id: str) -> bool:
+        rows = await _sql(
+            "SELECT 1 FROM boards WHERE tenant_id = :t AND slug = 'free'", t=tenant_id
+        )
+        return not rows
+
+    async def test_member_feature_off_409_nothing_made(
+        self, client, auth_headers, tenant
+    ):
+        await _set_member_feature(tenant["id"], False)
+        resp = await self._create(
+            client, auth_headers, permissions={"read": "MEMBER", "write": "ADMIN"}
+        )
+        assert resp.status_code == 409
+        assert "회원 기능이 꺼져" in resp.json()["error"]["message"]
+        assert await self._not_created(tenant["id"])
+
+    @pytest.mark.parametrize(
+        "body",
+        [
+            {"permissions": {"read": "PUBLIC", "write": "MEMBER"}},
+            {
+                "operation": {
+                    "allow_secret": False,
+                    "notify_new_post": False,
+                    "allow_guest": True,
+                }
+            },
+        ],
+    )
+    async def test_hospital_409_nothing_made(self, client, auth_headers, tenant, body):
+        await _sql(
+            "UPDATE tenants SET template_type = 'HOSPITAL' WHERE id = :t",
+            t=tenant["id"],
+        )
+        resp = await self._create(client, auth_headers, **body)
+        assert resp.status_code == 409
+        assert "병원 업종" in resp.json()["error"]["message"]
+        assert await self._not_created(tenant["id"])
+
+    async def test_bad_value_400(self, client, auth_headers, tenant):
+        resp = await self._create(
+            client, auth_headers, permissions={"read": "ANYONE", "write": "ADMIN"}
+        )
+        assert resp.status_code == 400
+
+    async def test_new_board_options(self, client, auth_headers, tenant):
+        """만들기 4단계가 쓰는 사업체 단위 선택 가능 여부 (T-211)."""
+        url = f"{BOARDS}/permission-options"
+        data = (await client.get(url, headers=auth_headers)).json()["data"]
+        assert data == {"member_read_blocked": None, "member_write_blocked": None}
+        await _sql(
+            "UPDATE tenants SET template_type = 'HOSPITAL' WHERE id = :t",
+            t=tenant["id"],
+        )
+        data = (await client.get(url, headers=auth_headers)).json()["data"]
+        assert data["member_read_blocked"] is None
+        assert "병원 업종" in data["member_write_blocked"]
+        await _set_member_feature(tenant["id"], False)
+        data = (await client.get(url, headers=auth_headers)).json()["data"]
+        assert "회원 기능이 꺼져" in data["member_read_blocked"]

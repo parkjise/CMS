@@ -250,6 +250,9 @@ describe('게시판 추가 마법사', () => {
         status: 'INACTIVE',
         in_menu: true,
         preset_fields: ['taken_on', 'place'],
+        // 4단계 기본값 그대로 (T-211)
+        permissions: { read: 'PUBLIC', write: 'ADMIN' },
+        operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
       }),
     )
     expect(await screen.findByRole('link', { name: '첫 글 쓰기' })).toHaveAttribute(
@@ -932,5 +935,68 @@ describe('게시판 만들기 개선 (T-210)', () => {
     expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
     expect(confirm).not.toHaveBeenCalled()
     confirm.mockRestore()
+  })
+})
+
+describe('게시판 만들기 4단계 권한 · 운영 (T-211)', () => {
+  const renderNew = () => renderAt('/admin/boards/new', <BoardNewPage />, '/admin/boards/new')
+  const next = () => userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+  const withOptions = (options: { member_read_blocked: string | null; member_write_blocked: string | null }) => {
+    mockApi({})
+    const base = get.getMockImplementation()!
+    get.mockImplementation((url: string, config?: unknown) =>
+      url === '/v1/boards/permission-options' ? ok(options) : base(url, config),
+    )
+  }
+  const toAccessStep = async () => {
+    await userEvent.type(screen.getByLabelText(/게시판 이름/), '자유게시판')
+    for (let i = 0; i < 3; i += 1) await next()
+  }
+
+  it('고른 권한 · 운영을 검토에 보이고 만들기 요청에 싣는다', async () => {
+    withOptions({ member_read_blocked: null, member_write_blocked: null })
+    post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+    renderNew()
+    await toAccessStep()
+    // 관리자만이면 비밀글은 고를 수 없다
+    expect(screen.getByRole('checkbox', { name: /비밀글/ })).toBeDisabled()
+    await userEvent.click(screen.getByRole('radio', { name: /회원만/ }))
+    await userEvent.click(screen.getByRole('radio', { name: /회원도/ }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /비밀글/ }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /비회원 글쓰기/ }))
+    await next()
+    expect(
+      screen.getByText('회원만 읽기 / 회원도 글쓰기 / 비회원 글쓰기 / 비밀글'),
+    ).toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '게시판 만들기' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith(
+        '/v1/boards',
+        expect.objectContaining({
+          permissions: { read: 'MEMBER', write: 'MEMBER' },
+          operation: { allow_secret: true, notify_new_post: false, allow_guest: true },
+        }),
+      ),
+    )
+  })
+
+  it('병원 업종이면 회원 · 비회원 글쓰기를 막고 이유를 보여 준다', async () => {
+    const reason = '병원 업종은 홈페이지 회원 글쓰기를 쓸 수 없습니다.'
+    withOptions({ member_read_blocked: null, member_write_blocked: reason })
+    renderNew()
+    await toAccessStep()
+    expect(await screen.findByRole('radio', { name: new RegExp(reason) })).toBeDisabled()
+    expect(screen.getByRole('checkbox', { name: /비회원 글쓰기/ })).toBeDisabled()
+    expect(screen.getByRole('radio', { name: /회원만/ })).toBeEnabled()
+  })
+
+  it('글쓰기를 관리자만으로 되돌리면 비밀글도 꺼진다', async () => {
+    withOptions({ member_read_blocked: null, member_write_blocked: null })
+    renderNew()
+    await toAccessStep()
+    await userEvent.click(screen.getByRole('radio', { name: /회원도/ }))
+    await userEvent.click(screen.getByRole('checkbox', { name: /비밀글/ }))
+    await userEvent.click(screen.getByRole('radio', { name: /관리자만/ }))
+    expect(screen.getByRole('checkbox', { name: /비밀글/ })).not.toBeChecked()
   })
 })

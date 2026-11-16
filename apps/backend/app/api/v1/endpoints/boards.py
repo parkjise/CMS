@@ -249,6 +249,22 @@ async def get_limits(
     return ApiResponse.ok(await board_service.get_limits(db, tenant_id))
 
 
+@router.get(
+    "/permission-options", response_model=ApiResponse[PermissionOptionsResponse]
+)
+async def get_new_board_permission_options(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """게시판 만들기 4단계 — 고를 수 없는 권한과 이유, 사업체 단위 (T-211)."""
+    return ApiResponse.ok(
+        PermissionOptionsResponse(
+            member_read_blocked=await board_access.tenant_read_blocked(db, tenant_id),
+            member_write_blocked=await board_access.tenant_write_blocked(db, tenant_id),
+        )
+    )
+
+
 @router.get("/slug-check", response_model=ApiResponse[SlugCheckResponse])
 async def check_slug(
     slug: str = Query(..., max_length=100),

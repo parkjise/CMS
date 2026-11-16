@@ -501,10 +501,39 @@ async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> 
         # 추천 칸은 게시판과 같은 커밋으로 — 하나라도 실패하면 둘 다 안 만든다 (T-183)
         await db.flush()
         db.add_all(board_presets.preset_fields(board, keys))
+    if data.permissions is not None or data.operation is not None:
+        await _apply_initial_access(db, board, data)
     await _commit_board(db)
     await db.refresh(board)
     await site_cache.purge_site(db, tenant_id)
     return board
+
+
+async def _apply_initial_access(
+    db: AsyncSession, board: Board, data: BoardCreate
+) -> None:
+    """만들 때 고른 권한 · 운영 (T-211) — 탭과 같은 검사, 막히면 안 만든다."""
+    await db.flush()
+    try:
+        if data.permissions is not None:
+            await _check_permissions(db, board, data.permissions)
+        if data.operation is not None and data.operation.allow_guest:
+            # 비회원 글쓰기도 회원 글쓰기와 같은 이유로 막는다 (병원 · 필수 칸, T-151-B)
+            blocked = await board_access.member_write_blocked(db, board)
+            if blocked:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail={"code": "CONFLICT", "message": blocked},
+                )
+    except HTTPException:
+        await db.rollback()
+        raise
+    settings = dict(board.settings or {})
+    if data.permissions is not None:
+        settings[PERMISSIONS_KEY] = data.permissions.model_dump()
+    if data.operation is not None:
+        settings[OPERATION_KEY] = data.operation.model_dump()
+    board.settings = settings
 
 
 def _merged_options(settings: dict, data: BoardUpdate) -> dict:
