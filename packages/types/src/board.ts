@@ -171,6 +171,8 @@ export interface Board {
   design: BoardDesign
   permissions: BoardPermissions
   operation: BoardOperation
+  /** 2단계 메뉴 (T-216) — 페이지 묶음 키, "" 이면 상단 메뉴 */
+  menu_parent?: string
 }
 
 /** 게시판 카테고리 — 1단계 분류 (T-149) */
@@ -333,6 +335,8 @@ export interface PublicBoard {
   allow_secret?: boolean
   /** 비회원 글쓰기 (T-151-B) */
   allow_guest?: boolean
+  /** 2단계 메뉴 (T-216) — 이 페이지 묶음의 하위 탭에 넣는다, 비면 상단 메뉴 */
+  menu_parent?: string
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
 }
