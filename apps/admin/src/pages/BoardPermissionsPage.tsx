@@ -3,6 +3,7 @@ import { useParams } from 'react-router'
 import type { Board, BoardPermissions } from '@cms/types'
 import { Button, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
+import { PermissionMatrix } from '@/components/boards/PermissionMatrix'
 import { PAGE } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
@@ -86,6 +87,8 @@ function PermissionsForm({ board }: { board: Board }) {
         save()
       }}
     >
+      {/* 역할 × 동작 요약 — 아래에서 고르면 바로 바뀐다 (T-213) */}
+      <PermissionMatrix permissions={permissions} allowGuest={board.operation.allow_guest} />
       <ReadOnlyFieldset>
         <div className={CARD_CLASS}>
           <Choice

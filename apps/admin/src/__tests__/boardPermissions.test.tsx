@@ -195,3 +195,19 @@ describe('글 관리 — 회원 작성 표시 (T-150-B)', () => {
     expect(within(row).getByText('회원 작성 · 홍길동')).toBeInTheDocument()
   })
 })
+
+describe('권한 구역의 역할 × 동작 표 (T-213)', () => {
+  it('선택을 바꾸면 저장 전에도 표가 바로 바뀐다', async () => {
+    setRole('TENANT_ADMIN')
+    renderPage()
+    const table = await screen.findByRole('table', { name: '역할별 권한 요약' })
+    const memberRow = () =>
+      within(within(table).getByRole('row', { name: /^회원/ }))
+        .getAllByRole('cell')
+        .map((c) => within(c).queryByRole('img')?.getAttribute('aria-label') ?? c.textContent)
+    expect(memberRow()).toEqual(['가능', '불가', '불가', '불가'])
+    await userEvent.click(screen.getByRole('radio', { name: /회원도/ }))
+    expect(memberRow()).toEqual(['가능', '가능', '본인 글', '본인 글'])
+    expect(patch).not.toHaveBeenCalled()
+  })
+})
