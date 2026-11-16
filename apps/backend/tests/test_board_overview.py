@@ -1619,3 +1619,71 @@ class TestBodySearch:
         assert (await client.get(POSTS, params=params, headers=auth_headers)).json()[
             "data"
         ]["total"] == 0
+
+
+class TestBoardPostsDetailSearch:
+    """게시판별 글 목록의 상세보기 조건 — 전체 글과 같은 코드 (T-214)."""
+
+    def _url(self, board: dict) -> str:
+        return f"{BOARDS}/{board['id']}/posts"
+
+    async def _titles(self, client, headers, board, **params) -> set[str]:
+        resp = await client.get(self._url(board), params=params, headers=headers)
+        assert resp.status_code == 200, resp.text
+        return {item["title"] for item in resp.json()["data"]["items"]}
+
+    async def test_author(self, client, auth_headers, named_authors):
+        titles = await self._titles(
+            client, auth_headers, named_authors["board"], author="김작가"
+        )
+        assert titles == {"회원 소식", "비회원 소식"}
+
+    async def test_body(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers, "body-search")
+        await _post(client, auth_headers, board["id"], "본문 있음")
+        await _post(
+            client,
+            auth_headers,
+            board["id"],
+            "다른 본문",
+            body=[{"type": "p", "text": "전혀 다른 내용"}],
+        )
+        titles = await self._titles(client, auth_headers, board, body_q=SECRET_BODY[:6])
+        assert titles == {"본문 있음"}
+
+    async def test_created_range_korean_day(self, client, auth_headers, tenant):
+        board, _posts = await _dated_posts(client, auth_headers)
+        titles = await self._titles(
+            client,
+            auth_headers,
+            board,
+            created_from="2026-11-07T00:00:00+09:00",
+            created_before="2026-11-08T00:00:00+09:00",
+        )
+        assert titles == {"행사 1", "행사 2"}
+
+    async def test_conditions_combine_and_stay_in_board(
+        self, client, auth_headers, named_authors
+    ):
+        other = await _board(client, auth_headers, "other-board")
+        await _post(client, auth_headers, other["id"], "다른 게시판 회원 소식")
+        titles = await self._titles(
+            client,
+            auth_headers,
+            named_authors["board"],
+            author="김작가",
+            q="비회원",
+        )
+        assert titles == {"비회원 소식"}
+
+    async def test_reversed_range_400(self, client, auth_headers, tenant):
+        board = await _board(client, auth_headers, "range-board")
+        resp = await client.get(
+            self._url(board),
+            params={
+                "created_from": "2026-11-08T00:00:00+09:00",
+                "created_before": "2026-11-07T00:00:00+09:00",
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400

@@ -706,8 +706,13 @@ async def list_posts(
     q: str | None = None,
     trash: bool = False,
     category_id: UUID | None = None,
+    author: str | None = None,
+    body_q: str | None = None,
+    created_from: datetime | None = None,
+    created_before: datetime | None = None,
 ) -> tuple[list[BoardPost], int]:
-    conditions: list[ColumnElement[bool]] = [
+    _check_created_range(created_from, created_before)
+    conditions: list[ColumnElement[bool] | TextClause] = [
         BoardPost.tenant_id == tenant_id,
         BoardPost.board_id == board_id,
         BoardPost.deleted_at.is_not(None) if trash else BoardPost.deleted_at.is_(None),
@@ -718,6 +723,10 @@ async def list_posts(
         conditions.append(category_service.post_in_category(category_id))
     if q:
         conditions.append(_title_contains(BoardPost.title, q))
+    # 상세보기 조건 (T-214, 1113 #14)
+    conditions += _search_conditions(
+        tenant_id, author, body_q, created_from, created_before
+    )
     total = (
         await db.execute(select(func.count()).select_from(BoardPost).where(*conditions))
     ).scalar_one()
@@ -852,46 +861,22 @@ async def restore_post(db: AsyncSession, post: BoardPost) -> BoardPost:
 # ── 전체 글 (BM-05, T-140-C) ─────────────────────────────────────────────
 
 
-async def list_all_posts(
-    db: AsyncSession,
-    tenant_id: UUID,
-    *,
-    page: int,
-    size: int,
-    board_id: UUID | None = None,
-    category_id: UUID | None = None,
-    status: str | None = None,
-    q: str | None = None,
-    author: str | None = None,
-    body_q: str | None = None,
-    trash: bool = False,
-    created_from: datetime | None = None,
-    created_before: datetime | None = None,
-    updated_from: datetime | None = None,
-    updated_before: datetime | None = None,
-    published_from: datetime | None = None,
-    published_before: datetime | None = None,
-) -> tuple[list[tuple[BoardPost, str]], int]:
-    """여러 게시판의 글. 날짜 범위는 시작 포함 · 끝 제외다."""
+def _check_created_range(
+    created_from: datetime | None, created_before: datetime | None
+) -> None:
     if created_from and created_before and created_from >= created_before:
         raise HTTPException(status_code=400, detail=MSG_DATE_RANGE)
-    if updated_from and updated_before and updated_from >= updated_before:
-        raise HTTPException(status_code=400, detail=MSG_UPDATED_DATE_RANGE)
-    if published_from and published_before and published_from >= published_before:
-        raise HTTPException(status_code=400, detail=MSG_PUBLISHED_DATE_RANGE)
-    conditions: list[ColumnElement[bool] | TextClause] = [
-        BoardPost.tenant_id == tenant_id,
-        Board.deleted_at.is_(None),
-        BoardPost.deleted_at.is_not(None) if trash else BoardPost.deleted_at.is_(None),
-    ]
-    if board_id:
-        conditions.append(BoardPost.board_id == board_id)
-    if category_id:
-        conditions.append(category_service.post_in_category(category_id))
-    if status:
-        conditions.append(BoardPost.status == status)
-    if q:
-        conditions.append(_title_contains(BoardPost.title, q))
+
+
+def _search_conditions(
+    tenant_id: UUID,
+    author: str | None,
+    body_q: str | None,
+    created_from: datetime | None,
+    created_before: datetime | None,
+) -> list[ColumnElement[bool] | TextClause]:
+    """작성자 · 본문 · 작성일 — 전체 글과 게시판별 글 목록이 같이 쓴다 (T-214)."""
+    conditions: list[ColumnElement[bool] | TextClause] = []
     if author and author.strip():
         name = author.strip()
         # 목록에 표시하는 이름만 검색한다. 탈퇴 회원 이름 표시 정책도 동일하다.
@@ -913,6 +898,51 @@ async def list_all_posts(
         conditions.append(BoardPost.created_at >= created_from)
     if created_before:
         conditions.append(BoardPost.created_at < created_before)
+    return conditions
+
+
+async def list_all_posts(
+    db: AsyncSession,
+    tenant_id: UUID,
+    *,
+    page: int,
+    size: int,
+    board_id: UUID | None = None,
+    category_id: UUID | None = None,
+    status: str | None = None,
+    q: str | None = None,
+    author: str | None = None,
+    body_q: str | None = None,
+    trash: bool = False,
+    created_from: datetime | None = None,
+    created_before: datetime | None = None,
+    updated_from: datetime | None = None,
+    updated_before: datetime | None = None,
+    published_from: datetime | None = None,
+    published_before: datetime | None = None,
+) -> tuple[list[tuple[BoardPost, str]], int]:
+    """여러 게시판의 글. 날짜 범위는 시작 포함 · 끝 제외다."""
+    _check_created_range(created_from, created_before)
+    if updated_from and updated_before and updated_from >= updated_before:
+        raise HTTPException(status_code=400, detail=MSG_UPDATED_DATE_RANGE)
+    if published_from and published_before and published_from >= published_before:
+        raise HTTPException(status_code=400, detail=MSG_PUBLISHED_DATE_RANGE)
+    conditions: list[ColumnElement[bool] | TextClause] = [
+        BoardPost.tenant_id == tenant_id,
+        Board.deleted_at.is_(None),
+        BoardPost.deleted_at.is_not(None) if trash else BoardPost.deleted_at.is_(None),
+    ]
+    if board_id:
+        conditions.append(BoardPost.board_id == board_id)
+    if category_id:
+        conditions.append(category_service.post_in_category(category_id))
+    if status:
+        conditions.append(BoardPost.status == status)
+    if q:
+        conditions.append(_title_contains(BoardPost.title, q))
+    conditions += _search_conditions(
+        tenant_id, author, body_q, created_from, created_before
+    )
     if updated_from:
         conditions.append(BoardPost.updated_at >= updated_from)
     if updated_before:

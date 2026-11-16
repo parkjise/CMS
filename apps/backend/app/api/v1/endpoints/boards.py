@@ -819,6 +819,11 @@ async def list_posts(
     q: str | None = Query(default=None, max_length=100),
     category_id: UUID | None = None,
     trash: bool = False,
+    # 상세보기 (T-214) — 전체 글 목록과 같은 조건
+    author: str | None = Query(default=None, max_length=100),
+    body_q: str | None = Query(default=None, max_length=100),
+    created_from: AwareDatetime | None = None,
+    created_before: AwareDatetime | None = None,
     board: Board = Depends(_board_or_404),
     db: AsyncSession = Depends(get_db_with_rls),
 ):
@@ -832,6 +837,10 @@ async def list_posts(
         q=q,
         trash=trash,
         category_id=category_id,
+        author=author,
+        body_q=body_q,
+        created_from=created_from,
+        created_before=created_before,
     )
     return ApiResponse.ok(
         PostListResponse(
