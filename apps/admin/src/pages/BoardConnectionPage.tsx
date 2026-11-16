@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { ExternalLink } from 'lucide-react'
 import { useParams } from 'react-router'
 import type { Board } from '@cms/types'
@@ -6,7 +7,7 @@ import { Button, Input, Toggle, toast } from '@cms/ui'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { PAGE } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
+import { useBoards, useMenuParents, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useSiteMenu, useUpdateSiteMenu } from '@/hooks/useSiteSettings'
 import { boardSlugError } from '@/lib/boardLabels'
@@ -14,6 +15,65 @@ import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
+
+/** 메뉴 위치 (T-216, 1113 #3) — 상단 메뉴 또는 페이지 묶음 아래(하위 탭). 고르면 바로 저장 */
+function MenuParentChoice({ board }: { board: Board }) {
+  const options = useMenuParents()
+  const updateBoard = useUpdateBoard()
+  const queryClient = useQueryClient()
+  const current = board.menu_parent ?? ''
+  if (!options.isSuccess) return null
+  if (options.data.length === 0) {
+    return (
+      <p className="text-sm text-slate-500">
+        지금 템플릿은 상단 메뉴만 있어요. 게시판은 상단 메뉴에 나옵니다.
+      </p>
+    )
+  }
+  // 템플릿을 바꿔 묶음이 없어졌으면 홈페이지는 상단 메뉴로 보인다
+  const missing = current !== '' && !options.data.some((o) => o.key === current)
+
+  const change = async (menu_parent: string) => {
+    try {
+      await updateBoard.mutateAsync({ id: board.id, payload: { menu_parent } })
+      // 상단 메뉴 후보가 바뀐다
+      await queryClient.invalidateQueries({ queryKey: ['site-settings'] })
+      const title = options.data.find((o) => o.key === menu_parent)?.title
+      toast.success(title ? `${title} 아래 하위 탭에 넣었습니다.` : '상단 메뉴에 넣었습니다.')
+    } catch (err) {
+      toast.error(pickErrorMessage(err, '메뉴 위치를 저장하지 못했습니다.'))
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={`menu-parent-${board.id}`} className="block text-sm font-medium text-slate-700">
+        메뉴 위치
+      </label>
+      <select
+        id={`menu-parent-${board.id}`}
+        className="h-10 w-full max-w-sm rounded-md border border-slate-300 bg-white px-3 text-sm"
+        value={missing ? '' : current}
+        disabled={updateBoard.isPending}
+        onChange={(e) => void change(e.target.value)}
+      >
+        <option value="">상단 메뉴</option>
+        {options.data.map((o) => (
+          <option key={o.key} value={o.key}>
+            {o.title} 아래 (하위 탭)
+          </option>
+        ))}
+      </select>
+      <p className="text-xs text-slate-500">
+        {missing
+          ? '고른 메뉴가 지금 템플릿에 없어 상단 메뉴에 보입니다.'
+          : current
+            ? '홈페이지에서 그 메뉴의 하위 탭으로 나오고, 상단 메뉴에서는 빠집니다.'
+            : '페이지 아래에 넣으면 그 메뉴의 하위 탭으로 나옵니다.'}
+      </p>
+    </div>
+  )
+}
 
 function MenuToggle({ board }: { board: Board }) {
   const menuQuery = useSiteMenu()
@@ -123,6 +183,7 @@ function ConnectionForm({ board }: { board: Board }) {
 
       <ReadOnlyFieldset>
         <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          {!isSystem && <MenuParentChoice board={board} />}
           <MenuToggle board={board} />
           {publicUrl && (
             <a
