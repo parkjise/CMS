@@ -251,3 +251,85 @@ class TestTrashInfo:
         (trashed,) = resp.json()["data"]
         assert trashed["deleted_by"] == test_user["email"]
         assert datetime.fromisoformat(trashed["purge_at"]) > datetime.now(UTC)
+
+
+PURGE = "/api/v1/posts/purge"
+
+
+class TestBulkPurge:
+    """휴지통 글 여러 개 영구 삭제 (T-209)."""
+
+    async def _trashed(self, client, headers, board, n: int) -> list[str]:
+        ids = []
+        for i in range(n):
+            post = await _post(client, headers, board, title=f"지울 글 {i}")
+            await client.delete(
+                f"{BOARDS}/{board['id']}/posts/{post['id']}", headers=headers
+            )
+            ids.append(post["id"])
+        return ids
+
+    async def test_purges_all_and_logs(self, client, auth_headers, tenant, board):
+        ids = await self._trashed(client, auth_headers, board, 2)
+        resp = await client.post(PURGE, json={"post_ids": ids}, headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["purged"] == 2
+        for post_id in ids:
+            assert not await _exists("board_posts", post_id)
+        logs = await _sql(
+            "SELECT after_value->>'title' FROM audit_logs"
+            " WHERE tenant_id = :t AND action = 'POST_PURGED' ORDER BY 1",
+            t=tenant["id"],
+        )
+        assert [row[0] for row in logs] == ["지울 글 0", "지울 글 1"]
+
+    async def test_live_post_mixed_in_404_nothing_deleted(
+        self, client, auth_headers, tenant, board
+    ):
+        ids = await self._trashed(client, auth_headers, board, 1)
+        alive = await _post(client, auth_headers, board, title="살아 있는 글")
+        resp = await client.post(
+            PURGE, json={"post_ids": [*ids, alive["id"]]}, headers=auth_headers
+        )
+        assert resp.status_code == 404
+        assert await _exists("board_posts", ids[0])
+        assert await _exists("board_posts", alive["id"])
+
+    async def test_other_tenant_404(
+        self, client, auth_headers, tenant, board, other_tenant
+    ):
+        ids = await self._trashed(client, auth_headers, board, 1)
+        resp = await client.post(
+            PURGE, json={"post_ids": ids}, headers=other_tenant["headers"]
+        )
+        assert resp.status_code == 404
+        assert await _exists("board_posts", ids[0])
+
+    async def test_limits_400(self, client, auth_headers, tenant):
+        for body in ({"post_ids": []}, {"post_ids": [str(uuid.uuid4())] * 101}):
+            resp = await client.post(PURGE, json=body, headers=auth_headers)
+            assert resp.status_code == 400
+
+    async def test_viewer_403(self, client, auth_headers, tenant, board):
+        ids = await self._trashed(client, auth_headers, board, 1)
+        user_id = uuid.uuid4()
+        await _sql(
+            "INSERT INTO users (id, tenant_id, email, password_hash, role, is_active,"
+            " created_at, updated_at)"
+            " VALUES (:id, :t, :e, 'x', 'TENANT_VIEWER', true, now(), now())",
+            id=str(user_id),
+            t=tenant["id"],
+            e=f"{user_id.hex[:8]}@example.com",
+        )
+        token = create_access_token(
+            user_id=user_id, tenant_id=uuid.UUID(tenant["id"]), role="TENANT_VIEWER"
+        )
+        resp = await client.post(
+            PURGE, json={"post_ids": ids}, headers={"Authorization": f"Bearer {token}"}
+        )
+        assert resp.status_code == 403
+        assert await _exists("board_posts", ids[0])
+
+    async def test_unauthenticated_401(self, client):
+        resp = await client.post(PURGE, json={"post_ids": [str(uuid.uuid4())]})
+        assert resp.status_code == 401

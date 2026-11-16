@@ -137,3 +137,83 @@ describe('휴지통 30일 · 영구 삭제 (T-196)', () => {
     expect(trashNote({ purge_at: dayjs().add(30, 'day').toISOString() })).toBe('30일 뒤 영구 삭제')
   })
 })
+
+describe('휴지통 [글] 탭 — 한 곳에서 (T-209)', () => {
+  const posts = [
+    { ...trashedPost, board_name: '소식' },
+    { ...trashedPost, id: 'p2', title: '두 번째 글', board_name: '갤러리' },
+  ]
+  const renderPostsTab = () =>
+    renderWithQuery(
+      <MemoryRouter initialEntries={['/admin/boards/trash?tab=posts']}>
+        <Routes>
+          <Route path="/admin/boards/trash" element={<BoardTrashPage />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+  beforeEach(() => {
+    get.mockImplementation((url: string, config?: { params?: Record<string, unknown> }) => {
+      if (url === '/v1/posts') {
+        expect(config?.params).toMatchObject({ trash: true, page: 1 })
+        return ok({ total: 2, page: 1, size: 20, items: posts })
+      }
+      return ok([trashed])
+    })
+    post.mockImplementation((url: string, body: { post_ids: string[] }) =>
+      ok(
+        url === '/v1/posts/purge'
+          ? { purged: body.post_ids.length }
+          : { updated: body.post_ids.length }
+      )
+    )
+  })
+
+  it('모든 게시판의 지운 글을 게시판 이름 · 남은 기간과 보여 준다', async () => {
+    renderPostsTab()
+    const row = (await screen.findByText('두 번째 글')).closest('tr') as HTMLElement
+    expect(within(row).getByText('갤러리')).toBeInTheDocument()
+    expect(within(row).getByText('3일 뒤 영구 삭제')).toBeInTheDocument()
+    expect(screen.getByText('삭제된 글 (2)')).toBeInTheDocument()
+  })
+
+  it('탭을 바꾸면 게시판 휴지통이 보인다', async () => {
+    renderPostsTab()
+    await screen.findByText('두 번째 글')
+    await userEvent.click(screen.getByRole('button', { name: '게시판' }))
+    expect(await screen.findByText('옛 소식')).toBeInTheDocument()
+  })
+
+  it('선택 영구 삭제는 개수를 확인하고 한 번에 보낸다', async () => {
+    renderPostsTab()
+    await screen.findByText('두 번째 글')
+    await userEvent.click(screen.getByRole('checkbox', { name: '이 쪽 글 모두 선택' }))
+    confirm.mockReturnValueOnce(true)
+    await userEvent.click(screen.getByRole('button', { name: '선택 영구 삭제 (2)' }))
+    expect(confirm).toHaveBeenCalledWith('글 2개를 영구 삭제할까요? 되돌릴 수 없습니다.')
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/posts/purge', { post_ids: ['p1', 'p2'] })
+    )
+    expect(toast.success).toHaveBeenCalledWith('글 2개를 영구 삭제했습니다.')
+  })
+
+  it('행 [복원]은 RESTORE 로, 확인을 취소한 영구 삭제는 보내지 않는다', async () => {
+    renderPostsTab()
+    const row = (await screen.findByText('지운 글')).closest('tr') as HTMLElement
+    await userEvent.click(within(row).getByRole('button', { name: '복원' }))
+    await waitFor(() =>
+      expect(post).toHaveBeenCalledWith('/v1/posts/bulk', { post_ids: ['p1'], action: 'RESTORE' })
+    )
+    confirm.mockReturnValueOnce(false)
+    await userEvent.click(within(row).getByRole('button', { name: '영구 삭제' }))
+    expect(post).not.toHaveBeenCalledWith('/v1/posts/purge', expect.anything())
+  })
+
+  it('보기 전용은 선택 · 버튼이 없다', async () => {
+    useAuthStore.setState({ user: { role: 'TENANT_VIEWER' } } as never)
+    renderPostsTab()
+    await screen.findByText('두 번째 글')
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '영구 삭제' })).not.toBeInTheDocument()
+  })
+})
