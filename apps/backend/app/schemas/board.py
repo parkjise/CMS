@@ -21,7 +21,7 @@ from app.schemas.rich_body import clean_body
 PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
 
 SLUG_MAX_LENGTH = 60
-BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD", "WEBZINE", "REVIEW"]
+BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD", "WEBZINE", "REVIEW", "QNA"]
 BoardStatus = Literal["ACTIVE", "INACTIVE"]
 BoardSortOrder = Literal["LATEST", "OLDEST", "TITLE"]
 BoardPageSize = Literal[10, 20, 30]
@@ -532,6 +532,8 @@ class PostListItem(BaseModel):
     # 휴지통 글 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람
     purge_at: datetime | None = None
     deleted_by: str | None = None
+    # 문의형 답변 (T-219) — 답변 시각이 있으면 "답변 완료"
+    answered_at: datetime | None = None
 
 
 class PostAttachment(BaseModel):
@@ -547,6 +549,17 @@ class PostAttachment(BaseModel):
 class PostResponse(PostListItem):
     body: list[BodyNode]
     attachments: list[PostAttachment] = []
+    answer: str | None = None
+
+
+# 문의형 관리자 답변 (T-219) — 빈 글자면 답변을 지운다 (다시 "답변 대기")
+AnswerText = Annotated[str, StringConstraints(strip_whitespace=True, max_length=5000)]
+
+
+class PostAnswerRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    answer: AnswerText
 
 
 class PostVersionItem(BaseModel):
@@ -721,6 +734,8 @@ class PublicPostItem(BaseModel):
     category_id: UUID | None = None
     # 첨부 파일이 있는 글 — 목록의 📎 (T-197). 비밀글은 제목만이라 표시하지 않는다
     has_attachments: bool = False
+    # 문의형만 — 답변 완료면 True, 대기면 False. 다른 유형은 None (T-219)
+    answered: bool | None = None
 
 
 class PublicListColumn(BaseModel):
@@ -755,6 +770,9 @@ class PublicPostDetail(PublicPostItem):
     fields: list[PublicFieldValue] = []
     # 첨부 파일 (T-194) — 잠긴 비밀글이면 빈 목록
     attachments: list[PostAttachment] = []
+    # 문의형 관리자 답변 (T-219) — 잠긴 비밀글이면 비운다
+    answer: str | None = None
+    answered_at: datetime | None = None
     prev_id: UUID | None
     next_id: UUID | None
 
@@ -850,6 +868,9 @@ class GuestPostResponse(MemberPostResponse):
     guest_name: str
     body: list[BodyNode]
     fields: list[PublicFieldValue] = []
+    # 문의형 답변 (T-219) — 비밀번호를 확인한 사람만 본다
+    answer: str | None = None
+    answered_at: datetime | None = None
 
 
 ReportReason = Literal["SPAM", "ABUSE", "PRIVACY", "OTHER"]
