@@ -31,6 +31,10 @@ export const PostTableLayoutControls = ({
   const current = (): PostTableLayout => ({
     order: fields.map((field) => field.id),
     sizes: Object.fromEntries(fields.map((field) => [field.id, tableColumnSize(layout, field.id)])),
+    // 끌어서 정한 넓이는 순서를 바꿔도 남긴다 (T-215)
+    ...(layout?.widths && Object.keys(layout.widths).length
+      ? { widths: { ...layout.widths } }
+      : {}),
   })
   const move = (index: number, direction: number) => {
     if (!scope) return
@@ -71,6 +75,8 @@ export const PostTableLayoutControls = ({
                     if (!isColumnSize(size)) return
                     const next = current()
                     next.sizes[field.id] = size
+                    // 크기를 고르면 끌어서 정한 넓이 대신 그 크기로
+                    delete next.widths?.[field.id]
                     onSave(next)
                   }}
                 >

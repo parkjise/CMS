@@ -4,13 +4,33 @@ export type ColumnSize = 'narrow' | 'normal' | 'wide'
 export interface PostTableLayout {
   order: string[]
   sizes: Record<string, ColumnSize>
+  /** 끌어서 정한 넓이 px (T-215) — 있으면 sizes 보다 먼저. 예전 저장값에는 없다 */
+  widths?: Record<string, number>
 }
+
+/** 끌어서 정할 수 있는 열 넓이 — 서버(schemas/preference.py)와 같은 범위 */
+export const COLUMN_WIDTH_MIN = 96
+export const COLUMN_WIDTH_MAX = 640
+export const clampColumnWidth = (px: number) =>
+  Math.round(Math.min(COLUMN_WIDTH_MAX, Math.max(COLUMN_WIDTH_MIN, px)))
+const isColumnWidth = (value: unknown): value is number =>
+  typeof value === 'number' &&
+  Number.isInteger(value) &&
+  value >= COLUMN_WIDTH_MIN &&
+  value <= COLUMN_WIDTH_MAX
 
 export const TABLE_SIZE_CLASSES: Record<ColumnSize, string> = {
   narrow: 'min-w-32',
   normal: 'min-w-40',
   wide: 'min-w-64',
 }
+/** 크기별 기본 넓이 px — min-w 클래스와 같다 (끌기 시작점) */
+export const TABLE_SIZE_PX: Record<ColumnSize, number> = { narrow: 128, normal: 160, wide: 256 }
+
+/** 이 열의 넓이 px — 끌어서 정했으면 그 값, 아니면 크기의 기본 넓이 */
+export const tableColumnWidth = (layout: PostTableLayout | undefined, id: string): number =>
+  layout?.widths?.[id] ?? TABLE_SIZE_PX[tableColumnSize(layout, id)]
+
 export const tableColumnSize = (layout: PostTableLayout | undefined, id: string): ColumnSize => {
   const size = layout?.sizes[id]
   return isColumnSize(size) ? size : 'normal'
@@ -44,7 +64,14 @@ export const toTableLayout = (layout: unknown): PostTableLayout | null => {
       if (isId(id) && isColumnSize(size)) sizes[id] = size
     }
   }
-  return { order, sizes }
+  const widths: Record<string, number> = {}
+  if (isRecord(layout.widths)) {
+    for (const [id, px] of Object.entries(layout.widths).slice(0, 20)) {
+      if (isId(id) && isColumnWidth(px)) widths[id] = px
+    }
+  }
+  // 끌어서 정한 넓이가 없으면 칸을 두지 않는다 — 예전 저장값과 같은 모양
+  return Object.keys(widths).length ? { order, sizes, widths } : { order, sizes }
 }
 
 export const parseTableLayouts = (raw: string | null): Record<string, PostTableLayout> => {

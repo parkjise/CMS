@@ -6,6 +6,7 @@ import type { PostListItem } from '@cms/types'
 import { Button, toast } from '@cms/ui'
 import { statusBadge } from '@/lib/postStatus'
 import { trashNote } from '@/lib/trash'
+import { ColumnResizeHandle } from '@/components/boards/ColumnResizeHandle'
 import { PostSearchBar } from '@/components/boards/PostSearchBar'
 import { PostTableLayoutControls } from '@/components/boards/PostTableLayoutControls'
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
@@ -32,6 +33,7 @@ import {
   postTableScope,
   tableColumnSize,
   TABLE_SIZE_CLASSES,
+  tableColumnWidth,
   usePostTableLayoutStore,
 } from '@/stores/postTableLayoutStore'
 
@@ -73,8 +75,36 @@ export function BoardPostsPage() {
     tableScope ? state.layouts[tableScope] : undefined
   )
   const tableFields = orderTableFields(listFields, tableLayout)
+  // 끄는 동안의 넓이 — 놓으면 저장하고 비운다 (T-215)
+  const [dragWidths, setDragWidths] = useState<Record<string, number>>({})
+  const columnWidth = (id: string) =>
+    dragWidths[id] ?? (tableLayout?.widths?.[id] ? tableColumnWidth(tableLayout, id) : undefined)
+  /** 열 넓이 — 끌어서 정했으면 그 px (동적이라 style), 아니면 크기 클래스 */
+  const columnLook = (id: string) => {
+    const px = columnWidth(id)
+    return px
+      ? { className: '', style: { width: px, minWidth: px, maxWidth: px } }
+      : { className: TABLE_SIZE_CLASSES[tableColumnSize(tableLayout, id)], style: undefined }
+  }
   // 열 설정은 계정에도 저장 — 다른 브라우저에서도 같게 (T-181)
   const layoutSync = usePostTableLayoutSync(boardId, tableScope, listFields.length > 0)
+  /** 끌어서 정한 넓이를 저장 — null 이면 그 열은 원래 크기로 (T-215) */
+  const saveWidth = (id: string, px: number | null) => {
+    const base = tableLayout ?? {
+      order: tableFields.map((field) => field.id),
+      sizes: {},
+    }
+    const widths = { ...(base.widths ?? {}) }
+    if (px === null) delete widths[id]
+    else widths[id] = px
+    const { widths: _old, ...rest } = base
+    layoutSync.persist(Object.keys(widths).length ? { ...rest, widths } : rest)
+    setDragWidths((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+  }
   const updatePost = useUpdatePost(boardId)
   const deletePost = useDeletePost(boardId)
   const restorePost = useRestorePost(boardId)
@@ -368,15 +398,30 @@ export function BoardPostsPage() {
                   <th scope="col" className="min-w-72 px-4 py-3">
                     게시글
                   </th>
-                  {tableFields.map((field) => (
-                    <th
-                      key={field.id}
-                      scope="col"
-                      className={`${TABLE_SIZE_CLASSES[tableColumnSize(tableLayout, field.id)]} px-4 py-3 [overflow-wrap:anywhere]`}
-                    >
-                      {field.label}
-                    </th>
-                  ))}
+                  {tableFields.map((field) => {
+                    const look = columnLook(field.id)
+                    return (
+                      <th
+                        key={field.id}
+                        scope="col"
+                        // 넓이 손잡이 이름이 열 이름에 섞이지 않게
+                        aria-label={field.label}
+                        className={`${look.className} relative px-4 py-3 [overflow-wrap:anywhere]`}
+                        style={look.style}
+                      >
+                        {field.label}
+                        <ColumnResizeHandle
+                          label={field.label}
+                          width={columnWidth(field.id) ?? tableColumnWidth(tableLayout, field.id)}
+                          onPreview={(px) =>
+                            setDragWidths((current) => ({ ...current, [field.id]: px }))
+                          }
+                          onCommit={(px) => saveWidth(field.id, px)}
+                          onReset={() => saveWidth(field.id, null)}
+                        />
+                      </th>
+                    )
+                  })}
                   {canEdit && (
                     <th scope="col" className="min-w-60 px-4 py-3">
                       작업
@@ -393,7 +438,8 @@ export function BoardPostsPage() {
                     {tableFields.map((field) => (
                       <td
                         key={field.id}
-                        className={`${TABLE_SIZE_CLASSES[tableColumnSize(tableLayout, field.id)]} max-w-80 whitespace-pre-wrap px-4 py-3 align-top text-slate-700 [overflow-wrap:anywhere]`}
+                        className={`${columnLook(field.id).className} ${columnWidth(field.id) ? '' : 'max-w-80'} whitespace-pre-wrap px-4 py-3 align-top text-slate-700 [overflow-wrap:anywhere]`}
+                        style={columnLook(field.id).style}
                       >
                         {isEmptyValue(post.custom_data?.[field.field_key]) ? (
                           <span aria-label="값 없음">—</span>
