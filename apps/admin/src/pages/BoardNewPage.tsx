@@ -49,9 +49,20 @@ const label = <T extends string>(options: { value: T; label: string }[], value: 
 const HINT =
   'rounded-lg border border-blue-100 bg-blue-50/60 px-4 py-3 text-xs leading-relaxed text-slate-600'
 
-/** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸 */
+/** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸, 웹진은 왼쪽 사진 + 줄 */
 function TypeSketch({ type }: { type: BoardType }) {
   const tiles = type === 'GALLERY' || type === 'CARD'
+  if (type === 'WEBZINE') {
+    return (
+      <span aria-hidden className="mb-3 flex h-16 gap-2 rounded-md bg-slate-100 p-3">
+        <i className="h-full w-14 rounded-sm bg-slate-300" />
+        <span className="flex flex-1 flex-col gap-1.5">
+          <i className="h-1.5 w-full rounded-sm bg-slate-300" />
+          <i className="h-1.5 w-2/3 rounded-sm bg-slate-300" />
+        </span>
+      </span>
+    )
+  }
   return (
     <span
       aria-hidden

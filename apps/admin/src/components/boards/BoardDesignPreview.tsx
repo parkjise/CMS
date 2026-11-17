@@ -99,6 +99,27 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                 </p>
               </details>
             ))
+          ) : type === 'WEBZINE' ? (
+            SAMPLES.map((title) => (
+              <article key={title} className="flex gap-4 border-b border-slate-100 py-4 text-xs">
+                {design.show_image && (
+                  <div
+                    className={`grid w-28 shrink-0 place-items-center rounded bg-gradient-to-br from-slate-200 to-stone-100 text-slate-400 ${RATIO[design.image_ratio]}`}
+                  >
+                    <Image className="h-5 w-5" aria-hidden />
+                  </div>
+                )}
+                <div className="min-w-0 space-y-1.5">
+                  <strong className="block font-medium">{title}</strong>
+                  {design.show_summary && (
+                    <p className="text-slate-500">게시글 본문 앞부분이 요약으로 표시됩니다.</p>
+                  )}
+                  {design.show_date && (
+                    <time className="block text-[10px] text-slate-400">2026.11.11</time>
+                  )}
+                </div>
+              </article>
+            ))
           ) : type === 'LIST' ? (
             SAMPLES.map((title, index) => (
               <div

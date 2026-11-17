@@ -608,6 +608,30 @@ describe('게시판 디자인 탭 (T-148)', () => {
     )
   })
 
+  it('웹진형 (T-217): 사진 비율 · 요약 길이 · 사진 · 요약 · 작성일, 한 줄 개수는 없다', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderDesign()
+    await userEvent.click(await screen.findByRole('radio', { name: /웹진형/ }))
+    expect(screen.queryByLabelText('PC 한 줄 개수')).not.toBeInTheDocument()
+    expect(screen.getByText('아래에서 고른 추가 정보도 제목 아래에 나옵니다.')).toBeInTheDocument()
+    // 미리보기는 샘플 글 4개를 한 줄씩
+    expect(screen.getAllByText('게시글 본문 앞부분이 요약으로 표시됩니다.')).toHaveLength(4)
+    await userEvent.selectOptions(screen.getByLabelText('사진 비율'), '1:1')
+    await userEvent.selectOptions(screen.getByLabelText('요약 길이'), '60자')
+    await userEvent.click(screen.getByLabelText(/사진 표시/))
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith(
+        '/v1/boards/b1',
+        expect.objectContaining({
+          board_type: 'WEBZINE',
+          design: { ...board.design, image_ratio: '1:1', show_image: false, summary_length: 60 },
+        }),
+      ),
+    )
+  })
+
   it('유형마다 맞는 설정만 보인다', async () => {
     mockApi({})
     renderDesign()
