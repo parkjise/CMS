@@ -1267,10 +1267,17 @@ def public_post_item(
     # 비밀글은 목록에 제목만 — 요약 · 사진 · 본문 · 칸은 내보내지 않는다 (T-151-A)
     blocks = [] if post.is_secret else post.body or []
     is_card = board.board_type == "CARD" and not post.is_secret
+    # 웹진형도 본문 앞부분을 요약으로 보여 준다 (T-217)
+    has_summary = board.board_type in {"CARD", "WEBZINE"} and not post.is_secret
+    summary_limit = (
+        board_options(board)[DESIGN_KEY]["summary_length"]
+        if board.board_type == "WEBZINE"
+        else CARD_SUMMARY_LIMIT
+    )
     return {
         "is_secret": post.is_secret,
         "is_guest": post.guest_password_hash is not None,
-        "summary": body_summary(blocks, CARD_SUMMARY_LIMIT) if is_card else None,
+        "summary": body_summary(blocks, summary_limit) if has_summary else None,
         "card_fields": (
             field_service.field_values(list_fields or [], post.custom_data or {})
             if is_card
@@ -1278,7 +1285,8 @@ def public_post_item(
         ),
         "list_fields": (
             field_service.field_values(list_fields or [], post.custom_data or {})
-            if board.board_type in {"LIST", "GALLERY", "FAQ"} and not post.is_secret
+            if board.board_type in {"LIST", "GALLERY", "FAQ", "WEBZINE"}
+            and not post.is_secret
             else None
         ),
         "id": post.id,

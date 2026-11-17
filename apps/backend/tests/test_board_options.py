@@ -312,10 +312,58 @@ class TestDesign:
         assert item["summary"] is None
         assert item["card_fields"] is None
 
+    @pytest.mark.asyncio
+    async def test_webzine_list_has_summary_and_thumbnail(
+        self, client, auth_headers, tenant
+    ):
+        """웹진형 (T-217) — 썸네일 · 요약, 비밀글은 제목만"""
+        board = await _board(client, auth_headers, board_type="WEBZINE")
+        assert board["board_type"] == "WEBZINE"
+        image = {"type": "image", "attrs": {"src": "https://img.test/a.webp"}}
+        text = {"type": "paragraph", "content": [{"type": "text", "text": "봄 " * 80}]}
+        for title, secret in [("소식", False), ("비밀", True)]:
+            resp = await client.post(
+                f"{BOARDS}/{board['id']}/posts",
+                json={
+                    "title": title,
+                    "status": "PUBLISHED",
+                    "is_secret": secret,
+                    "body": [image, text],
+                },
+                headers=auth_headers,
+            )
+            assert resp.status_code == 201, resp.text
+
+        listed = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        items = {i["title"]: i for i in listed.json()["data"]["items"]}
+        assert items["소식"]["thumbnail"] == "https://img.test/a.webp"
+        assert items["소식"]["summary"].endswith("…")
+        assert items["소식"]["card_fields"] is None and items["소식"]["body"] is None
+        assert items["비밀"]["summary"] is None and items["비밀"]["thumbnail"] is None
+
+        # 요약 길이는 디자인에서 고른다
+        design = {**board["design"], "summary_length": 60}
+        await _patch(client, auth_headers, board["id"], design=design)
+        listed = await client.get(
+            f"/api/public/site/{tenant['slug']}/boards/{board['slug']}/posts"
+        )
+        items = {i["title"]: i for i in listed.json()["data"]["items"]}
+        assert len(items["소식"]["summary"]) <= 61
+
+        bad = {**board["design"], "summary_length": 90}
+        resp = await client.patch(
+            f"{BOARDS}/{board['id']}", json={"design": bad}, headers=auth_headers
+        )
+        assert resp.status_code == 400
+
 
 class TestListFieldSelection:
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("board_type", ["LIST", "CARD", "GALLERY", "FAQ"])
+    @pytest.mark.parametrize(
+        "board_type", ["LIST", "CARD", "GALLERY", "FAQ", "WEBZINE"]
+    )
     async def test_selected_public_values_only(
         self, client, auth_headers, tenant, board_type
     ):
