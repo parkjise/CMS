@@ -21,7 +21,7 @@ from app.schemas.rich_body import clean_body
 PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
 
 SLUG_MAX_LENGTH = 60
-BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD", "WEBZINE"]
+BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD", "WEBZINE", "REVIEW"]
 BoardStatus = Literal["ACTIVE", "INACTIVE"]
 BoardSortOrder = Literal["LATEST", "OLDEST", "TITLE"]
 BoardPageSize = Literal[10, 20, 30]
@@ -146,6 +146,8 @@ class BoardPresetField(BaseModel):
     field_type: str
     choices: list[str]
     show_in_list: bool
+    # 고르지 않아도 늘 만든다 — 리뷰형 별점 (T-218)
+    always: bool = False
 
 
 class BoardUpdate(BaseModel):
@@ -199,6 +201,12 @@ class BoardRestoreResponse(BaseModel):
     board: BoardResponse
     # 원래 주소를 다른 게시판이 쓰고 있어 번호를 붙였는지
     slug_changed: bool
+
+
+class TypeOptionsResponse(BaseModel):
+    """만들기 · 디자인의 유형 고르기 — 고를 수 없는 유형과 이유 (T-218)."""
+
+    blocked: dict[BoardType, str]
 
 
 class PermissionOptionsResponse(BaseModel):
@@ -722,8 +730,15 @@ class PublicListColumn(BaseModel):
     size: ColumnSize = "normal"
 
 
+class RatingSummary(BaseModel):
+    average: float
+    count: int
+
+
 class PublicPostListResponse(BaseModel):
     list_columns: list[PublicListColumn] | None = None
+    # 리뷰형만 — 평균 별점 · 후기 수 (T-218)
+    rating_summary: RatingSummary | None = None
     total: int
     page: int
     size: int
@@ -752,6 +767,10 @@ MemberPostContent = Annotated[
 ]
 
 
+# 리뷰형 별점 (T-218) — 홈페이지 글쓰기 폼의 별 1~5
+VisitorRating = Annotated[int, Field(ge=1, le=5)]
+
+
 class MemberPostCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -759,6 +778,7 @@ class MemberPostCreate(BaseModel):
     content: MemberPostContent
     category_id: UUID | None = None
     is_secret: bool = False
+    rating: VisitorRating | None = None
 
 
 class MemberPostUpdate(BaseModel):
@@ -769,6 +789,7 @@ class MemberPostUpdate(BaseModel):
     # 보내면 바뀐다 — null 은 분류 없음
     category_id: UUID | None = None
     is_secret: bool | None = None
+    rating: VisitorRating | None = None
 
 
 class MemberPostResponse(BaseModel):
@@ -779,6 +800,8 @@ class MemberPostResponse(BaseModel):
     content: str
     category_id: UUID | None
     is_secret: bool = False
+    # 리뷰형이면 고른 별점 (T-218)
+    rating: int | None = None
 
 
 # ── 비회원 글쓰기 · 신고 (T-151-B) ──────────────────────────────────────
@@ -798,6 +821,7 @@ class GuestPostCreate(BaseModel):
     content: MemberPostContent
     category_id: UUID | None = None
     is_secret: bool = False
+    rating: VisitorRating | None = None
     # 개인정보 수집 · 이용 동의 — 반드시 true
     agree: Literal[True]
     recaptcha_token: str | None = Field(default=None, max_length=4000)
@@ -817,6 +841,7 @@ class GuestPostUpdate(BaseModel):
     content: MemberPostContent | None = None
     category_id: UUID | None = None
     is_secret: bool | None = None
+    rating: VisitorRating | None = None
 
 
 class GuestPostResponse(MemberPostResponse):

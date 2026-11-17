@@ -43,14 +43,27 @@ def body_from_text(content: str) -> list[dict]:
         ) from e
 
 
-def member_post_response(post: BoardPost) -> dict:
+async def member_post_response(db: AsyncSession, post: BoardPost) -> dict:
     return {
         "id": post.id,
         "title": post.title,
         "content": body_to_text(post.body or []),
         "category_id": post.category_id,
         "is_secret": post.is_secret,
+        "rating": await post_rating(db, post),
     }
+
+
+async def post_rating(db: AsyncSession, post: BoardPost) -> int | None:
+    """리뷰형 글의 별점 (T-218) — 고치기 폼에 채운다."""
+    board = await db.get(Board, post.board_id)
+    if board is None or board.board_type != field_service.REVIEW:
+        return None
+    field = field_service.review_rating_field(
+        await field_service.list_fields(db, board.id)
+    )
+    value = (post.custom_data or {}).get(field.field_key) if field else None
+    return value if isinstance(value, int) else None
 
 
 def check_secret(board: Board, wanted: bool, already: bool = False) -> None:
@@ -91,9 +104,13 @@ async def create_post(
     await _ensure_rate(db, member)
     check_secret(board, data.is_secret)
     await category_service.check_post_category(db, board.id, data.category_id)
-    # 회원 폼에는 추가 칸이 없다 — 기본값만 채운다. 필수 칸이 있으면 여기서 막힌다
+    # 회원 폼에는 추가 칸이 없다 — 기본값과 리뷰형 별점만. 필수 칸이면 여기서 막힌다
     custom_data = await field_service.resolve_custom_data(
-        db, board.id, None, None, STATUS_PUBLISHED
+        db,
+        board.id,
+        None,
+        await field_service.rating_input(db, board, data.rating),
+        STATUS_PUBLISHED,
     )
     post = BoardPost(
         tenant_id=board.tenant_id,
@@ -150,8 +167,20 @@ async def update_post(
         post.title = data.title
     if data.content is not None:
         post.body = body_from_text(data.content)
+    await apply_rating(db, board, post, data.rating)
     await board_service.after_member_write(db, post)
     return post
+
+
+async def apply_rating(
+    db: AsyncSession, board: Board, post: BoardPost, rating: int | None
+) -> None:
+    """고치기에서 고른 별점 (T-218) — 리뷰형이 아니면 무시한다."""
+    incoming = await field_service.rating_input(db, board, rating)
+    if incoming:
+        post.custom_data = await field_service.resolve_custom_data(
+            db, board.id, post, incoming, post.status
+        )
 
 
 async def delete_post(db: AsyncSession, post: BoardPost) -> None:

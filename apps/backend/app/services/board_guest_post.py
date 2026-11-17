@@ -108,7 +108,11 @@ async def create_post(
     member_post_service.check_secret(board, data.is_secret)
     await category_service.check_post_category(db, board.id, data.category_id)
     custom_data = await field_service.resolve_custom_data(
-        db, board.id, None, None, STATUS_PUBLISHED
+        db,
+        board.id,
+        None,
+        await field_service.rating_input(db, board, data.rating),
+        STATUS_PUBLISHED,
     )
     post = BoardPost(
         tenant_id=board.tenant_id,
@@ -198,6 +202,7 @@ async def update_post(
         post.title = data.title
     if data.content is not None:
         post.body = member_post_service.body_from_text(data.content)
+    await member_post_service.apply_rating(db, board, post, data.rating)
     await board_service.after_member_write(db, post)
     return post
 
@@ -210,7 +215,7 @@ async def delete_post(db: AsyncSession, post: BoardPost) -> None:
 
 async def guest_post_response(db: AsyncSession, post: BoardPost) -> dict:
     return {
-        **member_post_service.member_post_response(post),
+        **await member_post_service.member_post_response(db, post),
         "guest_name": post.guest_name or "",
         "body": post.body or [],
         "fields": await field_service.public_fields(db, post),
