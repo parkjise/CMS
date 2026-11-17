@@ -444,6 +444,18 @@ export function useUpdatePost(boardId: string) {
   })
 }
 
+/** 문의형 관리자 답변 (T-219) — 빈 글자면 답변을 지운다 */
+export function useAnswerPost(boardId: string) {
+  const invalidate = useInvalidateBoards()
+  return useMutation({
+    mutationFn: async ({ id, answer }: { id: string; answer: string }): Promise<Post> => {
+      const { data } = await api.put(`/v1/boards/${boardId}/posts/${id}/answer`, { answer })
+      return data.data
+    },
+    onSuccess: invalidate,
+  })
+}
+
 export function useDeletePost(boardId: string) {
   const invalidate = useInvalidateBoards()
   return useMutation({

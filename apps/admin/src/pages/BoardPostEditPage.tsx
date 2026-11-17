@@ -17,6 +17,7 @@ import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { PostAttachmentsField } from '@/components/boards/PostAttachmentsField'
 import { PostVersionsPanel } from '@/components/boards/PostVersionsPanel'
+import { PostAnswerPanel } from '@/components/boards/PostAnswerPanel'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -492,6 +493,7 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
 export function BoardPostEditPage() {
   const { boardId = '', postId } = useParams()
   const postQuery = usePost(boardId, postId)
+  const isQna = useBoards().data?.find((b) => b.id === boardId)?.board_type === 'QNA'
   const fieldsQuery = useBoardFields(boardId)
   const categoriesQuery = useBoardCategories(boardId)
 
@@ -534,6 +536,10 @@ export function BoardPostEditPage() {
           fields={fieldsQuery.data ?? null}
           categories={categoriesQuery.data ?? null}
         />
+      )}
+      {/* 문의형 답변 (T-219) — 저장된 글에만 */}
+      {isQna && postQuery.data && (
+        <PostAnswerPanel key={postQuery.data.id} boardId={boardId} post={postQuery.data} />
       )}
     </div>
   )

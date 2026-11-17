@@ -13,6 +13,11 @@ export const BOARD_TYPES: { value: BoardType; label: string; hint: string }[] = 
     label: '리뷰형',
     hint: '고객 후기처럼 별점과 글을 받고, 목록 위에 평균 별점을 보여 줍니다.',
   },
+  {
+    value: 'QNA',
+    label: '문의형',
+    hint: '질문을 받고 관리자가 글 아래에 답변합니다. 개인 상담은 온라인 상담을 쓰세요.',
+  },
   { value: 'GALLERY', label: '갤러리형', hint: '사진 중심으로 카드처럼 보여 줍니다.' },
   { value: 'FAQ', label: 'FAQ형', hint: '질문을 누르면 답변이 펼쳐집니다.' },
   { value: 'CARD', label: '카드형', hint: '채용공고 · 프로젝트처럼 요약과 칸 값을 카드로 보여 줍니다.' },
