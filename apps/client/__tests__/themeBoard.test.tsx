@@ -153,6 +153,21 @@ describe('테마형 게시판 목록 (T-141)', () => {
       expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
     })
 
+    it('리뷰형 (T-218): 평균 별점 · 별 · 요약', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([boardOf('REVIEW')]))
+      fetchPublicPosts.mockResolvedValue({
+        ...listOf([
+          { ...card, card_fields: null, list_fields: [{ key: 'rating', label: '별점', field_type: 'RATING', value: 5 }] },
+        ]),
+        rating_summary: { average: 5, count: 1 },
+      })
+      await renderPage(['news'])
+      expect(screen.getByText('★ 5.0')).toBeInTheDocument()
+      expect(screen.getByText(/후기 1개/)).toBeInTheDocument()
+      expect(screen.getByRole('img', { name: '별점 5점' })).toBeInTheDocument()
+      expect(screen.getByText('요약 글자')).toBeInTheDocument()
+    })
+
     it('웹진형 (T-217): 10개씩, 왼쪽 사진 · 제목 · 요약 · 날짜', async () => {
       const webzine = { ...card, card_fields: null }
       fetchPublicSite.mockResolvedValue(siteWith([boardOf('WEBZINE')]))

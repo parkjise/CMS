@@ -205,6 +205,36 @@ describe('갤러리형', () => {
   })
 })
 
+describe('리뷰형 (T-218)', () => {
+  const rated = (rating: number, extra = {}) => ({
+    ...post,
+    summary: '친절했어요',
+    list_fields: [
+      { key: 'rating', label: '별점', field_type: 'RATING', value: rating },
+      { key: 'v', label: '방문', field_type: 'TEXT', value: '11월' },
+    ],
+    ...extra,
+  })
+
+  it('평균 별점 · 후기 수, 글마다 별 · 요약 · 남은 칸', async () => {
+    fetchPublicPosts.mockResolvedValue({ ...listOf([rated(4)]), rating_summary: { average: 4.25, count: 8 } })
+    const { container } = render(await CustomBoard(props('REVIEW')))
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined })
+    expect(container.querySelector('.board-review__summary')).toHaveTextContent('★ 4.3')
+    expect(screen.getByText(/후기 8개/)).toBeInTheDocument()
+    expect(screen.getByRole('img', { name: '별점 4점' })).toBeInTheDocument()
+    expect(screen.getByText('친절했어요')).toBeInTheDocument()
+    expect(screen.getByText('방문: 11월')).toBeInTheDocument()
+    expect(screen.queryByText(/별점: /)).not.toBeInTheDocument()
+  })
+
+  it('후기가 없으면 평균을 그리지 않는다', async () => {
+    fetchPublicPosts.mockResolvedValue({ ...listOf([]), rating_summary: { average: 0, count: 0 } })
+    const { container } = render(await CustomBoard(props('REVIEW')))
+    expect(container.querySelector('.board-review__summary')).toBeNull()
+  })
+})
+
 describe('웹진형 (T-217)', () => {
   const item = {
     ...post,

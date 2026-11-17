@@ -1,0 +1,130 @@
+// ── BOARD REVIEW — 새 게시판 리뷰형 (T-218) ─────────────────────
+// 목록 위 평균 별점 · 후기 수, 글마다 별 · 제목 · 요약 · 작성일. 글쓰기 폼의 별 고르기
+@use '../mixins' as *;
+
+$muted: #64748b;
+$line: #e2e8f0;
+$star: #f59e0b;
+$star-off: #d1d5db;
+
+.board-review {
+  margin-top: 28px;
+
+  &__summary {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 20px 24px;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+
+  &__average {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: $star;
+  }
+
+  &__count {
+    font-size: 0.9375rem;
+    color: $muted;
+  }
+
+  &__list {
+    margin-top: 20px;
+    border-top: 1px solid $line;
+  }
+
+  &__item {
+    border-bottom: 1px solid $line;
+  }
+
+  &__link {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 24px 0;
+    @include focus-ring;
+
+    @include hover {
+      .board-review__subject {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+    }
+  }
+
+  &__stars {
+    font-size: 1.125rem;
+    letter-spacing: 2px;
+    color: $star;
+  }
+
+  &__stars-off {
+    color: $star-off;
+  }
+
+  &__subject {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+    @include line-clamp(2);
+  }
+
+  &__summary-text {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: $muted;
+    word-break: keep-all;
+    @include line-clamp(3);
+  }
+
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  &__field,
+  &__date {
+    font-size: 0.875rem;
+    color: $muted;
+  }
+}
+
+// 글쓰기 폼 — 라디오는 숨기고 별로 보여 준다
+.board-rating {
+  border: 0;
+  padding: 0;
+  margin: 0;
+
+  &__stars {
+    display: flex;
+    gap: 4px;
+  }
+
+  &__input {
+    @include sr-only;
+  }
+
+  &__star {
+    font-size: 2rem;
+    line-height: 1;
+    color: $star-off;
+    cursor: pointer;
+  }
+
+  &__star--on {
+    color: $star;
+  }
+
+  &__input:focus-visible + &__star {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  &__error {
+    color: #dc2626;
+  }
+}

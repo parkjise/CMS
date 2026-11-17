@@ -12,6 +12,7 @@ import { pageHref } from '../../../shared/contracts'
 import { categoryOptions } from '@/lib/categoryTabs'
 import { BoardGate } from './BoardGate'
 import type { BoardLink } from './CustomBoardViews'
+import { StarRatingInput } from '@/components/board/StarRatingInput'
 
 interface CustomBoardWriteProps {
   board: PublicBoard
@@ -244,6 +245,24 @@ export function CustomBoardWrite({
                   {form.values.content.length.toLocaleString()} / {CONTENT_MAX.toLocaleString()}자
                 </p>
               </div>
+              {form.ratingChoice && (
+                <StarRatingInput
+                  id="mw-rating"
+                  value={form.values.rating}
+                  error={form.errors.rating}
+                  onChange={(rating) => form.change({ rating })}
+                  classes={{
+                    root: 'board-form__row board-rating',
+                    legend: 'board-form__label',
+                    req: 'board-form__req',
+                    stars: 'board-rating__stars',
+                    input: 'board-rating__input',
+                    star: 'board-rating__star',
+                    starOn: 'board-rating__star--on',
+                    error: 'board-form__help board-rating__error',
+                  }}
+                />
+              )}
               {form.guest && !postId && (
                 <div className="board-form__row board-form__row--check">
                   <input

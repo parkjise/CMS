@@ -9,6 +9,7 @@ import {
   SECRET_TEXT,
   WRITE_PAGE,
   boardDesign,
+  reviewRating,
   canMemberWrite,
   loadBoardPage,
 } from '@/lib/boardRoute'
@@ -426,6 +427,70 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
             </li>
           ))}
         </ul>
+      ) : board.board_type === 'REVIEW' ? (
+        // 리뷰형 (T-218) — 평균 별점 · 후기 수, 글마다 별 · 제목 · 요약
+        <div className="mt-6">
+          {list.ratingSummary && list.ratingSummary.count > 0 && (
+            <p className="flex items-baseline gap-3 rounded-xl bg-[var(--color-surface)] px-6 py-5">
+              <span className="text-3xl font-bold text-amber-500" aria-hidden>
+                ★ {list.ratingSummary.average.toFixed(1)}
+              </span>
+              <span className={`text-sm ${muted}`}>
+                <span className="sr-only">
+                  평균 별점 {list.ratingSummary.average.toFixed(1)}점,{' '}
+                </span>
+                후기 {list.ratingSummary.count.toLocaleString()}개
+              </span>
+            </p>
+          )}
+          <ul className={`mt-5 border-t ${line}`}>
+            {posts.map((post) => {
+              const { rating, rest } = reviewRating(post.list_fields)
+              return (
+                <li key={post.id} className={`border-b ${line}`}>
+                  <a href={hrefFor({ id: post.id })} className="group flex flex-col gap-2 py-6">
+                    {rating !== null && (
+                      <span
+                        className="text-lg tracking-widest text-amber-500"
+                        role="img"
+                        aria-label={`별점 ${rating}점`}
+                      >
+                        {'★'.repeat(rating)}
+                        <span className="text-slate-300">{'★'.repeat(5 - rating)}</span>
+                      </span>
+                    )}
+                    <span className={`font-semibold group-hover:underline ${primary}`}>
+                      {post.is_secret && (
+                        <Lock
+                          className="mr-1 inline h-4 w-4 align-[-2px]"
+                          aria-label="비밀글"
+                          role="img"
+                        />
+                      )}
+                      {post.title}
+                      {post.has_attachments && <AttachmentMark />}
+                    </span>
+                    {design.show_summary && post.summary && (
+                      <span className={`line-clamp-3 text-sm ${muted}`}>{post.summary}</span>
+                    )}
+                    {!post.is_secret && (
+                      <ListFieldValues
+                        fields={rest}
+                        className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${muted}`}
+                        itemClassName="min-w-0 break-words [overflow-wrap:anywhere]"
+                      />
+                    )}
+                    {design.show_date && (
+                      <time className={`text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                        {dotted(post.published_at)}
+                      </time>
+                    )}
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       ) : board.board_type === 'WEBZINE' ? (
         // 웹진형 (T-217) — 왼쪽 썸네일, 오른쪽 제목 · 요약 · 작성일
         <ul className={`mt-6 border-t ${line}`}>

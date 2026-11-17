@@ -68,6 +68,8 @@ export interface BoardPresetField {
   field_type: FieldType
   choices: string[]
   show_in_list: boolean
+  /** 고르지 않아도 늘 만든다 — 리뷰형 별점 (T-218) */
+  always?: boolean
 }
 
 /** 값이 있는 칸의 유형 바꾸기 미리보기 (T-182) */
@@ -94,7 +96,7 @@ export interface FieldConvertResult {
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
 export type BodyNode = BodyBlock | RichNode
 
-export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD' | 'WEBZINE'
+export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD' | 'WEBZINE' | 'REVIEW'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
 
@@ -375,6 +377,8 @@ export interface PublicListColumn {
 
 export interface PublicPostList {
   list_columns?: PublicListColumn[] | null
+  /** 리뷰형만 — 평균 별점 · 후기 수 (T-218) */
+  rating_summary?: { average: number; count: number } | null
   total: number
   page: number
   size: number
@@ -418,6 +422,8 @@ export interface MemberPost {
   content: string
   category_id: string | null
   is_secret?: boolean
+  /** 리뷰형 별점 (T-218) */
+  rating?: number | null
 }
 
 /** 비밀번호를 확인한 비회원 글 (T-151-B) */
