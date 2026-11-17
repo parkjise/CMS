@@ -20,6 +20,8 @@ vi.mock('gsap', () => ({
 vi.mock('gsap/ScrollTrigger', () => ({ ScrollTrigger: {} }))
 vi.mock('@/lib/api', () => ({ publicApi: { post: vi.fn() } }))
 vi.mock('@/lib/recaptcha', () => ({ executeRecaptcha: vi.fn() }))
+// 게시판 본문은 서버 컴포넌트(async) — 하위 탭만 본다 (T-216)
+vi.mock('@/templates/hospital-a/components/board/CustomBoard', () => ({ CustomBoard: () => null }))
 
 import HospitalATemplate from '@/templates/hospital-a/Template'
 import { RichLine } from '@/templates/hospital-a/components/sub/RichText'
@@ -144,5 +146,73 @@ describe('RichLine (T-122)', () => {
     expect(container.querySelector('strong')).toHaveTextContent('굵은 둘째')
     expect(container.querySelector('b')).toBeNull()
     expect(container.textContent).toBe('첫 줄\n굵은 둘째 <b>x</b>')
+  })
+})
+
+describe('게시판을 2단계 메뉴에 (T-216)', () => {
+  const press = {
+    id: 'b1',
+    name: '보도자료',
+    slug: 'press',
+    description: '',
+    board_type: 'LIST' as const,
+    menu_parent: 'about',
+  }
+  const renderWith = (pageKey: string, boards: (typeof press)[], board?: typeof press) =>
+    render(
+      <HospitalATemplate
+        site={site}
+        tenantSlug="demo"
+        pageKey={pageKey}
+        sections={resolvePageSections(hospitalAManifest, hospitalASample, [], pageKey)}
+        siteInfo={resolveSiteInfo(hospitalASample, site)}
+        preview={false}
+        boards={boards}
+        board={board}
+      />,
+    )
+  const gnb = () =>
+    within(screen.getByRole('navigation', { name: '주 메뉴' }))
+      .getAllByRole('link')
+      .map((a) => a.textContent)
+
+  it('묶음 아래 게시판은 상단 메뉴에서 빠지고 그 묶음의 하위 탭 끝에 나온다', () => {
+    renderWith('about', [press])
+    expect(gnb()).not.toContain('보도자료')
+    const tabs = screen.getByRole('navigation', { name: '하위 메뉴' })
+    expect(within(tabs).getAllByRole('link').map((a) => a.textContent)).toEqual([
+      '브랜드 소개',
+      '연혁',
+      '오시는 길',
+      '보도자료',
+    ])
+    expect(within(tabs).getByRole('link', { name: '보도자료' })).toHaveAttribute(
+      'href',
+      '/demo/b/press',
+    )
+  })
+
+  it('게시판 화면에서도 같은 하위 탭 — 지금 게시판 표시', () => {
+    renderWith('b/press', [press], press)
+    const tabs = screen.getByRole('navigation', { name: '하위 메뉴' })
+    expect(within(tabs).getByRole('link', { name: '보도자료' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    )
+    expect(within(tabs).getByRole('link', { name: '브랜드 소개' })).toBeInTheDocument()
+  })
+
+  it('하위 페이지가 없던 묶음도 게시판이 들어가면 탭이 생긴다', () => {
+    renderWith('business', [{ ...press, menu_parent: 'business' }])
+    const tabs = screen.getByRole('navigation', { name: '하위 메뉴' })
+    expect(within(tabs).getAllByRole('link').map((a) => a.textContent)).toEqual([
+      '사업영역',
+      '보도자료',
+    ])
+  })
+
+  it('이 템플릿에 없는 묶음이면 상단 메뉴로 돌아간다', () => {
+    renderWith('about', [{ ...press, menu_parent: 'careers' }])
+    expect(gnb()).toContain('보도자료')
   })
 })

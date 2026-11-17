@@ -72,13 +72,16 @@ async def _menu_candidates(
     template = await db.get(Template, override.template_id) if override else None
     code = template.code if template and template.renderer == "code" else None
     # 테마형은 공지 페이지가 없어 공지 게시판도 메뉴 후보로 (T-176)
+    pages = load_menu(code) if code else None
+    page_keys = {p["key"] for p in pages or []}
+    # 페이지 묶음 아래 게시판은 그 하위 탭에 나오므로 상단 메뉴에서 뺀다 (T-216)
     boards = [
         (board_menu_key(b["id"]), b["name"])
         for b in await board_service.list_public_boards(
             db, tenant_id, include_notice=not code
         )
+        if b.get("menu_parent") not in page_keys
     ]
-    pages = load_menu(code) if code else None
     if pages:
         return "code", [*((p["key"], p["title"]) for p in pages), *boards]
     result = await db.execute(

@@ -110,6 +110,15 @@ class BoardOperation(BaseModel):
     report_hide_count: Literal[0, 3, 5, 10] = 5
 
 
+# 페이지 묶음 키 (T-216) — 템플릿 manifest 의 페이지 키 모양, "" 은 상단 메뉴
+MenuParent = Annotated[str, StringConstraints(pattern=r"^([a-z0-9][a-z0-9-]{0,39})?$")]
+
+
+class MenuParentOption(BaseModel):
+    key: str
+    title: str
+
+
 class BoardCreate(BaseModel):
     name: BoardName
     # 비우면 서버가 board-1 처럼 만든다 — 한글 이름은 주소로 쓰기 어렵다
@@ -152,6 +161,8 @@ class BoardUpdate(BaseModel):
     design: BoardDesign | None = None
     permissions: BoardPermissions | None = None
     operation: BoardOperation | None = None
+    # 2단계 메뉴 (T-216) — 페이지 묶음 키, "" 이면 상단 메뉴
+    menu_parent: MenuParent | None = None
 
 
 class BoardResponse(BaseModel):
@@ -175,6 +186,8 @@ class BoardResponse(BaseModel):
     design: BoardDesign
     permissions: BoardPermissions
     operation: BoardOperation
+    # 2단계 메뉴 (T-216) — 페이지 묶음 키, "" 이면 상단 메뉴
+    menu_parent: str = ""
     # 휴지통 게시판 (T-196) — 이 시각 뒤 자동 영구 삭제, 휴지통에 넣은 사람
     purge_at: datetime | None = None
     deleted_by: str | None = None
@@ -660,6 +673,8 @@ class PublicBoardResponse(BaseModel):
     allow_secret: bool = False
     # 비회원 글쓰기 (T-151-B)
     allow_guest: bool = False
+    # 2단계 메뉴 (T-216) — 코드형 템플릿이 이 페이지 묶음의 하위 탭에 넣는다
+    menu_parent: str = ""
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
 

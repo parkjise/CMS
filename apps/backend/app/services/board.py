@@ -33,7 +33,13 @@ from app.schemas.board import (
     PostUpdate,
 )
 from app.schemas.rich_body import body_summary, first_image
-from app.services import board_access, board_presets, member_features, site_cache
+from app.services import (
+    board_access,
+    board_menu,
+    board_presets,
+    member_features,
+    site_cache,
+)
 from app.services import board_attachment as attachment_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
@@ -64,9 +70,11 @@ SEO_DESCRIPTION_KEY = "seo_description"
 SEO_INDEX_KEY = "seo_index"
 DESIGN_KEY = "design"
 PERMISSIONS_KEY = "permissions"
+MENU_PARENT_KEY = "menu_parent"
 OPERATION_KEY = "operation"
 READ_MEMBER = "MEMBER"
 OPTION_KEYS = {
+    MENU_PARENT_KEY,
     PERMISSIONS_KEY,
     OPERATION_KEY,
     SORT_ORDER_KEY,
@@ -280,6 +288,7 @@ def board_options(board: Board) -> dict:
             **settings.get(PERMISSIONS_KEY, {})
         ).model_dump(),
         OPERATION_KEY: BoardOperation(**settings.get(OPERATION_KEY, {})).model_dump(),
+        MENU_PARENT_KEY: settings.get(MENU_PARENT_KEY, ""),
     }
 
 
@@ -585,6 +594,22 @@ def ensure_secret_allowed(board: Board, is_secret: bool | None) -> None:
         )
 
 
+MSG_MENU_PARENT = "지금 템플릿에 없는 메뉴입니다. 화면을 새로 고쳐 주세요."
+MSG_MENU_PARENT_THEME = "이 템플릿은 상단 메뉴만 있어 아래 메뉴에 넣을 수 없습니다."
+MSG_MENU_PARENT_SYSTEM = "기본 게시판은 템플릿 페이지라 메뉴 위치를 바꿀 수 없습니다."
+
+
+async def _check_menu_parent(db: AsyncSession, board: Board, key: str) -> None:
+    """2단계 메뉴 (T-216) — 지금 코드형 템플릿의 상단 메뉴 페이지만."""
+    if board.system_key is not None:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, MSG_MENU_PARENT_SYSTEM)
+    options = await board_menu.parent_options(db, board.tenant_id)
+    if not options:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, MSG_MENU_PARENT_THEME)
+    if key not in {o["key"] for o in options}:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, MSG_MENU_PARENT)
+
+
 async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Board:
     is_system = board.system_key is not None
     if is_system and data.operation is not None and data.operation != BoardOperation():
@@ -618,6 +643,8 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
                 status_code=status.HTTP_409_CONFLICT,
                 detail={"code": "CONFLICT", "message": blocked},
             )
+    if data.menu_parent:
+        await _check_menu_parent(db, board, data.menu_parent)
     if data.slug is not None and data.slug != board.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, board.tenant_id, data.slug, exclude=board.id):
@@ -1126,6 +1153,7 @@ def _public_board(
         SEO_INDEX_KEY: options[SEO_INDEX_KEY],
         # 저장된 키(숨김/삭제 칸 포함)는 공개하지 않고 읽기 검사 뒤 열 API로 제공한다.
         DESIGN_KEY: {**options[DESIGN_KEY], "list_column_layout": []},
+        MENU_PARENT_KEY: options[MENU_PARENT_KEY],
         "read_access": permissions["read"],
         "write_access": READ_MEMBER if member_write or guest_write else "ADMIN",
         "allow_secret": options[OPERATION_KEY]["allow_secret"],

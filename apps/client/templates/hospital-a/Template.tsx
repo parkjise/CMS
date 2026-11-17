@@ -43,6 +43,7 @@ import { NoticeBoardLive } from './components/board/NoticeBoardLive'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
 import { memberEnabled } from '@/lib/publicSite.types'
+import type { PublicBoard } from '@cms/types'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { MEMBER_PAGES } from '../memberPages'
 import { MemberScreen } from './components/member/MemberScreen'
@@ -120,11 +121,15 @@ export default function HospitalATemplate({
     : { action: `${siteBase}/${pageKey}`, hidden: [] }
   const listPage = Math.max(1, Number(query?.p) || 1)
   const pages = hospitalAManifest.pages
+  const gnbKeys = new Set(pages.filter((p) => p.menu === 'gnb').map((p) => p.key))
+  // 페이지 묶음 아래에 넣은 게시판은 상단 메뉴 대신 그 묶음의 하위 탭 (T-216)
+  const parentOf = (b: PublicBoard) =>
+    b.menu_parent && gnbKeys.has(b.menu_parent) ? b.menu_parent : null
   // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B). 새 게시판은 페이지 뒤에 (T-140-B)
   const menu: HeaderLink[] = applyMenu(
     [
       ...pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title, href: hrefFor(p.key) })),
-      ...(boards ?? []).map((b) => ({
+      ...(boards ?? []).filter((b) => !parentOf(b)).map((b) => ({
         key: `board:${b.id}`,
         label: b.name,
         href: hrefFor(boardPageKey(b.slug)),
@@ -149,12 +154,17 @@ export default function HospitalATemplate({
       : []),
   ]
 
-  // 하위 탭: 같은 묶음(parent)의 페이지가 둘 이상일 때만
+  // 하위 탭: 같은 묶음(parent)의 페이지가 둘 이상일 때만. 묶음 아래 게시판도 탭으로 (T-216)
   const page = pages.find((p) => p.key === pageKey)
-  const group = page?.parent ?? page?.key
-  const tabs: SubNavTab[] = pages
-    .filter((p) => p.key === group || p.parent === group)
-    .map((p) => ({ key: p.key, href: hrefFor(p.key), title: p.tab_title ?? p.title }))
+  const group = page?.parent ?? page?.key ?? (board ? parentOf(board) : null)
+  const tabs: SubNavTab[] = [
+    ...pages
+      .filter((p) => p.key === group || p.parent === group)
+      .map((p) => ({ key: p.key, href: hrefFor(p.key), title: p.tab_title ?? p.title })),
+    ...(boards ?? [])
+      .filter((b) => group && parentOf(b) === group)
+      .map((b) => ({ key: boardPageKey(b.slug), href: hrefFor(boardPageKey(b.slug)), title: b.name })),
+  ]
 
   const renderBlock = (props: CodeSectionProps): ReactNode => {
     switch (getString(props.section.settings, 'layout')) {
@@ -327,6 +337,8 @@ export default function HospitalATemplate({
               homeHref={hrefFor('home')}
               scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
             />
+            {/* 묶음 아래 게시판이면 그 묶음의 하위 탭 (T-216) */}
+            {tabs.length > 1 && <SubNav tabs={tabs} current={pageKey} />}
             <CustomBoard
               board={board}
               tenantSlug={tenantSlug}

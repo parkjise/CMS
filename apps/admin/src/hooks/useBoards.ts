@@ -96,6 +96,8 @@ export interface BoardInput {
   design?: BoardDesign
   permissions?: BoardPermissions
   operation?: BoardOperation
+  /** 2단계 메뉴 (T-216) — 페이지 묶음 키, "" 이면 상단 메뉴 */
+  menu_parent?: string
   /** 추가할 때만 — 끄면 상단 메뉴에서 숨긴다 */
   in_menu?: boolean
   /** 새 게시판과 함께 만들 추천 칸 키 (T-183) */
@@ -119,6 +121,17 @@ export function useNewBoardPermissionOptions() {
     queryKey: [...BOARDS_KEY, 'new', 'permission-options'],
     queryFn: async (): Promise<PermissionOptions> => {
       const { data } = await api.get('/v1/boards/permission-options')
+      return data.data
+    },
+  })
+}
+
+/** 게시판을 넣을 수 있는 페이지 묶음 (T-216) — 테마형이면 빈 목록 */
+export function useMenuParents() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'menu-parents'],
+    queryFn: async (): Promise<{ key: string; title: string }[]> => {
+      const { data } = await api.get('/v1/boards/menu-parents')
       return data.data
     },
   })
