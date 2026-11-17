@@ -30,6 +30,8 @@ export interface NoticeItem {
   secret?: boolean
   /** 첨부 파일이 있는 글 — 제목 옆 클립 (T-197) */
   attachment?: boolean
+  /** 문의형 답변 상태 — 제목 옆 배지 (T-219). 다른 유형은 없음 */
+  answered?: boolean | null
   listFields?: PublicFieldValue[] | null
   body?: BodyBlock[]
 }
@@ -69,6 +71,8 @@ interface NoticeDetailViewProps {
   actions?: ReactNode
   /** 첨부 파일 (T-194) */
   attachments?: PostAttachment[]
+  /** 본문 아래 — 문의형 관리자 답변 (T-219) */
+  afterBody?: ReactNode
 }
 
 /** 게시글 상세 — 목업 sub/board-view.html */
@@ -84,6 +88,7 @@ export function NoticeDetailView({
   edit,
   actions,
   attachments = [],
+  afterBody,
 }: NoticeDetailViewProps) {
   return (
     <section className="board-view" aria-labelledby="board-view-title">
@@ -118,6 +123,7 @@ export function NoticeDetailView({
             </dl>
           )}
           <BoardBody blocks={body} />
+          {afterBody}
           {attachments.length > 0 && (
             <section className="board-view__files" aria-label="첨부 파일">
               <h3 className="board-view__files-title">첨부 파일</h3>
@@ -247,6 +253,13 @@ export function NoticeListView({
                     )}
                     {item.subject}
                     {item.attachment && <AttachmentMark className="board-list__clip" />}
+                    {item.answered != null && (
+                      <span
+                        className={`board-list__answer${item.answered ? ' board-list__answer--done' : ''}`}
+                      >
+                        {item.answered ? '답변 완료' : '답변 대기'}
+                      </span>
+                    )}
                   </span>
                   {!item.secret && (
                     <ListFieldValues
