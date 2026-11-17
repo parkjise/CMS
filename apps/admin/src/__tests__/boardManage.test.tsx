@@ -88,6 +88,7 @@ const PRESETS = {
     },
     { key: 'deadline', label: '마감일', field_type: 'DATE', choices: [], show_in_list: true },
   ],
+  REVIEW: [{ key: 'rating', label: '별점', field_type: 'RATING', choices: [], show_in_list: true, always: true }],
 }
 
 const mockApi = ({
@@ -96,18 +97,21 @@ const mockApi = ({
   trash = [],
   mode = 'code',
   presets = PRESETS,
+  blocked = {},
 }: {
   boards?: Board[]
   limits?: BoardLimits
   trash?: Board[]
   mode?: 'code' | 'theme'
   presets?: unknown
+  blocked?: Record<string, string>
 }) => {
   get.mockImplementation((url: string, config?: { params?: { trash?: boolean } }) => {
     if (url === '/v1/boards/limits') return ok(limits)
     if (url === '/v1/boards/presets')
       return presets === 'error' ? Promise.reject(new Error('down')) : ok(presets)
     if (url === '/v1/boards') return ok(config?.params?.trash ? trash : boards)
+    if (url === '/v1/boards/type-options') return ok({ blocked })
     if (url === '/v1/site-settings/menu') return ok({ mode, reorderable: mode === 'code', items: [] })
     return ok(undefined)
   })
@@ -287,6 +291,38 @@ describe('게시판 추가 마법사', () => {
       const group = await screen.findByRole('group', { name: '함께 만들 추천 칸' })
       expect(within(group).getByRole('checkbox', { name: /근무 형태/ })).toBeChecked()
       expect(within(group).getByText(/하나 고르기: 정규직 · 계약직/)).toBeInTheDocument()
+    })
+
+    it('리뷰형 (T-218): 별점 칸은 체크를 풀 수 없고 늘 보낸다', async () => {
+      mockApi({})
+      post.mockResolvedValue({ data: { data: { ...board, id: 'new1' } } })
+      renderNew()
+      await toTypeStep()
+      await userEvent.click(screen.getByRole('radio', { name: /리뷰형/ }))
+      await next()
+      const rating = await screen.findByRole('checkbox', { name: /별점/ })
+      expect(rating).toBeChecked()
+      expect(rating).toBeDisabled()
+      expect(screen.getByText('리뷰형에는 늘 들어갑니다.')).toBeInTheDocument()
+      await next()
+      await next()
+      await create()
+      await waitFor(() =>
+        expect(post).toHaveBeenCalledWith(
+          '/v1/boards',
+          expect.objectContaining({ board_type: 'REVIEW', preset_fields: ['rating'] }),
+        ),
+      )
+    })
+
+    it('병원 업종은 리뷰형을 고를 수 없고 이유가 보인다 (T-218)', async () => {
+      mockApi({ blocked: { REVIEW: '병원 업종은 의료법상 리뷰형 게시판을 쓸 수 없습니다.' } })
+      renderNew()
+      await toTypeStep()
+      const review = await screen.findByRole('radio', { name: /리뷰형/ })
+      await waitFor(() => expect(review).toBeDisabled())
+      expect(screen.getByText(/의료법상 리뷰형/)).toBeInTheDocument()
+      expect(screen.getByRole('radio', { name: /목록형/ })).toBeEnabled()
     })
 
     it('체크를 푼 칸은 빼고, 유형마다 선택을 기억한다', async () => {
@@ -630,6 +666,22 @@ describe('게시판 디자인 탭 (T-148)', () => {
         }),
       ),
     )
+  })
+
+  it('리뷰형 (T-218): 요약 · 작성일만, 병원이면 고를 수 없다', async () => {
+    mockApi({})
+    const first = renderDesign()
+    await userEvent.click(await screen.findByRole('radio', { name: /리뷰형/ }))
+    expect(screen.queryByLabelText('사진 비율')).not.toBeInTheDocument()
+    expect(screen.getByLabelText(/요약 표시/)).toBeInTheDocument()
+    expect(screen.getByLabelText(/작성일 표시/)).toBeInTheDocument()
+    expect(screen.getByText('후기 128개')).toBeInTheDocument()
+    first.unmount()
+    mockApi({ blocked: { REVIEW: '병원 업종은 의료법상 리뷰형 게시판을 쓸 수 없습니다.' } })
+    renderDesign()
+    const review = await screen.findByRole('radio', { name: /리뷰형/ })
+    await waitFor(() => expect(review).toBeDisabled())
+    expect(screen.getByText(/리뷰형: 병원 업종은/)).toBeInTheDocument()
   })
 
   it('유형마다 맞는 설정만 보인다', async () => {

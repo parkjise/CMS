@@ -5,6 +5,7 @@ import { Button, Input, Textarea, toast } from '@cms/ui'
 import {
   useBoardLimits,
   useBoardPresets,
+  useBoardTypeOptions,
   useCreateBoard,
   useNewBoardPermissionOptions,
   useSlugCheck,
@@ -52,6 +53,15 @@ const HINT =
 /** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸, 웹진은 왼쪽 사진 + 줄 */
 function TypeSketch({ type }: { type: BoardType }) {
   const tiles = type === 'GALLERY' || type === 'CARD'
+  if (type === 'REVIEW') {
+    return (
+      <span aria-hidden className="mb-3 flex h-16 flex-col gap-1.5 rounded-md bg-slate-100 p-3">
+        <i className="text-xs not-italic leading-none tracking-widest text-amber-400">★★★★★</i>
+        <i className="h-1.5 w-full rounded-sm bg-slate-300" />
+        <i className="h-1.5 w-2/3 rounded-sm bg-slate-300" />
+      </span>
+    )
+  }
   if (type === 'WEBZINE') {
     return (
       <span aria-hidden className="mb-3 flex h-16 gap-2 rounded-md bg-slate-100 p-3">
@@ -207,9 +217,13 @@ export function BoardNewPage() {
   const [presetPicks, setPresetPicks] = useState<Partial<Record<BoardType, string[]>>>({})
   const [createdPresets, setCreatedPresets] = useState(0)
   const presets = presetsQuery.data?.[boardType] ?? []
+  const blockedTypes = useBoardTypeOptions().data?.blocked ?? {}
   const pickedPresets = presetPicks[boardType] ?? presets.map((p) => p.key)
   // 추천 칸을 못 불러왔으면 보내지 않는다 — 칸은 만든 뒤 필드 관리에서
-  const sendPresets = presetsQuery.isSuccess ? pickedPresets : []
+  // 늘 만드는 칸(리뷰형 별점)은 체크와 상관없이 보낸다 — 서버도 넣는다
+  const sendPresets = presetsQuery.isSuccess
+    ? presets.filter((p) => p.always || pickedPresets.includes(p.key)).map((p) => p.key)
+    : []
   const togglePreset = (key: string, checked: boolean) =>
     setPresetPicks((picks) => ({
       ...picks,
@@ -513,39 +527,55 @@ export function BoardNewPage() {
                   <fieldset>
                     <legend className="sr-only">게시판 유형</legend>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                      {BOARD_TYPES.map((type) => (
-                        <label
-                          key={type.value}
-                          className={`relative cursor-pointer rounded-lg border p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
-                            boardType === type.value
-                              ? 'border-blue-600 bg-blue-50/60'
-                              : 'border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="board_type"
-                            className="sr-only"
-                            checked={boardType === type.value}
-                            onChange={() => setBoardType(type.value)}
-                          />
-                          <TypeSketch type={type.value} />
-                          <span className="block text-sm font-semibold text-slate-800">
-                            {type.label}
-                          </span>
-                          <span className="mt-1 block text-xs leading-relaxed text-slate-500">
-                            {type.hint}
-                          </span>
-                          {boardType === type.value && (
-                            <span
-                              aria-hidden
-                              className="absolute right-2.5 top-2 text-sm text-blue-600"
-                            >
-                              ✓
+                      {BOARD_TYPES.map((type) => {
+                        // 병원 업종은 리뷰형을 고를 수 없다 — 서버도 막는다 (T-218)
+                        const blocked = blockedTypes[type.value]
+                        return (
+                          <label
+                            key={type.value}
+                            className={`relative rounded-lg border p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
+                              blocked
+                                ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-70'
+                                : boardType === type.value
+                                  ? 'cursor-pointer border-blue-600 bg-blue-50/60'
+                                  : 'cursor-pointer border-slate-200 hover:border-slate-300'
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="board_type"
+                              className="sr-only"
+                              checked={boardType === type.value}
+                              disabled={Boolean(blocked)}
+                              aria-describedby={blocked ? `type-blocked-${type.value}` : undefined}
+                              onChange={() => setBoardType(type.value)}
+                            />
+                            <TypeSketch type={type.value} />
+                            <span className="block text-sm font-semibold text-slate-800">
+                              {type.label}
                             </span>
-                          )}
-                        </label>
-                      ))}
+                            <span className="mt-1 block text-xs leading-relaxed text-slate-500">
+                              {type.hint}
+                            </span>
+                            {blocked && (
+                              <span
+                                id={`type-blocked-${type.value}`}
+                                className="mt-1.5 block text-xs leading-relaxed text-amber-700"
+                              >
+                                {blocked}
+                              </span>
+                            )}
+                            {boardType === type.value && (
+                              <span
+                                aria-hidden
+                                className="absolute right-2.5 top-2 text-sm text-blue-600"
+                              >
+                                ✓
+                              </span>
+                            )}
+                          </label>
+                        )
+                      })}
                     </div>
                   </fieldset>
                   <p className={HINT}>
@@ -589,7 +619,8 @@ export function BoardNewPage() {
                           <input
                             type="checkbox"
                             className="mt-0.5 h-4 w-4 accent-blue-600"
-                            checked={pickedPresets.includes(preset.key)}
+                            checked={preset.always || pickedPresets.includes(preset.key)}
+                            disabled={preset.always}
                             onChange={(e) => togglePreset(preset.key, e.target.checked)}
                           />
                           <span>
@@ -598,6 +629,11 @@ export function BoardNewPage() {
                               ({fieldTypeLabel(preset.field_type)}
                               {preset.choices.length > 0 && `: ${preset.choices.join(' · ')}`})
                             </span>
+                            {preset.always && (
+                              <span className="block text-xs text-slate-500">
+                                {boardTypeLabel(boardType)}에는 늘 들어갑니다.
+                              </span>
+                            )}
                           </span>
                         </label>
                       ))}
@@ -651,13 +687,14 @@ export function BoardNewPage() {
                         className="mt-0.5 h-4 w-4 accent-blue-600"
                         checked={operation.allow_guest}
                         disabled={Boolean(writeBlocked)}
-                        onChange={(e) => setOperation((o) => ({ ...o, allow_guest: e.target.checked }))}
+                        onChange={(e) =>
+                          setOperation((o) => ({ ...o, allow_guest: e.target.checked }))
+                        }
                       />
                       <span>
                         비회원 글쓰기
                         <span className="block text-xs text-slate-500">
-                          {writeBlocked ??
-                            '로그인하지 않은 방문자도 이름 · 글 비밀번호로 씁니다.'}
+                          {writeBlocked ?? '로그인하지 않은 방문자도 이름 · 글 비밀번호로 씁니다.'}
                         </span>
                       </span>
                     </label>
@@ -736,11 +773,7 @@ export function BoardNewPage() {
                       value={`기본 필드 ${BASE_FIELDS.length}개 / 추천 칸 ${sendPresets.length}개`}
                       onEdit={() => goTo(2)}
                     />
-                    <SummaryRow
-                      label="권한"
-                      value={accessSummary}
-                      onEdit={() => goTo(3)}
-                    />
+                    <SummaryRow label="권한" value={accessSummary} onEdit={() => goTo(3)} />
                   </div>
                 </>
               )}
