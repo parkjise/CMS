@@ -148,6 +148,7 @@ class TestPublicSiteBoards:
                     "show_date": True,
                     "show_image": True,
                     "show_summary": True,
+                    "summary_length": 120,
                     "faq_single_open": False,
                     "faq_first_open": False,
                 },

@@ -18,6 +18,9 @@ MSG_UNKNOWN_PRESET = "이 유형에서 쓸 수 없는 추천 칸입니다. 화�
 PRESETS: dict[str, list[dict[str, Any]]] = {
     "LIST": [],
     "FAQ": [],
+    "WEBZINE": [
+        {"key": "tags", "label": "태그", "field_type": "TEXT", "show_in_list": True},
+    ],
     "GALLERY": [
         {"key": "taken_on", "label": "촬영일", "field_type": "DATE"},
         {"key": "place", "label": "장소", "field_type": "TEXT"},

@@ -21,7 +21,7 @@ from app.schemas.rich_body import clean_body
 PostStatus = Literal["DRAFT", "PUBLISHED", "PRIVATE"]
 
 SLUG_MAX_LENGTH = 60
-BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD"]
+BoardType = Literal["LIST", "GALLERY", "FAQ", "CARD", "WEBZINE"]
 BoardStatus = Literal["ACTIVE", "INACTIVE"]
 BoardSortOrder = Literal["LATEST", "OLDEST", "TITLE"]
 BoardPageSize = Literal[10, 20, 30]
@@ -69,6 +69,8 @@ class BoardDesign(BaseModel):
     show_date: bool = True
     show_image: bool = True
     show_summary: bool = True
+    # 웹진형 요약 글자 수 (T-217)
+    summary_length: Literal[60, 120, 200] = 120
     faq_single_open: bool = False
     faq_first_open: bool = False
 

@@ -25,10 +25,22 @@ const SELECT_CLASS =
   'h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20'
 const LABEL_CLASS = 'mb-1.5 block text-xs font-medium text-slate-600'
 const CARD_CLASS = `space-y-4 ${CARD}`
+const SUMMARY_LENGTHS = [60, 120, 200] as const
 
-/** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸 */
+/** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸, 웹진은 왼쪽 사진 + 줄 */
 function TypeSketch({ type }: { type: BoardType }) {
   const tiles = type === 'GALLERY' || type === 'CARD'
+  if (type === 'WEBZINE') {
+    return (
+      <span aria-hidden className="mb-2 flex h-11 gap-1.5 rounded bg-slate-100 p-2">
+        <i className="h-full w-9 rounded-sm bg-slate-300" />
+        <span className="flex flex-1 flex-col gap-1">
+          <i className="h-1 w-full rounded-sm bg-slate-300" />
+          <i className="h-1 w-2/3 rounded-sm bg-slate-300" />
+        </span>
+      </span>
+    )
+  }
   return (
     <span
       aria-hidden
@@ -161,27 +173,30 @@ function BoardDesignForm({ board }: { board: Board }) {
                 />
               )}
 
-              {usesImage && (
+              {(usesImage || boardType === 'WEBZINE') && (
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label htmlFor="board-columns" className={LABEL_CLASS}>
-                      PC 한 줄 개수
-                    </label>
-                    <select
-                      id="board-columns"
-                      className={SELECT_CLASS}
-                      value={design.columns}
-                      onChange={(e) =>
-                        change({ columns: Number(e.target.value) as BoardDesign['columns'] })
-                      }
-                    >
-                      {COLUMNS.map((count) => (
-                        <option key={count} value={count}>
-                          {count}개
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  {/* 웹진형은 한 줄에 글 하나 — 사진 비율만 (T-217) */}
+                  {usesImage && (
+                    <div>
+                      <label htmlFor="board-columns" className={LABEL_CLASS}>
+                        PC 한 줄 개수
+                      </label>
+                      <select
+                        id="board-columns"
+                        className={SELECT_CLASS}
+                        value={design.columns}
+                        onChange={(e) =>
+                          change({ columns: Number(e.target.value) as BoardDesign['columns'] })
+                        }
+                      >
+                        {COLUMNS.map((count) => (
+                          <option key={count} value={count}>
+                            {count}개
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <div>
                     <label htmlFor="board-ratio" className={LABEL_CLASS}>
                       사진 비율
@@ -203,8 +218,9 @@ function BoardDesignForm({ board }: { board: Board }) {
                   </div>
                 </div>
               )}
-              {boardType === 'CARD' && (
-                <div className="space-y-4">
+              {(boardType === 'CARD' || boardType === 'WEBZINE') && (
+                // 스위치는 inline-flex — 세로로 쌓는다
+                <div className="flex flex-col items-start gap-4">
                   <Toggle
                     label="사진 표시"
                     checked={design.show_image}
@@ -216,8 +232,33 @@ function BoardDesignForm({ board }: { board: Board }) {
                     checked={design.show_summary}
                     onChange={(e) => change({ show_summary: e.target.checked })}
                   />
+                  {boardType === 'WEBZINE' && design.show_summary && (
+                    <div className="w-full">
+                      <label htmlFor="board-summary-length" className={LABEL_CLASS}>
+                        요약 길이
+                      </label>
+                      <select
+                        id="board-summary-length"
+                        className={SELECT_CLASS}
+                        value={design.summary_length ?? 120}
+                        onChange={(e) =>
+                          change({
+                            summary_length: Number(e.target.value) as BoardDesign['summary_length'],
+                          })
+                        }
+                      >
+                        {SUMMARY_LENGTHS.map((length) => (
+                          <option key={length} value={length}>
+                            {length}자
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                   <p className="text-xs text-slate-500">
-                    아래에서 고른 추가 정보도 카드에 나옵니다.
+                    {boardType === 'CARD'
+                      ? '아래에서 고른 추가 정보도 카드에 나옵니다.'
+                      : '아래에서 고른 추가 정보도 제목 아래에 나옵니다.'}
                   </p>
                 </div>
               )}

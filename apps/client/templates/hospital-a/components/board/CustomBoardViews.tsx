@@ -227,6 +227,54 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
             )
           })}
         </ul>
+      ) : board.board_type === 'WEBZINE' ? (
+        // 웹진형 (T-217) — 왼쪽 썸네일, 오른쪽 제목 · 요약 · 작성일
+        <ul className={`board-webzine board-webzine${ratioClass}`}>
+          {posts.map((post) => {
+            const date = postDate(post.published_at)
+            return (
+              <li className="board-webzine__item" key={post.id}>
+                <a className="board-webzine__link" href={hrefFor({ id: post.id })}>
+                  {design.show_image &&
+                    (post.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
+                      <img className="board-webzine__image" src={post.thumbnail} alt="" loading="lazy" />
+                    ) : (
+                      // 사진 없는 글은 빈 칸 — 줄 맞춤 (D-03)
+                      <span
+                        className="board-webzine__image board-webzine__image--empty"
+                        aria-hidden="true"
+                      />
+                    ))}
+                  <span className="board-webzine__body">
+                    {post.is_pinned && <span className="board-webzine__badge">공지</span>}
+                    <span className="board-webzine__subject">
+                      {post.is_secret && (
+                        <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                      )}
+                      {post.title}
+                    </span>
+                    {design.show_summary && post.summary && (
+                      <span className="board-webzine__summary">{post.summary}</span>
+                    )}
+                    {!post.is_secret && (
+                      <ListFieldValues
+                        fields={post.list_fields}
+                        className="board-webzine__fields"
+                        itemClassName="board-webzine__field"
+                      />
+                    )}
+                    {design.show_date && (
+                      <time className="board-webzine__date" dateTime={date}>
+                        {dotDate(date)}
+                      </time>
+                    )}
+                  </span>
+                </a>
+              </li>
+            )
+          })}
+        </ul>
       ) : board.board_type === 'CARD' ? (
         <ul className={`board-card board-card--cols-${design.columns} board-card${ratioClass}`}>
           {posts.map((post) => {
