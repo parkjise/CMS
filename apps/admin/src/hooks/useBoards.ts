@@ -39,6 +39,11 @@ export interface PostFilters {
   q?: string
   trash?: boolean
   category_id?: string
+  /** 상세보기 (T-214) — 작성자 · 본문 · 작성일 */
+  author?: string
+  body_q?: string
+  created_from?: string
+  created_before?: string
 }
 
 export interface PostInput {
@@ -56,11 +61,7 @@ export interface PostInput {
 }
 
 export interface PostOverviewFilters extends PostFilters {
-  author?: string
-  body_q?: string
   board_id?: string
-  created_from?: string
-  created_before?: string
   updated_from?: string
   updated_before?: string
   published_from?: string
