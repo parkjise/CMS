@@ -155,6 +155,7 @@ class TestPublicSiteBoards:
                 "write_access": "ADMIN",
                 "allow_secret": False,
                 "allow_guest": False,
+                "menu_parent": "",
                 "categories": [],
             }
         ]
