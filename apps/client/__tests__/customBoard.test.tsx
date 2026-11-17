@@ -205,6 +205,38 @@ describe('갤러리형', () => {
   })
 })
 
+describe('웹진형 (T-217)', () => {
+  const item = {
+    ...post,
+    thumbnail: 'http://x/a.webp',
+    summary: '봄 소식을 전합니다',
+    list_fields: [{ key: 'w', label: '글쓴이', field_type: 'TEXT', value: '원장' }],
+  }
+
+  it('10개씩, 왼쪽 사진 · 제목 · 요약 · 목록 칸 · 날짜', async () => {
+    fetchPublicPosts.mockResolvedValue(listOf([item]))
+    const { container } = render(await CustomBoard(props('WEBZINE')))
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined })
+    const link = container.querySelector('.board-webzine__link') as HTMLElement
+    expect(link).toHaveAttribute('href', '/demo/b/news/p1')
+    expect(link.querySelector('img.board-webzine__image')).toHaveAttribute('src', 'http://x/a.webp')
+    expect(within(link).getByText('봄 소식을 전합니다')).toBeInTheDocument()
+    expect(within(link).getByText(/원장/)).toBeInTheDocument()
+    expect(link.querySelector('time')).toHaveTextContent('2026. 11. 05')
+  })
+
+  it('비밀글은 제목만 — 요약 · 사진 대신 빈 칸', async () => {
+    fetchPublicPosts.mockResolvedValue(
+      listOf([{ ...post, is_secret: true, summary: null, list_fields: null }]),
+    )
+    const { container } = render(await CustomBoard(props('WEBZINE')))
+    expect(screen.getByRole('img', { name: '비밀글' })).toBeInTheDocument()
+    expect(container.querySelector('.board-webzine__summary')).toBeNull()
+    expect(container.querySelector('img.board-webzine__image')).toBeNull()
+    expect(container.querySelector('.board-webzine__image--empty')).toBeInTheDocument()
+  })
+})
+
 describe('FAQ형', () => {
   it('질문을 펼치면 답변 — 스크립트 글자는 실행하지 않고 글자로', async () => {
     fetchPublicPosts.mockResolvedValue(

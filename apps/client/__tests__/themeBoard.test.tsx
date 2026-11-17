@@ -153,6 +153,29 @@ describe('테마형 게시판 목록 (T-141)', () => {
       expect(screen.getByText('부서: 개발팀')).toBeInTheDocument()
     })
 
+    it('웹진형 (T-217): 10개씩, 왼쪽 사진 · 제목 · 요약 · 날짜', async () => {
+      const webzine = { ...card, card_fields: null }
+      fetchPublicSite.mockResolvedValue(siteWith([boardOf('WEBZINE')]))
+      fetchPublicPosts.mockResolvedValue(listOf([webzine]))
+      const { container } = await renderPage(['news'])
+      expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined })
+      expect(container.querySelector('a.md\\:flex-row img')).toHaveClass('md:w-60')
+      expect(container.querySelector('[data-empty-thumb]')).toBeNull()
+      expect(screen.getByText('요약 글자')).toBeInTheDocument()
+      expect(container.querySelector('section ul time')).not.toBeNull()
+    })
+
+    it('웹진형: 끈 사진 · 요약 · 날짜는 나오지 않는다', async () => {
+      fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('WEBZINE'), design }]))
+      fetchPublicPosts.mockResolvedValue(listOf([{ ...card, card_fields: null }]))
+      const { container } = await renderPage(['news'])
+      expect(container.querySelector('section img')).toBeNull()
+      expect(container.querySelector('[data-empty-thumb]')).toBeNull()
+      expect(screen.queryByText('요약 글자')).toBeNull()
+      expect(container.querySelector('section ul time')).toBeNull()
+      expect(screen.getByRole('link', { name: /첫 글/ })).toHaveAttribute('href', '/demo/b/news/p1')
+    })
+
     it('갤러리형: 줄 개수 · 비율 · 날짜', async () => {
       fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('GALLERY'), design }]))
       fetchPublicPosts.mockResolvedValue(listOf([{ ...post, thumbnail: 'http://x/a.webp' }]))

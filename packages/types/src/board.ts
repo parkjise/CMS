@@ -94,7 +94,7 @@ export interface FieldConvertResult {
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
 export type BodyNode = BodyBlock | RichNode
 
-export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD'
+export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD' | 'WEBZINE'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
 
@@ -113,6 +113,8 @@ export interface BoardDesign {
   show_date: boolean
   show_image: boolean
   show_summary: boolean
+  /** 웹진형 요약 글자 수 (T-217) — 없으면 120 */
+  summary_length?: 60 | 120 | 200
   faq_single_open: boolean
   faq_first_open: boolean
 }

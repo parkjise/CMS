@@ -1,0 +1,111 @@
+// ── BOARD WEBZINE — 새 게시판 웹진형 (T-217) ────────────────────
+// 왼쪽 썸네일 · 오른쪽 제목 · 요약 · 작성일. 모바일은 썸네일이 위로
+@use '../mixins' as *;
+
+$muted: #64748b;
+$line: #e2e8f0;
+$badge-bg: #f1f5f9;
+
+.board-webzine {
+  margin-top: 28px;
+  border-top: 1px solid $line;
+
+  &__item {
+    border-bottom: 1px solid $line;
+  }
+
+  &__link {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 24px 0;
+    @include focus-ring;
+    @include md {
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 28px;
+    }
+
+    @include hover {
+      .board-webzine__subject {
+        text-decoration: underline;
+        text-underline-offset: 4px;
+      }
+    }
+  }
+
+  &__image {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    @include md {
+      width: 240px;
+    }
+  }
+
+  &__image--empty {
+    background: $badge-bg;
+  }
+
+  &--ratio-1-1 &__image {
+    aspect-ratio: 1 / 1;
+  }
+
+  &--ratio-16-9 &__image {
+    aspect-ratio: 16 / 9;
+  }
+
+  &__body {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__badge {
+    align-self: flex-start;
+    padding: 2px 10px;
+    border-radius: 50px;
+    background: $badge-bg;
+    font-size: 0.8125rem;
+    font-weight: 500;
+  }
+
+  &__subject {
+    font-size: 1.125rem;
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: keep-all;
+    @include line-clamp(2);
+  }
+
+  &__summary {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    color: $muted;
+    word-break: keep-all;
+    @include line-clamp(3);
+  }
+
+  &__fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+
+  &__field {
+    font-size: 0.875rem;
+    color: $muted;
+    overflow-wrap: anywhere;
+  }
+
+  &__date {
+    font-size: 0.875rem;
+    font-weight: 300;
+    color: $muted;
+  }
+}

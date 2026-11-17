@@ -19,6 +19,7 @@ export const BOARD_PAGE_SIZE: Record<BoardType, number> = {
   GALLERY: 12,
   FAQ: 20,
   CARD: 12,
+  WEBZINE: 10,
 }
 
 const DEFAULT_DESIGN: BoardDesign = {

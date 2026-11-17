@@ -426,6 +426,69 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
             </li>
           ))}
         </ul>
+      ) : board.board_type === 'WEBZINE' ? (
+        // 웹진형 (T-217) — 왼쪽 썸네일, 오른쪽 제목 · 요약 · 작성일
+        <ul className={`mt-6 border-t ${line}`}>
+          {posts.map((post) => (
+            <li key={post.id} className={`border-b ${line}`}>
+              <a
+                href={hrefFor({ id: post.id })}
+                className="group flex flex-col gap-4 py-6 md:flex-row md:items-start md:gap-7"
+              >
+                {design.show_image &&
+                  (post.thumbnail ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- 고객이 올린 글 사진
+                    <img
+                      src={post.thumbnail}
+                      alt=""
+                      loading="lazy"
+                      className={`${ratio} w-full shrink-0 rounded-lg object-cover md:w-60`}
+                    />
+                  ) : (
+                    // 사진 없는 글은 빈 칸 — 줄 맞춤 (D-03)
+                    <span
+                      data-empty-thumb
+                      className={`block ${ratio} w-full shrink-0 rounded-lg bg-[var(--color-surface)] md:w-60`}
+                      aria-hidden
+                    />
+                  ))}
+                <span className="flex min-w-0 flex-1 flex-col gap-2">
+                  {post.is_pinned && (
+                    <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
+                      공지
+                    </span>
+                  )}
+                  <span className={`text-lg font-semibold group-hover:underline ${primary}`}>
+                    {post.is_secret && (
+                      <Lock
+                        className="mr-1 inline h-4 w-4 align-[-2px]"
+                        aria-label="비밀글"
+                        role="img"
+                      />
+                    )}
+                    {post.title}
+                    {post.has_attachments && <AttachmentMark />}
+                  </span>
+                  {design.show_summary && post.summary && (
+                    <span className={`line-clamp-3 text-sm ${muted}`}>{post.summary}</span>
+                  )}
+                  {!post.is_secret && (
+                    <ListFieldValues
+                      fields={post.list_fields}
+                      className={`flex flex-wrap gap-x-4 gap-y-1 text-sm ${muted}`}
+                      itemClassName="min-w-0 break-words [overflow-wrap:anywhere]"
+                    />
+                  )}
+                  {design.show_date && (
+                    <time className={`text-sm ${muted}`} dateTime={postDate(post.published_at)}>
+                      {dotted(post.published_at)}
+                    </time>
+                  )}
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
       ) : board.board_type === 'CARD' ? (
         <ul className={`mt-6 grid grid-cols-1 gap-5 md:gap-7 ${COLUMN_CLASS[design.columns]}`}>
           {posts.map((post) => (
