@@ -126,15 +126,18 @@
 ├── 게시판 생성 (/admin/boards/new) — 추가할 수 없는 요금제는 요금제 안내, 보기 전용 계정은 안내
 ├── 전체 글 (/admin/posts)
 ├── 신고된 글 (/admin/posts/reports) — 처리하지 않은 신고가 있는 글 (T-151-B)
-└── 게시판 상세 (목록에서 게시판을 눌러 들어감) — 탭
+├── 휴지통 (/admin/boards/trash) — [게시판] [글] 탭 (T-209)
+├── 변경 기록 (/admin/boards/history) — T-186
+└── 게시판 상세 (목록에서 게시판을 눌러 들어감) — 탭 4개 (T-212)
     ├── 글 관리 (/admin/boards/:boardId/posts)
-    ├── 기본 정보 (/settings) — 이름 · 설명 · 검색 노출 · 복제 · 휴지통
-    ├── 필드 관리 (/fields) — 새 게시판만
-    ├── 게시판 디자인 (/design) — 표시 유형 · 유형별 표시 · 정렬 · 글 수 (T-148)
-    ├── 카테고리 (/categories) — 1단계 분류 · 순서 · 숨김 · 삭제 시 글 옮기기, 새 게시판만 (T-149)
-    ├── 권한 (/permissions) — 글 읽기 누구나 · 회원만 (T-150-A), 글쓰기 관리자만 · 회원도 (T-150-B), 새 게시판만
-    ├── 운영 설정 (/operation) — 비밀글 허용 · 새 글 알림 (T-151-A), 비회원 글쓰기 (T-151-B), 새 게시판만
-    └── 홈페이지 연결 (/connection) — 주소 · 사용 여부 · 메뉴 표시
+    ├── 필드 · 카테고리 (/fields) — 필드 관리 · 카테고리 구역, 새 게시판만
+    ├── 디자인 (/design) — 표시 유형 · 유형별 표시 · 정렬 · 글 수 (T-148)
+    └── 설정 (/settings) — 한 화면의 구역, 구역마다 따로 저장
+        ├── 기본 정보 — 이름 · 설명 · 유형 · 검색 노출 · 복제 · 휴지통
+        ├── 권한 — 역할 × 동작 표(T-213), 글 읽기 누구나 · 회원만 (T-150-A), 글쓰기 관리자만 · 회원도 (T-150-B), 새 게시판만
+        ├── 운영 설정 — 비밀글 허용 · 새 글 알림 (T-151-A), 비회원 글쓰기 · 신고 기준 (T-151-B · T-175), 새 게시판만
+        └── 홈페이지 연결 — 주소 · 사용 여부 · 메뉴 표시 · 메뉴 위치 (T-216)
+    예전 주소 /permissions · /operation · /connection → /settings 의 그 구역, /categories → /fields 의 그 구역
 ```
 
 **메뉴 원칙 (2026-11-05 결정):** 기능이 있는 탭만 연다 — "준비 중" 탭을 두지 않는다. 게시판 추가는 왼쪽 메뉴 [게시판 생성] 과 목록의 버튼 두 곳에서 들어간다 (FREE · BASIC 은 눌러도 요금제 안내, T-146 변경). 고객에게 "배포"는 낯선 말이라 "홈페이지 연결"로 쓰고, 디자인도 지금은 유형뿐이라 여기에 합친다. 태블릿(아이콘 메뉴) · 휴대폰(더보기)은 2뎁스 없이 게시판 목록으로 가고, 전체 글은 목록의 버튼으로 간다.
@@ -247,10 +250,10 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | 단계 | 필드 | 검증 |
 |---|---|---|
 | 1. 기본 정보 | 이름, 설명, 슬러그(고급 설정 — 비우면 `board-1` 처럼 자동) | 필수·길이·중복·예약어 |
-| 2. 유형 | 게시판 타입, 추천 칸(T-183) | 유형별 추천 칸을 체크된 채 보여 주고, 고른 것만 게시판과 같은 커밋에 만든다 |
+| 2. 유형 | 게시판 타입, 추천 칸(T-183) | 유형별 추천 칸을 체크된 채 보여 주고, 고른 것만 게시판과 같은 커밋에 만든다. 고를 수 없는 유형(병원 업종의 리뷰형)은 `GET /boards/type-options` 이유와 함께 끈다 |
 | 3. 운영 설정 | 사용 여부 (T-140-A). 읽기·쓰기 권한, 댓글·첨부는 후속 | 잘못된 권한 조합 방지 |
 
-**추천 칸 (T-183):** 정의는 서버(`GET /api/v1/boards/presets`). 일반 목록 · FAQ 없음, 갤러리 촬영일 · 장소, 카드형 근무 형태(하나 고르기: 정규직 · 계약직 · 아르바이트 · 인턴, 목록 표시) · 근무지 · 마감일(목록 표시) · 지원 링크. 모두 필수 아님. `POST /boards` 의 `preset_fields` 는 그 유형의 키만 받고(아니면 400 · 게시판도 안 만듦) 정의 순서로 만든다. 못 불러오면 칸 없이 만든다.
+**추천 칸 (T-183):** 정의는 서버(`GET /api/v1/boards/presets`). 일반 목록 · FAQ · 문의형 없음, 갤러리 촬영일 · 장소, 카드형 근무 형태(하나 고르기: 정규직 · 계약직 · 아르바이트 · 인턴, 목록 표시) · 근무지 · 마감일(목록 표시) · 지원 링크, 웹진 태그(T-217), 리뷰 별점(T-218 — `always` 라 체크를 끌 수 없고 서버도 늘 만든다). 모두 필수 아님. `POST /boards` 의 `preset_fields` 는 그 유형의 키만 받고(아니면 400 · 게시판도 안 만듦) 정의 순서로 만든다. 못 불러오면 칸 없이 만든다.
 
 **후속 동작:** 생성 완료 화면에서 `첫 글 쓰기` / `칸 설정` / `게시판 설정`으로 이동 (T-144). `사이트에 배치` 버튼은 두지 않는다 — 마법사의 "홈페이지 상단 메뉴에 추가"가 그 일을 한다.
 
@@ -354,7 +357,7 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 - 이전 버전(T-191): 관리자가 고쳐 저장할 때마다 고치기 직전 내용을 `board_post_versions` 에 남긴다(글마다 최근 20개). 수정 화면 아래 "이전 버전" — 미리보기, [이 버전으로 되돌리기]는 편집 칸만 채우고 저장해야 바뀐다
 - 각 에러는 해당 필드 아래에 안내하고 포커스를 제공
 
-### BM-07 휴지통 (`/admin/boards/trash`, `/admin/posts/trash`) — 글 복원은 1단계, 화면은 2단계
+### BM-07 휴지통 (`/admin/boards/trash`, 글은 `?tab=posts` — T-209) — 글 복원은 1단계, 화면은 2단계
 
 - 삭제 주체·일시·남은 보관 기간 표시 — T-196: "N일 뒤 영구 삭제" · 지운 사람(변경 기록에서 찾음)
 - 권한에 따른 복원 및 영구 삭제 — T-196: 30일 뒤 자동, [영구 삭제]는 확인 뒤. 게시판을 지우면 글 · 필드 · 카테고리, 글을 지우면 이전 버전 · 신고 · 첨부 연결이 함께 지워지고, 사진 · 첨부 파일은 미사용 정리가 지운다. 변경 기록에는 제목만 `BOARD_PURGED` · `POST_PURGED` (자동은 "자동 정리")
@@ -505,18 +508,17 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 
 | 테이블 | 주요 컬럼/기능 |
 |---|---|
-| `boards` | `id`, `tenant_id`, `name`, `slug`, `type`, `status`, `system_key`(기본 게시판 — 삭제 보호), `settings`, `deleted_at` |
+| `boards` | `id`, `tenant_id`, `name`, `slug`, `board_type`, `status`, `system_key`(기본 게시판 — 삭제 보호), `settings`(`design` · `permissions` · `operation` · `menu_parent` 등), `deleted_at` |
 | `board_fields` (4단계) | `id`, `tenant_id`, `board_id`, `field_key`, `label`, `field_type`, `field_options`, `is_required`, `display_order`, `deleted_at` |
 | `board_posts` | `id`, `tenant_id`, `board_id`, `title`, `body`(노드 JSONB), `status`, `is_pinned`, `custom_data`, `author_id`, `published_at`, `deleted_at`, `category_id`(0042), `author_member_id`(0043), `is_secret`(0044), `guest_name` · `guest_password_hash`(0045), 문의형 답변 `answer` · `answered_at` · `answered_by`(0057) |
 | `board_post_attachments` (T-194) | `id`, `tenant_id`, `post_id`, `file_id`(→ `uploaded_files`), `display_order`, `deleted_at` — 글마다 최대 5개 |
 | `board_post_versions` (T-191) | `id`, `tenant_id`, `post_id`, `title`, `body`, `custom_data`, `category_id`, `status`, `is_pinned`, `is_secret`, `saved_at`, `edited_by` — 글마다 최근 20개 |
 | `board_categories` (T-149 · T-179) | `id`, `tenant_id`, `board_id`, `parent_id`(상위, 비면 1단계), `name`, `is_active`, `display_order`, `deleted_at` — 이름은 지우지 않은 것 중 게시판 안에서 하나. 글은 `board_posts.category_id` |
-| `board_permissions` | 역할·행위별 읽기/쓰기/관리 정책 |
-| `post_files` | 게시글별 스토리지 객체 메타, 접근 레벨 |
-| `post_comments` | 댓글·대댓글, 상태 (P1) |
-| `post_revisions` | 게시글 이전 버전, 복원 (P1) |
+| `board_post_reports` (T-151-B) | 신고 — 사유 · 설명 · 신고자 해시 · 처리 여부 |
+| `admin_user_preferences` (T-181) | 관리자 개인 열 설정 `post_table:{board_id}` |
+| `post_comments` | 댓글·대댓글, 상태 (P1 — 아직 없음) |
 
-**두지 않는 표:** `board_audit_logs` — 기존 `audit_logs` 에 `tenant_id` 를 더해 쓴다 (T-140-C 구현, 11.4). 1단계는 `author_id` · `updated_at` · `deleted_at` 으로 충분하다.
+**두지 않는 표:** `board_audit_logs` — 기존 `audit_logs` 에 `tenant_id` 를 더해 쓴다 (T-140-C 구현, 11.4). `board_permissions` — 권한은 `boards.settings.permissions` · `operation` 에 둔다(T-150 · T-151). `post_files` — 첨부는 `board_post_attachments` → `uploaded_files`(T-194). `post_revisions` — `board_post_versions`(T-191). 1단계는 `author_id` · `updated_at` · `deleted_at` 으로 충분하다.
 
 **본문 형식 (결정, T-143 에서 변경 — D-11):** HTML 이 아닌 Tiptap 노드 JSON. 서버가 허용 목록(`schemas/rich_body.py`)으로 다시 만들어 위험한 링크 · 사진 주소를 거부하고 모르는 속성을 버린다. 이전 형식 `[{type: 'p', text} | {type: 'ul', items} | {type: 'image', src, alt}]` 도 기존 글 · 샘플을 위해 읽고 받으며, 고쳐 저장하면 새 형식이 된다.
 
@@ -622,6 +624,8 @@ v1.0 의 "섹션 추가 후 게시판 선택"은 코드형 템플릿과 FREE · 
 | POST | `/api/v1/boards/{board_id}/attachments` | 첨부할 파일 올리기 — 글 저장 · 수정의 `attachment_ids` 로 붙인다 (T-194) |
 | DELETE | `/api/v1/boards/{board_id}/permanent` · `/api/v1/boards/{board_id}/posts/{post_id}/permanent` | 휴지통 게시판 · 글 영구 삭제 (T-196) |
 | DELETE | `/api/v1/boards/{board_id}/posts/{post_id}` | 게시글 휴지통 이동 |
+| GET · PUT · DELETE | `/api/v1/me/preferences/post-table/{board_id}` | 관리자 개인 열 설정 (T-181 · T-215) |
+| GET | `/api/v1/audit-logs` | 변경 기록 (T-186) |
 
 ### 9.2 공개 API
 
@@ -667,8 +671,8 @@ T-173: 목록 응답의 `list_columns`는 표 모드인 추가 목록형에서�
 
 ```text
 apps/admin/src/
-├── pages/                 BoardsPage · BoardNewPage · BoardPostsPage · BoardPostEditPage · 기본 정보 · 필드 · 카테고리 · 디자인 · 권한 · 운영 설정 · 홈페이지 연결 · PostsOverviewPage · ReportedPostsPage
-├── components/boards/     RichTextEditor · FieldEditorForm · CustomFieldInputs · BoardDetailHeader
+├── pages/                 BoardsPage · BoardNewPage · BoardPostsPage · BoardPostEditPage · BoardSetupPage(설정 구역 — 기본 정보 · 권한 · 운영 · 연결) · BoardStructurePage(필드 · 카테고리) · BoardDesignPage · BoardTrashPage · AuditLogsPage · PostsOverviewPage · ReportedPostsPage
+├── components/boards/     RichTextEditor · FieldEditorForm · CustomFieldInputs · BoardDetailHeader · BoardSectionNav · PermissionMatrix · PostSearchBar · ColumnResizeHandle · TrashPostsSection · PostAnswerPanel(문의형 답변)
 ├── hooks/                 useBoards · useBoardFields · useBoardCategories (TanStack Query), useSSENotifications (새 글 알림)
 apps/client/
 ├── lib/publicPosts.ts     공개 글 API (서버 캐시)
@@ -853,6 +857,7 @@ packages/types/src/board.ts
 | 1.1 | 2026-11-18 | T-218: 리뷰형 `REVIEW` (마이그레이션 0056), 별점 서버 검사 · 별 고르기 · 평균, 병원 차단 · `/boards/type-options` |
 | 1.1 | 2026-11-18 | T-219: 문의형 `QNA` + 관리자 답변 칸 (마이그레이션 0057), 답변 상태 배지 · 답변 상자 — 1113 묶음 완료 |
 | 1.1 | 2026-11-18 | 코드 대조 정리: 문서 상태 · 3장 단계 표(1113 행, P1 · P2 에서 문의 · 웹진 뺌) · 5.1 유형 · BM-01 유형 필터 7종 · BM-03 유형별 자동 글 수 · BM-08 웹진 · 리뷰 · 문의형 디자인 · 7장 유형 표 · 8.2 `board_posts` 칸 · 9.1 API(slug-check · permission-options · type-options · menu-parents · posts/purge · answer) · 9.2 `rating_summary` · `answered` · `answer` · AC-22 ~ 24 · D-03 |
+| 1.1 | 2026-11-18 | 코드 대조 보충: 4장 메뉴 트리(탭 4개 · 설정 구역 · 휴지통 · 변경 기록) · BM-02 추천 칸 · type-options · BM-07 주소 · 8.2 없는 표 정리 · 9.1 열 설정 · 변경 기록 API · 10장 관리자 파일 |
 | 1.1 | 2026-11-11 | T-185: 메인 화면 최신 글 — 테마형 최신 글 섹션 · 코드형 최신 공지의 게시판 · 개수 고르기 |
 | 1.1 | 2026-11-10 | T-183: 새 게시판 유형별 추천 칸 — presets API · preset_fields 같은 커밋 생성 · 만들기 2단계 체크 목록 |
 | 1.1 | 2026-11-10 | T-182-B: 유형 바꾸기 관리자 화면 — 새 유형 · 미리보기 · 바꿀 수 없는 글 링크 · 비우기 체크 |
