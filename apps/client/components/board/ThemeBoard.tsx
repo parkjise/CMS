@@ -23,6 +23,7 @@ import { ThemeGuestPostActions, ThemeReportButton } from './ThemeGuestTools'
 import { ThemeMemberPostActions, ThemeMemberWriteLink, ThemeSecretNotice } from './ThemeMemberLinks'
 import { ThemeWriteLink } from './ThemeWriteLink'
 import { PostAnswer } from './PostAnswer'
+import { FaqJsonLd } from './FaqJsonLd'
 
 const muted = 'text-[color:var(--color-text-muted)]'
 const primary = 'text-[color:var(--color-text-primary)]'
@@ -623,6 +624,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
         </ul>
       ) : board.board_type === 'FAQ' ? (
         <div className={`mt-6 border-t ${line}`}>
+          <FaqJsonLd board={board} posts={posts} />
           {posts.map((post, index) => (
             <details
               key={post.id}

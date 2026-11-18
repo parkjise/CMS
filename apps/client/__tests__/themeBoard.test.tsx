@@ -230,6 +230,19 @@ describe('테마형 게시판 목록 (T-141)', () => {
     expect(item.querySelector('script')).toBeNull()
   })
 
+  it('FAQ형: AEO 에서 켠 게시판은 펼친 질문을 FAQ 구조화 데이터로 (T-221)', async () => {
+    fetchPublicSite.mockResolvedValue(siteWith([{ ...boardOf('FAQ'), faq_jsonld: true }]))
+    fetchPublicPosts.mockResolvedValue(
+      listOf([{ ...post, title: '시간은?', body: [{ type: 'p', text: '9시' }] }]),
+    )
+    const { container } = await renderPage(['news'])
+    const script = container.querySelector('script[type="application/ld+json"]')
+    expect(JSON.parse(script?.innerHTML ?? '{}')).toMatchObject({
+      '@type': 'FAQPage',
+      mainEntity: [{ name: '시간은?', acceptedAnswer: { text: '9시' } }],
+    })
+  })
+
   it('글이 없으면 빈 안내, 검색이면 검색 안내', async () => {
     fetchPublicPosts.mockResolvedValue(listOf([]))
     const { unmount } = await renderPage(['news'])

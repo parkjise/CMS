@@ -4,6 +4,7 @@ from typing import Literal
 from pydantic import BaseModel
 
 from app.schemas.board import PublicBoardResponse
+from app.schemas.seo import PublicGeo
 from app.schemas.site import PublicSiteSettingsResponse
 
 
@@ -84,6 +85,8 @@ class PublicSeoResponse(BaseModel):
     robots: str = "index,follow"
     robots_txt: str | None = None
     keywords: list[str] = []
+    # 기업 소개 · 주제 · 공식 프로필 · AI 크롤러 정책 (T-221)
+    geo: PublicGeo | None = None
 
     model_config = {"from_attributes": True}
 

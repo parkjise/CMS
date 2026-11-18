@@ -7,7 +7,7 @@ import { pickErrorMessage } from '@/lib/errorMessages'
 const LABEL_MAX = 20
 
 /**
- * 공통 설정 → 상단 메뉴 (기획서 AD-02-A, T-036-B)
+ * 사이트 관리 → 메뉴 관리 (기획서 AD-02-A, T-036-B · T-221)
  * 메뉴 이름 · 보이기 · (코드형) 순서. 테마형 메뉴 순서는 섹션 순서를 따른다.
  */
 export function MenuSettingsCard() {

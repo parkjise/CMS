@@ -55,11 +55,21 @@ describe('Sidebar 기능 게이팅', () => {
   it('BETA 뱃지 노출', () => {
     useFeatureStore.setState({
       loaded: true,
-      flags: { SEO_WIZARD: true },
-      features: [meta({ key: 'SEO_WIZARD', is_beta: true })],
+      flags: { AI_MONTHLY_REPORT: true },
+      features: [meta({ key: 'AI_MONTHLY_REPORT', is_beta: true })],
     })
     renderSidebar()
     expect(screen.getByText('BETA')).toBeInTheDocument()
+  })
+
+  it('2뎁스 메뉴에도 뱃지 — 사이트 관리 → SEO 설정 (T-221)', () => {
+    useFeatureStore.setState({
+      loaded: true,
+      flags: { SEO_WIZARD: true },
+      features: [meta({ key: 'SEO_WIZARD', is_beta: true })],
+    })
+    renderSidebar('/admin/site/seo')
+    expect(within(screen.getByRole('link', { name: /SEO 설정/ })).getByText('BETA')).toBeInTheDocument()
   })
 
   it('NEW 뱃지 노출 (released_at 7일 이내)', () => {
@@ -135,5 +145,55 @@ describe('게시판 관리 2뎁스 메뉴', () => {
     renderSidebar('/admin/dashboard')
     expect(screen.queryByRole('button', { name: '게시판 관리' })).not.toBeInTheDocument()
     expect(within(screen.getByRole('navigation')).queryByText('게시판 목록')).not.toBeInTheDocument()
+  })
+})
+
+describe('사이트 관리 2뎁스 메뉴 (T-221)', () => {
+  beforeEach(() => useFeatureStore.getState().reset())
+  afterEach(() => useFeatureStore.getState().reset())
+
+  const group = () => screen.getByRole('button', { name: '사이트 관리' })
+  const SITE_MENU = [
+    ['사이트 기본정보', '/admin/site/info'],
+    ['메뉴 관리', '/admin/site/menu'],
+    ['약관 · 정책 관리', '/admin/site/policies'],
+    ['SEO 설정', '/admin/site/seo'],
+    ['AEO 설정', '/admin/site/aeo'],
+    ['GEO 설정', '/admin/site/geo'],
+  ]
+
+  it('대시보드 바로 아래에 있고, 하위 메뉴 6개를 기획 순서대로', async () => {
+    renderSidebar('/admin/dashboard')
+    const nav = screen.getByRole('navigation')
+    // 문서 순서대로 찾는다
+    const top = within(nav).getAllByText(/^(대시보드|사이트 관리|콘텐츠 편집)$/)
+    expect(top.map((el) => el.textContent)).toEqual(['대시보드', '사이트 관리', '콘텐츠 편집'])
+
+    await userEvent.click(group())
+    const links = within(nav)
+      .getAllByRole('link')
+      .filter((a) => a.getAttribute('href')?.startsWith('/admin/site/'))
+    expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual(SITE_MENU)
+  })
+
+  it('예전 단독 메뉴 SEO 설정 · 약관 · 방침은 없다', () => {
+    renderSidebar('/admin/dashboard')
+    expect(screen.queryByRole('link', { name: '약관 · 방침' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'SEO 설정' })).not.toBeInTheDocument()
+  })
+
+  it.each(SITE_MENU)('%s 화면에서는 펼친 채 표시', (label, path) => {
+    renderSidebar(path)
+    expect(group()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
+  })
+
+  it('SEO 기능이 꺼지면 검색 설정 3개만 숨긴다', () => {
+    useFeatureStore.setState({ loaded: true, flags: {}, features: [] })
+    renderSidebar('/admin/site/info')
+    expect(screen.getByRole('link', { name: '사이트 기본정보' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: '약관 · 정책 관리' })).toBeInTheDocument()
+    for (const label of ['SEO 설정', 'AEO 설정', 'GEO 설정'])
+      expect(screen.queryByRole('link', { name: label })).not.toBeInTheDocument()
   })
 })

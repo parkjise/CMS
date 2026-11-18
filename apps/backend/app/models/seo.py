@@ -1,7 +1,7 @@
 import uuid
 
 from sqlalchemy import String, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import ARRAY, UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base, TimestampMixin
@@ -40,3 +40,6 @@ class SeoSetting(Base, TimestampMixin):
     keywords: Mapped[list[str]] = mapped_column(
         ARRAY(String(30)), nullable=False, default=list, server_default="{}"
     )
+    # 사이트 관리 AEO · GEO (T-221) — 비어 있으면 설정 전
+    aeo: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    geo: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

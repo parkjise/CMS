@@ -5,8 +5,8 @@ import { selectEditingUi, useEditStore } from '@/lib/editStore'
 
 const ADMIN_URL = process.env.NEXT_PUBLIC_ADMIN_URL ?? 'http://localhost:3001'
 
-/** 관리자 공통 설정 탭 주소 (T-125-F) */
-export const COMMON_SETTINGS_URL = `${ADMIN_URL}/admin/content?tab=settings`
+/** 관리자 사이트 관리 → 사이트 기본정보 (T-125-F, T-221 에서 옮김) */
+export const COMMON_SETTINGS_URL = `${ADMIN_URL}/admin/site/info`
 
 interface Props {
   /** 무엇을 공통 설정에서 바꾸는지 (예: '주소 · 대표전화 · 주차 · 운영 시간') */
@@ -23,9 +23,9 @@ export function CommonSettingsHint({ what, editable }: Props) {
   if (!editable || !isEditing) return null
   return (
     <p className="tpl-common-hint">
-      {what}은(는) 관리자 <strong>공통 설정</strong>에서 바꿔요 — 푸터에도 같이 반영됩니다.{' '}
+      {what}은(는) 관리자 <strong>사이트 기본정보</strong>에서 바꿔요 — 푸터에도 같이 반영됩니다.{' '}
       <a href={COMMON_SETTINGS_URL} target="_blank" rel="noopener noreferrer">
-        공통 설정 열기
+        사이트 기본정보 열기
         <ExternalLink aria-hidden="true" />
       </a>
     </p>

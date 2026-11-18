@@ -125,7 +125,7 @@ export function PoliciesPage() {
   return (
     <div className="space-y-6 p-6 md:p-8">
       <div>
-        <h1 className="text-2xl font-bold text-slate-900">약관 · 방침</h1>
+        <h1 className="text-2xl font-bold text-slate-900">약관 · 정책 관리</h1>
         <p className="mt-1 text-sm text-slate-500">
           홈페이지 푸터와 회원가입 · 상담 · 예약의 [보기]에 나오는 이용약관과
           개인정보처리방침이에요.
@@ -140,7 +140,7 @@ export function PoliciesPage() {
           기본 문안은 예시예요. 사업체에 맞게 고치고, 홈페이지를 열기 전에 법률 확인을 받으세요.
         </p>
       </div>
-      {query.isError && <p className="text-sm text-red-600">약관 · 방침을 불러오지 못했습니다.</p>}
+      {query.isError && <p className="text-sm text-red-600">약관 · 정책을 불러오지 못했습니다.</p>}
       {query.isLoading && <div className="h-96 animate-pulse rounded-xl bg-slate-100" />}
       {query.data && (
         <div className="grid gap-6 xl:grid-cols-2">

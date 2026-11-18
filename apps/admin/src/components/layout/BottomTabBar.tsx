@@ -4,18 +4,19 @@ import {
   CreditCard,
   ExternalLink,
   FileText,
+  Globe,
   Layers,
   LayoutDashboard,
   LogOut,
   MessageSquare,
   MoreHorizontal,
-  Search,
   Share2,
   X,
   ClipboardList,
 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useNavVisibility } from '@/lib/navItems'
+import { SITE_HOME } from './navigation'
 
 const CLIENT_BASE_URL =
   import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
@@ -27,9 +28,9 @@ const PRIMARY = [
 ] as const
 
 const OVERFLOW = [
+  { to: SITE_HOME, icon: Globe, label: '사이트 관리' },
   { to: '/admin/boards', icon: ClipboardList, label: '게시판 관리' },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
-  { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ] as const

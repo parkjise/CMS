@@ -256,6 +256,7 @@ async def get_db_with_rls(
 - 데스크톱 메뉴는 전체(256px)·아이콘(80px) 형태를 전환한다. 아이콘 메뉴에 마우스를 올리거나 키보드로 포커스하면 오른쪽에 메뉴 이름·하위 메뉴가 나타나며, 메뉴로 포인터를 옮겨 선택할 수 있다. Escape로 닫는다. 모바일은 헤더 메뉴에서 전체 내비게이션을 열며 기존 하단 탭도 유지한다.
 - 화면 설정에서 테마·사이드바 형태를 변경하거나 초기화한다. 두 설정은 브라우저의 `cms-admin-appearance`에 저장한다.
 - 검색과 사이드바는 동일한 메뉴 정의·기능 플래그를 사용한다. 기존 편집 권한·구독 차단 정책을 유지한다. 고객 홈페이지와 슈퍼관리자는 변경 범위에 포함하지 않는다.
+- **사이트 관리 (T-221)** — 대시보드 바로 아래 2뎁스 메뉴: 사이트 기본정보(`/admin/site/info`) · 메뉴 관리(`/menu`) · 약관 · 정책 관리(`/policies`) · SEO 설정(`/seo`) · AEO 설정(`/aeo`) · GEO 설정(`/geo`). 검색 설정 3개는 `SEO_WIZARD` 기능 플래그를 따른다. 예전 주소 `/admin/seo` · `/admin/policies` · `/admin/content?tab=settings` 는 새 주소로 넘긴다. 상세: `docs/CMS_Site_Management_Spec_v1.0.md`
 
 ### AD-01: 대시보드 (Dashboard)
 
@@ -576,7 +577,7 @@ async def get_db_with_rls(
 
 ### AD-05: SEO 설정 마법사
 
-**URL:** `/admin/seo`  
+**URL:** `/admin/site/seo` (T-221 사이트 관리로 이동, 예전 `/admin/seo` 는 넘김)  
 **접근 권한:** TENANT_ADMIN (BASIC: 제한 기능)
 
 ```

@@ -16,15 +16,17 @@ function getSiteUrl(): string {
 
 function buildSameAs(site: PublicSite): string[] {
   const sns = site.sns_settings
-  if (!sns) return []
-  return [
-    sns.kakao_url,
-    sns.instagram_url,
-    sns.facebook_url,
-    sns.youtube_url,
-    sns.blog_url,
-    sns.naver_url,
+  const links = [
+    sns?.kakao_url,
+    sns?.instagram_url,
+    sns?.facebook_url,
+    sns?.youtube_url,
+    sns?.blog_url,
+    sns?.naver_url,
+    // GEO 공식 프로필 주소 (T-221)
+    ...(site.seo_settings?.geo?.profile_urls ?? []),
   ].filter((u): u is string => Boolean(u))
+  return [...new Set(links)]
 }
 
 function getMapSection(site: PublicSite) {
@@ -112,8 +114,10 @@ export function buildLocalBusinessJsonLd(site: PublicSite): Record<string, unkno
     url,
   }
 
-  if (site.seo_settings?.meta_description) {
-    jsonLd.description = site.seo_settings.meta_description
+  // GEO 기업 소개가 먼저 (T-221), 없으면 검색 설명
+  const description = site.seo_settings?.geo?.description || site.seo_settings?.meta_description
+  if (description) {
+    jsonLd.description = description
   }
   if (site.seo_settings?.og_image_url) {
     jsonLd.image = site.seo_settings.og_image_url
@@ -135,9 +139,31 @@ export function buildLocalBusinessJsonLd(site: PublicSite): Record<string, unkno
   if (keywords) {
     jsonLd.keywords = keywords
   }
+  const topics = site.seo_settings?.geo?.topics ?? []
+  if (topics.length > 0) {
+    jsonLd.knowsAbout = topics
+  }
   if (sameAs.length > 0) {
     jsonLd.sameAs = sameAs
   }
 
   return jsonLd
+}
+
+export interface FaqEntry {
+  question: string
+  answer: string
+}
+
+/** FAQ 게시판 화면의 질문 · 답변 (T-221, 사이트 관리 AEO) — 화면에 보이는 것만 넘긴다 */
+export function buildFaqJsonLd(entries: FaqEntry[]): Record<string, unknown> {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: entries.map((entry) => ({
+      '@type': 'Question',
+      name: entry.question,
+      acceptedAnswer: { '@type': 'Answer', text: entry.answer },
+    })),
+  }
 }

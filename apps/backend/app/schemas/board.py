@@ -700,6 +700,8 @@ class PublicBoardResponse(BaseModel):
     menu_parent: str = ""
     # 사용 중인 분류, 정한 순서대로 (T-149) — 없으면 탭을 그리지 않는다
     categories: list[PublicCategory] = []
+    # FAQ 구조화 데이터 (T-221, 사이트 관리 AEO) — 화면에 보이는 질문만 넣는다
+    faq_jsonld: bool = False
 
 
 class PublicFieldValue(BaseModel):

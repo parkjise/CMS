@@ -2,9 +2,9 @@ import { useEffect, useRef, useState, type FocusEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, NavLink, useLocation } from 'react-router'
 import { ExternalLink, Layers, LogOut } from 'lucide-react'
-import { ADMIN_NAVIGATION, isChildActive } from './navigation'
+import { isChildActive } from './navigation'
 import { useAuthStore } from '@/stores/authStore'
-import { useNavVisibility } from '@/lib/navItems'
+import { useVisibleNavigation } from '@/lib/navItems'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
@@ -12,14 +12,13 @@ export function CollapsedSidebar() {
   const { pathname } = useLocation()
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
-  const isVisible = useNavVisibility()
   const [flyout, setFlyout] = useState<{ to: string; top: number; left: number } | null>(null)
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const panelRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLAnchorElement | null>(null)
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
-  const visibleItems = ADMIN_NAVIGATION.filter(({ to }) => isVisible(to))
+  const visibleItems = useVisibleNavigation()
   const activeItem = visibleItems.find(({ to }) => to === flyout?.to)
 
   const cancelClose = () => {

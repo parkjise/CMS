@@ -80,7 +80,7 @@ describe('ReportsPage', () => {
       'href',
       '/admin/content/s-hero',
     )
-    expect(screen.getByRole('link', { name: /SEO 설정으로/ })).toHaveAttribute('href', '/admin/seo')
+    expect(screen.getByRole('link', { name: /SEO 설정으로/ })).toHaveAttribute('href', '/admin/site/seo')
   })
 
   it('리포트가 없으면 안내', async () => {

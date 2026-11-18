@@ -729,8 +729,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.getByRole('button', { name: '로그인' }).click()
       await expect(page).toHaveURL(/\/admin\/dashboard/)
 
-      await page.goto(`${ADMIN_URL}/admin/content`)
-      await page.getByRole('button', { name: '공통 설정' }).click()
+      await page.goto(`${ADMIN_URL}/admin/site/info`)
       await page.getByLabel('대표 전화').fill('02-7777-8888')
       await page.getByLabel('주소', { exact: true }).fill('서울특별시 중구 세종대로 110')
       await page.getByLabel('대표자').fill('E2E대표')
@@ -738,7 +737,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const saved = page.waitForResponse(
         (r) => r.url().endsWith('/v1/site-settings') && r.request().method() === 'PUT',
       )
-      await page.getByRole('button', { name: '공통 설정 저장' }).click()
+      await page.getByRole('button', { name: '기본정보 저장' }).click()
       expect((await saved).ok()).toBeTruthy()
       // 사업자등록번호는 하이픈을 넣어 저장
       await expect(page.getByLabel('사업자등록번호')).toHaveValue('111-22-33333')
@@ -850,8 +849,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.getByRole('button', { name: '로그인' }).click()
       await expect(page).toHaveURL(/\/admin\/dashboard/)
 
-      await page.goto(`${ADMIN_URL}/admin/content`)
-      await page.getByRole('button', { name: '공통 설정' }).click()
+      await page.goto(`${ADMIN_URL}/admin/site/menu`)
       await page.getByLabel(`${first.default_label} 메뉴 이름`).fill('E2E 메뉴')
       await page.getByLabel(`${second.default_label} 메뉴 보이기`).uncheck()
       const saved = page.waitForResponse(
@@ -1131,14 +1129,14 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const info = visitor.locator('.location__info')
       await expect(info).toContainText('서울특별시 E2E구 오시는길 7 3층')
       await expect(info).toContainText('E2E 주차 안내')
-      await expect(visitor.getByRole('link', { name: /공통 설정 열기/ })).toHaveCount(0)
+      await expect(visitor.getByRole('link', { name: /사이트 기본정보 열기/ })).toHaveCount(0)
       // 방문자에게는 편집 버튼이 없다
       await expect(visitor.locator('.tpl-image-edit')).toHaveCount(0)
       await visitor.close()
 
       // 편집 모드에서는 공통 설정 안내 · 바로가기
       await page.goto(`${CLIENT_URL}/${slug}/about-location`)
-      await expect(page.getByRole('link', { name: /공통 설정 열기/ })).toHaveAttribute('href', /\/admin\/content\?tab=settings$/)
+      await expect(page.getByRole('link', { name: /사이트 기본정보 열기/ })).toHaveAttribute('href', /\/admin\/site\/info$/)
     } finally {
       const restored = await request.put(siteSettingsUrl, { headers, data: originalSite })
       expect(restored.ok(), await restored.text()).toBeTruthy()

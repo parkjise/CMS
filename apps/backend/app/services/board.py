@@ -73,6 +73,7 @@ PERMISSIONS_KEY = "permissions"
 MENU_PARENT_KEY = "menu_parent"
 OPERATION_KEY = "operation"
 READ_MEMBER = "MEMBER"
+FAQ_POSTS_LIMIT = 100
 OPTION_KEYS = {
     MENU_PARENT_KEY,
     PERMISSIONS_KEY,
@@ -1429,6 +1430,17 @@ def _list_order(board: Board) -> list[UnaryExpression]:
     if sort_order == "TITLE":
         return [BoardPost.is_pinned.desc(), BoardPost.title.asc(), BoardPost.id.desc()]
     return _public_order()
+
+
+async def faq_posts(db: AsyncSession, board: Board) -> list[BoardPost]:
+    """AEO 화면 (T-221) — 홈페이지 순서대로, 아직 공개 전인 글까지."""
+    result = await db.execute(
+        select(BoardPost)
+        .where(BoardPost.board_id == board.id, BoardPost.deleted_at.is_(None))
+        .order_by(*_list_order(board))
+        .limit(FAQ_POSTS_LIMIT)
+    )
+    return list(result.scalars())
 
 
 def public_page_size(board: Board) -> int:

@@ -319,6 +319,20 @@ describe('FAQ형', () => {
   })
 })
 
+describe('FAQ 구조화 데이터 (T-221)', () => {
+  it('AEO 에서 켠 게시판만 넣는다', async () => {
+    fetchPublicPosts.mockResolvedValue(listOf([{ ...post, title: '진료 시간은?', body: [{ type: 'p', text: '9시' }] }]))
+    const on = render(await CustomBoard(props('FAQ', { board: { ...boardOf('FAQ'), faq_jsonld: true } })))
+    const script = on.container.querySelector('script[type="application/ld+json"]')
+    expect(JSON.parse(script?.innerHTML ?? '{}').mainEntity).toEqual([
+      { '@type': 'Question', name: '진료 시간은?', acceptedAnswer: { '@type': 'Answer', text: '9시' } },
+    ])
+    on.unmount()
+    const off = render(await CustomBoard(props('FAQ')))
+    expect(off.container.querySelector('script[type="application/ld+json"]')).toBeNull()
+  })
+})
+
 describe('상세', () => {
   const detail = {
     ...post,
