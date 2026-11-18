@@ -157,7 +157,7 @@ class TestHospitalBlocked:
     async def test_type_options(self, client, auth_headers, tenant):  # noqa: F811
         url = f"{BOARDS}/type-options"
         resp = await client.get(url, headers=auth_headers)
-        assert resp.json()["data"] == {"blocked": {}}
+        assert resp.json()["data"]["blocked"] == {}
         await _sql(
             "UPDATE tenants SET template_type = 'HOSPITAL' WHERE id = :t",
             t=tenant["id"],

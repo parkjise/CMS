@@ -126,11 +126,17 @@ export function useNewBoardPermissionOptions() {
   })
 }
 
-/** 고를 수 없는 게시판 유형과 이유 (T-218) — 병원 업종은 리뷰형 불가 */
+/**
+ * 고를 수 없는 게시판 유형과 이유 (T-218) — 병원 업종은 리뷰형 불가.
+ * system_blocked 는 기본 게시판(공지)만 더 막는 유형 (T-220)
+ */
 export function useBoardTypeOptions() {
   return useQuery({
     queryKey: [...BOARDS_KEY, 'type-options'],
-    queryFn: async (): Promise<{ blocked: Partial<Record<BoardType, string>> }> => {
+    queryFn: async (): Promise<{
+      blocked: Partial<Record<BoardType, string>>
+      system_blocked?: Partial<Record<BoardType, string>>
+    }> => {
       const { data } = await api.get('/v1/boards/type-options')
       return data.data
     },

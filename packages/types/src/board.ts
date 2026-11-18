@@ -119,6 +119,11 @@ export interface BoardDesign {
   summary_length?: 60 | 120 | 200
   faq_single_open: boolean
   faq_first_open: boolean
+  /** 목록 위아래 표시 (T-220) — 없으면 켜짐 */
+  show_pin_badge?: boolean
+  show_total?: boolean
+  show_search?: boolean
+  show_pagination?: boolean
 }
 
 /** 게시판 권한 (T-150) — 글쓰기 MEMBER 는 로그인한 방문자 회원도 (T-150-B) */

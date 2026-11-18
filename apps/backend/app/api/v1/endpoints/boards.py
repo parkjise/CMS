@@ -284,9 +284,16 @@ async def get_type_options(
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    """유형 고르기 — 병원 업종은 리뷰형을 고를 수 없다 (T-218)."""
+    """유형 고르기 — 병원 업종 · 기본 게시판이 못 고르는 유형 (T-218 · T-220)."""
     blocked = await board_service.blocked_types(db, tenant_id)
-    return ApiResponse.ok(TypeOptionsResponse.model_validate({"blocked": blocked}))
+    return ApiResponse.ok(
+        TypeOptionsResponse.model_validate(
+            {
+                "blocked": blocked,
+                "system_blocked": board_service.system_blocked_types(),
+            }
+        )
+    )
 
 
 @router.get("/slug-check", response_model=ApiResponse[SlugCheckResponse])

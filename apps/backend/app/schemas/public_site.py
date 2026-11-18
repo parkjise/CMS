@@ -121,3 +121,5 @@ class PublicSiteResponse(BaseModel):
     member: PublicMemberFlags = PublicMemberFlags()
     # 사용 중인 새 게시판 (T-140-B) — 메뉴 · /b/{게시판} 화면
     boards: list[PublicBoardResponse] = []
+    # 코드형 공지 페이지가 따를 공지 게시판 (T-220) — 테마형은 boards 안에 있다
+    notice_board: PublicBoardResponse | None = None

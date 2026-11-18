@@ -119,6 +119,8 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             }
 
     flags = await member_features.flags_for(db, tenant)
+    code = template is not None and template.renderer == "code"
+    notice = await board_service.public_notice_board(db, tid) if code else None
     return PublicSiteResponse(
         tenant=PublicTenantResponse.model_validate(tenant),
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
@@ -141,9 +143,10 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
                 db,
                 tid,
                 # 테마형은 공지 페이지가 없어 공지 게시판도 함께 (T-176)
-                include_notice=template is None or template.renderer != "code",
+                include_notice=not code,
             )
         ],
+        notice_board=PublicBoardResponse(**notice) if notice else None,
     )
 
 

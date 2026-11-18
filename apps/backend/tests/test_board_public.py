@@ -151,6 +151,10 @@ class TestPublicSiteBoards:
                     "summary_length": 120,
                     "faq_single_open": False,
                     "faq_first_open": False,
+                    "show_pin_badge": True,
+                    "show_total": True,
+                    "show_search": True,
+                    "show_pagination": True,
                 },
                 "read_access": "PUBLIC",
                 "write_access": "ADMIN",
@@ -218,6 +222,16 @@ class TestThemeNotice:
         assert boards == []
         assert keys == ["about", "notice"]
         assert f"board:{notice_id}" not in keys
+        # 코드형 공지 페이지는 공지 게시판의 유형 · 디자인을 따른다 (T-220)
+        site = (await client.get(f"/api/public/site/{code_tenant['slug']}")).json()
+        notice = site["data"]["notice_board"]
+        assert (notice["slug"], notice["board_type"]) == ("notice", "LIST")
+        assert notice["design"]["show_total"] is True
+
+    async def test_theme_site_has_no_notice_board(self, client, tenant):
+        await _add_notice(tenant["id"])
+        site = (await client.get(f"/api/public/site/{tenant['slug']}")).json()
+        assert site["data"]["notice_board"] is None
 
     async def test_inactive_notice_hidden(self, client, auth_headers, tenant):
         await _add_notice(tenant["id"], status="INACTIVE")
