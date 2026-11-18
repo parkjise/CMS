@@ -21,6 +21,7 @@ export const BOARD_PAGE_SIZE: Record<BoardType, number> = {
   FAQ: 20,
   CARD: 12,
   REVIEW: 10,
+  QNA: 10,
   WEBZINE: 10,
 }
 

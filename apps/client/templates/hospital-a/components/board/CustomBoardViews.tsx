@@ -32,6 +32,33 @@ export interface BoardLink {
 
 const EMPTY_TEXT = '등록된 글이 없습니다.'
 
+/** 문의형 관리자 답변 (T-219) — 상담 상세(ConsultPostView)와 같은 답변 상자 */
+function QnaAnswer({ post }: { post: PublicPost }) {
+  const date = post.answered_at ? postDate(post.answered_at) : null
+  return (
+    <section className="board-view__answer" aria-labelledby="board-view-answer-title">
+      <header className="board-view__answer-head">
+        <h3 className="board-view__answer-title" id="board-view-answer-title">
+          <span className="board-view__answer-mark" aria-hidden="true">
+            A
+          </span>
+          답변
+        </h3>
+        {date && (
+          <time className="board-view__answer-date" dateTime={date}>
+            {dotDate(date)}
+          </time>
+        )}
+      </header>
+      <div className="board-view__content board-view__content--answer">
+        {(post.answer ?? '').split(/\n{2,}/).map((paragraph, index) => (
+          <p key={index}>{paragraph}</p>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 /** 글 상세 — 없는 글이면 안내 */
 export function CustomBoardDetail({
   board,
@@ -57,6 +84,7 @@ export function CustomBoardDetail({
       body={post.body}
       fields={post.fields}
       attachments={post.locked ? [] : post.attachments}
+      afterBody={!post.locked && post.answer ? <QnaAnswer post={post} /> : null}
       edit={{ board: board.slug, post: post.id }}
       prevHref={post.prev_id ? hrefFor({ id: post.prev_id }) : null}
       nextHref={post.next_id ? hrefFor({ id: post.next_id }) : null}
@@ -130,7 +158,8 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
   const design = boardDesign(board)
   const ratioClass = `--ratio-${design.image_ratio.replace(':', '-')}`
 
-  if (board.board_type === 'LIST') {
+  // 문의형(T-219)은 목록형 화면에 답변 상태 배지를 더한다
+  if (board.board_type === 'LIST' || board.board_type === 'QNA') {
     return (
       <NoticeListView
         title={board.name}
@@ -146,6 +175,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
           pinned: p.is_pinned,
           secret: p.is_secret,
           attachment: p.has_attachments,
+          answered: p.answered,
           listFields: p.list_fields,
         }))}
         total={total}
@@ -156,7 +186,11 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
         searchTarget={listSearch}
         canWrite
         showDate={design.show_date}
-        tableColumns={design.list_layout === 'columns' ? list.list_columns : undefined}
+        tableColumns={
+          board.board_type === 'LIST' && design.list_layout === 'columns'
+            ? list.list_columns
+            : undefined
+        }
         tabs={tabs}
         memberWriteHref={memberWriteHref}
       />

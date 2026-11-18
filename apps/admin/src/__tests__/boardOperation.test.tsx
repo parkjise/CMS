@@ -180,7 +180,8 @@ describe('비밀글 — 관리자 (T-151-A)', () => {
     mockApi([{ ...board, operation: { allow_secret: true, notify_new_post: false, allow_guest: false } }])
     post.mockResolvedValue({ data: { data: { id: 'p1' } } })
     renderAt('/admin/boards/b1/posts/new', '/admin/boards/:boardId/posts/new', <BoardPostEditPage />)
-    await userEvent.type(await screen.findByLabelText(/제목/), '관리자 비밀')
+    // 비밀글 안내 문구에도 '제목'이 있다 — 제목 칸만
+    await userEvent.type(await screen.findByLabelText(/^제목/), '관리자 비밀')
     await userEvent.click(await screen.findByText('비밀글'))
     await userEvent.click(screen.getByRole('button', { name: '임시저장' }))
     await waitFor(() =>

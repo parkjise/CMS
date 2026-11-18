@@ -50,6 +50,7 @@ export function BoardPostsPage() {
 
   const boardsQuery = useBoards()
   const board = boardsQuery.data?.find((b) => b.id === boardId)
+  const isQna = board?.board_type === 'QNA'
   const tenantSlug = useAuthStore((st) => st.tenantSlug)
   const publishedId = (useLocation().state as { publishedId?: string } | null)?.publishedId
   // 사용 안 함 게시판은 열리지 않아 링크를 두지 않는다. 공지는 테마형도 /notice (T-176)
@@ -189,6 +190,16 @@ export function BoardPostsPage() {
         </span>
         {post.is_secret && (
           <span className="rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">비밀글</span>
+        )}
+        {isQna && (
+          // 문의형 답변 상태 (T-219)
+          <span
+            className={`rounded px-1.5 py-0.5 ${
+              post.answered_at ? 'bg-blue-50 text-blue-700' : 'bg-rose-50 text-rose-700'
+            }`}
+          >
+            {post.answered_at ? '답변 완료' : '답변 대기'}
+          </span>
         )}
         {post.guest_name && (
           <span className="rounded bg-amber-50 px-1.5 py-0.5 text-amber-700">

@@ -96,7 +96,7 @@ export interface FieldConvertResult {
 /** 글 본문 한 칸 — 새 글은 RichNode, 기존 글 · 샘플은 BodyBlock */
 export type BodyNode = BodyBlock | RichNode
 
-export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD' | 'WEBZINE' | 'REVIEW'
+export type BoardType = 'LIST' | 'GALLERY' | 'FAQ' | 'CARD' | 'WEBZINE' | 'REVIEW' | 'QNA'
 export type BoardStatus = 'ACTIVE' | 'INACTIVE'
 export type BoardSortOrder = 'LATEST' | 'OLDEST' | 'TITLE'
 
@@ -218,6 +218,8 @@ export interface PostListItem {
   is_pinned: boolean
   /** 비밀글 (T-151-A) */
   is_secret?: boolean
+  /** 문의형 답변 시각 — 있으면 "답변 완료" (T-219) */
+  answered_at?: string | null
   published_at: string | null
   created_at: string
   updated_at: string
@@ -252,6 +254,8 @@ export interface Post extends PostListItem {
   attachments?: PostAttachment[]
   /** 필드 값 {field_key: 값} (T-142-A) */
   custom_data: Record<string, unknown>
+  /** 문의형 관리자 답변 (T-219) */
+  answer?: string | null
 }
 
 /** 글의 이전 버전 한 줄 (T-191) — 고치기 직전 내용 */
@@ -352,6 +356,8 @@ export interface PublicPostItem {
   published_at: string
   /** 갤러리 썸네일 — 본문의 첫 사진 */
   thumbnail?: string | null
+  /** 문의형만 — 답변 완료 true · 대기 false, 다른 유형은 없음 (T-219) */
+  answered?: boolean | null
   /** FAQ 게시판 목록에만 — 답변을 펼쳐 보여 준다 */
   body?: BodyNode[] | null
   /** 비밀글이면 제목만 — 요약 · 사진 · 본문이 없다 (T-151-A) */
@@ -410,6 +416,9 @@ export interface PublicPost extends Omit<PublicPostItem, 'body'> {
   locked?: boolean
   /** 첨부 파일 (T-194) — 잠긴 비밀글이면 빈 목록 */
   attachments?: PostAttachment[]
+  /** 문의형 관리자 답변 (T-219) — 잠긴 비밀글이면 비어 있다 */
+  answer?: string | null
+  answered_at?: string | null
   prev_id: string | null
   next_id: string | null
 }
@@ -431,6 +440,9 @@ export interface GuestPost extends MemberPost {
   guest_name: string
   body: BodyNode[]
   fields: PublicFieldValue[]
+  /** 문의형 답변 (T-219) */
+  answer?: string | null
+  answered_at?: string | null
 }
 
 export type ReportReason = 'SPAM' | 'ABUSE' | 'PRIVACY' | 'OTHER'

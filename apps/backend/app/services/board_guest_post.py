@@ -219,4 +219,6 @@ async def guest_post_response(db: AsyncSession, post: BoardPost) -> dict:
         "guest_name": post.guest_name or "",
         "body": post.body or [],
         "fields": await field_service.public_fields(db, post),
+        "answer": post.answer,
+        "answered_at": post.answered_at,
     }

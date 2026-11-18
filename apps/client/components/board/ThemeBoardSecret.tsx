@@ -39,7 +39,15 @@ export function ThemeBoardSecret({ board, tenantSlug, post, pageKey, noSlug }: T
   }, [isMember, tenantSlug, board.slug, post.id, post.is_guest])
 
   const openGuest = (guest: GuestPost) =>
-    setOpened({ ...post, title: guest.title, body: guest.body, fields: guest.fields, locked: false })
+    setOpened({
+      ...post,
+      title: guest.title,
+      body: guest.body,
+      fields: guest.fields,
+      answer: guest.answer,
+      answered_at: guest.answered_at,
+      locked: false,
+    })
 
   return (
     <ThemeBoardDetail

@@ -22,6 +22,7 @@ import { RichBody } from '@/templates/shared/RichBody'
 import { ThemeGuestPostActions, ThemeReportButton } from './ThemeGuestTools'
 import { ThemeMemberPostActions, ThemeMemberWriteLink, ThemeSecretNotice } from './ThemeMemberLinks'
 import { ThemeWriteLink } from './ThemeWriteLink'
+import { PostAnswer } from './PostAnswer'
 
 const muted = 'text-[color:var(--color-text-muted)]'
 const primary = 'text-[color:var(--color-text-primary)]'
@@ -152,6 +153,17 @@ export function ThemeBoardDetail({ board, post, hrefFor, tenantSlug, secretActio
         ) : (
           <>
             <Body blocks={post.body} />
+            <PostAnswer
+              answer={post.answer}
+              answeredAt={post.answered_at}
+              formatDate={(date) => date.replaceAll('-', '.')}
+              classes={{
+                root: `mt-8 rounded-lg bg-[var(--color-surface)] p-5`,
+                title: `text-sm font-semibold ${primary}`,
+                date: `mt-0.5 block text-xs ${muted}`,
+                text: `mt-3 whitespace-pre-line break-words text-sm leading-relaxed ${primary}`,
+              }}
+            />
             {post.attachments && post.attachments.length > 0 && (
               <section className={`mt-8 rounded-lg border p-4 ${line}`} aria-label="첨부 파일">
                 <h3 className={`mb-2 text-sm font-semibold ${primary}`}>첨부 파일</h3>
@@ -678,6 +690,18 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     )}
                     {post.title}
                     {post.has_attachments && <AttachmentMark />}
+                    {post.answered != null && (
+                      // 문의형 답변 상태 (T-219)
+                      <span
+                        className={`ml-2 rounded-full px-2 py-0.5 align-[2px] text-xs ${
+                          post.answered
+                            ? 'bg-[var(--color-primary)] text-white'
+                            : `bg-[var(--color-surface)] ${muted}`
+                        }`}
+                      >
+                        {post.answered ? '답변 완료' : '답변 대기'}
+                      </span>
+                    )}
                   </span>
                   {!post.is_secret && (
                     <ListFieldValues

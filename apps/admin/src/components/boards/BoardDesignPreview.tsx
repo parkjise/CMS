@@ -145,7 +145,7 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                 </div>
               </article>
             ))
-          ) : type === 'LIST' ? (
+          ) : type === 'LIST' || type === 'QNA' ? (
             SAMPLES.map((title, index) => (
               <div
                 key={title}
@@ -158,6 +158,13 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                     </em>
                   )}
                   {title}
+                  {type === 'QNA' && (
+                    <em
+                      className={`ml-2 rounded-full px-1.5 py-0.5 text-[10px] not-italic ${index % 2 ? 'bg-slate-100 text-slate-500' : 'bg-blue-600 text-white'}`}
+                    >
+                      {index % 2 ? '답변 대기' : '답변 완료'}
+                    </em>
+                  )}
                 </span>
                 {design.show_date && (
                   <time className="whitespace-nowrap text-[10px] text-slate-400">2026.11.11</time>

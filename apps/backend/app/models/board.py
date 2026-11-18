@@ -10,6 +10,7 @@ from sqlalchemy import (
     Index,
     Integer,
     String,
+    Text,
     UniqueConstraint,
     text,
 )
@@ -91,6 +92,14 @@ class BoardPost(Base, TimestampMixin, SoftDeleteMixin):
     # 비회원 글 (T-151-B) — 이름과 글 비밀번호(bcrypt). 회원 · 관리자 글은 비어 있다
     guest_name: Mapped[str | None] = mapped_column(String(20), nullable=True)
     guest_password_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    # 문의형 관리자 답변 (T-219) — 글자만, 빈 줄로 문단. 답변한 관리자는 FK 없이
+    answer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    answered_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    answered_by: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True
+    )
     # 카테고리 (T-149) — 비워 둘 수 있다. 같은 게시판의 분류인지는 서비스가 본다
     category_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),

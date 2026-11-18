@@ -274,6 +274,28 @@ describe('비회원 비밀글 (T-151-B)', () => {
     expect(await screen.findByText('비밀 내용')).toBeInTheDocument()
     expect(fetchMemberPost).not.toHaveBeenCalled()
   })
+
+  it('문의형 — 비밀번호로 열면 답변도 보인다 (T-219)', async () => {
+    verifyGuestPost.mockResolvedValue({
+      id: 'p1',
+      title: '방문 후기',
+      content: '비밀 질문',
+      category_id: null,
+      is_secret: true,
+      guest_name: '손님',
+      body: [{ type: 'paragraph', content: [{ type: 'text', text: '비밀 질문' }] }],
+      fields: [],
+      answer: '비밀 답변',
+      answered_at: '2026-11-18T01:00:00Z',
+    })
+    render(
+      <CustomBoardSecret board={boardOf({ board_type: 'QNA' })} tenantSlug="demo" post={locked} link={{ pageKey: 'b/guestbook' }} />,
+    )
+    expect(screen.queryByText('비밀 답변')).not.toBeInTheDocument()
+    await userEvent.type(screen.getByLabelText('글 비밀번호'), 'pass1234')
+    await userEvent.click(screen.getByRole('button', { name: '확인' }))
+    expect(await screen.findByText('비밀 답변')).toBeInTheDocument()
+  })
 })
 
 describe('테마형 (T-151-B)', () => {

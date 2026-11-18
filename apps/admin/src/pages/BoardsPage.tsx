@@ -10,6 +10,7 @@ import {
   Image,
   LayoutGrid,
   List,
+  MessagesSquare,
   Newspaper,
   Plus,
   Search,
@@ -56,6 +57,7 @@ const TYPE_ICONS: Record<BoardType, { Icon: LucideIcon; tone: string }> = {
   CARD: { Icon: LayoutGrid, tone: 'bg-blue-50 text-blue-600' },
   WEBZINE: { Icon: Newspaper, tone: 'bg-violet-50 text-violet-600' },
   REVIEW: { Icon: Star, tone: 'bg-amber-50 text-amber-600' },
+  QNA: { Icon: MessagesSquare, tone: 'bg-teal-50 text-teal-600' },
 }
 
 const STATUS_TABS = [

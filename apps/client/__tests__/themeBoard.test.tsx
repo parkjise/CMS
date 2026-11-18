@@ -332,6 +332,25 @@ describe('테마형 게시판 상세 · 주소', () => {
     expect(screen.queryByRole('link', { name: '다음 게시글' })).not.toBeInTheDocument()
   })
 
+  it('문의형 (T-219): 목록 배지 · 상세 답변', async () => {
+    fetchPublicSite.mockResolvedValue(siteWith([boardOf('QNA')]))
+    fetchPublicPosts.mockResolvedValue(listOf([{ ...post, answered: true }]))
+    await renderPage(['news'])
+    expect(screen.getByText('답변 완료')).toBeInTheDocument()
+    fetchPublicPost.mockResolvedValue({
+      ...post,
+      body: [{ type: 'p', text: '질문' }],
+      prev_id: null,
+      next_id: null,
+      answer: '답변드립니다',
+      answered_at: '2026-11-18T01:00:00Z',
+    })
+    await renderPage(['news', 'p1'])
+    const answer = screen.getByRole('region', { name: '관리자 답변' })
+    expect(within(answer).getByText('답변드립니다')).toBeInTheDocument()
+    expect(within(answer).getByText('2026.11.18')).toBeInTheDocument()
+  })
+
   it('칸 값을 본문 위에 — 사진 · 별점 · 스크립트는 글자로', async () => {
     fetchPublicPost.mockResolvedValue({
       ...post,

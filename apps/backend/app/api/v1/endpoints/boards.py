@@ -63,6 +63,7 @@ from app.schemas.board import (
     MemberPostUpdate,
     MenuParentOption,
     PermissionOptionsResponse,
+    PostAnswerRequest,
     PostAttachment,
     PostBulkRequest,
     PostBulkResponse,
@@ -953,6 +954,25 @@ async def update_post(
     return ApiResponse.ok(await _post_response(db, updated))
 
 
+@router.put(
+    "/{board_id}/posts/{post_id}/answer", response_model=ApiResponse[PostResponse]
+)
+async def answer_post(
+    data: PostAnswerRequest,
+    board: Board = Depends(_board_or_404),
+    post: BoardPost = Depends(_post_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+):
+    """문의형 관리자 답변 (T-219) — 빈 글자면 답변을 지운다."""
+    if post.deleted_at is not None:
+        raise _not_found(MSG_POST_NOT_FOUND)
+    updated = await board_service.answer_post(
+        db, board, post, data.answer, current_user.id
+    )
+    return ApiResponse.ok(await _post_response(db, updated))
+
+
 @router.get(
     "/{board_id}/posts/{post_id}/versions",
     response_model=ApiResponse[list[PostVersionItem]],
@@ -1317,6 +1337,12 @@ async def get_public_post(
                 PostAttachment(**item)
                 for item in await attachment_service.list_attachments(db, post.id)
             ],
+            # 문의형 답변 (T-219) — 비밀글이면 답변도 같은 비밀
+            answered=post.answered_at is not None
+            if board.board_type == board_service.QNA_TYPE
+            else None,
+            answer=None if locked else post.answer,
+            answered_at=post.answered_at,
             prev_id=prev_id,
             next_id=next_id,
         )

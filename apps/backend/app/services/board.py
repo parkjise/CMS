@@ -119,6 +119,8 @@ MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다.
 # 의료법 — 병원 홈페이지의 치료 후기는 광고로 볼 수 있다 (T-218, 게시판 기획서 D-14)
 MSG_REVIEW_HOSPITAL = "병원 업종은 의료법상 리뷰형 게시판을 쓸 수 없습니다."
 REVIEW_TYPE = "REVIEW"
+QNA_TYPE = "QNA"
+MSG_ANSWER_QNA_ONLY = "답변은 문의형 게시판의 글에만 달 수 있습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
 MSG_SYSTEM_OPERATION_LOCKED = "기본 게시판에는 운영 설정이 없습니다."
@@ -852,6 +854,31 @@ async def after_member_write(db: AsyncSession, post: BoardPost) -> None:
     await _after_write(db, post)
 
 
+async def answer_post(
+    db: AsyncSession, board: Board, post: BoardPost, answer: str, user_id: UUID
+) -> BoardPost:
+    """문의형 관리자 답변 (T-219) — 빈 글자면 지워 "답변 대기"로 돌린다."""
+    if board.board_type != QNA_TYPE:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": MSG_ANSWER_QNA_ONLY,
+                "field": "answer",
+            },
+        )
+    if answer:
+        post.answer = answer
+        post.answered_at = datetime.now(UTC)
+        post.answered_by = user_id
+    else:
+        post.answer = post.answered_at = post.answered_by = None
+    await db.commit()
+    await db.refresh(post)
+    await site_cache.purge_site(db, post.tenant_id)
+    return post
+
+
 async def create_post(
     db: AsyncSession,
     tenant_id: UUID,
@@ -1334,7 +1361,8 @@ def public_post_item(
         ),
         "list_fields": (
             field_service.field_values(list_fields or [], post.custom_data or {})
-            if board.board_type in {"LIST", "GALLERY", "FAQ", "WEBZINE", REVIEW_TYPE}
+            if board.board_type
+            in {"LIST", "GALLERY", "FAQ", "WEBZINE", REVIEW_TYPE, QNA_TYPE}
             and not post.is_secret
             else None
         ),
@@ -1345,6 +1373,10 @@ def public_post_item(
         "category_id": post.category_id,
         "thumbnail": first_image(blocks),
         "body": blocks if board.board_type == "FAQ" and not post.is_secret else None,
+        # 문의형 답변 상태 (T-219) — 비밀글도 상태는 보인다 (내용은 상세에서만)
+        "answered": post.answered_at is not None
+        if board.board_type == QNA_TYPE
+        else None,
     }
 
 

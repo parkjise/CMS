@@ -265,7 +265,7 @@ class TestSlugCheck:
             {"name": "이름", "slug": "a"},
             {"name": "이름", "slug": "-start"},
             {"name": "이름", "slug": "a--b"},
-            {"name": "이름", "board_type": "QNA"},
+            {"name": "이름", "board_type": "ONE_TO_ONE"},
             {"name": "이름", "status": "HIDDEN"},
             {"name": "이름", "description": "가" * 201},
         ],

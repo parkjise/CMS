@@ -205,6 +205,44 @@ describe('갤러리형', () => {
   })
 })
 
+describe('문의형 (T-219)', () => {
+  it('목록형 화면에 답변 대기 · 완료 배지', async () => {
+    fetchPublicPosts.mockResolvedValue(
+      listOf([
+        { ...post, answered: false },
+        { ...post, id: 'p2', title: '두 번째 질문', answered: true },
+      ]),
+    )
+    const { container } = render(await CustomBoard(props('QNA')))
+    expect(fetchPublicPosts).toHaveBeenCalledWith('demo', 'news', { page: 1, size: 10, q: undefined })
+    expect(container.querySelector('.board-faq')).toBeNull()
+    expect(screen.getByText('답변 대기')).toHaveClass('board-list__answer')
+    expect(screen.getByText('답변 완료')).toHaveClass('board-list__answer--done')
+  })
+
+  it('상세 아래 관리자 답변 — 문단 · 날짜', async () => {
+    fetchPublicPost.mockResolvedValue({
+      ...post,
+      body: [{ type: 'p', text: '질문 본문' }],
+      prev_id: null,
+      next_id: null,
+      answer: '확인했습니다.\n\n내일 연락드릴게요.',
+      answered_at: '2026-11-18T01:00:00Z',
+    })
+    render(await CustomBoard(props('QNA', { detailId: 'p1' })))
+    const answer = screen.getByRole('region', { name: /답변/ })
+    expect(within(answer).getByText('확인했습니다.')).toBeInTheDocument()
+    expect(within(answer).getByText('내일 연락드릴게요.')).toBeInTheDocument()
+    expect(within(answer).getByText('2026. 11. 18')).toBeInTheDocument()
+  })
+
+  it('답변이 없거나 잠긴 비밀글이면 답변 상자가 없다', async () => {
+    fetchPublicPost.mockResolvedValue({ ...post, body: [], prev_id: null, next_id: null, locked: true, is_secret: true })
+    render(await CustomBoard(props('QNA', { detailId: 'p1' })))
+    expect(screen.queryByRole('region', { name: /답변/ })).not.toBeInTheDocument()
+  })
+})
+
 describe('리뷰형 (T-218)', () => {
   const rated = (rating: number, extra = {}) => ({
     ...post,

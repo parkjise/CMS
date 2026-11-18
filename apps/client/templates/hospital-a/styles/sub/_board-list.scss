@@ -143,6 +143,22 @@ $badge-bg: #f1f5f9;
     color: var(--color-text-secondary);
     vertical-align: -0.05em;
   }
+  // 문의형 답변 상태 (T-219) — 대기는 회색, 완료는 기본 색
+  &__answer {
+    display: inline-block;
+    margin-left: 0.5em;
+    padding: 2px 8px;
+    border-radius: 50px;
+    background: $badge-bg;
+    color: $muted;
+    font-size: 0.75rem;
+    font-weight: 500;
+    vertical-align: 0.2em;
+  }
+  &__answer--done {
+    background: var(--color-primary);
+    color: #fff;
+  }
   &__date {
     grid-area: date;
     font-size: 0.875rem;
