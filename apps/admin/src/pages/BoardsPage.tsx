@@ -14,6 +14,7 @@ import {
   Plus,
   Search,
   Settings,
+  Star,
   Trash2,
   type LucideIcon,
 } from 'lucide-react'
@@ -54,6 +55,7 @@ const TYPE_ICONS: Record<BoardType, { Icon: LucideIcon; tone: string }> = {
   FAQ: { Icon: CircleHelp, tone: 'bg-amber-50 text-amber-600' },
   CARD: { Icon: LayoutGrid, tone: 'bg-blue-50 text-blue-600' },
   WEBZINE: { Icon: Newspaper, tone: 'bg-violet-50 text-violet-600' },
+  REVIEW: { Icon: Star, tone: 'bg-amber-50 text-amber-600' },
 }
 
 const STATUS_TABS = [

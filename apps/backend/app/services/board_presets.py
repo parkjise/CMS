@@ -18,6 +18,16 @@ MSG_UNKNOWN_PRESET = "이 유형에서 쓸 수 없는 추천 칸입니다. 화�
 PRESETS: dict[str, list[dict[str, Any]]] = {
     "LIST": [],
     "FAQ": [],
+    # 리뷰형 (T-218) — 별점은 만들 때 늘 추가한다. 필수 표시 대신 서버가 별점을 요구해
+    # 홈페이지 회원 · 비회원 글쓰기가 꺼지지 않는다 (board_field.review_rating_key)
+    "REVIEW": [
+        {
+            "key": "rating",
+            "label": "별점",
+            "field_type": "RATING",
+            "show_in_list": True,
+        },
+    ],
     "WEBZINE": [
         {"key": "tags", "label": "태그", "field_type": "TEXT", "show_in_list": True},
     ],
@@ -55,6 +65,8 @@ def presets_response() -> dict[str, list[dict[str, Any]]]:
                 "field_type": p["field_type"],
                 "choices": p.get("choices", []),
                 "show_in_list": p.get("show_in_list", False),
+                # 고르지 않아도 늘 만든다 — 화면은 체크를 풀 수 없게 (T-218)
+                "always": p["key"] in ALWAYS.get(board_type, set()),
             }
             for p in presets
         ]
@@ -62,9 +74,14 @@ def presets_response() -> dict[str, list[dict[str, Any]]]:
     }
 
 
+# 고르지 않아도 늘 만드는 추천 칸
+ALWAYS = {"REVIEW": {"rating"}}
+
+
 def check_keys(board_type: str, keys: list[str]) -> list[str]:
     """이 유형의 추천 칸 키인지 — 겹치면 하나로, 정의 순서대로 돌려준다."""
     allowed = [p["key"] for p in PRESETS.get(board_type, [])]
+    keys = [*keys, *ALWAYS.get(board_type, set())]
     unknown = set(keys) - set(allowed)
     if unknown:
         raise HTTPException(
@@ -78,11 +95,11 @@ def check_keys(board_type: str, keys: list[str]) -> list[str]:
     return [key for key in allowed if key in keys]
 
 
-def preset_fields(board: Board, keys: list[str]) -> list[BoardField]:
-    """고른 추천 칸 — 새 게시판이라 정의 순서가 곧 칸 순서다."""
+def preset_fields(board: Board, keys: list[str], start: int = 0) -> list[BoardField]:
+    """고른 추천 칸 — 새 게시판이라 정의 순서가 곧 칸 순서다 (start 부터)."""
     by_key = {p["key"]: p for p in PRESETS.get(board.board_type, [])}
     fields = []
-    for order, key in enumerate(keys):
+    for order, key in enumerate(keys, start=start):
         preset = by_key[key]
         options: dict[str, Any] = {}
         if preset.get("choices"):

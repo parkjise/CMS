@@ -99,6 +99,31 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                 </p>
               </details>
             ))
+          ) : type === 'REVIEW' ? (
+            <>
+              <p className="mb-2 flex items-baseline gap-2 rounded-md bg-slate-50 px-4 py-3">
+                <strong className="text-lg text-amber-500">★ 4.6</strong>
+                <span className="text-[10px] text-slate-400">후기 128개</span>
+              </p>
+              {SAMPLES.map((title, index) => (
+                <article
+                  key={title}
+                  className="space-y-1.5 border-b border-slate-100 py-3.5 text-xs"
+                >
+                  <span className="block tracking-widest text-amber-400">
+                    {'★'.repeat(5 - (index % 2))}
+                    <span className="text-slate-300">{'★'.repeat(index % 2)}</span>
+                  </span>
+                  <strong className="block font-medium">{title}</strong>
+                  {design.show_summary && (
+                    <p className="text-slate-500">고객이 남긴 후기 앞부분이 표시됩니다.</p>
+                  )}
+                  {design.show_date && (
+                    <time className="block text-[10px] text-slate-400">2026.11.11</time>
+                  )}
+                </article>
+              ))}
+            </>
           ) : type === 'WEBZINE' ? (
             SAMPLES.map((title) => (
               <article key={title} className="flex gap-4 border-b border-slate-100 py-4 text-xs">

@@ -87,10 +87,12 @@ from app.schemas.board import (
     PublicPostListResponse,
     PublicPostLocation,
     PublicSitemapPost,
+    RatingSummary,
     ReportCreate,
     ReportedPostItem,
     ReportResolveRequest,
     SlugCheckResponse,
+    TypeOptionsResponse,
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
@@ -274,6 +276,16 @@ async def get_new_board_permission_options(
             member_write_blocked=await board_access.tenant_write_blocked(db, tenant_id),
         )
     )
+
+
+@router.get("/type-options", response_model=ApiResponse[TypeOptionsResponse])
+async def get_type_options(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """유형 고르기 — 병원 업종은 리뷰형을 고를 수 없다 (T-218)."""
+    blocked = await board_service.blocked_types(db, tenant_id)
+    return ApiResponse.ok(TypeOptionsResponse.model_validate({"blocked": blocked}))
 
 
 @router.get("/slug-check", response_model=ApiResponse[SlugCheckResponse])
@@ -1241,6 +1253,11 @@ async def list_public_posts(
                 is not None
                 else None
             ),
+            rating_summary=(
+                RatingSummary(**summary)
+                if (summary := await board_service.rating_summary(db, board))
+                else None
+            ),
             total=total,
             page=page,
             size=size,
@@ -1332,7 +1349,7 @@ async def create_member_post(
     member = await board_access.member_writer(db, board, credentials)
     post = await member_post_service.create_post(db, board, member, data)
     return ApiResponse.ok(
-        MemberPostResponse(**member_post_service.member_post_response(post))
+        MemberPostResponse(**await member_post_service.member_post_response(db, post))
     )
 
 
@@ -1357,7 +1374,7 @@ async def get_member_post(
     member = await board_access.post_owner(db, board, credentials)
     post = await member_post_service.own_post(db, board, member, post_id)
     return ApiResponse.ok(
-        MemberPostResponse(**member_post_service.member_post_response(post))
+        MemberPostResponse(**await member_post_service.member_post_response(db, post))
     )
 
 
@@ -1378,7 +1395,9 @@ async def update_member_post(
     post = await member_post_service.own_post(db, board, member, post_id)
     updated = await member_post_service.update_post(db, board, post, data)
     return ApiResponse.ok(
-        MemberPostResponse(**member_post_service.member_post_response(updated))
+        MemberPostResponse(
+            **await member_post_service.member_post_response(db, updated)
+        )
     )
 
 

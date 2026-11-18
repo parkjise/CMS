@@ -39,19 +39,22 @@ export interface MemberPostValues {
   content: string
   categoryId: string
   isSecret: boolean
+  /** 리뷰형 별점 1~5, 0 은 고르지 않음 (T-218) */
+  rating: number
   /** 비회원 글쓰기 (T-151-B) */
   name: string
   password: string
   agree: boolean
 }
 
-type FieldErrors = Partial<Record<'title' | 'content' | 'name' | 'password' | 'agree', string>>
+type FieldErrors = Partial<Record<'title' | 'content' | 'rating' | 'name' | 'password' | 'agree', string>>
 
 const EMPTY: MemberPostValues = {
   title: '',
   content: '',
   categoryId: '',
   isSecret: false,
+  rating: 0,
   name: '',
   password: '',
   agree: false,
@@ -73,6 +76,7 @@ const valuesOf = (post: MemberPost): Partial<MemberPostValues> => ({
   content: post.content,
   categoryId: post.category_id ?? '',
   isSecret: Boolean(post.is_secret),
+  rating: post.rating ?? 0,
 })
 
 /**
@@ -99,6 +103,8 @@ export function useMemberPostForm(
   const [wasSecret, setWasSecret] = useState(false)
   // 비밀글 체크 — 허용한 게시판이거나 이미 비밀글이면 (T-151-A). 서버가 다시 확인한다
   const secretChoice = Boolean(board.allow_secret) || wasSecret
+  // 리뷰형은 별점을 고른다 (T-218) — 서버가 다시 확인한다
+  const ratingChoice = board.board_type === 'REVIEW'
 
   useEffect(() => {
     if (login !== 'member' || !postId) return
@@ -168,6 +174,7 @@ export function useMemberPostForm(
   const validate = (): FieldErrors => ({
     ...(values.title.trim() ? {} : { title: '제목을 입력해 주세요.' }),
     ...(values.content.trim() ? {} : { content: '내용을 입력해 주세요.' }),
+    ...(ratingChoice && !values.rating ? { rating: '별점을 골라 주세요.' } : {}),
     ...(guest && !postId && !values.name.trim() ? { name: '이름을 입력해 주세요.' } : {}),
     ...(guest && !postId && values.password.length < GUEST_PASSWORD_MIN
       ? { password: `비밀번호를 ${GUEST_PASSWORD_MIN}자 이상 입력해 주세요.` }
@@ -189,6 +196,7 @@ export function useMemberPostForm(
       content: values.content.trim(),
       category_id: values.categoryId || null,
       ...(secretChoice ? { is_secret: values.isSecret } : {}),
+      ...(ratingChoice && values.rating ? { rating: values.rating } : {}),
     }
     try {
       let saved: { id: string }
@@ -217,7 +225,7 @@ export function useMemberPostForm(
     }
   }
 
-  return { state, guest, values, errors, message, submitting, secretChoice, change, submit, unlock }
+  return { state, guest, values, errors, message, submitting, secretChoice, ratingChoice, change, submit, unlock }
 }
 
 /** 글 상세의 [수정] [삭제] — 로그인한 회원이 쓴 글일 때만 (서버가 확인한다) */

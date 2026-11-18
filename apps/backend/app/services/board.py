@@ -116,6 +116,9 @@ MSG_SLUG_TAKEN = "이미 다른 게시판이 쓰는 주소예요. 다른 주소�
 MSG_SLUG_FORMAT = "영문 소문자 · 숫자 · 하이픈으로 2자 이상 입력해 주세요."
 MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다."
 MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
+# 의료법 — 병원 홈페이지의 치료 후기는 광고로 볼 수 있다 (T-218, 게시판 기획서 D-14)
+MSG_REVIEW_HOSPITAL = "병원 업종은 의료법상 리뷰형 게시판을 쓸 수 없습니다."
+REVIEW_TYPE = "REVIEW"
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
 MSG_SYSTEM_OPERATION_LOCKED = "기본 게시판에는 운영 설정이 없습니다."
@@ -490,8 +493,47 @@ async def _commit_board(db: AsyncSession) -> None:
         raise _slug_conflict(MSG_SLUG_TAKEN) from e
 
 
+async def _check_review_allowed(
+    db: AsyncSession, tenant_id: UUID, board_type: str
+) -> None:
+    """리뷰형은 병원 업종이 아닐 때만 — 화면만이 아니라 서버에서 막는다 (T-218)."""
+    if board_type != REVIEW_TYPE:
+        return
+    tenant = await db.get(Tenant, tenant_id)
+    if tenant is None or tenant.template_type == board_access.HOSPITAL:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": MSG_REVIEW_HOSPITAL,
+                "field": "board_type",
+            },
+        )
+
+
+async def blocked_types(db: AsyncSession, tenant_id: UUID) -> dict[str, str]:
+    """이 사업체가 고를 수 없는 게시판 유형과 이유 (T-218)."""
+    try:
+        await _check_review_allowed(db, tenant_id, REVIEW_TYPE)
+    except HTTPException:
+        return {REVIEW_TYPE: MSG_REVIEW_HOSPITAL}
+    return {}
+
+
+async def _add_review_rating(db: AsyncSession, board: Board) -> None:
+    """리뷰형으로 바꿀 때 별점 칸이 없으면 추천 칸으로 만든다 (T-218)."""
+    fields = await field_service.list_fields(db, board.id)
+    if field_service.review_rating_field(fields) is not None:
+        return
+    if any(f.field_key == "rating" for f in fields):
+        return  # 같은 키의 다른 칸이 있으면 관리자가 필드 관리에서 고른다
+    start = max((f.display_order for f in fields), default=-1) + 1
+    db.add_all(board_presets.preset_fields(board, ["rating"], start=start))
+
+
 async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> Board:
     await _ensure_can_create(db, tenant_id)
+    await _check_review_allowed(db, tenant_id, data.board_type)
     if data.slug:
         _check_slug(data.slug)
         if await _slug_taken(db, tenant_id, data.slug):
@@ -629,6 +671,8 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_TYPE_LOCKED
         )
+    if data.board_type is not None and data.board_type != board.board_type:
+        await _check_review_allowed(db, board.tenant_id, data.board_type)
     if data.permissions is not None:
         await _check_permissions(db, board, data.permissions)
     if (
@@ -653,6 +697,9 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
     if data.name is not None:
         board.name = data.name
     if data.board_type is not None:
+        if data.board_type == REVIEW_TYPE and board.board_type != REVIEW_TYPE:
+            board.board_type = data.board_type
+            await _add_review_rating(db, board)
         board.board_type = data.board_type
     if data.description is not None:
         board.settings = {**(board.settings or {}), DESCRIPTION_KEY: data.description}
@@ -1268,7 +1315,9 @@ def public_post_item(
     blocks = [] if post.is_secret else post.body or []
     is_card = board.board_type == "CARD" and not post.is_secret
     # 웹진형도 본문 앞부분을 요약으로 보여 준다 (T-217)
-    has_summary = board.board_type in {"CARD", "WEBZINE"} and not post.is_secret
+    has_summary = (
+        board.board_type in {"CARD", "WEBZINE", REVIEW_TYPE} and not post.is_secret
+    )
     summary_limit = (
         board_options(board)[DESIGN_KEY]["summary_length"]
         if board.board_type == "WEBZINE"
@@ -1285,7 +1334,7 @@ def public_post_item(
         ),
         "list_fields": (
             field_service.field_values(list_fields or [], post.custom_data or {})
-            if board.board_type in {"LIST", "GALLERY", "FAQ", "WEBZINE"}
+            if board.board_type in {"LIST", "GALLERY", "FAQ", "WEBZINE", REVIEW_TYPE}
             and not post.is_secret
             else None
         ),
@@ -1297,6 +1346,27 @@ def public_post_item(
         "thumbnail": first_image(blocks),
         "body": blocks if board.board_type == "FAQ" and not post.is_secret else None,
     }
+
+
+async def rating_summary(db: AsyncSession, board: Board) -> dict | None:
+    """리뷰형 목록 위의 평균 별점 · 후기 수 (T-218) — 공개 중인 글만."""
+    if board.board_type != REVIEW_TYPE:
+        return None
+    field = field_service.review_rating_field(
+        await field_service.list_fields(db, board.id)
+    )
+    if field is None:
+        return None
+    value = BoardPost.custom_data[field.field_key]
+    average, count = (
+        await db.execute(
+            select(func.avg(value.as_integer()), func.count()).where(
+                *_public_conditions(board),
+                func.jsonb_typeof(value) == "number",
+            )
+        )
+    ).one()
+    return {"average": round(float(average or 0), 1), "count": count}
 
 
 def _public_conditions(board: Board) -> list[ColumnElement[bool]]:

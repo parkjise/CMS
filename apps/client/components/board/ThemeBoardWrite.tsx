@@ -12,6 +12,7 @@ import {
   useMemberPostForm,
 } from './useMemberPostForm'
 import { memberLoginHref } from './useMemberBoard'
+import { StarRatingInput } from './StarRatingInput'
 
 interface ThemeBoardWriteProps {
   board: PublicBoard
@@ -232,6 +233,24 @@ export function ThemeBoardWrite({
             {form.values.content.length.toLocaleString()} / {CONTENT_MAX.toLocaleString()}자
           </p>
         </div>
+        {form.ratingChoice && (
+          <StarRatingInput
+            id="tw-rating"
+            value={form.values.rating}
+            error={form.errors.rating}
+            onChange={(rating) => form.change({ rating })}
+            classes={{
+              root: '',
+              legend: `mb-1 text-sm font-medium ${primary}`,
+              req: 'text-red-600',
+              stars: 'flex gap-1',
+              input: 'peer sr-only',
+              star: 'cursor-pointer text-3xl leading-none text-slate-300 peer-focus-visible:outline peer-focus-visible:outline-2',
+              starOn: '!text-amber-400',
+              error: 'mt-1 text-sm text-red-600',
+            }}
+          />
+        )}
         {form.guest && !postId && (
           <label className={`flex items-start gap-2 text-sm ${primary}`}>
             <input

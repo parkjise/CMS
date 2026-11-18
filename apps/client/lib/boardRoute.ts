@@ -6,6 +6,7 @@ import type {
   BoardDesign,
   BoardType,
   PublicBoard,
+  PublicFieldValue,
   PublicPost,
   PublicPostItem,
   PublicPostList,
@@ -19,6 +20,7 @@ export const BOARD_PAGE_SIZE: Record<BoardType, number> = {
   GALLERY: 12,
   FAQ: 20,
   CARD: 12,
+  REVIEW: 10,
   WEBZINE: 10,
 }
 
@@ -121,6 +123,17 @@ export interface BoardPage {
   keyword: string
   /** 지금 고른 카테고리 — 이 게시판의 사용 중인 분류일 때만 (T-149) */
   category?: string
+  /** 리뷰형 평균 별점 · 후기 수 (T-218) */
+  ratingSummary?: { average: number; count: number } | null
+}
+
+/** 리뷰형 (T-218) — 목록 칸에서 별점을 떼어 크게 보여 주고 나머지 칸은 그대로 */
+export const reviewRating = (fields?: PublicFieldValue[] | null) => {
+  const star = fields?.find((field) => field.field_type === 'RATING')
+  return {
+    rating: typeof star?.value === 'number' ? star.value : null,
+    rest: fields?.filter((field) => field !== star) ?? null,
+  }
 }
 
 /** 주소의 카테고리(c)가 이 게시판의 사용 중인 분류인지 — 아니면 '전체' */
@@ -152,6 +165,7 @@ export async function loadBoardPage(
   return {
     posts: list?.items ?? [],
     list_columns: list?.list_columns,
+    ratingSummary: list?.rating_summary ?? null,
     total,
     page: Math.min(page, totalPages),
     totalPages,

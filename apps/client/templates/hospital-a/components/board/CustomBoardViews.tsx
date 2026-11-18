@@ -8,6 +8,7 @@ import {
   WRITE_PAGE,
   boardDesign,
   canMemberWrite,
+  reviewRating,
 } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
 import { BoardBody } from './BoardBody'
@@ -111,7 +112,7 @@ interface CustomBoardListProps {
 
 /** 유형별 글 목록 — 서버(공개 게시판)와 브라우저(회원 게시판)가 같이 쓴다 */
 export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBoardListProps) {
-  const { posts, total, page: current, totalPages, keyword, category } = list
+  const { posts, total, page: current, totalPages, keyword, category, ratingSummary } = list
   // 검색 · 페이지 이동은 고른 카테고리 안에서 (T-149)
   const listHref: BoardHrefFor = (extra) => hrefFor(extra?.id ? extra : { ...extra, c: category })
   const listSearch: SearchTarget = category
@@ -227,6 +228,60 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
             )
           })}
         </ul>
+      ) : board.board_type === 'REVIEW' ? (
+        // 리뷰형 (T-218) — 평균 별점 · 후기 수, 글마다 별 · 제목 · 요약
+        <div className="board-review">
+          {ratingSummary && ratingSummary.count > 0 && (
+            <p className="board-review__summary">
+              <span className="board-review__average" aria-hidden="true">
+                ★ {ratingSummary.average.toFixed(1)}
+              </span>
+              <span className="board-review__count">
+                <span className="sr-only">평균 별점 {ratingSummary.average.toFixed(1)}점, </span>
+                후기 {ratingSummary.count.toLocaleString()}개
+              </span>
+            </p>
+          )}
+          <ul className="board-review__list">
+            {posts.map((post) => {
+              const date = postDate(post.published_at)
+              const { rating, rest } = reviewRating(post.list_fields)
+              return (
+                <li className="board-review__item" key={post.id}>
+                  <a className="board-review__link" href={hrefFor({ id: post.id })}>
+                    {rating !== null && (
+                      <span className="board-review__stars" role="img" aria-label={`별점 ${rating}점`}>
+                        {'★'.repeat(rating)}
+                        <span className="board-review__stars-off">{'★'.repeat(5 - rating)}</span>
+                      </span>
+                    )}
+                    <span className="board-review__subject">
+                      {post.is_secret && (
+                        <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
+                      )}
+                      {post.title}
+                    </span>
+                    {design.show_summary && post.summary && (
+                      <span className="board-review__summary-text">{post.summary}</span>
+                    )}
+                    {!post.is_secret && (
+                      <ListFieldValues
+                        fields={rest}
+                        className="board-review__fields"
+                        itemClassName="board-review__field"
+                      />
+                    )}
+                    {design.show_date && (
+                      <time className="board-review__date" dateTime={date}>
+                        {dotDate(date)}
+                      </time>
+                    )}
+                  </a>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       ) : board.board_type === 'WEBZINE' ? (
         // 웹진형 (T-217) — 왼쪽 썸네일, 오른쪽 제목 · 요약 · 작성일
         <ul className={`board-webzine board-webzine${ratioClass}`}>

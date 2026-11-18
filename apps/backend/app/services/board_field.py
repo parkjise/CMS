@@ -78,6 +78,8 @@ MSG_MIN_MAX = "최솟값은 최댓값보다 클 수 없습니다."
 MSG_ORDER_MISMATCH = "칸 목록이 바뀌었습니다. 화면을 새로 고쳐 주세요."
 MSG_UNKNOWN_FIELD = "없는 칸입니다. 화면을 새로 고쳐 주세요."
 MSG_REQUIRED = "필수 칸입니다."
+MSG_RATING_REQUIRED = "별점을 골라 주세요."
+REVIEW = "REVIEW"
 MSG_TEXT_TOO_LONG = "글자 수가 너무 많습니다."
 MSG_INVALID_TEXT = "글자를 입력해주세요."
 MSG_INVALID_NUMBER = "올바른 숫자가 아닙니다."
@@ -275,6 +277,21 @@ def _missing_required(
     return None
 
 
+def review_rating_field(fields: list[BoardField]) -> BoardField | None:
+    """리뷰형의 별점 칸 — 보이는 첫 별점 칸 (T-218)."""
+    return next((f for f in fields if f.field_type == "RATING" and f.is_visible), None)
+
+
+async def rating_input(
+    db: AsyncSession, board: Board, rating: int | None
+) -> dict[str, Any] | None:
+    """홈페이지 글쓰기 폼의 별점 → custom_data 값. 리뷰형이 아니면 무시한다."""
+    if rating is None or board.board_type != REVIEW:
+        return None
+    field = review_rating_field(await list_fields(db, board.id))
+    return {field.field_key: rating} if field else None
+
+
 async def resolve_custom_data(
     db: AsyncSession,
     board_id: UUID,
@@ -296,6 +313,12 @@ async def resolve_custom_data(
         missing = _missing_required(fields, merged, stored, first)
         if missing is not None:
             raise _value_error(missing.field_key, MSG_REQUIRED)
+        # 리뷰형은 필수 표시 없이도 별점이 있어야 공개한다 (T-218)
+        board = await db.get(Board, board_id)
+        rating = review_rating_field(fields)
+        if board is not None and board.board_type == REVIEW and rating is not None:
+            if _is_empty(merged.get(rating.field_key)):
+                raise _value_error(rating.field_key, MSG_RATING_REQUIRED)
     return merged
 
 

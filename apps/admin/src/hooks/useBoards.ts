@@ -126,6 +126,17 @@ export function useNewBoardPermissionOptions() {
   })
 }
 
+/** 고를 수 없는 게시판 유형과 이유 (T-218) — 병원 업종은 리뷰형 불가 */
+export function useBoardTypeOptions() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'type-options'],
+    queryFn: async (): Promise<{ blocked: Partial<Record<BoardType, string>> }> => {
+      const { data } = await api.get('/v1/boards/type-options')
+      return data.data
+    },
+  })
+}
+
 /** 게시판을 넣을 수 있는 페이지 묶음 (T-216) — 테마형이면 빈 목록 */
 export function useMenuParents() {
   return useQuery({

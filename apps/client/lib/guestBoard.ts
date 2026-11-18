@@ -34,6 +34,7 @@ export interface GuestPostInput {
   content: string
   category_id: string | null
   is_secret?: boolean
+  rating?: number
   agree: true
   recaptcha_token: string | null
 }
@@ -50,6 +51,7 @@ export interface GuestPostUpdateInput {
   content: string
   category_id: string | null
   is_secret?: boolean
+  rating?: number
 }
 
 export const updateGuestPost = (tenantSlug: string, board: string, postId: string, input: GuestPostUpdateInput) =>

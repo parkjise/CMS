@@ -657,7 +657,7 @@ class TestPresetFields:
         resp = await client.get(f"{BOARDS}/presets", headers=auth_headers)
         assert resp.status_code == 200, resp.text
         data = resp.json()["data"]
-        assert set(data) == {"LIST", "GALLERY", "FAQ", "CARD", "WEBZINE"}
+        assert set(data) == {"LIST", "GALLERY", "FAQ", "CARD", "WEBZINE", "REVIEW"}
         assert data["LIST"] == [] and data["FAQ"] == []
         card = {p["key"]: p for p in data["CARD"]}
         assert card["employment_type"]["choices"] == [
@@ -671,6 +671,9 @@ class TestPresetFields:
         assert [(p["key"], p["show_in_list"]) for p in data["WEBZINE"]] == [
             ("tags", True)
         ]
+        # 리뷰형 (T-218) — 별점은 늘 만든다
+        assert [(p["key"], p["always"]) for p in data["REVIEW"]] == [("rating", True)]
+        assert card["deadline"]["always"] is False
 
     async def test_create_with_presets(self, client, auth_headers, standard):
         board = await _create(

@@ -296,3 +296,46 @@ describe('테마형 (T-151-B)', () => {
     expect(screen.getByRole('button', { name: /신고/ })).toBeInTheDocument()
   })
 })
+
+describe('리뷰형 글쓰기 — 별점 (T-218)', () => {
+  const review = boardOf({ board_type: 'REVIEW', slug: 'reviews' })
+
+  const fillGuest = async () => {
+    await userEvent.type(screen.getByLabelText(/^이름/), '손님')
+    await userEvent.type(screen.getByLabelText(/^글 비밀번호/), 'pass1234')
+    await userEvent.type(screen.getByLabelText(/제목/), '친절해요')
+    await userEvent.type(screen.getByLabelText(/내용/), '또 올게요')
+    await userEvent.click(screen.getByLabelText(/개인정보 수집/))
+  }
+
+  it('코드형 — 별을 고르지 않으면 안내, 고르면 별점과 함께 보낸다', async () => {
+    createGuestPost.mockResolvedValue({ id: 'p9' })
+    render(<CustomBoardWrite board={review} tenantSlug="demo" link={{ pageKey: 'b/reviews' }} memberEnabled />)
+    await fillGuest()
+    await userEvent.click(screen.getByRole('button', { name: '등록' }))
+    expect(screen.getByText('별점을 골라 주세요.')).toBeInTheDocument()
+    expect(createGuestPost).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('radio', { name: '4점' }))
+    expect(screen.queryByText('별점을 골라 주세요.')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '등록' }))
+    await waitFor(() =>
+      expect(createGuestPost).toHaveBeenCalledWith('demo', 'reviews', expect.objectContaining({ rating: 4 })),
+    )
+  })
+
+  it('테마형 — 별점 고르기', async () => {
+    createGuestPost.mockResolvedValue({ id: 'p9' })
+    render(<ThemeBoardWrite board={review} tenantSlug="demo" pageKey="b/reviews" noSlug={false} memberEnabled />)
+    await fillGuest()
+    await userEvent.click(screen.getByRole('radio', { name: '5점' }))
+    await userEvent.click(screen.getByRole('button', { name: '등록' }))
+    await waitFor(() =>
+      expect(createGuestPost).toHaveBeenCalledWith('demo', 'reviews', expect.objectContaining({ rating: 5 })),
+    )
+  })
+
+  it('다른 유형에는 별점 칸이 없다', () => {
+    render(<CustomBoardWrite board={boardOf()} tenantSlug="demo" link={{ pageKey: 'b/guestbook' }} memberEnabled />)
+    expect(screen.queryByRole('radio', { name: '1점' })).not.toBeInTheDocument()
+  })
+})

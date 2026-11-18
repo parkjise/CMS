@@ -8,9 +8,9 @@ import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { BoardDesignPreview } from '@/components/boards/BoardDesignPreview'
 import { CARD, HELP_STRIP, PAGE, PANEL_LABEL } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useBoards, useUpdateBoard } from '@/hooks/useBoards'
+import { useBoardTypeOptions, useBoards, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { BOARD_TYPES } from '@/lib/boardLabels'
+import { BOARD_TYPES, boardTypeLabel } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 const SORT_OPTIONS: { value: BoardSortOrder; label: string }[] = [
@@ -30,6 +30,15 @@ const SUMMARY_LENGTHS = [60, 120, 200] as const
 /** 유형 카드의 작은 모양 — 목록은 줄, 사진 유형은 칸, 웹진은 왼쪽 사진 + 줄 */
 function TypeSketch({ type }: { type: BoardType }) {
   const tiles = type === 'GALLERY' || type === 'CARD'
+  if (type === 'REVIEW') {
+    return (
+      <span aria-hidden className="mb-2 flex h-11 flex-col gap-1 rounded bg-slate-100 p-2">
+        <i className="text-[9px] not-italic leading-none tracking-widest text-amber-400">★★★★★</i>
+        <i className="h-1 w-full rounded-sm bg-slate-300" />
+        <i className="h-1 w-2/3 rounded-sm bg-slate-300" />
+      </span>
+    )
+  }
   if (type === 'WEBZINE') {
     return (
       <span aria-hidden className="mb-2 flex h-11 gap-1.5 rounded bg-slate-100 p-2">
@@ -68,6 +77,7 @@ function BoardDesignForm({ board }: { board: Board }) {
   // 사진 없는 글은 갤러리에서 빈 칸으로 보일 수 있다 (D-03)
   const typeWarning = boardType !== board.board_type && board.post_count > 0
   const usesImage = boardType === 'GALLERY' || boardType === 'CARD'
+  const blockedTypes = useBoardTypeOptions().data?.blocked ?? {}
   const change = (next: Partial<BoardDesign>) => setDesign((current) => ({ ...current, ...next }))
 
   const save = async () => {
@@ -102,36 +112,50 @@ function BoardDesignForm({ board }: { board: Board }) {
               <fieldset>
                 <legend className={PANEL_LABEL}>레이아웃 유형</legend>
                 <div className="grid grid-cols-2 gap-2.5">
-                  {BOARD_TYPES.map((type) => (
-                    <label
-                      key={type.value}
-                      title={type.hint}
-                      className={`relative cursor-pointer rounded-lg border p-3 text-xs has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
-                        boardType === type.value
-                          ? 'border-blue-600 bg-blue-50/60'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="board-type"
-                        className="sr-only"
-                        checked={boardType === type.value}
-                        onChange={() => setBoardType(type.value)}
-                      />
-                      <TypeSketch type={type.value} />
-                      <span className="block font-medium text-slate-800">{type.label}</span>
-                      {boardType === type.value && (
-                        <span aria-hidden className="absolute right-2 top-1.5 text-blue-600">
-                          ✓
-                        </span>
-                      )}
-                    </label>
-                  ))}
+                  {BOARD_TYPES.map((type) => {
+                    // 병원 업종은 리뷰형으로 바꿀 수 없다 — 서버도 막는다 (T-218)
+                    const blocked = type.value !== board.board_type && blockedTypes[type.value]
+                    return (
+                      <label
+                        key={type.value}
+                        title={blocked || type.hint}
+                        className={`relative rounded-lg border p-3 text-xs has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-blue-500 ${
+                          blocked
+                            ? 'cursor-not-allowed border-slate-200 bg-slate-50 opacity-60'
+                            : boardType === type.value
+                              ? 'cursor-pointer border-blue-600 bg-blue-50/60'
+                              : 'cursor-pointer border-slate-200 hover:border-slate-300'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="board-type"
+                          className="sr-only"
+                          checked={boardType === type.value}
+                          disabled={Boolean(blocked)}
+                          onChange={() => setBoardType(type.value)}
+                        />
+                        <TypeSketch type={type.value} />
+                        <span className="block font-medium text-slate-800">{type.label}</span>
+                        {boardType === type.value && (
+                          <span aria-hidden className="absolute right-2 top-1.5 text-blue-600">
+                            ✓
+                          </span>
+                        )}
+                      </label>
+                    )
+                  })}
                 </div>
                 <p className="mt-2 text-xs text-slate-500">
                   {BOARD_TYPES.find((type) => type.value === boardType)?.hint}
                 </p>
+                {Object.entries(blockedTypes)
+                  .filter(([type]) => type !== board.board_type)
+                  .map(([type, reason]) => (
+                    <p key={type} className="mt-1 text-xs text-amber-700">
+                      {boardTypeLabel(type)}: {reason}
+                    </p>
+                  ))}
               </fieldset>
               {typeWarning && (
                 <p className="text-sm text-amber-700">
@@ -259,6 +283,19 @@ function BoardDesignForm({ board }: { board: Board }) {
                     {boardType === 'CARD'
                       ? '아래에서 고른 추가 정보도 카드에 나옵니다.'
                       : '아래에서 고른 추가 정보도 제목 아래에 나옵니다.'}
+                  </p>
+                </div>
+              )}
+              {boardType === 'REVIEW' && (
+                <div className="flex flex-col items-start gap-4">
+                  <Toggle
+                    label="요약 표시"
+                    description="후기 본문 앞부분을 보여 줍니다."
+                    checked={design.show_summary}
+                    onChange={(e) => change({ show_summary: e.target.checked })}
+                  />
+                  <p className="text-xs text-slate-500">
+                    목록 위에 평균 별점과 후기 수가 나오고, 글마다 별점이 보입니다.
                   </p>
                 </div>
               )}
