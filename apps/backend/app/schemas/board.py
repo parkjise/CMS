@@ -73,6 +73,11 @@ class BoardDesign(BaseModel):
     summary_length: Literal[60, 120, 200] = 120
     faq_single_open: bool = False
     faq_first_open: bool = False
+    # 목록 위아래 표시 (T-220) — 공지 배지 · 전체 글 수 · 검색창 · 페이지 번호
+    show_pin_badge: bool = True
+    show_total: bool = True
+    show_search: bool = True
+    show_pagination: bool = True
 
     @model_validator(mode="after")
     def unique_columns(self) -> "BoardDesign":
@@ -207,6 +212,8 @@ class TypeOptionsResponse(BaseModel):
     """만들기 · 디자인의 유형 고르기 — 고를 수 없는 유형과 이유 (T-218)."""
 
     blocked: dict[BoardType, str]
+    # 기본 게시판(공지)이 더 못 고르는 유형 (T-220)
+    system_blocked: dict[BoardType, str] = {}
 
 
 class PermissionOptionsResponse(BaseModel):

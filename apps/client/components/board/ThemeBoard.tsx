@@ -333,27 +333,40 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
         </nav>
       )}
 
-      <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-        <p className={`text-sm ${muted}`}>총 {list.total.toLocaleString()}건</p>
-        <form role="search" action={searchAction} method="get" className="relative w-full sm:w-64">
-          {category && <input type="hidden" name="c" value={category} />}
-          <label className="sr-only" htmlFor="board-search">
-            {board.name} 검색
-          </label>
-          <input
-            id="board-search"
-            type="search"
-            name="q"
-            defaultValue={keyword}
-            maxLength={60}
-            placeholder="검색어를 입력해 주세요."
-            className={`h-10 w-full rounded-md border bg-transparent pl-3 pr-10 text-sm ${line} ${primary}`}
-          />
-          <button type="submit" aria-label="검색" className={`absolute right-2 top-2 ${muted}`}>
-            <Search className="h-5 w-5" aria-hidden />
-          </button>
-        </form>
-      </div>
+      {(design.show_total || design.show_search) && (
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+          {design.show_total ? (
+            <p className={`text-sm ${muted}`}>총 {list.total.toLocaleString()}건</p>
+          ) : (
+            <span />
+          )}
+          {design.show_search && (
+            <form
+              role="search"
+              action={searchAction}
+              method="get"
+              className="relative w-full sm:w-64"
+            >
+              {category && <input type="hidden" name="c" value={category} />}
+              <label className="sr-only" htmlFor="board-search">
+                {board.name} 검색
+              </label>
+              <input
+                id="board-search"
+                type="search"
+                name="q"
+                defaultValue={keyword}
+                maxLength={60}
+                placeholder="검색어를 입력해 주세요."
+                className={`h-10 w-full rounded-md border bg-transparent pl-3 pr-10 text-sm ${line} ${primary}`}
+              />
+              <button type="submit" aria-label="검색" className={`absolute right-2 top-2 ${muted}`}>
+                <Search className="h-5 w-5" aria-hidden />
+              </button>
+            </form>
+          )}
+        </div>
+      )}
 
       {posts.length === 0 ? (
         <p className={`mt-6 border-t py-16 text-center text-sm ${line} ${muted}`}>
@@ -374,6 +387,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
           }))}
           columns={list.list_columns}
           showDate={design.show_date}
+          showPinBadge={design.show_pin_badge}
           hrefFor={hrefFor}
           classes={{
             scroll: 'mt-6 overflow-x-auto focus-visible:outline focus-visible:outline-2',
@@ -531,7 +545,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                     />
                   ))}
                 <span className="flex min-w-0 flex-1 flex-col gap-2">
-                  {post.is_pinned && (
+                  {post.is_pinned && design.show_pin_badge && (
                     <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
                       공지
                     </span>
@@ -585,7 +599,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
                   />
                 )}
                 <span className="flex flex-1 flex-col gap-2 p-5">
-                  {post.is_pinned && (
+                  {post.is_pinned && design.show_pin_badge && (
                     <span className="self-start rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
                       공지
                     </span>
@@ -678,7 +692,7 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
               >
                 <span className="min-w-0 flex-1">
                   <span className={`font-medium ${primary}`}>
-                    {post.is_pinned && (
+                    {post.is_pinned && design.show_pin_badge && (
                       <span className="mr-2 rounded bg-[var(--color-surface)] px-2 py-0.5 text-xs">
                         공지
                       </span>
@@ -724,11 +738,13 @@ export function ThemeBoardListView({ board, list, hrefFor, searchAction }: ListV
         </ul>
       )}
 
-      <Pager
-        page={list.page}
-        totalPages={list.totalPages}
-        hrefFor={(p) => hrefFor({ q: keyword || undefined, p, c: category })}
-      />
+      {design.show_pagination && (
+        <Pager
+          page={list.page}
+          totalPages={list.totalPages}
+          hrefFor={(p) => hrefFor({ q: keyword || undefined, p, c: category })}
+        />
+      )}
     </section>
   )
 }

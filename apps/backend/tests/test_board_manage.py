@@ -413,14 +413,43 @@ class TestSystemBoard:
         )
         assert resp.status_code == 409
 
-    @pytest.mark.parametrize("payload", [{"slug": "other"}, {"board_type": "GALLERY"}])
-    async def test_slug_and_type_locked(
-        self, client, auth_headers, notice_board, payload
-    ):
+    async def test_slug_locked(self, client, auth_headers, notice_board):
         resp = await client.patch(
-            f"{BOARDS}/{notice_board['id']}", json=payload, headers=auth_headers
+            f"{BOARDS}/{notice_board['id']}",
+            json={"slug": "other"},
+            headers=auth_headers,
         )
         assert resp.status_code == 409
+
+    async def test_type_and_design_changeable(self, client, auth_headers, notice_board):
+        """공지도 디자인을 바꾼다 (T-220) — 표시 옵션까지."""
+        design = {**notice_board["design"], "columns": 4, "show_search": False}
+        resp = await client.patch(
+            f"{BOARDS}/{notice_board['id']}",
+            json={"board_type": "GALLERY", "design": design},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["board_type"] == "GALLERY"
+        assert (data["design"]["columns"], data["design"]["show_search"]) == (4, False)
+        assert data["design"]["show_pagination"] is True
+
+    @pytest.mark.parametrize("board_type", ["REVIEW", "QNA"])
+    async def test_review_and_qna_blocked(
+        self, client, auth_headers, notice_board, board_type
+    ):
+        resp = await client.patch(
+            f"{BOARDS}/{notice_board['id']}",
+            json={"board_type": board_type},
+            headers=auth_headers,
+        )
+        assert resp.status_code == 400
+        error = resp.json()["error"]
+        assert error["field"] == "board_type"
+        assert "기본 게시판" in error["message"]
+        options = await client.get(f"{BOARDS}/type-options", headers=auth_headers)
+        assert set(options.json()["data"]["system_blocked"]) == {"REVIEW", "QNA"}
 
     async def test_same_values_and_name_allowed(
         self, client, auth_headers, notice_board

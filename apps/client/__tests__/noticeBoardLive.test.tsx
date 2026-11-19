@@ -216,3 +216,57 @@ describe('공개일', () => {
     expect(postDate('2026-11-04T16:00:00Z')).toBe('2026-11-05')
   })
 })
+
+describe('공지 게시판의 유형 · 디자인 (T-220)', () => {
+  const noticeBoard = {
+    id: 'n1',
+    name: '공지사항',
+    slug: 'notice',
+    board_type: 'GALLERY' as const,
+    description: '',
+    design: {
+      columns: 4 as const,
+      image_ratio: '1:1' as const,
+      show_date: true,
+      show_image: true,
+      show_summary: true,
+      faq_single_open: false,
+      faq_first_open: false,
+    },
+  }
+  const real = { total: 1, page: 1, size: 10, has_posts: true, items: [post] }
+
+  it('갤러리형으로 바꾸면 실제 글을 갤러리로 그린다', async () => {
+    fetchPublicPosts.mockResolvedValue(real)
+    const { container } = render(await NoticeBoardLive(props({ noticeBoard })))
+    expect(container.querySelector('.board-gallery--cols-4.board-gallery--ratio-1-1')).not.toBeNull()
+    expect(screen.getByRole('link', { name: /실제 공지/ })).toHaveAttribute('href', '/demo/notice/post-1')
+    // 공지 페이지는 섹션 제목을 그대로 보인다
+    expect(container.querySelector('.board-list__title')).not.toBeNull()
+  })
+
+  it('글이 없으면 유형과 관계없이 샘플 목록', async () => {
+    fetchPublicPosts.mockResolvedValue({ total: 0, page: 1, size: 10, has_posts: false, items: [] })
+    const { container } = render(await NoticeBoardLive(props({ noticeBoard })))
+    expect(container.querySelector('.board-gallery')).toBeNull()
+    expect(screen.getByRole('link', { name: /홈페이지 리뉴얼 오픈 안내/ })).toBeInTheDocument()
+  })
+
+  it('목록형은 표시 옵션 · 작성일을 따른다', async () => {
+    fetchPublicPosts.mockResolvedValue(real)
+    const design = {
+      ...noticeBoard.design,
+      show_date: false,
+      show_pin_badge: false,
+      show_search: false,
+      show_total: false,
+    }
+    const { container } = render(
+      await NoticeBoardLive(props({ noticeBoard: { ...noticeBoard, board_type: 'LIST', design } }))
+    )
+    expect(screen.getByRole('link', { name: /실제 공지/ })).toBeInTheDocument()
+    expect(screen.queryByText('공지')).not.toBeInTheDocument()
+    expect(screen.queryByRole('search')).not.toBeInTheDocument()
+    expect(container.querySelector('time')).toBeNull()
+  })
+})

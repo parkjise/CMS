@@ -42,6 +42,15 @@ const SAMPLES = [
 export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewProps) {
   const [device, setDevice] = useState<Device>('pc')
   const columns = device === 'mobile' ? 1 : device === 'tablet' ? 2 : design.columns
+  // 표시 옵션 (T-220) — 값이 없으면 켜짐
+  const pinBadge = design.show_pin_badge !== false
+  const showTotal = design.show_total !== false
+  const showSearch = design.show_search !== false
+  const badge = (
+    <em className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] not-italic text-slate-500">
+      공지
+    </em>
+  )
 
   return (
     <section
@@ -85,6 +94,25 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
         </div>
 
         <div className="px-[6%] py-7 text-slate-700">
+          {(showTotal || showSearch) && (
+            <div className="mb-3 flex items-center justify-between gap-3 text-[10px] text-slate-500">
+              {showTotal ? (
+                <span>
+                  총 <strong className="text-slate-700">24</strong>건
+                </span>
+              ) : (
+                <span />
+              )}
+              {showSearch && (
+                <span
+                  aria-label="검색창 미리보기"
+                  className="w-32 rounded border border-slate-200 px-2 py-1 text-slate-400"
+                >
+                  검색어를 입력해 주세요.
+                </span>
+              )}
+            </div>
+          )}
           {type === 'FAQ' ? (
             SAMPLES.map((title, index) => (
               <details
@@ -135,7 +163,10 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                   </div>
                 )}
                 <div className="min-w-0 space-y-1.5">
-                  <strong className="block font-medium">{title}</strong>
+                  <strong className="block font-medium">
+                    {pinBadge && title === SAMPLES[0] && badge}
+                    {title}
+                  </strong>
                   {design.show_summary && (
                     <p className="text-slate-500">게시글 본문 앞부분이 요약으로 표시됩니다.</p>
                   )}
@@ -152,11 +183,7 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                 className="flex justify-between gap-3 border-b border-slate-100 py-3.5 text-xs"
               >
                 <span>
-                  {index === 0 && (
-                    <em className="mr-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] not-italic text-slate-500">
-                      공지
-                    </em>
-                  )}
+                  {index === 0 && pinBadge && badge}
                   {title}
                   {type === 'QNA' && (
                     <em
@@ -186,7 +213,10 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
                     </div>
                   )}
                   <div className="space-y-1 p-3">
-                    <strong className="block font-medium">{title}</strong>
+                    <strong className="block font-medium">
+                      {pinBadge && title === SAMPLES[0] && badge}
+                      {title}
+                    </strong>
                     {type === 'CARD' && design.show_summary && (
                       <p className="text-slate-500">게시글의 요약 내용이 이곳에 표시됩니다.</p>
                     )}
@@ -198,9 +228,11 @@ export function BoardDesignPreview({ name, type, design }: BoardDesignPreviewPro
               ))}
             </div>
           )}
-          <p className="pt-6 text-center text-[11px] text-slate-500">
-            ‹ <strong className="mx-1 rounded bg-slate-800 px-2 py-1 text-white">1</strong> 2 3 ›
-          </p>
+          {design.show_pagination !== false && (
+            <p className="pt-6 text-center text-[11px] text-slate-500">
+              ‹ <strong className="mx-1 rounded bg-slate-800 px-2 py-1 text-white">1</strong> 2 3 ›
+            </p>
+          )}
         </div>
         <div className="bg-slate-800 px-5 py-5 text-center text-[10px] text-slate-300">
           사이트 공통 푸터

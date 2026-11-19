@@ -91,6 +91,11 @@ const PRESETS = {
   REVIEW: [{ key: 'rating', label: '별점', field_type: 'RATING', choices: [], show_in_list: true, always: true }],
 }
 
+const SYSTEM_BLOCKED = {
+  REVIEW: '기본 게시판은 별점 칸을 더할 수 없어 리뷰형을 쓸 수 없습니다.',
+  QNA: '기본 게시판은 방문자 글쓰기가 없어 문의형을 쓸 수 없습니다.',
+}
+
 const mockApi = ({
   boards = [board],
   limits = openLimits,
@@ -111,7 +116,7 @@ const mockApi = ({
     if (url === '/v1/boards/presets')
       return presets === 'error' ? Promise.reject(new Error('down')) : ok(presets)
     if (url === '/v1/boards') return ok(config?.params?.trash ? trash : boards)
-    if (url === '/v1/boards/type-options') return ok({ blocked })
+    if (url === '/v1/boards/type-options') return ok({ blocked, system_blocked: SYSTEM_BLOCKED })
     if (url === '/v1/site-settings/menu') return ok({ mode, reorderable: mode === 'code', items: [] })
     return ok(undefined)
   })
@@ -719,15 +724,56 @@ describe('게시판 디자인 탭 (T-148)', () => {
     await waitFor(() => expect(patch.mock.calls[0][1]).toMatchObject({ page_size: null }))
   })
 
-  it('기본 게시판은 정렬 · 글 수만 저장한다', async () => {
-    mockApi({ boards: [notice] })
+  it('기본 게시판도 유형 · 디자인을 바꾸고, 리뷰형 · 문의형은 고를 수 없다 (T-220)', async () => {
+    mockApi({ boards: [{ ...notice, has_samples: true }] })
     patch.mockResolvedValue({ data: { data: notice } })
     renderDesign('n1')
-    await screen.findByLabelText('기본 정렬')
-    expect(screen.queryByRole('radio')).not.toBeInTheDocument()
+    expect(await screen.findByText(/샘플 공지가 목록형으로 보여요/)).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('radio', { name: /리뷰형/ })).toBeDisabled())
+    expect(screen.getByRole('radio', { name: /문의형/ })).toBeDisabled()
+    // 필드가 없어 추가 정보 표시는 없다
+    expect(screen.queryByLabelText('홈페이지 추가 정보 표시')).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /갤러리형/ }))
     await userEvent.click(screen.getByRole('button', { name: '저장' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/v1/boards/n1', { sort_order: 'LATEST', page_size: null }),
+      expect(patch).toHaveBeenCalledWith('/v1/boards/n1', {
+        sort_order: 'LATEST',
+        page_size: null,
+        board_type: 'GALLERY',
+        design: notice.design,
+      }),
+    )
+  })
+
+  it('표시 옵션 4개를 끄면 미리보기에서 사라지고 함께 저장한다 (T-220)', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderDesign()
+    await screen.findByLabelText(/전체 글 수/)
+    expect(screen.getByLabelText('검색창 미리보기')).toBeInTheDocument()
+    expect(screen.getAllByText('공지')).toHaveLength(1)
+    for (const label of [/공지 배지/, /전체 글 수/, /^검색창$/, /페이지 번호/]) {
+      await userEvent.click(screen.getByLabelText(label))
+    }
+    expect(screen.queryByLabelText('검색창 미리보기')).not.toBeInTheDocument()
+    expect(screen.queryByText('공지')).not.toBeInTheDocument()
+    expect(screen.queryByText(/건$/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('radio', { name: /FAQ형/ }))
+    expect(screen.queryByLabelText(/공지 배지/)).not.toBeInTheDocument()
+    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await waitFor(() =>
+      expect(patch).toHaveBeenCalledWith(
+        '/v1/boards/b1',
+        expect.objectContaining({
+          design: {
+            ...board.design,
+            show_pin_badge: false,
+            show_total: false,
+            show_search: false,
+            show_pagination: false,
+          },
+        }),
+      ),
     )
   })
 })

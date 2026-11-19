@@ -16,6 +16,8 @@ interface PublicListTableProps {
   rows: PublicTableRow[]
   columns: PublicListColumn[]
   showDate: boolean
+  /** 고정 글 [공지] 배지 (T-220) */
+  showPinBadge?: boolean
   hrefFor: (extra: { id: string }) => string
   classes: {
     sizes: Record<BoardColumnSize, string>
@@ -35,6 +37,7 @@ export const PublicListTable = ({
   rows,
   columns,
   showDate,
+  showPinBadge = true,
   hrefFor,
   classes: c,
 }: PublicListTableProps) => (
@@ -66,7 +69,7 @@ export const PublicListTable = ({
           <tr key={row.id}>
             <td className={`${c.cell} ${c.title}`}>
               <a className={c.link} href={hrefFor({ id: row.id })}>
-                {row.pinned && <span className={c.badge}>공지</span>}
+                {row.pinned && showPinBadge && <span className={c.badge}>공지</span>}
                 {row.secret && <span className={c.badge}>비밀글</span>}
                 {row.title}
                 {row.attachment && <AttachmentMark />}
