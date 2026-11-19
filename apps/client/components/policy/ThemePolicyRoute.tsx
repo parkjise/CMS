@@ -25,11 +25,15 @@ export async function themePolicyMetadata(slug: string, kind: PolicyKind): Promi
   }
 }
 
-export async function renderThemePolicy(slug: string, kind: PolicyKind) {
+export async function renderThemePolicy(
+  slug: string,
+  kind: PolicyKind,
+  version: number | null = null
+) {
   const site = await fetchPublicSite(slug)
   if (!site) notFound()
   if (usesCodeTemplate(site)) return <TemplateSwitching />
-  const policy = await fetchSitePolicy(slug, kind)
+  const policy = await fetchSitePolicy(slug, kind, version)
   if (!policy) notFound()
   const noSlug = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
 

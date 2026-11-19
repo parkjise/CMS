@@ -98,6 +98,8 @@ export function QuickMenu({ tenantSlug, links, phone, kakaoUrl, locationHref }: 
           phone: phoneValue,
           message: `[간편상담] 상담 분야: ${String(data.get('topic'))} (상담 연락 수신 동의)`,
           recaptcha_token: recaptchaToken ?? undefined,
+          // 필수 개인정보 동의 체크박스 — 동의 기록 (T-224)
+          privacy_agree: true,
         },
         { params: { tenant_slug: tenantSlug } },
       )

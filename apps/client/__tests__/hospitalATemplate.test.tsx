@@ -389,7 +389,8 @@ describe('hospital-a 화면 (T-121)', () => {
     expect(await screen.findByText(/상담 신청이 접수되었습니다/)).toBeInTheDocument()
     expect(publicApi.post).toHaveBeenCalledWith(
       '/inquiries',
-      expect.objectContaining({ name: '홍길동', phone: '010-1234-5678', inquiry_type: 'GENERAL' }),
+      // 필수 개인정보 동의 체크박스 → 동의 기록 (T-224)
+      expect.objectContaining({ name: '홍길동', phone: '010-1234-5678', inquiry_type: 'GENERAL', privacy_agree: true }),
       { params: { tenant_slug: 'demo' } },
     )
   })

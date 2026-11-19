@@ -7,8 +7,27 @@ export interface SitePolicy {
   body: string
   /** 사업체가 고친 것이 없어 기본 문안 */
   is_default: boolean
-  /** 사업체가 마지막으로 고친 시각 — 시행일 */
+  /** 지금 문서가 시행된 시각 — 기본 문안이면 없음 */
   updated_at: string | null
+  /** 버전 (T-224) — 기본 문안이면 없음 */
+  version?: number | null
+  effective_at?: string | null
+  /** 이전 버전 — 최신부터 */
+  history?: PolicyHistoryItem[]
+  /** 이전 버전을 보는 중 (?v=) */
+  archived?: boolean
+}
+
+export interface PolicyHistoryItem {
+  version: number
+  effective_at: string | null
+}
+
+/** ?v=2 → 2. 숫자가 아니면 null (지금 버전) */
+export const policyVersionParam = (value: string | string[] | undefined): number | null => {
+  const raw = Array.isArray(value) ? value[0] : value
+  const n = Number(raw)
+  return raw && Number.isInteger(n) && n > 0 ? n : null
 }
 
 export const POLICY_TITLES: Record<PolicyKind, string> = {

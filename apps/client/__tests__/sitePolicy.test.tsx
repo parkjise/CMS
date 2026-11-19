@@ -6,6 +6,7 @@ import { PolicyLinks } from '@/components/policy/PolicyLinks'
 import {
   isPolicyKind,
   policyDate,
+  policyVersionParam,
   policyHref,
   policyParagraphs,
   type SitePolicy,
@@ -85,5 +86,64 @@ describe('약관 · 방침 — 홈페이지 (T-200)', () => {
     )
     const links = screen.getAllByRole('link', { name: '[보기]' })
     expect(links.map((a) => a.getAttribute('href'))).toEqual(['/demo/terms', '/demo/privacy'])
+  })
+})
+
+describe('약관 · 방침 버전 — 홈페이지 (T-224)', () => {
+  const versioned: SitePolicy = {
+    ...policy,
+    version: 3,
+    effective_at: '2026-12-01T00:00:00Z',
+    updated_at: '2026-12-01T00:00:00Z',
+    history: [
+      { version: 2, effective_at: '2026-11-15T00:00:00Z' },
+      { version: 1, effective_at: '2026-11-01T00:00:00Z' },
+    ],
+  }
+
+  it('?v= 값 읽기', () => {
+    expect(policyVersionParam('2')).toBe(2)
+    expect(policyVersionParam(['4'])).toBe(4)
+    for (const bad of [undefined, '', '0', '-1', '1.5', 'abc'])
+      expect(policyVersionParam(bad)).toBeNull()
+  })
+
+  it.each([
+    ['테마형', (p: SitePolicy) => <PolicyArticle policy={p} />],
+    ['코드형', (p: SitePolicy) => <PolicyView policy={p} />],
+  ])('%s — 버전 · 시행일 · 이전 버전 목록', (_kind, view) => {
+    render(view(versioned))
+    expect(screen.getByText('v3 · 시행일 2026.12.01')).toBeInTheDocument()
+    const history = screen.getByRole('navigation', { name: '이전 버전' })
+    const links = within(history).getAllByRole('link')
+    expect(links.map((a) => a.getAttribute('href'))).toEqual(['?v=2', '?v=1'])
+    expect(links[0]).toHaveTextContent('v2 · 2026.11.15 시행')
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['테마형', (p: SitePolicy) => <PolicyArticle policy={p} />],
+    ['코드형', (p: SitePolicy) => <PolicyView policy={p} />],
+  ])('%s — 이전 버전을 보면 안내와 지금 버전 링크', (_kind, view) => {
+    render(view({ ...versioned, version: 2, archived: true }))
+    expect(screen.getByRole('note')).toHaveTextContent('이전 버전이에요')
+    expect(within(screen.getByRole('note')).getByRole('link', { name: '여기' })).toHaveAttribute(
+      'href',
+      '?'
+    )
+    expect(
+      within(screen.getByRole('navigation', { name: '이전 버전' })).getByRole('link', {
+        name: /v2/,
+      })
+    ).toHaveAttribute('aria-current', 'page')
+  })
+
+  it.each([
+    ['테마형', (p: SitePolicy) => <PolicyArticle policy={p} />],
+    ['코드형', (p: SitePolicy) => <PolicyView policy={p} />],
+  ])('%s — 기본 문안은 버전 · 이전 버전 없이', (_kind, view) => {
+    render(view({ ...policy, is_default: true, updated_at: null }))
+    expect(screen.queryByText(/시행일/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('navigation', { name: '이전 버전' })).not.toBeInTheDocument()
   })
 })
