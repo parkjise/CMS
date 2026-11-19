@@ -10,6 +10,7 @@ import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoards, useMenuParents, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useSiteMenu, useUpdateSiteMenu } from '@/hooks/useSiteSettings'
+import { setVisibleByKey } from '@/lib/menuTree'
 import { boardSlugError } from '@/lib/boardLabels'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
@@ -90,18 +91,15 @@ function MenuToggle({ board }: { board: Board }) {
   }
 
   const change = (visible: boolean) =>
-    updateMenu.mutate(
-      items.map((i) => ({ key: i.key, label: i.label, visible: i.key === key ? visible : i.visible })),
-      {
-        onSuccess: () => toast.success(visible ? '상단 메뉴에 표시합니다.' : '상단 메뉴에서 숨겼습니다.'),
-        onError: (error) => toast.error(pickErrorMessage(error, '메뉴를 저장하지 못했습니다.')),
-      },
-    )
+    updateMenu.mutate(setVisibleByKey(menuQuery.data?.nodes ?? [], key, visible, item.label ?? item.default_label), {
+      onSuccess: () => toast.success(visible ? '상단 메뉴에 표시합니다.' : '상단 메뉴에서 숨겼습니다.'),
+      onError: (error) => toast.error(pickErrorMessage(error, '메뉴를 저장하지 못했습니다.')),
+    })
 
   return (
     <Toggle
       label="상단 메뉴에 표시"
-      description="메뉴 이름과 순서는 공통 설정의 상단 메뉴에서 바꿉니다. 끄더라도 주소로는 열립니다."
+      description="메뉴 이름 · 순서 · 하위 메뉴는 사이트 관리 → 메뉴 관리에서 바꿉니다. 끄더라도 주소로는 열립니다."
       checked={item.visible}
       disabled={updateMenu.isPending}
       onChange={(e) => change(e.target.checked)}
