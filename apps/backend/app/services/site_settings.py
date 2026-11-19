@@ -12,10 +12,12 @@ from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.template import Template
 from app.schemas.site import (
+    PUBLIC_GROUPS,
     MenuItemResponse,
     MenuItemUpdate,
     MenuResponse,
     MenuUpdate,
+    PublicSiteSettingsResponse,
     SiteSettingsUpdate,
 )
 from app.services import board as board_service
@@ -24,6 +26,30 @@ from app.services import template as template_service
 from app.services.section_manage import THEME_SECTION_TYPES
 
 FIELDS = tuple(SiteSettingsUpdate.model_fields)
+PUBLIC_FIELDS = tuple(
+    f for f in PublicSiteSettingsResponse.model_fields if f != "hidden_fields"
+)
+
+
+def hidden_columns(setting: SiteSetting) -> set[str]:
+    """숨긴 공개 항목 묶음에 속한 칸"""
+    return {
+        column
+        for group in setting.hidden_fields or []
+        for column in PUBLIC_GROUPS.get(group, ())
+    }
+
+
+def public_view(setting: SiteSetting) -> PublicSiteSettingsResponse:
+    """홈페이지 · 공개 API · 구조화 데이터용 — 숨긴 항목은 값을 아예 뺀다 (T-222)"""
+    hidden = hidden_columns(setting)
+    values = {
+        field: None if field in hidden else getattr(setting, field)
+        for field in PUBLIC_FIELDS
+    }
+    return PublicSiteSettingsResponse.model_validate(
+        {**values, "hidden_fields": list(setting.hidden_fields or [])}
+    )
 
 
 async def get_site_settings(db: AsyncSession) -> SiteSetting | None:
@@ -41,8 +67,11 @@ async def update_site_settings(
         db.add(setting)
     for field in FIELDS:
         value = getattr(data, field)
-        if value is not None:  # None = 바꾸지 않음
-            setattr(setting, field, value or None)  # "" = 지우기
+        if value is None:  # None = 바꾸지 않음
+            continue
+        if field == "weekly_hours":
+            value = {day: hours.model_dump() for day, hours in value.items()}
+        setattr(setting, field, value or None)  # "" · {} · [] = 지우기
     setting.updated_at = datetime.now(UTC)
     await db.commit()
     # 푸터 · 로고 · 구조화 데이터가 공개 사이트 응답에 들어간다
