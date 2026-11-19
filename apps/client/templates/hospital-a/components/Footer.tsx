@@ -1,3 +1,5 @@
+import { siteHoursRows } from '../../shared/siteHoursRows'
+
 interface Props {
   info: Record<string, string>
 }
@@ -11,6 +13,9 @@ const external = { target: '_blank', rel: 'noopener' } as const
 export function Footer({ info }: Props) {
   const year = new Date().getFullYear()
   const tel = info.phone?.replace(/[^0-9]/g, '')
+  const hours = siteHoursRows(info)
+  const businessKind = [info.business_type, info.business_item].filter(Boolean).join(' / ')
+  const fullAddress = [info.postal_code && `(${info.postal_code})`, info.address].filter(Boolean).join(' ')
   const mapLinks = [
     { href: info.naver_map_url, label: '네이버 길찾기' },
     { href: info.kakao_map_url, label: '카카오 길찾기' },
@@ -44,26 +49,27 @@ export function Footer({ info }: Props) {
           </section>
         )}
 
-        {(info.hours_weekday || info.hours_saturday || info.hours_note) && (
+        {(hours.length > 0 || info.hours_note || info.hours_temp_note) && (
           <section className="footer__block footer__block--hours" aria-labelledby="footer-hours-title">
             <h2 className="footer__title" id="footer-hours-title">
               운영 시간
             </h2>
-            <dl className="footer__hours">
-              {info.hours_weekday && (
-                <div className="footer__hours-row">
-                  <dt className="footer__hours-day footer__hours-day--spaced">평일</dt>
-                  <dd className="footer__hours-time">{info.hours_weekday}</dd>
-                </div>
-              )}
-              {info.hours_saturday && (
-                <div className="footer__hours-row">
-                  <dt className="footer__hours-day">토요일</dt>
-                  <dd className="footer__hours-time">{info.hours_saturday}</dd>
-                </div>
-              )}
-            </dl>
+            {hours.length > 0 && (
+              <dl className="footer__hours">
+                {hours.map((row) => (
+                  <div className="footer__hours-row" key={row.days}>
+                    <dt
+                      className={`footer__hours-day${row.days.length === 2 ? ' footer__hours-day--spaced' : ''}`}
+                    >
+                      {row.days}
+                    </dt>
+                    <dd className="footer__hours-time">{row.time}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
             {info.hours_note && <p className="footer__note">{info.hours_note}</p>}
+            {info.hours_temp_note && <p className="footer__note">{info.hours_temp_note}</p>}
           </section>
         )}
 
@@ -113,19 +119,30 @@ export function Footer({ info }: Props) {
             </ul>
           </nav>
           <p className="footer__company">
-            <span className="footer__company-item">{info.brand_name}</span>
+            <span className="footer__company-item">{info.company_name || info.brand_name}</span>
             {info.ceo && <span className="footer__company-item">대표자 {info.ceo}</span>}
             {info.business_number && (
               <span className="footer__company-item">사업자등록번호 {info.business_number}</span>
             )}
+            {info.mail_order_number && (
+              <span className="footer__company-item">통신판매업 신고번호 {info.mail_order_number}</span>
+            )}
+            {businessKind && <span className="footer__company-item">업태 · 종목 {businessKind}</span>}
             <br />
-            {info.address && <span className="footer__company-item">{info.address}</span>}
+            {fullAddress && <span className="footer__company-item">{fullAddress}</span>}
             {info.phone && <span className="footer__company-item">TEL {info.phone}</span>}
+            {info.cs_phone && <span className="footer__company-item">고객센터 {info.cs_phone}</span>}
+            {info.fax && <span className="footer__company-item">FAX {info.fax}</span>}
+            {info.email && <span className="footer__company-item">{info.email}</span>}
+            {info.privacy_officer && (
+              <span className="footer__company-item">
+                개인정보 보호책임자 {info.privacy_officer}
+                {info.privacy_email && ` (${info.privacy_email})`}
+              </span>
+            )}
           </p>
           <p className="footer__copyright">
-            <small>
-              Copyright &copy; {year} {info.brand_name}. All rights reserved.
-            </small>
+            <small>{info.copyright || `Copyright © ${year} ${info.brand_name}. All rights reserved.`}</small>
           </p>
         </div>
       </div>

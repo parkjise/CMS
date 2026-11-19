@@ -2,6 +2,7 @@ import { getString } from '@/lib/sectionSettings'
 import type { CodeSectionProps } from '../../../shared/contracts'
 import { CommonSettingsHint } from '../../../shared/CommonSettingsHint'
 import { TemplateText } from '../../../shared/TemplateText'
+import { siteHidden, siteHoursRows } from '../../../shared/siteHoursRows'
 import { SectionHead } from './SectionHead'
 import { RichLine } from './RichText'
 import { titleId } from './ids'
@@ -24,15 +25,18 @@ export function Location({ business = {}, ...props }: Props) {
   const { section, editable } = props
   const id = titleId('location', section.id)
   const s = (key: string) => getString(section.settings, key)
-  const mapUrl = s('map_embed_url')
+  // 주소를 숨겼으면 지도도 그리지 않는다 (T-222)
+  const mapUrl = siteHidden(business, 'address') ? '' : s('map_embed_url')
   const hours = [
-    business.hours_weekday && `평일 ${business.hours_weekday}`,
-    business.hours_saturday && `토요일 ${business.hours_saturday}`,
+    ...siteHoursRows(business).map((row) => `${row.days} ${row.time}`),
     business.hours_note,
+    business.hours_temp_note,
   ].filter(Boolean) as string[]
+  // 관리자가 숨긴 항목은 섹션 값으로 대신 채우지 않는다 (T-222)
+  const fallback = (group: 'address' | 'phone', key: string) => (siteHidden(business, group) ? '' : s(key))
   const rows: Row[] = [
-    { label: '주소', value: business.address || s('address'), kind: 'address' },
-    { label: '대표전화', value: business.phone || s('phone'), kind: 'tel' },
+    { label: '주소', value: business.address || fallback('address', 'address'), kind: 'address' },
+    { label: '대표전화', value: business.phone || fallback('phone', 'phone'), kind: 'tel' },
     { label: '운영 시간', value: hours.join('\n'), kind: 'lines' },
     { label: '주차', value: business.parking || s('parking') },
   ]

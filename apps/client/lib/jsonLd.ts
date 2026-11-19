@@ -1,5 +1,6 @@
 import type { PublicSite } from './publicSite.types'
 import { getString } from './sectionSettings'
+import { hasWeeklyHours, isHidden, openingHoursSpecification } from './siteHours'
 
 // 업종(template_type) → schema.org 타입 매핑 (T-074)
 const TEMPLATE_TO_SCHEMA: Record<string, string> = {
@@ -40,9 +41,12 @@ function buildAddress(site: PublicSite): Record<string, string> | undefined {
     return {
       '@type': 'PostalAddress',
       streetAddress: common.address_detail ? `${common.address} ${common.address_detail}` : common.address,
+      ...(common.postal_code ? { postalCode: common.postal_code } : {}),
       addressCountry: 'KR',
     }
   }
+  // 관리자가 주소를 숨겼으면 섹션 주소로 대신 채우지 않는다 (T-222)
+  if (isHidden(common, 'address')) return undefined
   const mapSection = getMapSection(site)
   if (!mapSection) return undefined
   const street = getString(mapSection.settings, 'address')
@@ -56,6 +60,8 @@ function buildAddress(site: PublicSite): Record<string, string> | undefined {
 }
 
 function buildGeo(site: PublicSite): Record<string, unknown> | undefined {
+  // 주소를 숨겼으면 좌표도 넣지 않는다 (T-222)
+  if (isHidden(site.site_settings, 'address')) return undefined
   const mapSection = getMapSection(site)
   if (!mapSection) return undefined
   const lat = Number(getString(mapSection.settings, 'latitude'))
@@ -125,13 +131,24 @@ export function buildLocalBusinessJsonLd(site: PublicSite): Record<string, unkno
   if (address) {
     jsonLd.address = address
   }
-  // 대표 전화 · 이메일 (T-036-A). 영업시간은 자유 입력이라 schema.org openingHours
-  // 형식(Mo-Fr 09:00-18:00)과 맞지 않아 넣지 않는다 — 잘못된 구조화 데이터는 검색 경고가 된다
-  if (site.site_settings?.phone) {
-    jsonLd.telephone = site.site_settings.phone
+  // 대표 전화 · 이메일 (T-036-A) — 공개로 둔 값만 온다 (T-222)
+  const info = site.site_settings
+  if (info?.phone) {
+    jsonLd.telephone = info.phone
   }
-  if (site.site_settings?.email) {
-    jsonLd.email = site.site_settings.email
+  if (info?.fax) {
+    jsonLd.faxNumber = info.fax
+  }
+  if (info?.email) {
+    jsonLd.email = info.email
+  }
+  if (info?.company_name) {
+    jsonLd.legalName = info.company_name
+  }
+  // 요일별 운영시간만 넣는다 — 예전 자유 글자는 schema.org 형식과 맞지 않아 검색 경고가 된다
+  if (hasWeeklyHours(info?.weekly_hours)) {
+    const spec = openingHoursSpecification(info.weekly_hours)
+    if (spec.length > 0) jsonLd.openingHoursSpecification = spec
   }
   if (geo) {
     jsonLd.geo = geo
