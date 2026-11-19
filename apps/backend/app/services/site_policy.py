@@ -30,6 +30,8 @@ PolicyKind = Literal["terms", "privacy"]
 POLICY_TITLES: dict[str, str] = {"terms": "이용약관", "privacy": "개인정보처리방침"}
 POLICY_BODY_MAX = 30000
 NOT_SET = "(사이트 설정에서 입력해 주세요)"
+# 사이트 기본정보에서 숨긴 항목 (T-222) — 방문자에게 입력 안내가 보이지 않게
+HIDDEN = "비공개"
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "policies"
 
 
@@ -52,11 +54,18 @@ def default_body(kind: str, tenant: Tenant, setting: SiteSetting | None) -> str:
     공개로 둔 값만 쓴다 — 숨긴 항목이 약관 글로 새어 나가지 않게 (T-222).
     """
     info = site_settings_service.public_view(setting) if setting else None
+    hidden = set(info.hidden_fields) if info else set()
+
+    def value(raw: str | None, group: str) -> str:
+        if raw:
+            return raw
+        return HIDDEN if group in hidden else NOT_SET
+
     name = (info.company_name if info else None) or tenant.name
-    ceo = (info.ceo if info else None) or NOT_SET
-    phone = (info.phone if info else None) or NOT_SET
-    email = (info.email if info else None) or NOT_SET
-    address = (info.address if info else None) or NOT_SET
+    ceo = value(info.ceo if info else None, "ceo")
+    phone = value(info.phone if info else None, "phone")
+    email = value(info.email if info else None, "email")
+    address = value(info.address if info else None, "address")
     # 보호책임자를 따로 정하지 않았으면 대표자 · 대표 연락처
     officer = (info.privacy_officer if info else None) or ceo
     officer_email = (info.privacy_email if info else None) or email

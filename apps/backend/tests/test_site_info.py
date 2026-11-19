@@ -257,8 +257,12 @@ class TestPublicSiteInfo:
             _URL, json={"hidden_fields": ["ceo", "phone"]}, headers=auth_headers
         )
         terms = (await client.get(f"/api/public/site/{slug}/policies/terms")).json()
-        assert "홍길동" not in terms["data"]["body"]
-        assert "02-1234-5678" not in terms["data"]["body"]
+        body = terms["data"]["body"]
+        assert "홍길동" not in body
+        assert "02-1234-5678" not in body
+        # 숨긴 항목은 '입력해 주세요' 대신 비공개, 비워 둔 항목은 그대로 입력 안내
+        assert "대표자: 비공개" in body and "연락처: 비공개" in body
+        assert "주소: 서울특별시" in body
 
     async def test_save_purges_site_cache(
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict
