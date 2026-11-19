@@ -34,12 +34,29 @@ const DEFAULT_DESIGN: BoardDesign = {
   show_summary: true,
   faq_single_open: false,
   faq_first_open: false,
+  show_pin_badge: true,
+  show_total: true,
+  show_search: true,
+  show_pagination: true,
 }
 
 /** 게시판 디자인 (T-148) — 저장 전 게시판 · 캐시된 응답은 기본값 */
 export const boardDesign = (board: PublicBoard): BoardDesign => ({
   ...DEFAULT_DESIGN,
   ...board.design,
+})
+
+/** 목록 위아래 표시 (T-220) — 전체 글 수 · 검색창 · 페이지 번호 */
+export interface ListDisplay {
+  total: boolean
+  search: boolean
+  pagination: boolean
+}
+
+export const listDisplay = (design: BoardDesign): ListDisplay => ({
+  total: design.show_total !== false,
+  search: design.show_search !== false,
+  pagination: design.show_pagination !== false,
 })
 
 /**

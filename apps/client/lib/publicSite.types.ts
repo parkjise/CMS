@@ -110,6 +110,8 @@ export interface PublicSite {
   member?: PublicMemberFlags
   /** 사용 중인 새 게시판 (T-140-B) */
   boards?: PublicBoard[]
+  /** 코드형 공지 페이지가 따를 공지 게시판 (T-220) — 테마형은 boards 안에 */
+  notice_board?: PublicBoard | null
 }
 
 /** 회원 메뉴 · 화면을 보여줄지 — 응답에 없으면(이전 버전 캐시 등) 숨긴다 */

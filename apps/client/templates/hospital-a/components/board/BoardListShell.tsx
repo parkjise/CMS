@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import type { ListDisplay } from '@/lib/boardRoute'
 import { BoardToolbar, type SearchTarget } from './BoardToolbar'
 import { MemberWriteLink } from './MemberWriteLink'
 import { NoticeWriteLink } from './NoticeWriteLink'
@@ -22,6 +23,8 @@ interface BoardListShellProps {
   tabs?: ReactNode
   /** 회원 글쓰기 게시판의 [글쓰기] 주소 (T-150-B) */
   memberWriteHref?: string
+  /** 게시판 디자인의 표시 옵션 (T-220) — 없으면 모두 보인다 */
+  display?: ListDisplay
   children: ReactNode
 }
 
@@ -40,6 +43,7 @@ export function BoardListShell({
   searchLabel,
   tabs,
   memberWriteHref,
+  display,
   children,
 }: BoardListShellProps) {
   return (
@@ -59,14 +63,18 @@ export function BoardListShell({
           inputId="board-search"
           target={searchTarget}
           className="board-list__toolbar"
+          showTotal={display?.total}
+          showSearch={display?.search}
         />
         {children}
-        <Pagination
-          page={page}
-          totalPages={totalPages}
-          hrefFor={(p) => hrefFor({ q: keyword || undefined, p })}
-          className="board-list__pagination"
-        />
+        {display?.pagination !== false && (
+          <Pagination
+            page={page}
+            totalPages={totalPages}
+            hrefFor={(p) => hrefFor({ q: keyword || undefined, p })}
+            className="board-list__pagination"
+          />
+        )}
       </div>
     </section>
   )

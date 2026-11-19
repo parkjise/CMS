@@ -115,11 +115,15 @@ MSG_BOARD_PLAN_BLOCKED = "게시판 추가는 STANDARD 요금제부터 쓸 수 �
 MSG_SLUG_TAKEN = "이미 다른 게시판이 쓰는 주소예요. 다른 주소를 입력해 주세요."
 MSG_SLUG_FORMAT = "영문 소문자 · 숫자 · 하이픈으로 2자 이상 입력해 주세요."
 MSG_SYSTEM_SLUG_LOCKED = "기본 게시판의 주소는 바꿀 수 없습니다."
-MSG_SYSTEM_TYPE_LOCKED = "기본 게시판의 유형은 바꿀 수 없습니다."
 # 의료법 — 병원 홈페이지의 치료 후기는 광고로 볼 수 있다 (T-218, 게시판 기획서 D-14)
 MSG_REVIEW_HOSPITAL = "병원 업종은 의료법상 리뷰형 게시판을 쓸 수 없습니다."
 REVIEW_TYPE = "REVIEW"
 QNA_TYPE = "QNA"
+# 기본 게시판은 필드 추가 · 방문자 글쓰기가 없어 별점 · 질문 유형은 못 쓴다 (T-220)
+SYSTEM_BLOCKED_TYPES = {
+    REVIEW_TYPE: "기본 게시판은 별점 칸을 더할 수 없어 리뷰형을 쓸 수 없습니다.",
+    QNA_TYPE: "기본 게시판은 방문자 글쓰기가 없어 문의형을 쓸 수 없습니다.",
+}
 MSG_ANSWER_QNA_ONLY = "답변은 문의형 게시판의 글에만 달 수 있습니다."
 MSG_SYSTEM_DELETE_LOCKED = "기본 게시판은 삭제할 수 없습니다. 비활성으로 바꿔 주세요."
 MSG_SYSTEM_PERMISSIONS_LOCKED = "기본 게시판의 권한은 바꿀 수 없습니다."
@@ -522,6 +526,11 @@ async def blocked_types(db: AsyncSession, tenant_id: UUID) -> dict[str, str]:
     return {}
 
 
+def system_blocked_types() -> dict[str, str]:
+    """기본 게시판(공지)이 더 못 고르는 유형과 이유 (T-220)."""
+    return dict(SYSTEM_BLOCKED_TYPES)
+
+
 async def _add_review_rating(db: AsyncSession, board: Board) -> None:
     """리뷰형으로 바꿀 때 별점 칸이 없으면 추천 칸으로 만든다 (T-218)."""
     fields = await field_service.list_fields(db, board.id)
@@ -665,13 +674,14 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_SLUG_LOCKED
         )
-    if (
-        is_system
-        and data.board_type is not None
-        and data.board_type != board.board_type
-    ):
+    if is_system and data.board_type in SYSTEM_BLOCKED_TYPES:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=MSG_SYSTEM_TYPE_LOCKED
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "VALIDATION_ERROR",
+                "message": SYSTEM_BLOCKED_TYPES[data.board_type],
+                "field": "board_type",
+            },
         )
     if data.board_type is not None and data.board_type != board.board_type:
         await _check_review_allowed(db, board.tenant_id, data.board_type)
@@ -1248,6 +1258,18 @@ async def list_public_boards(
         if include_notice
         else Board.system_key.is_(None)
     )
+    return await _public_boards(db, tenant_id, system)
+
+
+async def public_notice_board(db: AsyncSession, tenant_id: UUID) -> dict | None:
+    """코드형 공지 페이지가 따를 공지 게시판의 유형 · 디자인 (T-220)."""
+    boards = await _public_boards(db, tenant_id, Board.system_key == NOTICE_KEY)
+    return boards[0] if boards else None
+
+
+async def _public_boards(
+    db: AsyncSession, tenant_id: UUID, system: ColumnElement[bool]
+) -> list[dict]:
     result = await db.execute(
         select(Board)
         .where(

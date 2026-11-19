@@ -3,9 +3,11 @@ import type {
   BodyBlock,
   BodyNode,
   PostAttachment,
+  PublicBoard,
   PublicFieldValue,
   PublicListColumn,
 } from '@cms/types'
+import type { ListDisplay } from '@/lib/boardRoute'
 import { PublicListTable } from '@/components/board/PublicListTable'
 import { ListFieldValues } from '@/components/board/ListFieldValues'
 import { FieldValue } from '@/components/board/FieldValue'
@@ -43,6 +45,8 @@ export interface NoticeBoardProps extends CodeSectionProps {
   /** 이 게시판 페이지의 주소 (상세 id · 검색 q · 페이지 p) */
   hrefFor: (extra?: { id?: string; q?: string; p?: number }) => string
   searchTarget: SearchTarget
+  /** 공지 게시판의 유형 · 디자인 (T-220) — 실제 글을 그릴 때만 쓴다 */
+  noticeBoard?: PublicBoard | null
 }
 
 export const NOTICE_PAGE_SIZE = 10
@@ -165,6 +169,9 @@ interface NoticeListViewProps {
   searchLabel?: string
   emptyText?: string
   showDate?: boolean
+  /** 고정 글 [공지] 배지 · 목록 위아래 표시 (T-220) */
+  showPinBadge?: boolean
+  display?: ListDisplay
   tabs?: ReactNode
   /** 회원 글쓰기 게시판의 [글쓰기] 주소 (T-150-B) */
   memberWriteHref?: string
@@ -188,6 +195,8 @@ export function NoticeListView({
   searchLabel = '공지사항 검색',
   emptyText = '등록된 공지가 없습니다.',
   showDate = true,
+  showPinBadge = true,
+  display,
   tabs,
   memberWriteHref,
 }: NoticeListViewProps) {
@@ -206,6 +215,7 @@ export function NoticeListView({
       searchLabel={searchLabel}
       tabs={tabs}
       memberWriteHref={memberWriteHref}
+      display={display}
     >
       {items.length > 0 && tableColumns?.length ? (
         <PublicListTable
@@ -220,6 +230,7 @@ export function NoticeListView({
           }))}
           columns={tableColumns}
           showDate={showDate}
+          showPinBadge={showPinBadge}
           hrefFor={hrefFor}
           classes={{
             scroll: 'board-list__table-scroll',
@@ -245,7 +256,7 @@ export function NoticeListView({
               key={item.id}
             >
               <a className="board-list__link" href={hrefFor({ id: item.id })}>
-                {item.pinned && <span className="board-list__badge">공지</span>}
+                {item.pinned && showPinBadge && <span className="board-list__badge">공지</span>}
                 <span className="board-list__content">
                   <span className="board-list__subject">
                     {item.secret && (

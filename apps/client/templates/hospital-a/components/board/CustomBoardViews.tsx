@@ -8,6 +8,7 @@ import {
   WRITE_PAGE,
   boardDesign,
   canMemberWrite,
+  listDisplay,
   reviewRating,
 } from '@/lib/boardRoute'
 import { fieldValueText, postDate } from '@/lib/publicPosts'
@@ -136,10 +137,18 @@ interface CustomBoardListProps {
   list: BoardPage
   hrefFor: BoardHrefFor
   searchTarget: SearchTarget
+  /** 보이는 목록 제목 — 없으면 게시판 이름을 스크린리더용으로 (공지 페이지, T-220) */
+  title?: string
 }
 
 /** 유형별 글 목록 — 서버(공개 게시판)와 브라우저(회원 게시판)가 같이 쓴다 */
-export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBoardListProps) {
+export function CustomBoardList({
+  board,
+  list,
+  hrefFor,
+  searchTarget,
+  title,
+}: CustomBoardListProps) {
   const { posts, total, page: current, totalPages, keyword, category, ratingSummary } = list
   // 검색 · 페이지 이동은 고른 카테고리 안에서 (T-149)
   const listHref: BoardHrefFor = (extra) => hrefFor(extra?.id ? extra : { ...extra, c: category })
@@ -156,6 +165,8 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
   const memberWriteHref = canMemberWrite(board) ? hrefFor({ id: WRITE_PAGE }) : undefined
   const searchLabel = `${board.name} 검색`
   const design = boardDesign(board)
+  const display = listDisplay(design)
+  const pinBadge = design.show_pin_badge !== false
   const ratioClass = `--ratio-${design.image_ratio.replace(':', '-')}`
 
   // 문의형(T-219)은 목록형 화면에 답변 상태 배지를 더한다
@@ -186,6 +197,8 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
         searchTarget={listSearch}
         canWrite
         showDate={design.show_date}
+        showPinBadge={pinBadge}
+        display={display}
         tableColumns={
           board.board_type === 'LIST' && design.list_layout === 'columns'
             ? list.list_columns
@@ -199,8 +212,8 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
 
   return (
     <BoardListShell
-      title={board.name}
-      hideTitle
+      title={title ?? board.name}
+      hideTitle={!title}
       description={board.description}
       writeBoard={board.slug}
       total={total}
@@ -212,6 +225,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
       searchLabel={searchLabel}
       tabs={tabs}
       memberWriteHref={memberWriteHref}
+      display={display}
     >
       {posts.length === 0 ? (
         <BoardEmpty keyword={keyword} emptyText={EMPTY_TEXT} />
@@ -238,7 +252,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                       aria-hidden="true"
                     />
                   )}
-                  {post.is_pinned && <span className="board-gallery__badge">공지</span>}
+                  {post.is_pinned && pinBadge && <span className="board-gallery__badge">공지</span>}
                   <span className="board-gallery__subject">
                     {post.is_secret && (
                       <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
@@ -336,7 +350,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                       />
                     ))}
                   <span className="board-webzine__body">
-                    {post.is_pinned && <span className="board-webzine__badge">공지</span>}
+                    {post.is_pinned && pinBadge && <span className="board-webzine__badge">공지</span>}
                     <span className="board-webzine__subject">
                       {post.is_secret && (
                         <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
@@ -376,7 +390,7 @@ export function CustomBoardList({ board, list, hrefFor, searchTarget }: CustomBo
                     <img className="board-card__image" src={post.thumbnail} alt="" loading="lazy" />
                   )}
                   <span className="board-card__body">
-                    {post.is_pinned && <span className="board-card__badge">공지</span>}
+                    {post.is_pinned && pinBadge && <span className="board-card__badge">공지</span>}
                     <span className="board-card__subject">
                       {post.is_secret && (
                         <i className="ri-lock-line board-secret" aria-label="비밀글" role="img" />
