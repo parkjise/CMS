@@ -1,23 +1,18 @@
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
-import { useSearchParams } from 'react-router'
-import { Layers, Lock, Plus, Settings } from 'lucide-react'
+import { Navigate, useSearchParams } from 'react-router'
+import { Lock, Plus } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { AddSectionModal } from '@/components/content/AddSectionModal'
 import { SectionList } from '@/components/content/SectionList'
-import { MenuSettingsCard } from '@/components/content/MenuSettingsCard'
-import { SiteSettingsForm } from '@/components/content/SiteSettingsForm'
+import { SITE_HOME } from '@/components/layout/navigation'
 import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
-type Tab = 'sections' | 'settings'
-
 export function ContentPage() {
-  // ?tab=settings — 홈페이지 편집 모드의 '공통 설정 열기' 링크로 바로 (T-125-F)
+  // 공통 설정은 사이트 관리로 옮겼다 (T-221) — 예전 '공통 설정 열기' 링크(T-125-F)도 그리로
   const [searchParams] = useSearchParams()
-  const [activeTab, setActiveTab] = useState<Tab>(
-    searchParams.get('tab') === 'settings' ? 'settings' : 'sections',
-  )
   const { data: sections, isLoading, isError } = useSections()
+  if (searchParams.get('tab') === 'settings') return <Navigate to={SITE_HOME} replace />
 
   return (
     <div className="space-y-6 p-6 md:p-8">
@@ -30,63 +25,10 @@ export function ContentPage() {
         </p>
       </div>
 
-      {/* 탭 */}
-      <div className="border-b border-slate-200">
-        <nav className="-mb-px flex gap-6">
-          <TabButton
-            active={activeTab === 'sections'}
-            onClick={() => setActiveTab('sections')}
-            icon={Layers}
-            label="섹션 관리"
-          />
-          <TabButton
-            active={activeTab === 'settings'}
-            onClick={() => setActiveTab('settings')}
-            icon={Settings}
-            label="공통 설정"
-          />
-        </nav>
-      </div>
-
-      {/* 콘텐츠 */}
       <ReadOnlyFieldset>
-      {activeTab === 'sections' && (
-        <SectionsTab
-          sections={sections ?? []}
-          isLoading={isLoading}
-          isError={isError}
-        />
-      )}
-      {activeTab === 'settings' && <SettingsTab />}
+        <SectionsTab sections={sections ?? []} isLoading={isLoading} isError={isError} />
       </ReadOnlyFieldset>
     </div>
-  )
-}
-
-// ── 탭 버튼 ──────────────────────────────────────────────────────────────
-
-interface TabButtonProps {
-  active: boolean
-  onClick: () => void
-  icon: typeof Layers
-  label: string
-}
-
-function TabButton({ active, onClick, icon: Icon, label }: TabButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition ${
-        active
-          ? 'border-blue-600 text-blue-600'
-          : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700'
-      }`}
-    >
-      <Icon className="h-4 w-4" />
-      {label}
-    </button>
   )
 }
 
@@ -160,18 +102,6 @@ function AddSectionBar({ limits, onAdd }: { limits: SectionLimits; onAdd: () => 
         <Plus className="mr-1 h-4 w-4" aria-hidden="true" />
         섹션 추가
       </Button>
-    </div>
-  )
-}
-
-// ── 공통 설정 탭 — 사업체 정보 · 영업시간 · 로고 · 파비콘 (T-036-A) ─────────
-
-function SettingsTab() {
-  return (
-    <div className="space-y-6">
-      <SiteSettingsForm />
-      {/* 상단 메뉴 이름 · 보이기 · 순서 (T-036-B) */}
-      <MenuSettingsCard />
     </div>
   )
 }

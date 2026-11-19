@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { ChevronDown, X, ExternalLink, LogOut, Layers } from 'lucide-react'
-import { ADMIN_NAVIGATION, isChildActive } from './navigation'
+import { isChildActive } from './navigation'
 import type { LucideIcon } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
-import { useNavBadge, useNavVisibility } from '@/lib/navItems'
+import { type NavBadge, useNavBadge, useVisibleNavigation } from '@/lib/navItems'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
@@ -33,6 +33,23 @@ const itemClass = (isActive: boolean) =>
       : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
   ].join(' ')
 
+/** 기능 배포 표시 — 2뎁스 메뉴에도 (T-221, SEO 설정이 사이트 관리 아래로) */
+function Badge({ badge }: { badge: NavBadge }) {
+  if (badge === 'BETA')
+    return (
+      <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+        BETA
+      </span>
+    )
+  if (badge === 'NEW')
+    return (
+      <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+        NEW
+      </span>
+    )
+  return null
+}
+
 interface NavGroupProps {
   item: NavItem
   children: NavChild[]
@@ -42,6 +59,7 @@ interface NavGroupProps {
 /** 눌러서 펼치는 메뉴 — 그 안의 화면에 있으면 펼친 채로 */
 function NavGroup({ item, children, onNavigate }: NavGroupProps) {
   const { pathname } = useLocation()
+  const badgeOf = useNavBadge()
   const inside = children.some(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
   const [open, setOpen] = useState(inside)
   const Icon = item.icon
@@ -78,13 +96,14 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
                 onClick={onNavigate}
                 aria-current={isChildActive(pathname, to, children) ? 'page' : undefined}
                 className={[
-                  'block rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
+                  'flex items-center gap-2 rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
                   isChildActive(pathname, to, children)
                     ? 'bg-blue-50 font-medium text-blue-700'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                 ].join(' ')}
               >
-                {label}
+                <span className="flex-1">{label}</span>
+                <Badge badge={badgeOf(to)} />
               </Link>
             </li>
           ))}
@@ -98,11 +117,10 @@ export function Sidebar({ onClose }: SidebarProps) {
   const user = useAuthStore((s) => s.user)
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
-  const isVisible = useNavVisibility()
   const badgeOf = useNavBadge()
 
   const homepageUrl = tenantSlug ? `${CLIENT_BASE_URL}/${tenantSlug}` : null
-  const visibleItems = ADMIN_NAVIGATION.filter(({ to }) => isVisible(to))
+  const visibleItems = useVisibleNavigation()
 
   const handleLogout = async () => {
     await logout()
@@ -152,16 +170,7 @@ export function Sidebar({ onClose }: SidebarProps) {
             >
               <Icon size={18} aria-hidden="true" />
               <span className="flex-1">{label}</span>
-              {badge === 'BETA' && (
-                <span className="rounded-full bg-blue-100 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-                  BETA
-                </span>
-              )}
-              {badge === 'NEW' && (
-                <span className="rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                  NEW
-                </span>
-              )}
+              <Badge badge={badge} />
             </NavLink>
           )
         })}

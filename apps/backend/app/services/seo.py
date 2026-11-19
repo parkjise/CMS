@@ -1,14 +1,27 @@
 import re
 from datetime import UTC, datetime
+from typing import Any
 from uuid import UUID
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.board import Board, BoardPost
 from app.models.seo import SeoSetting
 from app.models.tenant import Tenant
-from app.schemas.seo import SeoLimitsResponse, SeoSettingsUpdate
+from app.schemas.seo import (
+    AeoBoard,
+    AeoItem,
+    AeoResponse,
+    AeoUpdate,
+    AiCrawler,
+    GeoResponse,
+    GeoSettings,
+    SeoLimitsResponse,
+    SeoSettingsUpdate,
+)
+from app.services import board as board_service
 from app.services import site_cache
 
 _META_TITLE_MAX = 60
@@ -162,3 +175,184 @@ async def generate_sitemap_xml(db: AsyncSession, tenant_slug: str) -> str:
         "</urlset>",
     ]
     return "\n".join(lines)
+
+
+# ── AEO · GEO (T-221, 사이트 관리 SM-05 · SM-06) ─────────────────────────────
+
+FAQ_TYPE = "FAQ"
+MSG_NOT_FAQ_BOARD = "FAQ 게시판만 구조화 데이터를 만들 수 있습니다."
+MSG_UNKNOWN_CRAWLER = "등록되지 않은 크롤러입니다."
+# 운영 시점의 각 회사 안내에 맞춰 고치는 관리 목록 — User-agent 이름 그대로
+AI_CRAWLERS: dict[str, str] = {
+    "GPTBot": "OpenAI 모델 학습",
+    "OAI-SearchBot": "ChatGPT 검색",
+    "ClaudeBot": "Anthropic 모델 학습",
+    "Claude-SearchBot": "Claude 검색",
+    "PerplexityBot": "Perplexity 검색",
+    "Google-Extended": "Google Gemini 학습",
+    "Applebot-Extended": "Apple AI 학습",
+    "CCBot": "Common Crawl 수집",
+}
+_INLINE = {"text", "hardBreak"}
+
+
+def _validation_error(message: str, field: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={"code": "VALIDATION_ERROR", "message": message, "field": field},
+    )
+
+
+def _rich_text(node: dict[str, Any]) -> str:
+    if node.get("type") == "text":
+        return str(node.get("text", ""))
+    if node.get("type") == "hardBreak":
+        return "\n"
+    children = [c for c in node.get("content") or [] if isinstance(c, dict)]
+    inline = all(c.get("type") in _INLINE for c in children)
+    return ("" if inline else "\n").join(_rich_text(c) for c in children)
+
+
+def body_text(nodes: list[dict[str, Any]]) -> str:
+    """글 본문 → 글자만 — 이전 블록(p · ul)과 새 편집기 본문 모두."""
+    parts: list[str] = []
+    for node in nodes:
+        if not isinstance(node, dict):
+            continue
+        if node.get("type") == "p":
+            parts.append(str(node.get("text", "")).replace("**", ""))
+        elif node.get("type") == "ul":
+            parts.extend(str(item) for item in node.get("items") or [])
+        elif node.get("type") != "image":
+            parts.append(_rich_text(node))
+    lines = (line.strip() for part in parts for line in part.split("\n"))
+    return "\n".join(line for line in lines if line)
+
+
+def faq_board_ids(setting: SeoSetting | None) -> set[str]:
+    """FAQ 구조화 데이터를 만드는 게시판 — 홈페이지 응답에 표시한다."""
+    aeo = (setting.aeo if setting else None) or {}
+    return {str(i) for i in aeo.get("faq_board_ids", [])}
+
+
+def _post_note(post: BoardPost, answer: str, now: datetime) -> str | None:
+    """구조화 데이터에서 빠지는 까닭 — 없으면 None."""
+    if post.status != board_service.STATUS_PUBLISHED:
+        return "공개 전 글"
+    if post.published_at is not None and post.published_at > now:
+        return "예약 글"
+    if post.is_secret:
+        return "비밀글"
+    if not answer:
+        return "답변 없음"
+    return None
+
+
+async def get_aeo(db: AsyncSession) -> AeoResponse:
+    setting = await get_seo_settings(db)
+    boards = (
+        await db.execute(
+            select(Board)
+            .where(Board.board_type == FAQ_TYPE, Board.deleted_at.is_(None))
+            .order_by(Board.created_at, Board.id)
+        )
+    ).scalars()
+    now = datetime.now(UTC)
+    result: list[AeoBoard] = []
+    for board in boards:
+        items: list[AeoItem] = []
+        for post in await board_service.faq_posts(db, board):
+            answer = body_text(post.body or [])
+            note = _post_note(post, answer, now)
+            items.append(
+                AeoItem(
+                    post_id=post.id,
+                    question=post.title,
+                    answer=answer,
+                    public=note is None,
+                    note=note,
+                )
+            )
+        result.append(
+            AeoBoard(
+                id=board.id,
+                name=board.name,
+                slug=board.slug,
+                active=board.status == "ACTIVE",
+                member_only=board_service.is_member_only(board),
+                items=items,
+            )
+        )
+    ids = faq_board_ids(setting)
+    return AeoResponse(
+        faq_board_ids=[b.id for b in result if str(b.id) in ids],
+        boards=result,
+    )
+
+
+async def _setting_for_write(db: AsyncSession, tenant_id: UUID) -> SeoSetting:
+    setting = await get_seo_settings(db)
+    if setting is None:
+        now = datetime.now(UTC)
+        setting = SeoSetting(
+            tenant_id=tenant_id,
+            created_at=now,
+            updated_at=now,
+            keywords=[],
+            robots="index,follow",
+        )
+        db.add(setting)
+    return setting
+
+
+async def update_aeo(db: AsyncSession, tenant_id: UUID, data: AeoUpdate) -> AeoResponse:
+    ids = list(dict.fromkeys(data.faq_board_ids))
+    if ids:
+        found = set(
+            (
+                await db.execute(
+                    select(Board.id).where(
+                        Board.id.in_(ids),
+                        Board.board_type == FAQ_TYPE,
+                        Board.deleted_at.is_(None),
+                    )
+                )
+            ).scalars()
+        )
+        if len(found) != len(ids):
+            raise _validation_error(MSG_NOT_FAQ_BOARD, "faq_board_ids")
+    setting = await _setting_for_write(db, tenant_id)
+    setting.aeo = {"faq_board_ids": [str(i) for i in ids]}
+    setting.updated_at = datetime.now(UTC)
+    await db.commit()
+    await site_cache.purge_site(db, tenant_id)
+    db.expire_all()
+    return await get_aeo(db)
+
+
+def _geo_response(setting: SeoSetting | None) -> GeoResponse:
+    return GeoResponse(
+        settings=GeoSettings.model_validate((setting.geo if setting else None) or {}),
+        crawlers=[AiCrawler(name=k, label=v) for k, v in AI_CRAWLERS.items()],
+    )
+
+
+async def get_geo(db: AsyncSession) -> GeoResponse:
+    return _geo_response(await get_seo_settings(db))
+
+
+async def update_geo(
+    db: AsyncSession, tenant_id: UUID, data: GeoSettings
+) -> GeoResponse:
+    unknown = set(data.crawlers) - set(AI_CRAWLERS)
+    if unknown:
+        raise _validation_error(MSG_UNKNOWN_CRAWLER, "crawlers")
+    # 기존 유지는 저장하지 않는다 — robots.txt 에 아무것도 더하지 않는 값
+    data.crawlers = {k: v for k, v in data.crawlers.items() if v != "keep"}
+    setting = await _setting_for_write(db, tenant_id)
+    setting.geo = data.model_dump(mode="json")
+    setting.updated_at = datetime.now(UTC)
+    await db.commit()
+    await site_cache.purge_site(db, tenant_id)
+    db.expire_all()
+    return _geo_response(await get_seo_settings(db))

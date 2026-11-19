@@ -21,6 +21,7 @@ import { GuestPostActions, ReportButton } from './GuestPostTools'
 import { MemberPostActions } from './MemberPostActions'
 import { SecretNotice } from './SecretNotice'
 import { NoticeDetailView, NoticeListView } from './NoticeBoard'
+import { FaqJsonLd } from '@/components/board/FaqJsonLd'
 
 export type BoardHrefFor = (extra?: { id?: string; q?: string; p?: number; c?: string }) => string
 
@@ -419,6 +420,7 @@ export function CustomBoardList({
         </ul>
       ) : (
         <div className="board-faq">
+          <FaqJsonLd board={board} posts={posts} />
           {posts.map((post, index) => (
             <details
               className="board-faq__item"

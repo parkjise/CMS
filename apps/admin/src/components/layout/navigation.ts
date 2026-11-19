@@ -3,17 +3,32 @@ import {
   ClipboardList,
   CreditCard,
   FileText,
+  Globe,
   Layers,
   LayoutDashboard,
   MessageSquare,
-  ScrollText,
-  Search,
   Share2,
   Sparkles,
 } from 'lucide-react'
 
+/** 사이트 공통 설정 (T-221, 사이트 관리 기획서) — 첫 화면은 기본정보 */
+export const SITE_HOME = '/admin/site/info'
+
 export const ADMIN_NAVIGATION = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: '대시보드' },
+  {
+    to: '/admin/site',
+    icon: Globe,
+    label: '사이트 관리',
+    children: [
+      { to: SITE_HOME, label: '사이트 기본정보' },
+      { to: '/admin/site/menu', label: '메뉴 관리' },
+      { to: '/admin/site/policies', label: '약관 · 정책 관리' },
+      { to: '/admin/site/seo', label: 'SEO 설정' },
+      { to: '/admin/site/aeo', label: 'AEO 설정' },
+      { to: '/admin/site/geo', label: 'GEO 설정' },
+    ],
+  },
   { to: '/admin/content', icon: FileText, label: '콘텐츠 편집' },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
   {
@@ -35,8 +50,6 @@ export const ADMIN_NAVIGATION = [
     ],
   },
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의 관리' },
-  { to: '/admin/seo', icon: Search, label: 'SEO 설정' },
-  { to: '/admin/policies', icon: ScrollText, label: '약관 · 방침' },
   { to: '/admin/templates', icon: Layers, label: '템플릿' },
   { to: '/admin/analytics', icon: BarChart3, label: '방문자 분석' },
   { to: '/admin/reports', icon: Sparkles, label: '월간 리포트' },
@@ -96,6 +109,9 @@ export function breadcrumbsFor(pathname: string) {
         if (tail.endsWith('/new')) crumbs.push({ label: '글쓰기' })
         else if (tail.endsWith('/edit')) crumbs.push({ label: '게시글 수정' })
       }
+    } else if (base.to === '/admin/site') {
+      const entry = base.children?.find((item) => item.to === pathname)
+      if (entry) crumbs.push({ label: entry.label })
     } else if (base.to === '/admin/content') crumbs.push({ label: '섹션 편집' })
   }
   return crumbs

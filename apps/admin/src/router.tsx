@@ -9,6 +9,7 @@ import { NotFoundPage } from '@/pages/NotFoundPage'
 import { BOARD_SECTIONS } from '@/lib/boardWorkspace'
 import { type LazyPage, lazyPage } from '@/lib/lazyPage'
 import { BoardSectionRedirect } from '@/components/boards/BoardSectionNav'
+import { SITE_HOME } from '@/components/layout/navigation'
 
 // 로그인 화면도 따로 — 폼 라이브러리(react-hook-form · zod)가 다른 화면 첫 로딩에 섞이지 않게 (T-043-B)
 const LoginPage = lazyPage(() => import('@/pages/LoginPage'), 'LoginPage')
@@ -30,7 +31,12 @@ const AuditLogsPage = lazyPage(() => import('@/pages/AuditLogsPage'), 'AuditLogs
 const BoardWorkspacePage = lazyPage(() => import('@/pages/BoardWorkspacePage'), 'BoardWorkspacePage')
 const BoardPostsPage = lazyPage(() => import('@/pages/BoardPostsPage'), 'BoardPostsPage')
 const BoardPostEditPage = lazyPage(() => import('@/pages/BoardPostEditPage'), 'BoardPostEditPage')
+// 사이트 관리 (T-221) — 기본정보 · 메뉴 · 약관 · SEO · AEO · GEO
+const SiteInfoPage = lazyPage(() => import('@/pages/SiteInfoPage'), 'SiteInfoPage')
+const SiteMenuPage = lazyPage(() => import('@/pages/SiteMenuPage'), 'SiteMenuPage')
 const SeoPage = lazyPage(() => import('@/pages/SeoPage'), 'SeoPage')
+const AeoPage = lazyPage(() => import('@/pages/AeoPage'), 'AeoPage')
+const GeoPage = lazyPage(() => import('@/pages/GeoPage'), 'GeoPage')
 const PoliciesPage = lazyPage(() => import('@/pages/PoliciesPage'), 'PoliciesPage')
 const TemplatesPage = lazyPage(() => import('@/pages/TemplatesPage'), 'TemplatesPage')
 const BillingPage = lazyPage(() => import('@/pages/BillingPage'), 'BillingPage')
@@ -57,8 +63,12 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/boards\/[^/]+\/design\/?$/, BoardDesignPage],
   [/^\/admin\/boards\/[^/]+\/posts\/?$/, BoardPostsPage],
   [/^\/admin\/boards\/[^/]+\/posts\/.+$/, BoardPostEditPage],
-  [/^\/admin\/seo\/?$/, SeoPage],
-  [/^\/admin\/policies\/?$/, PoliciesPage],
+  [/^\/admin\/site\/info\/?$/, SiteInfoPage],
+  [/^\/admin\/site\/menu\/?$/, SiteMenuPage],
+  [/^\/admin\/site\/policies\/?$/, PoliciesPage],
+  [/^\/admin\/site\/seo\/?$/, SeoPage],
+  [/^\/admin\/site\/aeo\/?$/, AeoPage],
+  [/^\/admin\/site\/geo\/?$/, GeoPage],
   [/^\/admin\/templates\/?$/, TemplatesPage],
   [/^\/admin\/reports\/?$/, ReportsPage],
   [/^\/admin\/analytics\/?$/, AnalyticsPage],
@@ -183,11 +193,16 @@ export const router = createBrowserRouter([
             path: '/admin/boards/:boardId/posts/:postId/edit',
             element: withFeature('BOARD_MANAGER', <BoardPostEditPage />),
           },
-          {
-            path: '/admin/seo',
-            element: withFeature('SEO_WIZARD', <SeoPage />),
-          },
-          { path: '/admin/policies', element: <PoliciesPage /> },
+          { path: '/admin/site', element: <Navigate to={SITE_HOME} replace /> },
+          { path: SITE_HOME, element: withSuspense(<SiteInfoPage />) },
+          { path: '/admin/site/menu', element: withSuspense(<SiteMenuPage />) },
+          { path: '/admin/site/policies', element: withSuspense(<PoliciesPage />) },
+          { path: '/admin/site/seo', element: withFeature('SEO_WIZARD', <SeoPage />) },
+          { path: '/admin/site/aeo', element: withFeature('SEO_WIZARD', <AeoPage />) },
+          { path: '/admin/site/geo', element: withFeature('SEO_WIZARD', <GeoPage />) },
+          // 사이트 관리로 옮기기 전 주소 (T-221) — 즐겨찾기 · 안내 링크
+          { path: '/admin/seo', element: <Navigate to="/admin/site/seo" replace /> },
+          { path: '/admin/policies', element: <Navigate to="/admin/site/policies" replace /> },
           {
             path: '/admin/templates',
             element: withFeature('TEMPLATE_SELECT', <TemplatesPage />),

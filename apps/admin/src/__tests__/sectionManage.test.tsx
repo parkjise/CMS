@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import { server } from './server'
 import { ContentPage } from '@/pages/ContentPage'
@@ -178,19 +178,24 @@ describe('섹션 삭제', () => {
   })
 })
 
-describe('공통 설정 탭 바로 열기 (T-125-F)', () => {
-  it('?tab=settings 로 들어오면 공통 설정 탭이 열린다 — 홈페이지 편집 모드 안내 링크', () => {
-    server.use(
-      http.get(`${BASE}/v1/site-settings`, () => HttpResponse.json({ success: true, data: null })),
-      http.get(`${BASE}/v1/site-settings/menu`, () => HttpResponse.json({ success: true, data: { items: [] } })),
+describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {
+  it('?tab=settings 로 들어오면 사이트 기본정보로 넘긴다 — 예전 홈페이지 편집 모드 안내 링크', () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <MemoryRouter initialEntries={['/admin/content?tab=settings']}>
+          <Routes>
+            <Route path="/admin/content" element={<ContentPage />} />
+            <Route path="/admin/site/info" element={<p>사이트 기본정보 화면</p>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>,
     )
-    renderPage('/admin/content?tab=settings')
-    expect(screen.getByRole('button', { name: '공통 설정', pressed: true })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '섹션 관리', pressed: false })).toBeInTheDocument()
+    expect(screen.getByText('사이트 기본정보 화면')).toBeInTheDocument()
   })
 
-  it('그 밖에는 섹션 관리 탭', () => {
+  it('콘텐츠 편집에는 섹션 목록만 — 공통 설정 탭이 없다', () => {
     renderPage()
-    expect(screen.getByRole('button', { name: '섹션 관리', pressed: true })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '공통 설정' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: '콘텐츠 편집' })).toBeInTheDocument()
   })
 })

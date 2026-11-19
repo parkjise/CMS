@@ -66,17 +66,17 @@ describe('Location (오시는 길)', () => {
   it('편집 모드 — 공통 설정 안내 · 링크, 대중교통은 바로 고치는 글자', () => {
     useEditStore.setState({ isEditMode: true })
     render(<Location section={section} tenantSlug="t" editable business={{}} />)
-    expect(screen.getByRole('link', { name: /공통 설정 열기/ })).toHaveAttribute('href', COMMON_SETTINGS_URL)
-    expect(COMMON_SETTINGS_URL).toMatch(/\/admin\/content\?tab=settings$/)
+    expect(screen.getByRole('link', { name: /사이트 기본정보 열기/ })).toHaveAttribute('href', COMMON_SETTINGS_URL)
+    expect(COMMON_SETTINGS_URL).toMatch(/\/admin\/site\/info$/)
     expect(within(row('대중교통')).getByText('2호선 강남역 도보 5분')).toHaveAttribute('data-editable', 'text')
   })
 
   it('방문자 화면 · 샘플 섹션에는 안내가 없다', () => {
     render(<Location section={section} tenantSlug="t" editable business={{}} />)
-    expect(screen.queryByText(/공통 설정 열기/)).toBeNull()
+    expect(screen.queryByText(/사이트 기본정보 열기/)).toBeNull()
     cleanup()
     useEditStore.setState({ isEditMode: true })
     render(<Location section={section} tenantSlug="t" editable={false} business={{}} />)
-    expect(screen.queryByText(/공통 설정 열기/)).toBeNull()
+    expect(screen.queryByText(/사이트 기본정보 열기/)).toBeNull()
   })
 })

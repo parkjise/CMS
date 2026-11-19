@@ -102,6 +102,19 @@ describe('robots.txt · 사이트맵 (T-137)', () => {
     expect(await (await robotsGet(req('www.oo.com'))).text()).toBe('User-agent: *\nDisallow: /a\n')
   })
 
+  it('고객 도메인 — GEO 의 AI 크롤러 정책을 더한다, 이미 규칙이 있는 크롤러는 그대로 (T-221)', async () => {
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { slug: 'clinic' } })))
+    vi.mocked(fetchPublicSite).mockResolvedValue({
+      seo_settings: {
+        robots_txt: 'User-agent: *\nAllow: /\n\nUser-agent: CCBot\nAllow: /',
+        geo: { crawlers: { GPTBot: 'block', CCBot: 'block' } },
+      },
+    } as unknown as PublicSite)
+    const body = await (await robotsGet(req('www.oo.com'))).text()
+    expect(body).toContain('User-agent: GPTBot\nDisallow: /')
+    expect(body).not.toContain('User-agent: CCBot\nDisallow')
+  })
+
   it('고객 도메인 — 비어 있으면 전체 허용 + 그 도메인 사이트맵', async () => {
     fetchMock.mockResolvedValue(new Response(JSON.stringify({ data: { slug: 'clinic' } })))
     vi.mocked(fetchPublicSite).mockResolvedValue(siteWith(null))

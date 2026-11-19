@@ -5,7 +5,7 @@ import { renderWithQuery } from './renderWithQuery'
 import { SiteSettingsForm } from '@/components/content/SiteSettingsForm'
 import { api } from '@/lib/api'
 
-// 콘텐츠 편집 → 공통 설정 (T-036-A)
+// 사이트 관리 → 사이트 기본정보 (T-036-A · T-221)
 
 const SAVED = {
   id: 's1',
@@ -40,7 +40,7 @@ describe('SiteSettingsForm', () => {
     expect(screen.getByLabelText('평일')).toHaveValue('09:00 - 18:00')
     await user.type(screen.getByLabelText('대표자'), '홍길동')
     await user.clear(screen.getByLabelText('평일'))
-    await user.click(screen.getByRole('button', { name: '공통 설정 저장' }))
+    await user.click(screen.getByRole('button', { name: '기본정보 저장' }))
 
     await waitFor(() => expect(put).toHaveBeenCalled())
     const [url, body] = put.mock.calls[0]
@@ -76,7 +76,7 @@ describe('SiteSettingsForm', () => {
     const phone = await screen.findByLabelText('대표 전화')
     await user.clear(phone)
     await user.type(phone, '전화주세요')
-    await user.click(screen.getByRole('button', { name: '공통 설정 저장' }))
+    await user.click(screen.getByRole('button', { name: '기본정보 저장' }))
 
     await waitFor(() => expect(phone).toHaveAttribute('aria-invalid', 'true'))
     expect(phone).toHaveAccessibleDescription(/전화번호 형식을 확인해 주세요/)

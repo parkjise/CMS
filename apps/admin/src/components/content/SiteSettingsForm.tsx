@@ -12,7 +12,7 @@ import {
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 /**
- * 콘텐츠 편집 → 공통 설정 (기획서 AD-02-A, T-036-A)
+ * 사이트 관리 → 사이트 기본정보 (기획서 AD-02-A, T-036-A · T-221)
  * 사업체 정보 · 로고 · 파비콘을 한 번만 입력하면 홈페이지 푸터 · 상담 버튼 · 브라우저 탭 ·
  * 검색 구조화 데이터에 함께 쓰인다.
  */
@@ -91,7 +91,7 @@ export function SiteSettingsForm() {
     save.mutate(draft, {
       onSuccess: () => {
         setErrors({})
-        toast.success('공통 설정을 저장했습니다. 홈페이지에 바로 반영돼요.')
+        toast.success('사이트 기본정보를 저장했습니다. 홈페이지에 바로 반영돼요.')
       },
       onError: (err) => {
         const fe = fieldError(err)
@@ -104,7 +104,7 @@ export function SiteSettingsForm() {
     })
 
   if (query.isLoading) {
-    return <div role="status" aria-label="공통 설정 불러오는 중" className="h-96 animate-pulse rounded-lg bg-slate-100" />
+    return <div role="status" aria-label="사이트 기본정보 불러오는 중" className="h-96 animate-pulse rounded-lg bg-slate-100" />
   }
 
   const common = { draft, onChange: change }
@@ -183,7 +183,7 @@ export function SiteSettingsForm() {
 
       <div className="flex justify-end">
         <Button type="submit" disabled={save.isPending}>
-          {save.isPending ? '저장 중…' : '공통 설정 저장'}
+          {save.isPending ? '저장 중…' : '기본정보 저장'}
         </Button>
       </div>
     </form>

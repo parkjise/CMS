@@ -1,13 +1,17 @@
+import { ADMIN_NAVIGATION } from '@/components/layout/navigation'
 import { useFeatureStore } from '@/stores/featureStore'
 
 /**
  * 라우트별로 요구되는 기능 플래그 키.
  * 여기에 없는 라우트(dashboard·sns·inquiries·billing)는 항상 노출된다.
+ * 2뎁스 메뉴도 같은 표로 거른다 — 사이트 관리의 검색 설정 3개 (T-221)
  */
 export const NAV_FEATURE_MAP: Record<string, string> = {
   '/admin/content': 'SECTION_EDITOR',
   '/admin/boards': 'BOARD_MANAGER',
-  '/admin/seo': 'SEO_WIZARD',
+  '/admin/site/seo': 'SEO_WIZARD',
+  '/admin/site/aeo': 'SEO_WIZARD',
+  '/admin/site/geo': 'SEO_WIZARD',
   '/admin/templates': 'TEMPLATE_SELECT',
   '/admin/analytics': 'NAVER_ANALYTICS',
   '/admin/reports': 'AI_MONTHLY_REPORT',
@@ -31,6 +35,14 @@ export function useNavVisibility(): (to: string) => boolean {
     if (!loaded) return true
     return flags[feature] === true
   }
+}
+
+/** 사이드바에 보이는 메뉴 — 2뎁스까지 거른다 (T-221) */
+export function useVisibleNavigation() {
+  const isVisible = useNavVisibility()
+  return ADMIN_NAVIGATION.filter(({ to }) => isVisible(to)).map((item) =>
+    item.children ? { ...item, children: item.children.filter(({ to }) => isVisible(to)) } : item
+  )
 }
 
 /** 기능이 켜져 있는지 — 불러오기 전 · 실패 시에는 켜진 것으로 (서버가 다시 막는다) */

@@ -32,6 +32,7 @@ from app.schemas.site import PolicyDocument, PolicyKind, PublicSiteSettingsRespo
 from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features, section_draft
+from app.services import seo as seo_service
 from app.services import site_policy as policy_service
 
 router = APIRouter(tags=["public"])
@@ -119,6 +120,7 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             }
 
     flags = await member_features.flags_for(db, tenant)
+    faq_boards = seo_service.faq_board_ids(seo)
     code = template is not None and template.renderer == "code"
     notice = await board_service.public_notice_board(db, tid) if code else None
     return PublicSiteResponse(
@@ -138,7 +140,11 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             social_login=flags.social_login,
         ),
         boards=[
-            PublicBoardResponse(**board)
+            PublicBoardResponse(
+                **board,
+                faq_jsonld=board["board_type"] == seo_service.FAQ_TYPE
+                and str(board["id"]) in faq_boards,
+            )
             for board in await board_service.list_public_boards(
                 db,
                 tid,

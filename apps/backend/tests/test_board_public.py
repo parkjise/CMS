@@ -162,6 +162,7 @@ class TestPublicSiteBoards:
                 "allow_guest": False,
                 "menu_parent": "",
                 "categories": [],
+                "faq_jsonld": False,
             }
         ]
 

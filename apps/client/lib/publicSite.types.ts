@@ -1,4 +1,4 @@
-import type { PublicBoard } from '@cms/types'
+import type { PublicBoard, PublicGeo } from '@cms/types'
 import type { MenuOverride } from './menuSettings'
 
 export interface PublicTenant {
@@ -60,6 +60,8 @@ export interface PublicSeoSettings {
   robots?: string
   /** 대표 키워드 (T-040-A) — 이전 백엔드 응답에는 없을 수 있다 */
   keywords?: string[]
+  /** 기업 소개 · 주제 · 공식 프로필 · AI 크롤러 정책 (T-221) — 설정 전이면 null */
+  geo?: PublicGeo | null
 }
 
 export interface PublicTemplate {

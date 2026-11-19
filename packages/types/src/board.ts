@@ -352,6 +352,8 @@ export interface PublicBoard {
   menu_parent?: string
   /** 사용 중인 분류 (T-149) — 없으면 탭을 그리지 않는다 */
   categories?: PublicCategory[]
+  /** FAQ 구조화 데이터 (T-221, 사이트 관리 AEO) — 화면에 보이는 질문만 넣는다 */
+  faq_jsonld?: boolean
 }
 
 export interface PublicPostItem {
