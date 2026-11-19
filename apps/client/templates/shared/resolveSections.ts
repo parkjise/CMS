@@ -5,6 +5,7 @@ import type {
   PublicSite,
 } from '@/lib/publicSite.types'
 import type { ResolvedSection, SampleContent, SampleSection } from './contracts'
+import { hoursRows } from '@/lib/siteHours'
 
 const SAMPLE_ID_PREFIX = 'sample:'
 
@@ -96,15 +97,26 @@ export function resolvePageSections(
  * 관리자 공통 설정(T-036-A)에 입력한 값만, 비어 있으면 "" 로 두어 화면이 숨긴다.
  */
 const BUSINESS_KEYS = [
+  'company_name',
   'phone',
+  'cs_phone',
+  'fax',
   'email',
+  'postal_code',
   'address',
   'hours_weekday',
   'hours_saturday',
   'hours_note',
+  'hours_temp_note',
   'parking',
   'ceo',
   'business_number',
+  'mail_order_number',
+  'business_type',
+  'business_item',
+  'privacy_officer',
+  'privacy_email',
+  'copyright',
 ] as const
 
 /** 주소로 지도 길찾기 링크를 만든다 (주소가 없으면 링크 없음) */
@@ -130,6 +142,10 @@ export function resolveSiteInfo(
   const info: Record<string, string> = { ...sample.site, brand_name: site.tenant.name }
   const settings = site.site_settings
   for (const key of BUSINESS_KEYS) info[key] = settings?.[key] ?? ''
+  // 요일별 운영시간(T-222)이 있으면 그 표, 없으면 예전 평일 · 토요일 글자 — siteHoursRows 로 읽는다
+  info.hours_rows = settings ? JSON.stringify(hoursRows(settings)) : ''
+  // 숨긴 공개 항목 — 섹션 값으로 대신 채우지 않게
+  info.hidden_fields = (settings?.hidden_fields ?? []).join(',')
   if (info.address && settings?.address_detail) {
     info.address = `${info.address} ${settings.address_detail}`
   }

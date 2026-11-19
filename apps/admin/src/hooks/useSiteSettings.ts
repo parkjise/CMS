@@ -1,29 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import type { PublicFieldGroup, SiteInfoFields, WeeklyHours } from '@cms/types'
 import { api } from '@/lib/api'
 
-/** 사업체 공통 정보 (T-036-A, 기획서 AD-02-A 공통 설정) */
-export interface SiteSettings {
+/** 사업체 공통 정보 (T-036-A, 기획서 AD-02-A 공통 설정 · T-222 기본정보 확장) */
+export interface SiteSettings extends SiteInfoFields {
   id: string
   tenant_id: string
-  phone: string | null
-  email: string | null
-  address: string | null
-  address_detail: string | null
-  hours_weekday: string | null
-  hours_saturday: string | null
-  hours_note: string | null
-  parking: string | null
-  ceo: string | null
-  business_number: string | null
-  logo_url: string | null
-  favicon_url: string | null
+  /** 숨긴 공개 항목 묶음 — 비어 있으면 모두 공개 */
+  hidden_fields: PublicFieldGroup[]
   updated_at: string
 }
 
-export type SiteSettingsField = Exclude<keyof SiteSettings, 'id' | 'tenant_id' | 'updated_at'>
+export type SiteSettingsField = Exclude<keyof SiteInfoFields, 'weekly_hours'>
 
-/** 보내지 않은 칸은 그대로, "" 는 지우기 */
-export type SiteSettingsUpdate = Partial<Record<SiteSettingsField, string>>
+/** 보내지 않은 칸은 그대로, "" · {} · [] 는 지우기 */
+export type SiteSettingsUpdate = Partial<Record<SiteSettingsField, string>> & {
+  weekly_hours?: WeeklyHours
+  hidden_fields?: PublicFieldGroup[]
+}
 
 const SITE_KEY = ['site-settings'] as const
 

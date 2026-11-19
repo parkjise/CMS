@@ -1,4 +1,4 @@
-import type { PublicBoard, PublicGeo } from '@cms/types'
+import type { PublicBoard, PublicFieldGroup, PublicGeo, SiteInfoFields } from '@cms/types'
 import type { MenuOverride } from './menuSettings'
 
 export interface PublicTenant {
@@ -83,23 +83,29 @@ export interface PublicMemberFlags {
   social_login: boolean
 }
 
-/** 사업체 공통 정보 (T-036-A) — 관리자 콘텐츠 편집 → 공통 설정 */
-export interface PublicSiteSettings {
-  phone: string | null
-  email: string | null
-  address: string | null
-  address_detail: string | null
-  hours_weekday: string | null
-  hours_saturday: string | null
-  hours_note: string | null
-  parking: string | null
-  ceo: string | null
-  business_number: string | null
-  logo_url: string | null
-  favicon_url: string | null
-  /** 상단 메뉴 (T-036-B) — 없으면 템플릿 기본 메뉴 */
-  menu_items?: MenuOverride[] | null
-}
+/** 사업체 공통 정보 (T-036-A · T-222) — 관리자 사이트 관리 → 기본정보. 숨긴 항목은 null.
+ * 이전 백엔드 응답 · 캐시에는 T-222 칸이 없을 수 있다 */
+type LegacySiteField =
+  | 'phone'
+  | 'email'
+  | 'address'
+  | 'address_detail'
+  | 'hours_weekday'
+  | 'hours_saturday'
+  | 'hours_note'
+  | 'parking'
+  | 'ceo'
+  | 'business_number'
+  | 'logo_url'
+  | 'favicon_url'
+
+export type PublicSiteSettings = Pick<SiteInfoFields, LegacySiteField> &
+  Partial<Omit<SiteInfoFields, LegacySiteField>> & {
+    /** 상단 메뉴 (T-036-B) — 없으면 템플릿 기본 메뉴 */
+    menu_items?: MenuOverride[] | null
+    /** 관리자가 숨긴 공개 항목 (T-222) — 값은 이미 null */
+    hidden_fields?: PublicFieldGroup[]
+  }
 
 export interface PublicSite {
   tenant: PublicTenant

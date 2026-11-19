@@ -28,12 +28,13 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
-from app.schemas.site import PolicyDocument, PolicyKind, PublicSiteSettingsResponse
+from app.schemas.site import PolicyDocument, PolicyKind
 from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features, section_draft
 from app.services import seo as seo_service
 from app.services import site_policy as policy_service
+from app.services import site_settings as site_settings_service
 
 router = APIRouter(tags=["public"])
 
@@ -86,6 +87,14 @@ async def _resolve_template(
     return template, css_overrides
 
 
+def _public_tenant(tenant: Tenant, setting: SiteSetting | None) -> PublicTenantResponse:
+    """사이트명을 정했으면 홈페이지 이름(헤더 · 제목 · 메타 기본값)으로 쓴다 (T-222)"""
+    public = PublicTenantResponse.model_validate(tenant)
+    if setting and setting.site_name:
+        public = public.model_copy(update={"name": setting.site_name})
+    return public
+
+
 async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteResponse:
     tid = tenant.id
 
@@ -124,14 +133,12 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
     code = template is not None and template.renderer == "code"
     notice = await board_service.public_notice_board(db, tid) if code else None
     return PublicSiteResponse(
-        tenant=PublicTenantResponse.model_validate(tenant),
+        tenant=_public_tenant(tenant, site_settings),
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
         seo_settings=PublicSeoResponse.model_validate(seo) if seo else None,
         sns_settings=PublicSnsResponse.model_validate(sns) if sns else None,
         site_settings=(
-            PublicSiteSettingsResponse.model_validate(site_settings)
-            if site_settings
-            else None
+            site_settings_service.public_view(site_settings) if site_settings else None
         ),
         template=template_payload,
         member=PublicMemberFlags(
@@ -322,7 +329,7 @@ async def get_site_availability(tenant_slug: str, db: AsyncSession = Depends(get
     return ApiResponse.ok(
         PublicSiteAvailability(
             status="ACTIVE" if tenant.is_active else "PAUSED",
-            name=tenant.name,
-            phone=setting.phone if setting else None,
+            name=(setting and setting.site_name) or tenant.name,
+            phone=site_settings_service.public_view(setting).phone if setting else None,
         )
     )

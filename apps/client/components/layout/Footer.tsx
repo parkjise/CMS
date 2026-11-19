@@ -1,5 +1,6 @@
 import { Facebook, Globe, Instagram, MessageCircle, Youtube } from 'lucide-react'
 import type { PublicSiteSettings, PublicSnsSettings } from '@/lib/publicSite.types'
+import { hoursRows } from '@/lib/siteHours'
 
 interface FooterProps {
   tenantName: string
@@ -58,36 +59,54 @@ function buildSnsLinks(sns: PublicSnsSettings | null): SnsLink[] {
   return items
 }
 
-/** 공통 설정의 연락처 · 영업시간 · 사업자 정보 (비어 있으면 그리지 않음) */
+const telHref = (phone: string) => `tel:${phone.replace(/[^0-9+]/g, '')}`
+
+/** 사이트 기본정보의 연락처 · 운영시간 · 사업자 정보 (T-036-A · T-222). 숨긴 항목은 이미 null */
 function BusinessInfo({ tenantName, info }: { tenantName: string; info: PublicSiteSettings }) {
-  const address = [info.address, info.address_detail].filter(Boolean).join(' ')
+  const address = [info.postal_code && `(${info.postal_code})`, info.address, info.address_detail]
+    .filter(Boolean)
+    .join(' ')
   const hours = [
-    info.hours_weekday && `평일 ${info.hours_weekday}`,
-    info.hours_saturday && `토요일 ${info.hours_saturday}`,
+    ...hoursRows(info).map((row) => `${row.days} ${row.time}`),
     info.hours_note,
+    info.hours_temp_note,
   ].filter(Boolean)
+  const businessKind = [info.business_type, info.business_item].filter(Boolean).join(' / ')
   const company = [
-    tenantName,
+    info.company_name || tenantName,
     info.ceo && `대표자 ${info.ceo}`,
     info.business_number && `사업자등록번호 ${info.business_number}`,
+    info.mail_order_number && `통신판매업 신고번호 ${info.mail_order_number}`,
+    businessKind && `업태 · 종목 ${businessKind}`,
   ].filter(Boolean)
-  if (!info.phone && !info.email && !address && hours.length === 0 && company.length === 1) {
+  const officer = info.privacy_officer
+    ? `개인정보 보호책임자 ${info.privacy_officer}${info.privacy_email ? ` (${info.privacy_email})` : ''}`
+    : null
+  const contact = Boolean(info.phone || info.cs_phone || info.fax || info.email)
+  if (!contact && !address && hours.length === 0 && company.length === 1 && !officer) {
     return null
   }
+  const link = 'hover:text-[color:var(--color-primary)]'
   return (
     <div
       className="mx-auto mb-6 max-w-6xl space-y-1 text-center text-sm text-[color:var(--color-text-secondary)] md:text-left"
       data-testid="footer-business-info"
     >
-      {(info.phone || info.email) && (
+      {contact && (
         <p className="flex flex-wrap justify-center gap-x-4 md:justify-start">
           {info.phone && (
-            <a href={`tel:${info.phone.replace(/[^0-9]/g, '')}`} className="hover:text-[color:var(--color-primary)]">
+            <a href={telHref(info.phone)} className={link}>
               TEL {info.phone}
             </a>
           )}
+          {info.cs_phone && (
+            <a href={telHref(info.cs_phone)} className={link}>
+              고객센터 {info.cs_phone}
+            </a>
+          )}
+          {info.fax && <span>FAX {info.fax}</span>}
           {info.email && (
-            <a href={`mailto:${info.email}`} className="hover:text-[color:var(--color-primary)]">
+            <a href={`mailto:${info.email}`} className={link}>
               {info.email}
             </a>
           )}
@@ -95,8 +114,10 @@ function BusinessInfo({ tenantName, info }: { tenantName: string; info: PublicSi
       )}
       {address && <address className="not-italic">{address}</address>}
       {hours.length > 0 && <p>{hours.join(' · ')}</p>}
-      {company.length > 1 && (
-        <p className="text-xs text-[color:var(--color-text-subtle)]">{company.join(' | ')}</p>
+      {(company.length > 1 || officer) && (
+        <p className="text-xs text-[color:var(--color-text-subtle)]">
+          {[...company, officer].filter(Boolean).join(' | ')}
+        </p>
       )}
     </div>
   )
@@ -151,7 +172,7 @@ export function Footer({ tenantName, sns, info, policyBase }: FooterProps) {
         )}
 
         <p className="text-xs text-[color:var(--color-text-subtle)]">
-          © {year} {tenantName}
+          {info?.copyright || `© ${year} ${tenantName}`}
         </p>
       </div>
     </footer>

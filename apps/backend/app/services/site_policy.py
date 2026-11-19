@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.site import SiteSetting
 from app.models.tenant import Tenant
 from app.services import site_cache, tenant_purge
+from app.services import site_settings as site_settings_service
 from app.workers.scheduled import (
     INQUIRY_CLIENT_INFO_RETENTION_DAYS,
     INQUIRY_RETENTION_DAYS,
@@ -29,6 +30,8 @@ PolicyKind = Literal["terms", "privacy"]
 POLICY_TITLES: dict[str, str] = {"terms": "이용약관", "privacy": "개인정보처리방침"}
 POLICY_BODY_MAX = 30000
 NOT_SET = "(사이트 설정에서 입력해 주세요)"
+# 사이트 기본정보에서 숨긴 항목 (T-222) — 방문자에게 입력 안내가 보이지 않게
+HIDDEN = "비공개"
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates" / "policies"
 
 
@@ -46,12 +49,26 @@ def _inquiry_retention(plan: str) -> str:
 
 
 def default_body(kind: str, tenant: Tenant, setting: SiteSetting | None) -> str:
-    """기본 문안 — 사업체 이름 · 대표자 · 연락처 · 보관 기간을 채운다."""
-    name = tenant.name
-    ceo = (setting.ceo if setting else None) or NOT_SET
-    phone = (setting.phone if setting else None) or NOT_SET
-    email = (setting.email if setting else None) or NOT_SET
-    address = (setting.address if setting else None) or NOT_SET
+    """기본 문안 — 사업체 이름 · 대표자 · 연락처 · 보관 기간을 채운다.
+
+    공개로 둔 값만 쓴다 — 숨긴 항목이 약관 글로 새어 나가지 않게 (T-222).
+    """
+    info = site_settings_service.public_view(setting) if setting else None
+    hidden = set(info.hidden_fields) if info else set()
+
+    def value(raw: str | None, group: str) -> str:
+        if raw:
+            return raw
+        return HIDDEN if group in hidden else NOT_SET
+
+    name = (info.company_name if info else None) or tenant.name
+    ceo = value(info.ceo if info else None, "ceo")
+    phone = value(info.phone if info else None, "phone")
+    email = value(info.email if info else None, "email")
+    address = value(info.address if info else None, "address")
+    # 보호책임자를 따로 정하지 않았으면 대표자 · 대표 연락처
+    officer = (info.privacy_officer if info else None) or ceo
+    officer_email = (info.privacy_email if info else None) or email
     template = (_TEMPLATE_DIR / f"{kind}.txt").read_text(encoding="utf-8")
     return template.format(
         name=name,
@@ -59,6 +76,8 @@ def default_body(kind: str, tenant: Tenant, setting: SiteSetting | None) -> str:
         phone=phone,
         email=email,
         address=address,
+        officer=officer,
+        officer_email=officer_email,
         inquiry=_inquiry_retention(tenant.plan_type),
         client_info_days=INQUIRY_CLIENT_INFO_RETENTION_DAYS,
         purge_days=tenant_purge.CANCELLED_RETENTION_DAYS,

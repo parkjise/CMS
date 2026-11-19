@@ -720,7 +720,10 @@ test.describe('T-078 전체 통합 시나리오', () => {
     const url = `${BACKEND_URL}/api/v1/site-settings`
     const before = (await (await request.get(url, { headers: authHeader(token) })).json()).data
     const fields = ['phone', 'address', 'ceo', 'business_number', 'favicon_url'] as const
-    const original = Object.fromEntries(fields.map((f) => [f, before?.[f] ?? '']))
+    const original = {
+      ...Object.fromEntries(fields.map((f) => [f, before?.[f] ?? ''])),
+      hidden_fields: before?.hidden_fields ?? [],
+    }
     try {
       await page.goto(`${ADMIN_URL}/login`)
       await page.getByLabel('이메일').fill(email)
@@ -731,13 +734,14 @@ test.describe('T-078 전체 통합 시나리오', () => {
 
       await page.goto(`${ADMIN_URL}/admin/site/info`)
       await page.getByLabel('대표 전화').fill('02-7777-8888')
-      await page.getByLabel('주소', { exact: true }).fill('서울특별시 중구 세종대로 110')
-      await page.getByLabel('대표자').fill('E2E대표')
+      await page.getByLabel('기본 주소', { exact: true }).fill('서울특별시 중구 세종대로 110')
+      // '홈페이지에 보일 항목'의 대표자 체크칸과 구분 (T-222)
+      await page.getByRole('textbox', { name: '대표자', exact: true }).fill('E2E대표')
       await page.getByLabel('사업자등록번호').fill('1112233333')
       const saved = page.waitForResponse(
         (r) => r.url().endsWith('/v1/site-settings') && r.request().method() === 'PUT',
       )
-      await page.getByRole('button', { name: '기본정보 저장' }).click()
+      await page.getByRole('button', { name: '변경사항 저장' }).click()
       expect((await saved).ok()).toBeTruthy()
       // 사업자등록번호는 하이픈을 넣어 저장
       await expect(page.getByLabel('사업자등록번호')).toHaveValue('111-22-33333')
@@ -764,6 +768,21 @@ test.describe('T-078 전체 통합 시나리오', () => {
         'href',
         /e2e-favicon\.webp/,
       )
+
+      // 공개 항목에서 대표자 · 전화번호를 끄면 푸터 · 구조화 데이터에서 빠진다 (T-222)
+      const hide = await request.put(url, {
+        headers: authHeader(token),
+        data: { hidden_fields: ['ceo', 'phone'] },
+      })
+      expect(hide.ok(), await hide.text()).toBeTruthy()
+      await page.reload()
+      await expect(page.getByRole('contentinfo')).toContainText('서울특별시 중구 세종대로 110')
+      await expect(page.getByRole('contentinfo')).not.toContainText('E2E대표')
+      await expect(page.getByRole('contentinfo')).not.toContainText('02-7777-8888')
+      const hiddenLd = JSON.parse(
+        (await page.locator('script[type="application/ld+json"]').first().textContent()) ?? '{}',
+      )
+      expect(hiddenLd.telephone).toBeUndefined()
     } finally {
       const rb = await request.put(url, { headers: authHeader(token), data: original })
       expect(rb.ok(), await rb.text()).toBeTruthy()
