@@ -24,10 +24,11 @@ def load_sample(code: str) -> dict:
 
 @lru_cache
 def load_menu(code: str) -> list[dict]:
-    """코드형 템플릿 상단 메뉴 기본값 [{key, title}] (T-036-B).
+    """코드형 템플릿 메뉴 페이지 [{key, title, parent?}] (T-036-B · T-223).
 
     app/data/templates/{code}.menu.json — 클라이언트 templates/{key}/manifest.ts 의
-    menu: 'gnb' 페이지와 같은 순서 · 이름이어야 한다 (클라이언트 테스트가 비교).
+    menu: 'gnb' 페이지(parent 없음)와 그 아래 menu: 'sub' 페이지(parent)가 같은 순서 ·
+    이름이어야 한다 (클라이언트 테스트가 비교). 상단 메뉴 기본값은 parent 없는 것만.
     """
     path = _DIR / f"{code}.menu.json"
     if not path.exists():

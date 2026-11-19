@@ -1,4 +1,5 @@
 import json
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
@@ -28,7 +29,11 @@ from app.schemas.public_site import (
     PublicTemplateResponse,
     PublicTenantResponse,
 )
-from app.schemas.site import PolicyDocument, PolicyKind
+from app.schemas.site import (
+    PolicyDocument,
+    PolicyKind,
+    PublicSiteSettingsResponse,
+)
 from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features, section_draft
@@ -87,6 +92,17 @@ async def _resolve_template(
     return template, css_overrides
 
 
+async def _public_site_settings(
+    db: AsyncSession, tenant_id: UUID, setting: SiteSetting | None
+) -> PublicSiteSettingsResponse | None:
+    """공개 기본정보 + 메뉴 트리 (T-222 · T-223)"""
+    if setting is None:
+        return None
+    public = site_settings_service.public_view(setting)
+    tree, hidden = await site_settings_service.public_menu(db, tenant_id, setting)
+    return public.model_copy(update={"menu_tree": tree, "menu_hidden": hidden})
+
+
 def _public_tenant(tenant: Tenant, setting: SiteSetting | None) -> PublicTenantResponse:
     """사이트명을 정했으면 홈페이지 이름(헤더 · 제목 · 메타 기본값)으로 쓴다 (T-222)"""
     public = PublicTenantResponse.model_validate(tenant)
@@ -137,9 +153,7 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
         sections=[PublicSectionResponse.model_validate(s) for s in sections],
         seo_settings=PublicSeoResponse.model_validate(seo) if seo else None,
         sns_settings=PublicSnsResponse.model_validate(sns) if sns else None,
-        site_settings=(
-            site_settings_service.public_view(site_settings) if site_settings else None
-        ),
+        site_settings=await _public_site_settings(db, tid, site_settings),
         template=template_payload,
         member=PublicMemberFlags(
             enabled=flags.enabled,

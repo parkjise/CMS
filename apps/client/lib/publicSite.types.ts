@@ -1,4 +1,10 @@
-import type { PublicBoard, PublicFieldGroup, PublicGeo, SiteInfoFields } from '@cms/types'
+import type {
+  PublicBoard,
+  PublicFieldGroup,
+  PublicGeo,
+  PublicMenuNode,
+  SiteInfoFields,
+} from '@cms/types'
 import type { MenuOverride } from './menuSettings'
 
 export interface PublicTenant {
@@ -103,6 +109,10 @@ export type PublicSiteSettings = Pick<SiteInfoFields, LegacySiteField> &
   Partial<Omit<SiteInfoFields, LegacySiteField>> & {
     /** 상단 메뉴 (T-036-B) — 없으면 템플릿 기본 메뉴 */
     menu_items?: MenuOverride[] | null
+    /** 메뉴 트리 (T-223) — 지금 템플릿용 트리를 저장했으면 menu_items 대신 이것만 그린다 */
+    menu_tree?: PublicMenuNode[] | null
+    /** 트리에서 숨긴 연결 대상 (페이지 key · board:id) — 사이트맵에서 뺀다 */
+    menu_hidden?: string[]
     /** 관리자가 숨긴 공개 항목 (T-222) — 값은 이미 null */
     hidden_fields?: PublicFieldGroup[]
   }

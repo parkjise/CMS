@@ -256,7 +256,7 @@ async def get_db_with_rls(
 - 데스크톱 메뉴는 전체(256px)·아이콘(80px) 형태를 전환한다. 아이콘 메뉴에 마우스를 올리거나 키보드로 포커스하면 오른쪽에 메뉴 이름·하위 메뉴가 나타나며, 메뉴로 포인터를 옮겨 선택할 수 있다. Escape로 닫는다. 모바일은 헤더 메뉴에서 전체 내비게이션을 열며 기존 하단 탭도 유지한다.
 - 화면 설정에서 테마·사이드바 형태를 변경하거나 초기화한다. 두 설정은 브라우저의 `cms-admin-appearance`에 저장한다.
 - 검색과 사이드바는 동일한 메뉴 정의·기능 플래그를 사용한다. 기존 편집 권한·구독 차단 정책을 유지한다. 고객 홈페이지와 슈퍼관리자는 변경 범위에 포함하지 않는다.
-- **사이트 관리 (T-221)** — 대시보드 바로 아래 2뎁스 메뉴: 사이트 기본정보(`/admin/site/info`) · 메뉴 관리(`/menu`) · 약관 · 정책 관리(`/policies`) · SEO 설정(`/seo`) · AEO 설정(`/aeo`) · GEO 설정(`/geo`). 검색 설정 3개는 `SEO_WIZARD` 기능 플래그를 따른다. 예전 주소 `/admin/seo` · `/admin/policies` · `/admin/content?tab=settings` 는 새 주소로 넘긴다. 기본정보는 T-222 에서 브랜드 · 사업자 · 요일별 운영시간 · 항목별 공개 선택으로 확장 (숨긴 값은 공개 API · 홈페이지 · 구조화 데이터에서 제외). 상세: `docs/CMS_Site_Management_Spec_v1.0.md`
+- **사이트 관리 (T-221)** — 대시보드 바로 아래 2뎁스 메뉴: 사이트 기본정보(`/admin/site/info`) · 메뉴 관리(`/menu`) · 약관 · 정책 관리(`/policies`) · SEO 설정(`/seo`) · AEO 설정(`/aeo`) · GEO 설정(`/geo`). 검색 설정 3개는 `SEO_WIZARD` 기능 플래그를 따른다. 예전 주소 `/admin/seo` · `/admin/policies` · `/admin/content?tab=settings` 는 새 주소로 넘긴다. 기본정보는 T-222 에서 브랜드 · 사업자 · 요일별 운영시간 · 항목별 공개 선택으로 확장 (숨긴 값은 공개 API · 홈페이지 · 구조화 데이터에서 제외). 메뉴 관리는 T-223 에서 3단계 트리 · 연결 유형(페이지 / 게시판 / 외부 URL / 묶음) · 홈페이지 드롭다운으로 확장. 상세: `docs/CMS_Site_Management_Spec_v1.0.md`
 
 ### AD-01: 대시보드 (Dashboard)
 
@@ -1372,7 +1372,7 @@ CREATE TABLE site_settings (
   privacy_email VARCHAR(255), copyright VARCHAR(200),
   weekly_hours    JSONB,        -- {mon..sun: {status, open, close, break_start, break_end}}, 비면 hours_weekday · hours_saturday
   hidden_fields   JSONB,        -- 숨긴 공개 항목 묶음 키, 비면 모두 공개 (사이트 관리 기획서 3장)
-  menu_items      JSONB,        -- 순서대로 [{key, label, visible}], key 는 테마형 섹션 id · 코드형 페이지 key
+  menu_items      JSONB,        -- 예전 방식 [{key, label, visible}] + T-223 템플릿별 트리 {scope, nodes, known} (사이트 관리 기획서 4장)
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

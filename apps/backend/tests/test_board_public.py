@@ -95,6 +95,24 @@ async def _publish(client, headers, board_id: str, title: str, body: list) -> di
     return resp.json()["data"]
 
 
+async def _save_menu(client, headers, entries: list[dict]) -> None:
+    """예전 평평한 메뉴 저장값 → 메뉴 트리(T-223) 맨 위 칸으로"""
+    menu = (await client.get(MENU, headers=headers)).json()["data"]
+    labels = {i["key"]: i["default_label"] for i in menu["items"]}
+    nodes = [
+        {
+            "id": f"n{index}",
+            "label": entry.get("label") or labels[entry["key"]],
+            "type": "board" if entry["key"].startswith("board:") else "page",
+            "target": entry["key"].removeprefix("board:"),
+            "visible": entry.get("visible", True),
+        }
+        for index, entry in enumerate(entries)
+    ]
+    resp = await client.put(MENU, json={"nodes": nodes}, headers=headers)
+    assert resp.status_code == 200, resp.text
+
+
 async def _menu_items(client, headers) -> list[dict]:
     resp = await client.get(MENU, headers=headers)
     assert resp.status_code == 200, resp.text
@@ -345,9 +363,7 @@ class TestBoardMenu:
             {"key": "about", "label": None, "visible": True},
             {"key": "notice", "label": None, "visible": False},
         ]
-        assert (
-            await client.put(MENU, json={"items": saved}, headers=auth_headers)
-        ).status_code == 200
+        await _save_menu(client, auth_headers, saved)
 
         await client.patch(
             f"{BOARDS}/{board['id']}", json={"status": "INACTIVE"}, headers=auth_headers
@@ -373,10 +389,10 @@ class TestBoardMenu:
         self, client, auth_headers, code_tenant
     ):
         board = await _create(client, auth_headers, slug="news")
-        await client.put(
-            MENU,
-            json={"items": [{"key": _key(board), "label": "소식", "visible": False}]},
-            headers=auth_headers,
+        await _save_menu(
+            client,
+            auth_headers,
+            [{"key": _key(board), "label": "소식", "visible": False}],
         )
         await client.patch(
             f"{BOARDS}/{board['id']}", json={"slug": "news-2"}, headers=auth_headers
@@ -404,7 +420,8 @@ class TestBoardMenu:
         menu = resp.json()["data"]
 
         assert menu["mode"] == "theme"
-        assert menu["reorderable"] is False
+        # 메뉴 트리(T-223)는 테마형도 순서를 바꿀 수 있다
+        assert menu["reorderable"] is True
         assert [i["key"] for i in menu["items"]] == [
             section_id,
             _key(shown),

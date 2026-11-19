@@ -778,6 +778,15 @@ describe('게시판 디자인 탭 (T-148)', () => {
   })
 })
 
+const menuNode = (
+  id: string,
+  label: string,
+  type: 'page' | 'board',
+  target: string,
+  children: unknown[] = [],
+  visible = true,
+) => ({ id, label, type, target, new_window: false, visible, children })
+
 describe('홈페이지 연결 탭', () => {
   const renderConnection = (id = 'b1') =>
     renderAt(`/admin/boards/${id}/connection`, <BoardConnectionPage />, '/admin/boards/:boardId/connection')
@@ -793,6 +802,11 @@ describe('홈페이지 연결 탭', () => {
             items: [
               { key: 'about', default_label: '소개', label: '회사', visible: true },
               { key: 'board:b1', default_label: '병원 소식', label: null, visible },
+            ],
+            nodes: [
+              menuNode('p-about', '회사', 'page', 'about', [
+                menuNode('b-b1', '병원 소식', 'board', 'b1', [], visible),
+              ]),
             ],
           })
         : base(url, config),
@@ -837,11 +851,11 @@ describe('홈페이지 연결 탭', () => {
     put.mockResolvedValue({ data: { data: { mode: 'code', reorderable: true, items: [] } } })
     renderConnection()
     await userEvent.click(await screen.findByLabelText(/상단 메뉴에 표시/))
+    // 메뉴 트리(T-223) — 하위 메뉴에 있어도 그 메뉴만 숨기고 나머지는 그대로
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith('/v1/site-settings/menu', {
-        items: [
-          { key: 'about', label: '회사', visible: true },
-          { key: 'board:b1', label: null, visible: false },
+        nodes: [
+          menuNode('p-about', '회사', 'page', 'about', [menuNode('b-b1', '병원 소식', 'board', 'b1', [], false)]),
         ],
       }),
     )
@@ -857,8 +871,13 @@ describe('홈페이지 연결 탭', () => {
       url === '/v1/site-settings/menu'
         ? ok({
             mode,
-            reorderable: mode === 'code',
+            reorderable: true,
             items: [{ key, default_label: '공지사항', label: null, visible: true }],
+            nodes: [
+              key === 'notice'
+                ? menuNode('p-notice', '공지사항', 'page', 'notice')
+                : menuNode('b-n1', '공지사항', 'board', 'n1'),
+            ],
           })
         : base(url, config),
     )
@@ -867,7 +886,11 @@ describe('홈페이지 연결 탭', () => {
     await userEvent.click(await screen.findByLabelText(/상단 메뉴에 표시/))
     await waitFor(() =>
       expect(put).toHaveBeenCalledWith('/v1/site-settings/menu', {
-        items: [{ key, label: null, visible: false }],
+        nodes: [
+          key === 'notice'
+            ? menuNode('p-notice', '공지사항', 'page', 'notice', [], false)
+            : menuNode('b-n1', '공지사항', 'board', 'n1', [], false),
+        ],
       }),
     )
   })

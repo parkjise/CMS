@@ -9,7 +9,7 @@ from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.site import (
     MenuResponse,
-    MenuUpdate,
+    MenuTreeUpdate,
     PolicyAdminDocument,
     PolicyAdminResponse,
     PolicyKind,
@@ -60,7 +60,7 @@ async def get_menu(
 
 @router.put("/menu", response_model=ApiResponse[MenuResponse])
 async def update_menu(
-    body: MenuUpdate,
+    body: MenuTreeUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
@@ -70,6 +70,16 @@ async def update_menu(
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     return ApiResponse.ok(menu)
+
+
+@router.delete("/menu", response_model=ApiResponse[MenuResponse])
+async def reset_menu(
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """지금 템플릿의 메뉴를 기본값으로 되돌린다 (T-223)"""
+    return ApiResponse.ok(await site_settings_service.reset_menu(db, tenant_id))
 
 
 # ── 이용약관 · 개인정보처리방침 (T-200) ─────────────────────────────────────

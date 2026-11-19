@@ -6,7 +6,7 @@
  */
 import type { ComponentType } from 'react'
 import type { SitePolicy } from '@/lib/sitePolicy'
-import type { SectionType, TemplateManifest } from '@cms/types'
+import type { PublicMenuNode, SectionType, TemplateManifest } from '@cms/types'
 import type { PublicSection, PublicSite } from '@/lib/publicSite.types'
 import type { MemberPageKey } from '../memberPages'
 import type { PublicBoard, PublicPostList } from '@cms/types'
@@ -36,6 +36,8 @@ export interface CodeTemplateProps {
   preview: boolean
   /** 관리자 상단 메뉴 설정 (T-036-B) — 샘플 미리보기면 없음(템플릿 기본 메뉴) */
   menuItems?: MenuOverride[] | null
+  /** 메뉴 트리 (T-223) — 있으면 menuItems 대신 이것만, 하위 메뉴는 드롭다운 */
+  menuTree?: PublicMenuNode[] | null
   /**
    * 미리보기 링크용 쿼리 ('tpl=TPL_X&content=mine') — 있으면 페이지 링크를
    * /{slug}/preview?{query}&page={key} 로 만들어 미리보기 안에서 이동한다

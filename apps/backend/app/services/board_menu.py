@@ -19,4 +19,8 @@ async def parent_options(db: AsyncSession, tenant_id: UUID) -> list[dict]:
     template = await db.get(Template, override.template_id) if override else None
     if template is None or template.renderer != "code" or not template.code:
         return []
-    return [{"key": p["key"], "title": p["title"]} for p in load_menu(template.code)]
+    return [
+        {"key": p["key"], "title": p["title"]}
+        for p in load_menu(template.code)
+        if not p.get("parent")
+    ]

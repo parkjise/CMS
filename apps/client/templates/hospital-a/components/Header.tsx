@@ -4,8 +4,46 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 
 export interface HeaderLink {
-  href: string
+  /** 없으면 하위 메뉴 묶음 제목 (T-223) */
+  href?: string
   title: string
+  /** 새 창 — rel="noopener noreferrer" 를 함께 붙인다 */
+  newWindow?: boolean
+  /** 하위 메뉴 (T-223) — 넓은 화면은 드롭다운, 좁은 화면은 들여쓰기 */
+  children?: HeaderLink[]
+}
+
+const newWindow = (link: HeaderLink) =>
+  link.newWindow ? ({ target: '_blank', rel: 'noopener noreferrer' } as const) : {}
+
+/** 메뉴 한 칸 — 주소가 없으면 묶음 제목 */
+function MenuEntry({ link, className }: { link: HeaderLink; className: string }) {
+  if (link.href) {
+    return (
+      <a className={className} href={link.href} {...newWindow(link)}>
+        {link.title}
+        {link.newWindow && <span className="sr-only">(새 창)</span>}
+      </a>
+    )
+  }
+  return (
+    <button className={`${className} header__menu-group`} type="button" aria-haspopup="true">
+      {link.title}
+    </button>
+  )
+}
+
+function Submenu({ links }: { links: HeaderLink[] }) {
+  return (
+    <ul className="header__submenu">
+      {links.map((link, index) => (
+        <li className="header__submenu-item" key={`${link.title}-${index}`}>
+          <MenuEntry link={link} className="header__submenu-link" />
+          {link.children && link.children.length > 0 && <Submenu links={link.children} />}
+        </li>
+      ))}
+    </ul>
+  )
 }
 
 interface Props {
@@ -13,7 +51,7 @@ interface Props {
   logoUrl: string
   homeHref: string
   menu: HeaderLink[]
-  account: HeaderLink[]
+  account: { href: string; title: string }[]
   /** 방문자 로그인 상태에 따라 계정 메뉴 전환 (T-113) */
   tenantSlug: string
   /** 회원 기능(SITE_MEMBER)이 꺼져 있으면 계정 메뉴 숨김 (T-115) */
@@ -120,11 +158,13 @@ export function Header({
             }}
           >
             <ul className="header__menu">
-              {menu.map((item) => (
-                <li className="header__menu-item" key={item.href}>
-                  <a className="header__menu-link" href={item.href}>
-                    {item.title}
-                  </a>
+              {menu.map((item, index) => (
+                <li
+                  className={`header__menu-item${item.children?.length ? ' header__menu-item--parent' : ''}`}
+                  key={`${item.title}-${index}`}
+                >
+                  <MenuEntry link={item} className="header__menu-link" />
+                  {item.children && item.children.length > 0 && <Submenu links={item.children} />}
                 </li>
               ))}
             </ul>

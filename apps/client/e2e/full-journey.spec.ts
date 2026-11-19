@@ -852,14 +852,14 @@ test.describe('T-078 전체 통합 시나리오', () => {
     }
   })
 
-  test('시나리오 20: 관리자 공통 설정의 상단 메뉴 이름 · 숨기기가 홈페이지 메뉴에 반영된다 (T-036-B)', async ({
+  test('시나리오 20: 메뉴 관리 트리에서 바꾼 이름 · 숨기기 · 하위 메뉴가 홈페이지 메뉴에 반영된다 (T-036-B · T-223)', async ({
     page,
     request,
   }) => {
     const url = `${BACKEND_URL}/api/v1/site-settings/menu`
     const menu = (await (await request.get(url, { headers: authHeader(token) })).json()).data
-    expect(menu.items.length, '메뉴로 보일 섹션이 2개 이상이어야 한다').toBeGreaterThanOrEqual(2)
-    const [first, second] = menu.items as { key: string; default_label: string }[]
+    expect(menu.nodes.length, '메뉴가 2개 이상이어야 한다').toBeGreaterThanOrEqual(2)
+    const [first, second] = menu.nodes as { label: string }[]
     try {
       await page.goto(`${ADMIN_URL}/login`)
       await page.getByLabel('이메일').fill(email)
@@ -869,21 +869,44 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await expect(page).toHaveURL(/\/admin\/dashboard/)
 
       await page.goto(`${ADMIN_URL}/admin/site/menu`)
-      await page.getByLabel(`${first.default_label} 메뉴 이름`).fill('E2E 메뉴')
-      await page.getByLabel(`${second.default_label} 메뉴 보이기`).uncheck()
+      const tree = page.getByRole('list', { name: '메뉴 구성' })
+      // 위 · 아래 버튼과 구분해 메뉴 줄을 고른다
+      const row = (label: string) =>
+        tree.getByRole('button', { name: new RegExp(`^${label}(?! (위로|아래로))`) })
+      await row(first.label).click()
+      await page.getByLabel('메뉴명').fill('E2E 메뉴')
+      await row(second.label).click()
+      await page.getByRole('checkbox', { name: /홈페이지 메뉴에 보이기/ }).uncheck({ force: true })
+      // 외부 링크를 첫 메뉴의 하위 메뉴로 — 새 창
+      await page.getByRole('button', { name: '메뉴 추가' }).click()
+      await page.getByLabel('메뉴명').fill('E2E 블로그')
+      await page.getByLabel('연결 유형').selectOption('url')
+      await page.getByLabel('연결 주소').fill('https://blog.example.com')
+      await page.getByLabel('열기 방식').selectOption('new')
+      const parent = page.getByLabel('상위 메뉴')
+      await parent.selectOption(
+        (await parent.locator('option', { hasText: 'E2E 메뉴' }).getAttribute('value')) ?? '',
+      )
       const saved = page.waitForResponse(
         (r) => r.url().endsWith('/v1/site-settings/menu') && r.request().method() === 'PUT',
       )
-      await page.getByRole('button', { name: '메뉴 저장' }).click()
+      await page.getByRole('button', { name: '변경사항 저장' }).click()
       expect((await saved).ok()).toBeTruthy()
 
       await page.goto(`${CLIENT_URL}/${slug}`)
       const nav = page.locator('header nav').first()
       await expect(nav.getByText('E2E 메뉴', { exact: true })).toBeVisible()
-      await expect(nav.getByText(first.default_label, { exact: true })).toHaveCount(0)
-      await expect(nav.getByText(second.default_label, { exact: true })).toHaveCount(0)
+      await expect(nav.getByText(first.label, { exact: true })).toHaveCount(0)
+      await expect(nav.getByText(second.label, { exact: true })).toHaveCount(0)
+      // 하위 메뉴는 마우스를 올려야 보인다 — 숨은 상태에서도 링크 속성은 확인할 수 있다
+      const blog = nav.locator('a[href="https://blog.example.com"]')
+      await expect(blog).toHaveText(/E2E 블로그/)
+      await expect(blog).toHaveAttribute('rel', 'noopener noreferrer')
+      await nav.getByText('E2E 메뉴', { exact: true }).hover()
+      await expect(blog).toBeVisible()
     } finally {
-      const rb = await request.put(url, { headers: authHeader(token), data: { items: [] } })
+      // 템플릿 기본 메뉴로 되돌린다
+      const rb = await request.delete(url, { headers: authHeader(token) })
       expect(rb.ok(), await rb.text()).toBeTruthy()
     }
   })

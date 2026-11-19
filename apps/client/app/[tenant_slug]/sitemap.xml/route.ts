@@ -42,9 +42,11 @@ function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
   const key = codeTemplateKey(site.template?.renderer === 'code' ? site.template.code : null)
   const manifest = CODE_TEMPLATE_MANIFESTS.find((m) => m.key === key)
   // 메뉴에서 숨긴 곳은 아직 준비 중일 수 있어 알리지 않는다. 주소로는 그대로 열린다
-  const hidden = new Set(
-    (site.site_settings?.menu_items ?? []).filter((item) => item.visible === false).map((item) => item.key),
-  )
+  // 메뉴 트리(T-223)에서 숨긴 연결 대상도 같은 뜻
+  const hidden = new Set([
+    ...(site.site_settings?.menu_items ?? []).filter((item) => item.visible === false).map((item) => item.key),
+    ...(site.site_settings?.menu_hidden ?? []),
+  ])
   const now = new Date().toISOString()
   const pages = (manifest?.pages ?? [])
     .filter((page) => page.key !== 'home' && !hidden.has(page.key))

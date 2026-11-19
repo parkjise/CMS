@@ -39,6 +39,7 @@ export async function renderThemePolicy(slug: string, kind: PolicyKind) {
         tenantName={site.tenant.name}
         logoUrl={site.site_settings?.logo_url}
         menuItems={site.site_settings?.menu_items}
+        menuTree={site.site_settings?.menu_tree}
         sections={themeHomeSections(site.sections, site.boards)}
         tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined}
         site={{ slug, boards: site.boards, subPage: true }}

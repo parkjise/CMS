@@ -93,6 +93,7 @@ export async function CodeTemplateRenderer({
         siteInfo={siteInfo}
         preview={preview}
         menuItems={useSample ? null : site.site_settings?.menu_items}
+        menuTree={useSample ? null : site.site_settings?.menu_tree}
         boards={useSample ? [] : site.boards}
         board={board}
         previewQuery={previewQuery}

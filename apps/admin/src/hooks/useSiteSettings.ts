@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import type { PublicFieldGroup, SiteInfoFields, WeeklyHours } from '@cms/types'
+import type { MenuNode, PublicFieldGroup, SiteInfoFields, SiteMenu, WeeklyHours } from '@cms/types'
 import { api } from '@/lib/api'
 
 /** 사업체 공통 정보 (T-036-A, 기획서 AD-02-A 공통 설정 · T-222 기본정보 확장) */
@@ -43,27 +43,9 @@ export function useUpdateSiteSettings() {
   })
 }
 
-// ── 상단 메뉴 (T-036-B) ────────────────────────────────────────────────
+// ── 상단 메뉴 (T-036-B · T-223 트리) ───────────────────────────────────
 
-export interface MenuItem {
-  key: string
-  default_label: string
-  label: string | null
-  visible: boolean
-}
-
-export interface SiteMenu {
-  /** theme: 섹션 순서를 따른다 / code: 순서를 바꿀 수 있다 */
-  mode: 'theme' | 'code'
-  reorderable: boolean
-  items: MenuItem[]
-}
-
-export interface MenuItemUpdate {
-  key: string
-  label: string | null
-  visible: boolean
-}
+export type { SiteMenu } from '@cms/types'
 
 export const MENU_KEY = ['site-settings', 'menu'] as const
 
@@ -77,11 +59,24 @@ export function useSiteMenu() {
   })
 }
 
+/** 지금 템플릿의 메뉴 트리를 통째로 저장한다 (T-223) */
 export function useUpdateSiteMenu() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (items: MenuItemUpdate[]): Promise<SiteMenu> => {
-      const { data } = await api.put('/v1/site-settings/menu', { items })
+    mutationFn: async (nodes: MenuNode[]): Promise<SiteMenu> => {
+      const { data } = await api.put('/v1/site-settings/menu', { nodes })
+      return data.data
+    },
+    onSuccess: (saved) => queryClient.setQueryData(MENU_KEY, saved),
+  })
+}
+
+/** 지금 템플릿의 기본 메뉴로 되돌린다 — 저장한 트리를 지운다 */
+export function useResetSiteMenu() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (): Promise<SiteMenu> => {
+      const { data } = await api.delete('/v1/site-settings/menu')
       return data.data
     },
     onSuccess: (saved) => queryClient.setQueryData(MENU_KEY, saved),
