@@ -153,12 +153,17 @@ describe('테마형 상단 메뉴 — 새 게시판 (T-141)', () => {
 })
 
 describe('코드형 메뉴 기본값 동기화', () => {
-  it('백엔드 메뉴 파일(TPL_HOSPITAL_A.menu.json)이 매니페스트 gnb 페이지와 같다', () => {
+  it('백엔드 메뉴 파일(TPL_HOSPITAL_A.menu.json)이 매니페스트 gnb 페이지 · 그 하위 페이지와 같다', () => {
     const file = join(__dirname, '../../backend/app/data/templates/TPL_HOSPITAL_A.menu.json')
-    const backend = JSON.parse(readFileSync(file, 'utf8')) as { key: string; title: string }[]
-    const gnb = hospitalAManifest.pages
+    const backend = JSON.parse(readFileSync(file, 'utf8')) as { key: string; title: string; parent?: string }[]
+    const pages = hospitalAManifest.pages
+    const expected = pages
       .filter((p) => p.menu === 'gnb')
-      .map((p) => ({ key: p.key, title: p.title }))
-    expect(backend).toEqual(gnb)
+      .flatMap((p) => [
+        { key: p.key, title: p.title },
+        // 메뉴 트리(T-223)의 하위 메뉴 후보
+        ...pages.filter((sub) => sub.menu === 'sub' && sub.parent === p.key).map((sub) => ({ key: sub.key, title: sub.title, parent: p.key })),
+      ])
+    expect(backend).toEqual(expected)
   })
 })

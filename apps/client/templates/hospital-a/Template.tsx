@@ -51,6 +51,7 @@ import { PolicyView } from './components/PolicyView'
 import { MobileHideMarker } from '@/components/MobileHideMarker'
 import { isMobileHidden } from '@/lib/mobileSettings'
 import { applyMenu } from '@/lib/menuSettings'
+import { menuLinks, type MenuLink } from '@/lib/menuTree'
 import { boardPageKey } from '@/lib/publicPosts'
 
 // 웹폰트 (목업 _base.scss 의 @import)
@@ -85,6 +86,15 @@ const plainHero = (eyebrow: string, title: string, category: string, pageKey: st
 
 const IMG_BASE = `/templates/${hospitalAManifest.key}/${hospitalAManifest.version}`
 
+/** 메뉴 트리 → 헤더 링크 (T-223). 묶음은 주소가 없다 */
+const toHeaderLinks = (links: MenuLink[]): HeaderLink[] =>
+  links.map((link) => ({
+    href: link.href,
+    title: link.label,
+    newWindow: link.newWindow,
+    children: toHeaderLinks(link.children),
+  }))
+
 /**
  * hospital-a 템플릿 루트 — 목업 _template.html · 서브 페이지 구성 (header · main · footer · quick-menu)
  * 섹션 순서는 매니페스트 페이지 정의를 따른다 (resolvePageSections)
@@ -101,6 +111,7 @@ export default function HospitalATemplate({
   member,
   policy,
   menuItems,
+  menuTree,
   onCustomDomain,
   latestNotices,
   latestFrom,
@@ -125,21 +136,30 @@ export default function HospitalATemplate({
   // 페이지 묶음 아래에 넣은 게시판은 상단 메뉴 대신 그 묶음의 하위 탭 (T-216)
   const parentOf = (b: PublicBoard) =>
     b.menu_parent && gnbKeys.has(b.menu_parent) ? b.menu_parent : null
-  // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B). 새 게시판은 페이지 뒤에 (T-140-B)
-  const menu: HeaderLink[] = applyMenu(
-    [
-      ...pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title, href: hrefFor(p.key) })),
-      ...(boards ?? []).filter((b) => !parentOf(b)).map((b) => ({
-        key: `board:${b.id}`,
-        label: b.name,
-        href: hrefFor(boardPageKey(b.slug)),
-      })),
-    ],
-    menuItems,
-    true,
-  ).map((p) => ({ href: p.href, title: p.label }))
+  const pageKeys = new Set(pages.map((p) => p.key))
+  const menu: HeaderLink[] = menuTree
+    ? // 메뉴 트리 (T-223) — 하위 메뉴는 드롭다운. 서버가 숨긴 메뉴 · 갈 곳 없는 메뉴를 이미 뺐다
+      toHeaderLinks(
+        menuLinks(menuTree, {
+          page: (key) => (pageKeys.has(key) ? { href: hrefFor(key) } : null),
+          board: (slug) => hrefFor(boardPageKey(slug)),
+        }),
+      )
+    : // 관리자 상단 메뉴 설정 — 이름 · 보이기 · 순서 (T-036-B). 새 게시판은 페이지 뒤에 (T-140-B)
+      applyMenu(
+        [
+          ...pages.filter((p) => p.menu === 'gnb').map((p) => ({ key: p.key, label: p.title, href: hrefFor(p.key) })),
+          ...(boards ?? []).filter((b) => !parentOf(b)).map((b) => ({
+            key: `board:${b.id}`,
+            label: b.name,
+            href: hrefFor(boardPageKey(b.slug)),
+          })),
+        ],
+        menuItems,
+        true,
+      ).map((p) => ({ href: p.href, title: p.label }))
   // 방문자 회원 화면 — 기획서 16.0 (/{slug}/member/*, T-113)
-  const account: HeaderLink[] = [
+  const account: { href: string; title: string }[] = [
     { href: `${siteBase}/member/login`, title: '로그인' },
     { href: `${siteBase}/member/join`, title: '회원가입' },
   ]

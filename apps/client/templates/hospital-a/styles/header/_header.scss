@@ -130,6 +130,84 @@
     }
   }
 
+  // 하위 메뉴 (T-223) — 좁은 화면 · 접힌 메뉴는 들여쓰기, 넓은 화면은 마우스 · 키보드로 펼치는 드롭다운
+  &__menu-item {
+    position: relative;
+  }
+  // 하위 메뉴 묶음 제목 — 링크와 같은 모양 (button-reset 이 지운 여백 · 글자를 되살린다)
+  &__menu-group {
+    @include button-reset;
+    width: 100%;
+    padding-block: 14px;
+    font-size: 18px;
+    color: var(--color-text-secondary);
+    text-align: left;
+    cursor: default;
+    @include lg {
+      width: auto;
+      padding-block: 0;
+    }
+  }
+  &--collapsed &__menu-group {
+    width: 100%;
+    padding-block: 14px;
+  }
+  &__submenu {
+    padding: 0 0 8px 16px;
+  }
+  &__submenu-link {
+    display: block;
+    padding-block: 8px;
+    font-size: 16px;
+    white-space: nowrap;
+    color: var(--color-text-secondary);
+    @include focus-ring;
+    &:hover {
+      color: var(--color-primary);
+    }
+  }
+  &__submenu &__submenu {
+    padding-bottom: 0;
+  }
+  &__submenu &__submenu-link {
+    font-size: 15px;
+  }
+  @include lg {
+    &__menu-item > &__submenu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      z-index: 10;
+      min-width: 180px;
+      // 메뉴 글자와 드롭다운 사이를 마우스가 지나갈 수 있게 위 여백을 안쪽으로
+      padding: 20px 0 12px;
+      transform: translateX(-50%);
+      &::before {
+        content: '';
+        position: absolute;
+        inset: 12px 0 0;
+        z-index: -1;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+      }
+    }
+    &__menu-item:hover > &__submenu,
+    &__menu-item:focus-within > &__submenu {
+      display: block;
+    }
+    &__menu-item > &__submenu > &__submenu-item > &__submenu-link {
+      padding: 8px 24px;
+    }
+    &__submenu &__submenu {
+      padding: 0 0 4px 12px;
+    }
+    &__submenu &__submenu &__submenu-link {
+      padding: 6px 24px;
+    }
+  }
+
   // 넓은 화면인데 메뉴가 한 줄에 안 들어갈 때 — lg 미만과 같은 드롭다운 (Header.tsx 가 재서 붙인다)
   &--collapsed &__nav {
     display: none;
@@ -150,6 +228,17 @@
   }
   &--collapsed &__menu-link {
     padding-block: 14px;
+  }
+  // 접힌 메뉴에서는 하위 메뉴를 들여쓰기로 늘 펼쳐 둔다
+  &--collapsed &__menu-item > &__submenu {
+    display: block;
+    position: static;
+    min-width: 0;
+    padding: 0 0 8px 16px;
+    transform: none;
+    &::before {
+      content: none;
+    }
   }
 
   &__menu-toggle {
