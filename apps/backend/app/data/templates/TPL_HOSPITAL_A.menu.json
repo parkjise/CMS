@@ -1,6 +1,9 @@
 [
   { "key": "about", "title": "회사소개" },
+  { "key": "about-history", "title": "연혁", "parent": "about" },
+  { "key": "about-location", "title": "오시는 길", "parent": "about" },
   { "key": "business", "title": "사업영역" },
   { "key": "notice", "title": "공지사항" },
-  { "key": "consult", "title": "상담·예약" }
+  { "key": "consult", "title": "상담·예약" },
+  { "key": "reservation", "title": "온라인 예약", "parent": "consult" }
 ]

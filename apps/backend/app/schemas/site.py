@@ -274,39 +274,109 @@ class PublicSiteSettingsResponse(_SiteInfoFields):
     # 숨긴 묶음 키 — 값은 없고, 홈페이지가 섹션 값 등으로 대신 채우지 않게 알린다
     hidden_fields: list[str] = Field(default_factory=list)
 
-    # 상단 메뉴 (T-036-B) — 홈페이지가 기본 메뉴 위에 덮어쓴다
+    # 상단 메뉴 (T-036-B) — 트리 저장 전 예전 방식, 홈페이지가 기본 메뉴 위에 덮어쓴다
     menu_items: list[dict] | None = None
+    # 메뉴 트리 (T-223) — 지금 템플릿용 트리를 저장했으면 이것만 그린다
+    menu_tree: list["PublicMenuNode"] | None = None
+    # 트리에서 숨긴 연결 대상 (페이지 key · board:id) — 사이트맵에서 뺀다
+    menu_hidden: list[str] = Field(default_factory=list)
 
 
-# ── 상단 메뉴 (T-036-B) ────────────────────────────────────────────────
+# ── 상단 메뉴 (T-036-B · T-223 트리) ──────────────────────────────────────
 
 MENU_LABEL_MAX = 20
+MENU_MAX_DEPTH = 3
+MENU_MAX_NODES = 60
+MENU_URL_MAX = 500
+_NODE_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,40}$")
+
+# page: 템플릿 페이지(코드형) · 홈 섹션(테마형) / board: 게시판
+# url: 외부 주소 / group: 하위 메뉴 묶음
+MenuNodeType = Literal["page", "board", "url", "group"]
 
 
-class MenuItemUpdate(BaseModel):
-    key: str
-    # 빈 이름 = 기본 이름
-    label: str | None = None
+class MenuNode(BaseModel):
+    """메뉴 트리 한 칸 (T-223) — 관리자가 보내고 받는 모양 그대로 저장한다."""
+
+    model_config = {"extra": "forbid"}
+
+    id: str
+    label: str
+    type: MenuNodeType
+    # page: 페이지 key · 섹션 id / board: 게시판 id / url: http(s) 주소 / group: 없음
+    target: str | None = None
+    new_window: bool = False
     visible: bool = True
+    children: list["MenuNode"] = Field(default_factory=list)
+
+    @field_validator("id")
+    @classmethod
+    def check_id(cls, v: str) -> str:
+        if not _NODE_ID_RE.match(v):
+            raise ValueError("메뉴 id 가 올바르지 않습니다. 화면을 새로 고쳐 주세요.")
+        return v
 
     @field_validator("label", mode="before")
     @classmethod
-    def strip_label(cls, v: object) -> object:
+    def check_label(cls, v: object) -> object:
         if isinstance(v, str):
             v = v.strip()
+            if not v:
+                raise ValueError("메뉴 이름을 입력해 주세요.")
             if len(v) > MENU_LABEL_MAX:
                 raise ValueError(
                     f"메뉴 이름은 {MENU_LABEL_MAX}자 이하로 입력해 주세요."
                 )
-            return v or None
         return v
 
+    @field_validator("target", mode="before")
+    @classmethod
+    def strip_target(cls, v: object) -> object:
+        return (v.strip() or None) if isinstance(v, str) else v
 
-class MenuUpdate(BaseModel):
-    items: list[MenuItemUpdate]
+    @model_validator(mode="after")
+    def check_target(self) -> "MenuNode":
+        if self.type == "group":
+            self.target = None
+            return self
+        if not self.target:
+            raise ValueError(f"'{self.label}' 메뉴의 연결 대상을 골라 주세요.")
+        if self.type == "url" and (
+            len(self.target) > MENU_URL_MAX
+            or not re.match(r"^https?://[^\s]+$", self.target)
+        ):
+            raise ValueError(
+                f"'{self.label}' 메뉴의 주소는 http:// 또는 https:// 로 시작해야 해요."
+            )
+        return self
+
+
+class MenuTreeUpdate(BaseModel):
+    nodes: list[MenuNode]
+
+
+class MenuPageOption(BaseModel):
+    """연결할 수 있는 페이지 — 코드형은 템플릿 페이지(하위 포함), 테마형은 홈 섹션"""
+
+    key: str
+    label: str
+    parent: str | None = None
+
+
+class MenuBoardOption(BaseModel):
+    id: uuid.UUID
+    name: str
+    slug: str
+    # 홈페이지에 나가는지 — 사용 안 함이면 메뉴에 있어도 빠진다
+    active: bool
+    member_only: bool
+    # 페이지 하위 탭에 넣은 게시판 (T-216)
+    menu_parent: str | None = None
 
 
 class MenuItemResponse(BaseModel):
+    """상단 메뉴 후보 한 줄 — 트리에서 계산한 평평한 보기 (게시판 화면 메뉴 표시)"""
+
     key: str
     default_label: str
     label: str | None
@@ -314,10 +384,30 @@ class MenuItemResponse(BaseModel):
 
 
 class MenuResponse(BaseModel):
-    # theme: 섹션 순서를 따른다 / code: 순서를 바꿀 수 있다
+    # theme: 테마형(홈 섹션) / code: 코드형(템플릿 페이지)
     mode: str
-    reorderable: bool
+    # 트리는 순서를 바꿀 수 있다 (T-223 — 예전 테마형은 섹션 순서를 따랐다)
+    reorderable: bool = True
+    # 저장한 트리가 있는지 — 없으면 지금 홈페이지 메뉴를 트리로 바꿔 보여 준다
+    saved: bool
+    max_depth: int = MENU_MAX_DEPTH
+    nodes: list[MenuNode]
+    pages: list[MenuPageOption]
+    boards: list[MenuBoardOption]
+    # 맨 위 페이지 · 섹션 · 게시판이 트리 어디에 있든 — 보이는지 · 바꾼 이름
     items: list[MenuItemResponse]
+
+
+class PublicMenuNode(BaseModel):
+    """홈페이지에 그릴 메뉴 — 숨긴 메뉴 · 갈 곳 없는 메뉴 · 빈 묶음은 이미 빠졌다"""
+
+    label: str
+    type: MenuNodeType
+    target: str | None = None
+    # 게시판 주소 (board 만)
+    slug: str | None = None
+    new_window: bool = False
+    children: list["PublicMenuNode"] = Field(default_factory=list)
 
 
 # ── 이용약관 · 개인정보처리방침 (T-200) ─────────────────────────────────────
@@ -349,3 +439,9 @@ class PolicyAdminResponse(BaseModel):
 class PolicyUpdate(BaseModel):
     # None 이나 빈 글은 기본 문안으로 되돌린다
     body: str | None = Field(default=None, max_length=30000)
+
+
+# 앞에서 이름만 쓴 메뉴 트리 모델을 채운다
+MenuNode.model_rebuild()
+PublicMenuNode.model_rebuild()
+PublicSiteSettingsResponse.model_rebuild()
