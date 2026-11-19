@@ -11,7 +11,7 @@
 import hashlib
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
@@ -32,7 +32,7 @@ from app.core.security import (
 from app.models.site_member import SiteMember
 from app.models.tenant import Tenant
 from app.schemas.site_member import MemberRegisterRequest
-from app.services import member_verification
+from app.services import member_verification, site_policy
 from app.services.member_verification import normalize_phone
 
 MAX_FAILED_LOGINS = 5
@@ -112,6 +112,7 @@ async def register(
     )
     now = _now()
     member = SiteMember(
+        id=uuid4(),
         tenant_id=tenant.id,
         email=email,
         password_hash=hash_password(body.password),
@@ -122,6 +123,15 @@ async def register(
         last_login_at=now,
     )
     db.add(member)
+    # 약관 · 개인정보 동의 — 가입과 같은 트랜잭션 (T-224)
+    await site_policy.record_consents(
+        db,
+        tenant.id,
+        ("terms", "privacy"),
+        subject_type="member",
+        subject_id=member.id,
+        source="member_join",
+    )
     try:
         await db.commit()
     except IntegrityError:

@@ -5,6 +5,7 @@
 - cleanup_old_analytics: 매일 02:30 플랜별 보관 기간 초과 통계 하드 삭제
 - release_scheduled_posts: 5분마다 공개 시각이 지난 예약 글 캐시 비우기 (T-189)
 - purge_board_trash: 매일 04:30 휴지통 30일 지난 게시판 · 글 영구 삭제 (T-196)
+- release_due_policies: 5분마다 시행일이 지난 약관 · 정책 예약을 공개 (T-224)
 """
 
 from datetime import date
@@ -278,3 +279,31 @@ async def _purge_board_trash() -> dict:
     async with AsyncSessionLocal() as db:
         await set_super_admin_context(db)
         return await trash_service.purge_expired(db)
+
+
+# ── release_due_policies (T-224) ──────────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.release_due_policies",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def release_due_policies(self) -> int:
+    return run_async(_release_due_policies())
+
+
+async def _release_due_policies() -> int:
+    """시행일이 지난 약관 · 정책 예약을 공개로 바꾼다. 공개한 버전 수 반환.
+
+    여러 번 · 겹쳐 돌아도 같은 결과 — 이미 공개된 버전은 다시 고르지 않고, 다른 작업자가
+    잡은 행은 건너뛴다. 실패하면 Celery 가 다시 시도하고, 다음 5분에도 다시 찾는다.
+    """
+    from app.db.session import AsyncSessionLocal
+    from app.services import site_policy as policy_service
+
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        return await policy_service.release_due_policies(db)

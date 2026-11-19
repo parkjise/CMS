@@ -138,6 +138,19 @@ class TestRegister:
         assert row.phone == PHONE and row.marketing_agree is True
         assert row.password_hash.startswith("$2b$12$")  # bcrypt rounds=12
         assert row.used_at is not None
+        # 약관 · 개인정보 동의 기록 (T-224)
+        consents = (
+            await _admin_sql(
+                "SELECT c.kind, c.source FROM consent_records c"
+                " JOIN site_members m ON m.id = c.subject_id"
+                " WHERE c.tenant_id = :t AND c.subject_type = 'member' ORDER BY c.kind",
+                {"t": test_tenant["id"]},
+            )
+        ).all()
+        assert [tuple(c) for c in consents] == [
+            ("privacy", "member_join"),
+            ("terms", "member_join"),
+        ]
         assert joined_alerts == [(test_tenant["id"], data["member"]["id"])]
 
     async def test_duplicate_email_conflict(

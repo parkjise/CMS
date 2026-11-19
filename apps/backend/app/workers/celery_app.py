@@ -70,6 +70,10 @@ celery_app.conf.update(
             "task": "app.workers.scheduled.purge_board_trash",
             "schedule": crontab(hour=4, minute=30),  # 매일 04:30 휴지통 30일 지난 것
         },
+        "release-due-policies-every-5min": {
+            "task": "app.workers.scheduled.release_due_policies",
+            "schedule": crontab(minute="*/5"),  # 5분마다 약관 · 정책 예약 시행 (T-224)
+        },
         "release-scheduled-posts-every-5min": {
             "task": "app.workers.scheduled.release_scheduled_posts",
             "schedule": crontab(minute="*/5"),  # 5분마다 예약 게시글 캐시 비우기

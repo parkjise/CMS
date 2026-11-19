@@ -18,6 +18,7 @@ from app.schemas.inquiry import (
     InquiryListResponse,
     InquiryUpdate,
 )
+from app.schemas.inquiry_board import BoardPostCreate
 from app.services import notification as notification_service
 from app.services.inquiry_fields import clean_detail
 
@@ -25,6 +26,38 @@ KST = ZoneInfo("Asia/Seoul")
 # 상태 탭 순서 (T-202)
 INQUIRY_STATUSES = ("PENDING", "IN_PROGRESS", "DONE", "SPAM")
 _VALID_STATUSES = set(INQUIRY_STATUSES)
+
+
+async def _record_consents(
+    db: AsyncSession,
+    tenant_id: UUID,
+    inquiry: Inquiry,
+    data: "InquiryCreate | BoardPostCreate",
+    source: str,
+) -> None:
+    """화면의 동의 체크박스 — 지금 공개 버전으로 남긴다 (T-224)"""
+    from app.services import site_policy
+
+    kinds = tuple(
+        kind
+        for kind, agreed in (
+            ("terms", data.terms_agree),
+            ("privacy", data.privacy_agree),
+        )
+        if agreed
+    )
+    if not kinds:
+        return
+    if inquiry.id is None:
+        await db.flush()
+    await site_policy.record_consents(
+        db,
+        tenant_id,
+        kinds,
+        subject_type="inquiry",
+        subject_id=inquiry.id,
+        source=source,
+    )
 
 
 async def create_inquiry(
@@ -71,6 +104,7 @@ async def create_inquiry(
 
         await db.flush()
         add_member_reservation(db, tenant, member_id, inquiry)
+    await _record_consents(db, tenant_id, inquiry, data, "inquiry")
     await db.commit()
     await db.refresh(inquiry)
 

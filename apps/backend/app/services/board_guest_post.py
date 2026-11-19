@@ -11,7 +11,7 @@
 import hashlib
 import logging
 from datetime import UTC, datetime
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
@@ -24,7 +24,7 @@ from app.models.board import Board, BoardPost
 from app.models.tenant import Tenant
 from app.schemas.board import GuestPostCreate, GuestPostUpdate
 from app.services import board as board_service
-from app.services import board_access, board_notify, recaptcha
+from app.services import board_access, board_notify, recaptcha, site_policy
 from app.services import board_category as category_service
 from app.services import board_field as field_service
 from app.services import board_member_post as member_post_service
@@ -115,6 +115,7 @@ async def create_post(
         STATUS_PUBLISHED,
     )
     post = BoardPost(
+        id=uuid4(),
         tenant_id=board.tenant_id,
         board_id=board.id,
         author_id=None,
@@ -130,6 +131,15 @@ async def create_post(
         category_id=data.category_id,
     )
     db.add(post)
+    # 개인정보 수집 · 이용 동의 (agree 는 반드시 true) — 글과 같은 트랜잭션 (T-224)
+    await site_policy.record_consents(
+        db,
+        board.tenant_id,
+        ("privacy",),
+        subject_type="board_post",
+        subject_id=post.id,
+        source="board_write",
+    )
     await board_service.after_member_write(db, post)
     if board_service.operation_of(board).notify_new_post:
         await board_notify.notify_new_post(board, post)

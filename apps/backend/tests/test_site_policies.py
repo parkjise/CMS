@@ -68,17 +68,24 @@ class TestDefaults:
         assert "사업자가 지울 때까지" in body
 
 
+async def _publish(client: AsyncClient, headers: dict, kind: str, body: str) -> dict:
+    """새 버전 → 본문 · 요약 저장 → 바로 공개 (T-224)"""
+    created = await client.post(f"{URL}/{kind}/draft", headers=headers)
+    assert created.status_code == 200, created.text
+    saved = await client.put(
+        f"{URL}/{kind}/draft", json={"body": body, "summary": "고침"}, headers=headers
+    )
+    assert saved.status_code == 200, saved.text
+    resp = await client.post(f"{URL}/{kind}/publish", json={}, headers=headers)
+    assert resp.status_code == 200, resp.text
+    return resp.json()["data"]
+
+
 class TestEdit:
-    async def test_save_public_and_reset(
+    async def test_publish_shows_on_homepage(
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict
     ):
-        saved = await client.put(
-            f"{URL}/terms",
-            json={"body": "  제1조 우리 병원 약관  "},
-            headers=auth_headers,
-        )
-        assert saved.status_code == 200, saved.text
-        doc = saved.json()["data"]
+        doc = await _publish(client, auth_headers, "terms", "  제1조 우리 병원 약관  ")
         assert doc["body"] == "제1조 우리 병원 약관"
         assert doc["is_default"] is False
         assert doc["updated_at"] is not None
@@ -91,21 +98,13 @@ class TestEdit:
         other = await client.get(_public(test_tenant["slug"], "privacy"))
         assert other.json()["data"]["is_default"] is True
 
-        reset = await client.put(
-            f"{URL}/terms", json={"body": None}, headers=auth_headers
-        )
-        assert reset.json()["data"]["is_default"] is True
-        public = await client.get(_public(test_tenant["slug"], "terms"))
-        assert public.json()["data"]["body"].startswith("제1조 (목적)")
-
     async def test_too_long_and_bad_kind(self, client: AsyncClient, auth_headers: dict):
+        await client.post(f"{URL}/terms/draft", headers=auth_headers)
         resp = await client.put(
-            f"{URL}/terms", json={"body": "가" * 30001}, headers=auth_headers
+            f"{URL}/terms/draft", json={"body": "가" * 30001}, headers=auth_headers
         )
         assert resp.status_code in (400, 422)
-        resp = await client.put(
-            f"{URL}/refund", json={"body": "x"}, headers=auth_headers
-        )
+        resp = await client.post(f"{URL}/refund/draft", headers=auth_headers)
         assert resp.status_code in (400, 422)
 
 
@@ -124,7 +123,7 @@ class TestAccess:
         )
         headers = {"Authorization": f"Bearer {token}"}
         assert (await client.get(URL, headers=headers)).status_code == 200
-        resp = await client.put(f"{URL}/terms", json={"body": "x"}, headers=headers)
+        resp = await client.post(f"{URL}/terms/draft", headers=headers)
         assert resp.status_code == 403
 
     async def test_tenants_are_separate(
@@ -133,10 +132,11 @@ class TestAccess:
         auth_headers: dict,
         tenant_b_headers: dict,  # noqa: F811
     ):
-        await client.put(f"{URL}/terms", json={"body": "A 약관"}, headers=auth_headers)
+        await _publish(client, auth_headers, "terms", "A 약관")
         other = (await client.get(URL, headers=tenant_b_headers)).json()["data"]
         assert other["terms"]["is_default"] is True
         assert "A 약관" not in other["terms"]["body"]
+        assert other["terms"]["versions"] == []
 
     async def test_public_unknown_or_inactive(
         self, client: AsyncClient, test_tenant: dict

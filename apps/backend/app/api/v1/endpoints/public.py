@@ -32,6 +32,7 @@ from app.schemas.public_site import (
 from app.schemas.site import (
     PolicyDocument,
     PolicyKind,
+    PolicyVersionDocument,
     PublicSiteSettingsResponse,
 )
 from app.services import board as board_service
@@ -322,6 +323,28 @@ async def get_site_policy(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     await set_rls_context(db, tenant.id)
     return ApiResponse.ok(await policy_service.get_policy(db, tenant, kind))
+
+
+@router.get(
+    "/site/{tenant_slug}/policies/{kind}/versions/{version}",
+    response_model=ApiResponse[PolicyVersionDocument],
+)
+async def get_site_policy_version(
+    tenant_slug: str,
+    kind: PolicyKind,
+    version: int,
+    db: AsyncSession = Depends(get_db),
+):
+    """이전 버전 본문 (T-224) — 공개 · 보관본만, 초안 · 예약은 404."""
+    await set_super_admin_context(db)
+    tenant = await _get_tenant(db, tenant_slug)
+    if not tenant or not tenant.is_active:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    await set_rls_context(db, tenant.id)
+    doc = await policy_service.get_version(db, tenant, kind, version, public=True)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    return ApiResponse.ok(doc)
 
 
 @router.get(

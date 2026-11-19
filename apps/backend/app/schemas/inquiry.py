@@ -36,6 +36,9 @@ class InquiryCreate(BaseModel):
     reserved_time: str | None = Field(None, pattern=r"^([01]\d|2[0-3]):[0-5]\d$")
     # 업종별 추가 항목 (T-051-A) — 칸 검사는 services/inquiry_fields.clean_detail
     detail: dict[str, Any] | None = None
+    # 동의 체크박스가 있는 화면만 보낸다 — true 면 동의 기록을 남긴다 (T-224)
+    terms_agree: bool = False
+    privacy_agree: bool = False
 
     @field_validator("detail")
     @classmethod
