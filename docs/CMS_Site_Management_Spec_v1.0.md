@@ -11,7 +11,7 @@
 |---|---|---|---|
 | SM-01 | 사이트 기본정보 | `/admin/site/info` | 기존 화면 이동 (T-221) · 칸 확장 (T-222) |
 | SM-02 | 메뉴 관리 | `/admin/site/menu` | 기존 화면 이동 (T-221) · 트리 (T-223) |
-| SM-03 | 약관 · 정책 관리 | `/admin/site/policies` | 기존 화면 이동 (T-221) · 버전 T-224 |
+| SM-03 | 약관 · 정책 관리 | `/admin/site/policies` | 기존 화면 이동 (T-221) · 버전 (T-224) |
 | SM-04 | SEO 설정 | `/admin/site/seo` | 기존 화면 이동 (T-221) · 보완 T-225 |
 | SM-05 | AEO 설정 | `/admin/site/aeo` | 신규 (T-221) |
 | SM-06 | GEO 설정 | `/admin/site/geo` | 신규 (T-221) |
@@ -28,7 +28,7 @@
 - 새 화면(AEO · GEO)은 아래 고정 저장 막대: "저장되지 않은 변경사항이 있습니다." · [변경 취소] · [변경사항 저장]. 바꾼 것이 없으면 버튼이 꺼진다. 보기 전용 계정은 막대가 없고 입력이 잠긴다.
 - 저장하지 않고 다른 화면으로 가거나 창을 닫으면 확인을 받는다.
 - 저장 실패는 알림으로, 입력은 그대로 남긴다.
-- 기존 화면(약관 · SEO)의 저장 방식은 T-224 · T-225 에서 같은 막대로 맞춘다 (기본정보 T-222 · 메뉴 T-223 에서 맞춤).
+- SEO 화면의 저장 방식은 T-225 에서 같은 막대로 맞춘다 (기본정보 T-222 · 메뉴 T-223 · 약관 초안 T-224 에서 맞춤).
 
 ## 3. 사이트 기본정보 (SM-01, T-222 ✅)
 
@@ -56,7 +56,22 @@
 - **홈페이지:** 테마형 Navbar · hospital-a Header — 넓은 화면은 마우스를 올리거나 키보드로 들어가면 하위 메뉴 드롭다운, 3단계는 드롭다운 안 들여쓰기. 휴대폰 · 접힌 메뉴는 들여쓰기 목록. 사이트맵은 트리에서 숨긴 페이지 · 게시판을 뺀다.
 - **API:** `GET /api/v1/site-settings/menu` → `{mode, reorderable, saved, max_depth, nodes, pages: [{key, label, parent}], boards: [{id, name, slug, active, member_only, menu_parent}], items}` (`items` = 맨 위 후보가 트리에서 보이는지 — 게시판 화면 '상단 메뉴에 표시'), `PUT` `{nodes}` (검증 실패 400 `VALIDATION_ERROR`), `DELETE` = 기본 메뉴로. 공개 응답 `site_settings.menu_tree` (정리된 트리 `{label, type, target, slug, new_window, children}`, 트리를 저장하지 않았으면 `null`) · `menu_hidden` · `menu_items`(예전 방식 값만).
 
-## 5. AEO 설정 (SM-05, T-221 ✅)
+## 5. 약관 · 정책 관리 (SM-03, T-224 ✅)
+
+- **화면:** '정책 목록'(문서명 · 버전 · 상태 · 시행일(다음 예약) · 연결) + '선택 문서 편집'([내용 편집] · [버전 이력]). 법률 확인 안내는 늘 보인다.
+- **결정 — 문서 종류:** 이용약관 · 개인정보처리방침 2개만. 와이어프레임의 '개인정보 수집·이용 동의' · '마케팅 정보 수신 동의' 문서와 [정책 등록] · 가입 설정 연결은 다음에 회원 가입 설정과 함께.
+- **상태:** 초안 → 예약(시행일) 또는 바로 공개 → 다음 공개 때 보관. 예약 취소 → 초안. 문서마다 공개본 하나 · 작업 중(초안 · 예약) 하나 (DB 부분 유니크 인덱스).
+- **공개본 수정:** 직접 고치지 않는다 — [새 버전 만들기]가 공개본(없으면 기본 문안)을 복사한 초안을 만든다. 초안만 고칠 수 있고 저장해도 홈페이지는 그대로. [기본 문안으로 채우기] 제공.
+- **공개 · 예약:** 변경 내용 요약이 있어야 한다(500자). 바꾼 내용을 저장한 뒤에만. 시행일(한국 시간)을 비우거나 지난 시각이면 바로 공개, 앞날이면 예약(1년 안). 확인 창을 거친다.
+- **예약 시행:** Celery `release_due_policies` 5분마다 — 시행일이 지난 예약을 `FOR UPDATE SKIP LOCKED` 로 잡아 같은 트랜잭션에서 공개본 보관 · 예약 공개. 여러 번 · 겹쳐 돌아도 같은 결과, 실패하면 Celery 재시도 + 다음 5분에 다시. 공개되면 사이트 캐시를 비운다.
+- **기본 문안:** 버전이 하나도 없으면 사이트 기본정보 · 요금제로 그때그때 만든다(T-200 그대로). 마이그레이션 0060 은 이미 고친 글을 v1 공개본으로 옮긴다(시행일 = 마지막 수정 시각).
+- **홈페이지:** 제목 아래 'v3 · 시행일 2026.12.01', 아래 '이전 버전' 목록(보관본, 최신부터) · `?v=2` 로 보관본 보기("이전 버전이에요" 안내 + 지금 버전 링크). 초안 · 예약 · 없는 버전은 404.
+- **동의 기록** `consent_records {kind, policy_version_id, version, subject_type: member | board_post | inquiry, subject_id, agreed, source, created_at}`: 회원가입(약관 · 개인정보, `member_join` · `member_join_social`) · 방문자 글쓰기(개인정보, `board_write`) · 상담 글 · 예약 · 간편상담(화면의 필수 체크박스 — `terms_agree` · `privacy_agree` 를 보낸 경우만, `inquiry` · `consult_board`)을 저장할 때 같은 트랜잭션에서 그때의 공개 버전으로 남긴다. 기본 문안이면 버전 없음. 새 버전이 나와도 덮어쓰지 않는다.
+- **결정 — 재동의 · 조회:** 새 버전 공개로 일괄 재동의를 받지 않는다(와이어프레임 '별도 설계'). 동의 기록 조회 화면은 회원 관리와 함께 다음에. 체크박스가 없는 기본 문의 폼(테마형)은 기록하지 않는다 — 체크박스를 둘지는 법률 확인 때 정한다.
+- **API:** `GET /api/v1/site-settings/policies` → 문서마다 `{…공개 문서, default_body, working, versions}`, `POST /policies/{kind}/draft` (작업 중이 있으면 409), `PUT /policies/{kind}/draft {body, summary}` (예약 중이면 409), `POST /policies/{kind}/publish {effective_at?}`, `POST /policies/{kind}/cancel-schedule`, `GET /policies/{kind}/versions/{n}`. 공개 `GET /api/public/site/{slug}/policies/{kind}` 에 `version · effective_at · history`, `GET …/policies/{kind}/versions/{n}` (공개 · 보관본만).
+- 저장: `policy_versions` · `consent_records` (RLS, 해지 사업체 파기 목록) — 마이그레이션 0060. `site_settings.terms_body` · `privacy_body` 는 더 쓰지 않는다(옮긴 뒤 남겨 둠).
+
+## 6. AEO 설정 (SM-05, T-221 ✅)
 
 - **결정 — 원본은 FAQ 게시판:** 와이어프레임의 질문 · 답변 입력칸 대신, FAQ 유형 게시판의 글을 질문(제목) · 답변(본문 글자)으로 쓴다. 화면에 실제로 보이는 내용과 구조화 데이터가 어긋나지 않게 하고, 같은 질문을 두 곳에서 관리하지 않기 위해서다 (와이어프레임 06 "공개된 FAQ 가 Q&A 원본").
 - 화면: FAQ 게시판마다 질문 목록(순서 · 질문 · 답변 앞부분 · 구조화 데이터 넣음/빠짐 · [수정]), [질문 추가]는 그 게시판 글쓰기로.
@@ -67,7 +82,7 @@
 - API: `GET /api/v1/seo-settings/aeo` → `{faq_board_ids, boards: [{id, name, slug, active, member_only, items: [{post_id, question, answer, public, note}]}]}` · `PUT` `{faq_board_ids}` (FAQ 게시판이 아니거나 없으면 400 `VALIDATION_ERROR` field `faq_board_ids`). 공개 사이트 응답의 게시판에 `faq_jsonld: bool`.
 - 저장: `seo_settings.aeo` JSONB `{faq_board_ids: [...]}` (마이그레이션 0058). 지운 게시판은 목록에서 빠진다.
 
-## 6. GEO 설정 (SM-06, T-221 ✅)
+## 7. GEO 설정 (SM-06, T-221 ✅)
 
 - **기업 · 브랜드 정보:** 공식 이름 · 주소 · 연락처는 사이트 기본정보, 공식 사이트 주소는 SEO 대표 주소를 그대로 쓴다 (안내만). 입력: 기업 소개(500자) · 서비스 · 주제 키워드(쉼표, 10개 · 각 30자) · 공식 프로필 주소(10개, http/https).
 - **출처 · 근거 정보:** 주장(100자) · 출처 주소 · 최종 확인일, 20개. 관리용이라 홈페이지에 나가지 않는다. 확인일이 1년 지나면 다시 확인 안내.
@@ -78,7 +93,6 @@
 - 저장: `seo_settings.geo` JSONB (마이그레이션 0058).
 - 성과 점수 · 인용률 같은 근거 없는 지표는 보여 주지 않는다. 검색 노출 · AI 인용을 보장하지 않는다는 안내를 둔다.
 
-## 7. 남은 작업 (TASK.md Phase 20)
+## 8. 남은 작업 (TASK.md Phase 20)
 
-- **T-224 약관 버전:** 초안 → 예약/공개 → 보관, 공개본은 새 초안으로만 수정, 시행일 예약 작업, 변경 요약 · 이력, 동의 기록(정책 ID · 버전).
 - **T-225 SEO 보완:** 검색 결과 미리보기, 사이트맵 결과 확인, 저장 막대 · 나가기 확인 통일.

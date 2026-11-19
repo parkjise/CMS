@@ -256,7 +256,7 @@ async def get_db_with_rls(
 - 데스크톱 메뉴는 전체(256px)·아이콘(80px) 형태를 전환한다. 아이콘 메뉴에 마우스를 올리거나 키보드로 포커스하면 오른쪽에 메뉴 이름·하위 메뉴가 나타나며, 메뉴로 포인터를 옮겨 선택할 수 있다. Escape로 닫는다. 모바일은 헤더 메뉴에서 전체 내비게이션을 열며 기존 하단 탭도 유지한다.
 - 화면 설정에서 테마·사이드바 형태를 변경하거나 초기화한다. 두 설정은 브라우저의 `cms-admin-appearance`에 저장한다.
 - 검색과 사이드바는 동일한 메뉴 정의·기능 플래그를 사용한다. 기존 편집 권한·구독 차단 정책을 유지한다. 고객 홈페이지와 슈퍼관리자는 변경 범위에 포함하지 않는다.
-- **사이트 관리 (T-221)** — 대시보드 바로 아래 2뎁스 메뉴: 사이트 기본정보(`/admin/site/info`) · 메뉴 관리(`/menu`) · 약관 · 정책 관리(`/policies`) · SEO 설정(`/seo`) · AEO 설정(`/aeo`) · GEO 설정(`/geo`). 검색 설정 3개는 `SEO_WIZARD` 기능 플래그를 따른다. 예전 주소 `/admin/seo` · `/admin/policies` · `/admin/content?tab=settings` 는 새 주소로 넘긴다. 기본정보는 T-222 에서 브랜드 · 사업자 · 요일별 운영시간 · 항목별 공개 선택으로 확장 (숨긴 값은 공개 API · 홈페이지 · 구조화 데이터에서 제외). 메뉴 관리는 T-223 에서 3단계 트리 · 연결 유형(페이지 / 게시판 / 외부 URL / 묶음) · 홈페이지 드롭다운으로 확장. 상세: `docs/CMS_Site_Management_Spec_v1.0.md`
+- **사이트 관리 (T-221)** — 대시보드 바로 아래 2뎁스 메뉴: 사이트 기본정보(`/admin/site/info`) · 메뉴 관리(`/menu`) · 약관 · 정책 관리(`/policies`) · SEO 설정(`/seo`) · AEO 설정(`/aeo`) · GEO 설정(`/geo`). 검색 설정 3개는 `SEO_WIZARD` 기능 플래그를 따른다. 예전 주소 `/admin/seo` · `/admin/policies` · `/admin/content?tab=settings` 는 새 주소로 넘긴다. 기본정보는 T-222 에서 브랜드 · 사업자 · 요일별 운영시간 · 항목별 공개 선택으로 확장 (숨긴 값은 공개 API · 홈페이지 · 구조화 데이터에서 제외). 메뉴 관리는 T-223 에서 3단계 트리 · 연결 유형(페이지 / 게시판 / 외부 URL / 묶음) · 홈페이지 드롭다운으로 확장. 약관 · 정책은 T-224 에서 버전(초안 → 예약/공개 → 보관) · 시행일 예약 · 버전 이력 · 동의 기록(`consent_records`)으로 확장. 상세: `docs/CMS_Site_Management_Spec_v1.0.md`
 
 ### AD-01: 대시보드 (Dashboard)
 
@@ -1378,6 +1378,43 @@ CREATE TABLE site_settings (
 );
 ```
 
+#### policy_versions · consent_records (약관 버전 · 동의 기록 — T-224)
+
+```sql
+-- 마이그레이션 0060, RLS 적용, 해지 사업체 파기 대상
+CREATE TABLE policy_versions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  kind          VARCHAR(20) NOT NULL,   -- terms | privacy
+  version       INTEGER NOT NULL,       -- 문서마다 1, 2, 3 …
+  status        VARCHAR(20) NOT NULL,   -- draft | scheduled | published | archived
+  body          TEXT NOT NULL,
+  summary       VARCHAR(500),           -- 변경 내용 요약 (공개 · 예약에 필수)
+  effective_at  TIMESTAMPTZ,            -- 시행일 (예약 · 공개)
+  published_at  TIMESTAMPTZ,
+  archived_at   TIMESTAMPTZ,
+  created_by    UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id, kind, version)
+);
+-- 문서마다 공개본 하나 · 작업 중(draft · scheduled) 하나 (부분 유니크 인덱스)
+
+CREATE TABLE consent_records (
+  id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id          UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  kind               VARCHAR(20) NOT NULL,      -- terms | privacy
+  policy_version_id  UUID REFERENCES policy_versions(id) ON DELETE SET NULL,  -- 기본 문안이면 NULL
+  version            INTEGER,
+  subject_type       VARCHAR(20) NOT NULL,      -- member | board_post | inquiry
+  subject_id         UUID,
+  agreed             BOOLEAN NOT NULL,
+  source             VARCHAR(50) NOT NULL,      -- member_join · member_join_social · board_write · inquiry · consult_board
+  created_at         TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at         TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+```
+
 #### ai_reports (AI 월간 리포트 — T-073-A)
 
 ```sql
@@ -1915,7 +1952,7 @@ NEXT_PUBLIC_SITE_URL=http://localhost:3000
 |---|---|---|---|
 | 5 | 15.2 · 15.7 D+30 데이터 완전 삭제 | ✅ **처리 (T-198, 2026-11-11 결정)** — 해지는 구독 기간 끝 + 30일, 정지(체험 종료 카드 없음 · 결제 실패)는 + 90일. 7일 전 예고 메일, 예고 뒤 7일이 지나야 매일 03:15 실제 삭제. 결제 · 요금제 변경 기록 · 구독(빌링키 제외) · 사업체 이름 · 해지일은 전자상거래법 5년 보관. 그 사이 다시 결제하면 건너뜀. CLAUDE.md 6 예외 | 5년 지난 결제 기록 정리는 후속 |
 | 6 | 15.2 · 15.4 카카오 · 삭제 메일 | 구독 안내 메일은 T-134. 데이터 삭제 예고(7일 전) · 완료 메일은 T-198 로 처리. 만료 안내 카카오 알림톡은 아직 없다 | 카카오 안내만 누락 |
-| 7 | 16.3 약관 [보기] | ✅ **처리 (T-200)** — 관리자 "약관 · 방침"에서 이용약관 · 개인정보처리방침을 쓰고 고친다(비어 있으면 사업체 정보 · 요금제 · 보관 기간을 채운 기본 문안). 홈페이지 `/{slug}/terms` · `/privacy`(테마형 · hospital-a), 푸터 링크, 가입(공통 · hospital-a) · 상담 · 예약의 [보기] | 🧑 기본 문안은 예시 — 오픈 전 법률 확인 |
+| 7 | 16.3 약관 [보기] | ✅ **처리 (T-200 · T-224 버전 · 동의 기록)** — 관리자 "약관 · 방침"에서 이용약관 · 개인정보처리방침을 쓰고 고친다(비어 있으면 사업체 정보 · 요금제 · 보관 기간을 채운 기본 문안). 홈페이지 `/{slug}/terms` · `/privacy`(테마형 · hospital-a), 푸터 링크, 가입(공통 · hospital-a) · 상담 · 예약의 [보기] | 🧑 기본 문안은 예시 — 오픈 전 법률 확인 |
 
 **기능이 동작하지 않음 · 화면 누락**
 
