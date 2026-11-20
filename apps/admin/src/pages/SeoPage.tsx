@@ -9,17 +9,30 @@ import {
   Map,
   Search,
 } from 'lucide-react'
-import { Button, Input, Textarea, toast } from '@cms/ui'
+import { Input, Textarea, toast } from '@cms/ui'
 import { CharCounter } from '@/components/content/forms/CharCounter'
 import { FormField } from '@/components/content/forms/FormField'
 import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
 import { GoogleSnippetPreview } from '@/components/seo/GoogleSnippetPreview'
 import { KeywordTagInput } from '@/components/seo/KeywordTagInput'
 import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModal'
+import { SitemapCheck } from '@/components/seo/SitemapCheck'
 import { SocialPreview } from '@/components/seo/SocialPreview'
-import { useSeoLimits, useSeoSettings, useUpdateSeo } from '@/hooks/useSeo'
+import { SaveBar } from '@/components/site/SaveBar'
+import { SitePage } from '@/components/site/SitePage'
+import { useDomainStatus } from '@/hooks/useDomain'
+import { useLeaveGuard } from '@/hooks/useLeaveGuard'
+import { useGeo } from '@/hooks/useSearchSettings'
+import {
+  type SeoSettings,
+  type SeoSettingsUpdate,
+  useSeoLimits,
+  useSeoSettings,
+  useUpdateSeo,
+} from '@/hooks/useSeo'
 import { useAuthStore } from '@/stores/authStore'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { composeRobotsTxt } from '@/lib/robotsPreview'
 
 type Tab = 'basic' | 'social' | 'sitemap' | 'analytics'
 
@@ -27,6 +40,40 @@ const TITLE_MAX = 60
 const DESC_MAX = 160
 const OG_TITLE_MAX = 60
 const OG_DESC_MAX = 200
+const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
+
+/** 화면에서 고치는 값 — 탭을 옮겨도 남고, 저장 막대 하나로 한꺼번에 저장한다 (T-225) */
+interface Draft {
+  metaTitle: string
+  metaDescription: string
+  keywords: string[]
+  ogImage: string
+  ogTitle: string
+  ogDescription: string
+  canonicalUrl: string
+  robotsMeta: string
+  robots: string
+  gaId: string
+  naverCode: string
+  googleVerify: string
+}
+
+const toDraft = (d: SeoSettings | null | undefined): Draft => ({
+  metaTitle: d?.meta_title ?? '',
+  metaDescription: d?.meta_description ?? '',
+  keywords: d?.keywords ?? [],
+  ogImage: d?.og_image_url ?? '',
+  ogTitle: d?.og_title ?? '',
+  ogDescription: d?.og_description ?? '',
+  canonicalUrl: d?.canonical_url ?? '',
+  robotsMeta: d?.robots ?? 'index,follow',
+  robots: d?.robots_txt ?? '',
+  gaId: d?.google_analytics_id ?? '',
+  naverCode: d?.naver_site_verification ?? '',
+  googleVerify: d?.google_site_verification ?? '',
+})
+
+const sameDraft = (a: Draft, b: Draft) => JSON.stringify(a) === JSON.stringify(b)
 
 export function SeoPage() {
   const seoQuery = useSeoSettings()
@@ -35,79 +82,86 @@ export function SeoPage() {
   const limits = limitsQuery.data
   const keywordsAllowed = limits?.keywords_allowed ?? false
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
+  const domain = useDomainStatus().data
+  const geo = useGeo().data
 
   const [activeTab, setActiveTab] = useState<Tab>('basic')
-  const [metaTitle, setMetaTitle] = useState('')
-  const [metaDescription, setMetaDescription] = useState('')
-  const [ogImage, setOgImage] = useState('')
-  const [ogTitle, setOgTitle] = useState('')
-  const [ogDescription, setOgDescription] = useState('')
-  const [canonicalUrl, setCanonicalUrl] = useState('')
-  const [robotsMeta, setRobotsMeta] = useState('index,follow')
-  const [robots, setRobots] = useState('')
-  const [gaId, setGaId] = useState('')
-  const [naverCode, setNaverCode] = useState('')
-  const [googleVerify, setGoogleVerify] = useState('')
-  const [keywords, setKeywords] = useState<string[]>([])
+  const [draft, setDraft] = useState<Draft>(() => toDraft(null))
   const [guideOpen, setGuideOpen] = useState(false)
+  const saved = useMemo(() => toDraft(seoQuery.data), [seoQuery.data])
+  const dirty = !seoQuery.isLoading && !sameDraft(draft, saved)
+  useLeaveGuard(dirty)
 
   // 서버 응답 도착 시 폼 동기화 — 화면에 그리기 전에 채워 빈 폼이 한 번 보였다가
   // 높이가 바뀌며 밀리지 않게 (T-043-A)
   useLayoutEffect(() => {
-    if (!seoQuery.data) return
-    const d = seoQuery.data
-    setMetaTitle(d.meta_title ?? '')
-    setMetaDescription(d.meta_description ?? '')
-    setOgImage(d.og_image_url ?? '')
-    setOgTitle(d.og_title ?? '')
-    setOgDescription(d.og_description ?? '')
-    setCanonicalUrl(d.canonical_url ?? '')
-    setRobotsMeta(d.robots ?? 'index,follow')
-    setRobots(d.robots_txt ?? '')
-    setGaId(d.google_analytics_id ?? '')
-    setNaverCode(d.naver_site_verification ?? '')
-    setGoogleVerify(d.google_site_verification ?? '')
-    setKeywords(d.keywords ?? [])
-  }, [seoQuery.data])
+    setDraft(saved)
+  }, [saved])
 
-  const siteUrl = useMemo(() => {
-    const base = window.location.origin.replace('localhost:3001', 'localhost:3000')
-    return tenantSlug ? `${base}/${tenantSlug}` : `${base}/sample`
-  }, [tenantSlug])
+  const patch = (change: Partial<Draft>) => setDraft((d) => ({ ...d, ...change }))
+  const {
+    metaTitle,
+    metaDescription,
+    keywords,
+    ogImage,
+    ogTitle,
+    ogDescription,
+    canonicalUrl,
+    robotsMeta,
+    robots,
+    gaId,
+    naverCode,
+    googleVerify,
+  } = draft
 
-  const sitemapUrl = useMemo(() => {
-    const apiBase = (
-      import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api'
-    ).replace(/\/api\/?$/, '/api')
-    return tenantSlug
-      ? `${apiBase}/public/sitemap/${tenantSlug}.xml`
-      : `${apiBase}/public/sitemap/{tenant_slug}.xml`
-  }, [tenantSlug])
+  // 연결한 도메인이 켜져 있으면 검색에 나오는 주소는 그쪽
+  const customDomain = domain?.status === 'ACTIVE' ? domain.domain : null
+  const homeBase = `${CLIENT_BASE_URL}/${tenantSlug ?? 'sample'}`
+  const siteUrl = canonicalUrl.trim() || (customDomain ? `https://${customDomain}` : homeBase)
+  // 관리자가 읽어 오는 사이트맵은 늘 기본 주소 — 실제로 쓰이는 사이트맵 (예전 백엔드 주소 아님)
+  const sitemapFetchUrl = `${homeBase}/sitemap.xml`
+  const sitemapUrl = customDomain ? `https://${customDomain}/sitemap.xml` : sitemapFetchUrl
+  const robotsPreview = useMemo(() => {
+    const custom = robots.trim()
+    const base = custom
+      ? `${custom}\n`
+      : `User-Agent: *\nAllow: /\n\nSitemap: https://${customDomain ?? '내-도메인'}/sitemap.xml\n`
+    return composeRobotsTxt(base, geo?.settings?.crawlers ?? {})
+  }, [robots, customDomain, geo])
 
   const overLimit =
-    metaTitle.length > TITLE_MAX || metaDescription.length > DESC_MAX
+    metaTitle.length > TITLE_MAX ||
+    metaDescription.length > DESC_MAX ||
+    ogTitle.length > OG_TITLE_MAX ||
+    ogDescription.length > OG_DESC_MAX
 
-  const save = async (
-    label: string,
-    payload: Parameters<typeof updateMutation.mutateAsync>[0]
-  ) => {
-    try {
-      await updateMutation.mutateAsync(payload)
-      toast.success(`${label} 설정을 저장했습니다.`)
-    } catch (e) {
-      toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
+  const handleSave = () => {
+    const payload: SeoSettingsUpdate = {
+      meta_title: metaTitle || null,
+      meta_description: metaDescription || null,
+      og_image_url: ogImage || null,
+      og_title: ogTitle || null,
+      og_description: ogDescription || null,
+      robots: robotsMeta,
+      canonical_url: canonicalUrl || null,
+      robots_txt: robots || null,
+      google_analytics_id: gaId || null,
+      naver_site_verification: naverCode || null,
+      google_site_verification: googleVerify || null,
+      // 잠긴 요금제는 키워드를 보내지 않는다 (저장된 값은 그대로)
+      ...(keywordsAllowed ? { keywords } : {}),
     }
+    updateMutation.mutate(payload, {
+      onSuccess: () => toast.success('SEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.'),
+      onError: (e) => toast.error(pickErrorMessage(e, '저장에 실패했습니다.')),
+    })
   }
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">SEO 마법사</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          검색 노출과 소셜 공유 시 보여지는 정보를 설정합니다.
-        </p>
-      </div>
-
+    <SitePage
+      title="SEO 설정"
+      description="검색 결과와 소셜 공유에 보이는 정보, 검색엔진 수집 · 사이트맵을 설정합니다. 탭을 옮겨도 고친 내용은 남고, 아래 [변경사항 저장]으로 한꺼번에 저장해요."
+    >
       <div className="border-b border-slate-200">
         <nav className="-mb-px flex flex-wrap gap-6">
           <TabBtn
@@ -155,7 +209,7 @@ export function SeoPage() {
                 >
                   <Input
                     value={metaTitle}
-                    onChange={(e) => setMetaTitle(e.target.value)}
+                    onChange={(e) => patch({ metaTitle: e.target.value })}
                     placeholder="강남 통증의학과 OO의원 - 비수술 관절·척추 치료"
                   />
                 </FormField>
@@ -173,7 +227,7 @@ export function SeoPage() {
                   >
                     <Textarea
                       value={metaDescription}
-                      onChange={(e) => setMetaDescription(e.target.value)}
+                      onChange={(e) => patch({ metaDescription: e.target.value })}
                       placeholder="강남역 2번 출구 도보 3분..."
                       rows={3}
                     />
@@ -189,7 +243,7 @@ export function SeoPage() {
                   </label>
                   <KeywordTagInput
                     keywords={keywords}
-                    onChange={setKeywords}
+                    onChange={(next) => patch({ keywords: next })}
                     max={limits?.keywords_max ?? 5}
                     maxLength={limits?.keyword_max_length ?? 30}
                     disabled={!keywordsAllowed}
@@ -211,28 +265,6 @@ export function SeoPage() {
                     </p>
                   )}
                 </div>
-
-                <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
-                  {overLimit && (
-                    <span className="text-xs text-rose-600">
-                      글자 수 제한을 확인해주세요.
-                    </span>
-                  )}
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      save('기본 SEO', {
-                        meta_title: metaTitle || null,
-                        meta_description: metaDescription || null,
-                        // 잠긴 요금제는 키워드를 보내지 않는다 (저장된 값은 그대로)
-                        ...(keywordsAllowed ? { keywords } : {}),
-                      })
-                    }
-                    disabled={updateMutation.isPending || overLimit}
-                  >
-                    {updateMutation.isPending ? '저장 중...' : '기본 SEO 저장'}
-                  </Button>
-                </div>
               </div>
             )}
 
@@ -241,7 +273,7 @@ export function SeoPage() {
                 <ImageUploadField
                   label="OG 이미지 (소셜 공유 이미지)"
                   value={ogImage}
-                  onChange={setOgImage}
+                  onChange={(next) => patch({ ogImage: next })}
                   context="seo"
                   hint="카카오톡 · 페이스북에 링크를 공유할 때 보이는 그림입니다. 1200×630 권장."
                 />
@@ -255,7 +287,7 @@ export function SeoPage() {
                     <Input
                       id="seo-og-title"
                       value={ogTitle}
-                      onChange={(e) => setOgTitle(e.target.value)}
+                      onChange={(e) => patch({ ogTitle: e.target.value })}
                     />
                   </FormField>
                 </div>
@@ -269,29 +301,10 @@ export function SeoPage() {
                     <Textarea
                       id="seo-og-description"
                       value={ogDescription}
-                      onChange={(e) => setOgDescription(e.target.value)}
+                      onChange={(e) => patch({ ogDescription: e.target.value })}
                       rows={3}
                     />
                   </FormField>
-                </div>
-                <div className="mt-6 flex justify-end border-t border-slate-200 pt-4">
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      save('소셜 미리보기', {
-                        og_image_url: ogImage || null,
-                        og_title: ogTitle || null,
-                        og_description: ogDescription || null,
-                      })
-                    }
-                    disabled={
-                      updateMutation.isPending ||
-                      ogTitle.length > OG_TITLE_MAX ||
-                      ogDescription.length > OG_DESC_MAX
-                    }
-                  >
-                    {updateMutation.isPending ? '저장 중...' : '소셜 미리보기 저장'}
-                  </Button>
                 </div>
               </div>
             )}
@@ -305,9 +318,17 @@ export function SeoPage() {
                   </div>
                 </FormField>
                 <p className="mt-1 text-xs text-slate-500">
-                  사이트맵은 자동으로 생성되며 활성 섹션 정보를 포함합니다. Google
-                  Search Console에 이 URL을 등록하세요.
+                  사이트맵은 홈페이지가 자동으로 만들어요. 네이버 서치어드바이저 · 구글 서치 콘솔에 이
+                  주소를 등록하세요.
                 </p>
+
+                <div className="mt-4">
+                  <SitemapCheck
+                    fetchUrl={sitemapFetchUrl}
+                    base={homeBase}
+                    customDomain={customDomain}
+                  />
+                </div>
 
                 <div className="mt-5">
                   <FormField
@@ -318,7 +339,7 @@ export function SeoPage() {
                     <select
                       id="seo-robots"
                       value={robotsMeta}
-                      onChange={(e) => setRobotsMeta(e.target.value)}
+                      onChange={(e) => patch({ robotsMeta: e.target.value })}
                       className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-700"
                     >
                       <option value="index,follow">검색에 노출 (기본)</option>
@@ -339,7 +360,7 @@ export function SeoPage() {
                       id="seo-canonical"
                       type="url"
                       value={canonicalUrl}
-                      onChange={(e) => setCanonicalUrl(e.target.value)}
+                      onChange={(e) => patch({ canonicalUrl: e.target.value })}
                       placeholder="https://my-hospital.com"
                     />
                   </FormField>
@@ -352,27 +373,26 @@ export function SeoPage() {
                   >
                     <Textarea
                       value={robots}
-                      onChange={(e) => setRobots(e.target.value)}
+                      onChange={(e) => patch({ robots: e.target.value })}
                       placeholder={'User-agent: *\nAllow: /\nSitemap: ' + sitemapUrl}
                       rows={5}
                     />
                   </FormField>
-                </div>
-
-                <div className="mt-6 flex justify-end border-t border-slate-200 pt-4">
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      save('사이트맵', {
-                        robots: robotsMeta,
-                        canonical_url: canonicalUrl || null,
-                        robots_txt: robots || null,
-                      })
-                    }
-                    disabled={updateMutation.isPending}
-                  >
-                    {updateMutation.isPending ? '저장 중...' : '사이트맵 · 검색 설정 저장'}
-                  </Button>
+                  <details className="mt-2">
+                    <summary className="cursor-pointer text-xs font-medium text-slate-600">
+                      규칙 보기
+                    </summary>
+                    <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap rounded bg-slate-900 p-3 text-xs text-slate-100">
+                      {robotsPreview}
+                    </pre>
+                    <p className="mt-1 text-xs text-slate-500">
+                      연결한 도메인에서 실제로 나가는 robots.txt 예요. AI 크롤러 규칙은{' '}
+                      <Link to="/admin/site/geo" className="font-medium text-blue-600 hover:underline">
+                        GEO 설정
+                      </Link>
+                      에서 더해요.
+                    </p>
+                  </details>
                 </div>
               </div>
             )}
@@ -398,7 +418,7 @@ export function SeoPage() {
                 >
                   <Input
                     value={gaId}
-                    onChange={(e) => setGaId(e.target.value)}
+                    onChange={(e) => patch({ gaId: e.target.value })}
                     placeholder="G-XXXXXXXXXX"
                   />
                 </FormField>
@@ -410,7 +430,7 @@ export function SeoPage() {
                   >
                     <Input
                       value={googleVerify}
-                      onChange={(e) => setGoogleVerify(e.target.value)}
+                      onChange={(e) => patch({ googleVerify: e.target.value })}
                       placeholder="google-site-verification 코드"
                     />
                   </FormField>
@@ -423,26 +443,10 @@ export function SeoPage() {
                   >
                     <Input
                       value={naverCode}
-                      onChange={(e) => setNaverCode(e.target.value)}
+                      onChange={(e) => patch({ naverCode: e.target.value })}
                       placeholder="abc123..."
                     />
                   </FormField>
-                </div>
-
-                <div className="mt-6 flex justify-end border-t border-slate-200 pt-4">
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      save('분석 연동', {
-                        google_analytics_id: gaId || null,
-                        naver_site_verification: naverCode || null,
-                        google_site_verification: googleVerify || null,
-                      })
-                    }
-                    disabled={updateMutation.isPending}
-                  >
-                    {updateMutation.isPending ? '저장 중...' : '분석 코드 저장'}
-                  </Button>
                 </div>
               </div>
             )}
@@ -463,17 +467,28 @@ export function SeoPage() {
                 title={metaTitle}
                 description={metaDescription}
                 url={siteUrl}
+                hidden={robotsMeta.startsWith('noindex')}
+                titleMax={TITLE_MAX}
+                descriptionMax={DESC_MAX}
               />
             )}
           </aside>
         </div>
       )}
 
+      <SaveBar
+        dirty={dirty}
+        saving={updateMutation.isPending}
+        onReset={() => setDraft(saved)}
+        onSave={handleSave}
+        error={overLimit ? '글자 수 제한을 넘은 칸이 있어요. 줄인 뒤 저장해 주세요.' : undefined}
+      />
+
       <SearchConsoleGuideModal
         open={guideOpen}
         onClose={() => setGuideOpen(false)}
       />
-    </div>
+    </SitePage>
   )
 }
 

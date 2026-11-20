@@ -373,7 +373,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.getByRole('button', { name: '로그인' }).click()
       await expect(page).toHaveURL(/\/admin\/dashboard/)
 
-      await page.goto(`${ADMIN_URL}/admin/seo`)
+      await page.goto(`${ADMIN_URL}/admin/site/seo`)
       await page.getByRole('button', { name: '소셜 미리보기' }).click()
       const uploaded = page.waitForResponse((r) => r.url().includes('/v1/upload/image'))
       await page.getByTestId('seo-file-input').setInputFiles({
@@ -387,7 +387,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const saved = page.waitForResponse(
         (r) => r.url().includes('/v1/seo-settings') && r.request().method() === 'PUT',
       )
-      await page.getByRole('button', { name: '소셜 미리보기 저장' }).click()
+      await page.getByRole('button', { name: '변경사항 저장' }).click()
       expect((await saved).ok()).toBeTruthy()
 
       // 방문자 홈페이지 HTML — 소셜 공유 메타
@@ -679,7 +679,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       await page.getByRole('button', { name: '로그인' }).click()
       await expect(page).toHaveURL(/\/admin\/dashboard/)
 
-      await page.goto(`${ADMIN_URL}/admin/seo`)
+      await page.goto(`${ADMIN_URL}/admin/site/seo`)
       const input = page.getByLabel('키워드 입력')
       // 테스트 사업체는 STANDARD 이상 — 잠금이 아니어야 한다
       await expect(input).toBeEnabled()
@@ -692,7 +692,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
       const saved = page.waitForResponse(
         (r) => r.url().endsWith('/v1/seo-settings') && r.request().method() === 'PUT',
       )
-      await page.getByRole('button', { name: '기본 SEO 저장' }).click()
+      await page.getByRole('button', { name: '변경사항 저장' }).click()
       expect((await saved).ok()).toBeTruthy()
 
       // 다시 열어도 남아 있다
