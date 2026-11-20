@@ -1,7 +1,7 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
-from fastapi.responses import PlainTextResponse
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
@@ -113,14 +113,17 @@ async def update_geo(
     return ApiResponse.ok(await seo_service.update_geo(db, tenant_id, body))
 
 
-@public_router.get("/sitemap/{tenant_slug}.xml", response_class=PlainTextResponse)
+@public_router.get("/sitemap/{tenant_slug}.xml", response_class=RedirectResponse)
 async def get_sitemap(
     tenant_slug: str,
     db: AsyncSession = Depends(get_db),
 ):
+    """예전 사이트맵 주소 — 홈페이지 사이트맵으로 넘긴다 (T-225)
 
+    이미 등록한 곳도 맞는 결과를 받게 주소는 남겨 둔다.
+    """
     await set_super_admin_context(db)
-    xml = await seo_service.generate_sitemap_xml(db, tenant_slug)
-    if not xml:
+    url = await seo_service.sitemap_url(db, tenant_slug)
+    if not url:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-    return Response(content=xml, media_type="application/xml")
+    return RedirectResponse(url, status_code=status.HTTP_307_TEMPORARY_REDIRECT)

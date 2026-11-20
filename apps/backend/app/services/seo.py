@@ -154,27 +154,20 @@ async def update_seo_settings(
     return result.scalar_one()
 
 
-async def generate_sitemap_xml(db: AsyncSession, tenant_slug: str) -> str:
+async def sitemap_url(db: AsyncSession, tenant_slug: str) -> str | None:
+    """홈페이지가 만드는 사이트맵 주소 (T-225)
 
+    페이지 · 게시판 · 글 목록은 홈페이지만 안다.
+    """
     result = await db.execute(
-        select(Tenant).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
+        select(Tenant.id).where(Tenant.slug == tenant_slug, Tenant.is_active == True)  # noqa: E712
     )
-    tenant = result.scalar_one_or_none()
-    if not tenant:
-        return ""
+    if result.scalar_one_or_none() is None:
+        return None
 
     from app.core.config import settings as app_settings
 
-    base_url = f"{app_settings.client_base_url}/{tenant_slug}"
-
-    lines = [
-        '<?xml version="1.0" encoding="UTF-8"?>',
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
-        f"  <url><loc>{base_url}</loc>"
-        "<changefreq>weekly</changefreq><priority>1.0</priority></url>",
-        "</urlset>",
-    ]
-    return "\n".join(lines)
+    return f"{app_settings.client_base_url}/{tenant_slug}/sitemap.xml"
 
 
 # ── AEO · GEO (T-221, 사이트 관리 SM-05 · SM-06) ─────────────────────────────
