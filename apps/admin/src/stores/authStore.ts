@@ -78,11 +78,14 @@ export const useAuthStore = create<AuthState>()(
           { withCredentials: true }
         )
         const { access_token, user } = data.data
+        // 방금 받은 토큰이 있으니 initialize 의 refresh 는 필요 없다 — 관리자 화면과 API 가
+        // 다른 사이트면 쿠키가 안 가 refresh 가 401 이 나고 바로 로그아웃되던 문제
         set({
           accessToken: access_token,
           user,
           tenantSlug,
           isAuthenticated: true,
+          initialized: true,
         })
       },
 
