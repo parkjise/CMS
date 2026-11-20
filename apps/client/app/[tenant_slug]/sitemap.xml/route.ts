@@ -9,6 +9,12 @@ const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
 
 const customHostOf = (request: Request) => request.headers.get(CUSTOM_HOST_HEADER)
 
+// 관리자 SEO 화면이 [생성 결과 확인]으로 읽는다 (T-225) — 누구나 보는 공개 문서
+const XML_HEADERS = {
+  'Content-Type': 'application/xml; charset=utf-8',
+  'Access-Control-Allow-Origin': '*',
+}
+
 interface Context {
   params: Promise<{ tenant_slug: string }>
 }
@@ -88,10 +94,7 @@ export async function GET(
   const { tenant_slug } = await params
   const site = await fetchPublicSite(tenant_slug)
   if (!site) {
-    return new Response(buildSitemap([]), {
-      status: 200,
-      headers: { 'Content-Type': 'application/xml; charset=utf-8' },
-    })
+    return new Response(buildSitemap([]), { status: 200, headers: XML_HEADERS })
   }
 
   // 고객 도메인으로 들어오면 그 주소로 (T-137)
@@ -106,7 +109,7 @@ export async function GET(
   return new Response(xml, {
     status: 200,
     headers: {
-      'Content-Type': 'application/xml; charset=utf-8',
+      ...XML_HEADERS,
       'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
     },
   })
