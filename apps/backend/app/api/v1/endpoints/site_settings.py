@@ -12,8 +12,10 @@ from app.schemas.site import (
     MenuTreeUpdate,
     PolicyAdminDocument,
     PolicyAdminResponse,
+    PolicyDraftUpdate,
     PolicyKind,
-    PolicyUpdate,
+    PolicyPublish,
+    PolicyVersionDocument,
     SiteSettingsResponse,
     SiteSettingsUpdate,
 )
@@ -92,27 +94,110 @@ async def _tenant(db: AsyncSession, tenant_id: UUID) -> Tenant:
     return tenant
 
 
+def _policy_error(e: policy_service.PolicyError) -> HTTPException:
+    codes = {404: "NOT_FOUND", 409: "CONFLICT"}
+    if e.status in codes:
+        return HTTPException(status_code=e.status, detail=e.message)
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=e.message)
+
+
 @router.get("/policies", response_model=ApiResponse[PolicyAdminResponse])
 async def get_policies(
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    """두 문서 — 고친 것이 없으면 기본 문안 (is_default)."""
+    """두 문서 — 공개본(없으면 기본 문안) · 작업 중 버전 · 버전 이력 (T-224)."""
     tenant = await _tenant(db, tenant_id)
     return ApiResponse.ok(await policy_service.get_policies(db, tenant))
 
 
-@router.put("/policies/{kind}", response_model=ApiResponse[PolicyAdminDocument])
-async def update_policy(
+@router.post("/policies/{kind}/draft", response_model=ApiResponse[PolicyAdminDocument])
+async def create_policy_draft(
     kind: PolicyKind,
-    data: PolicyUpdate,
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    """저장 — 빈 글이면 기본 문안으로 되돌린다."""
+    """새 버전 — 공개본(없으면 기본 문안)을 복사한 초안."""
     tenant = await _tenant(db, tenant_id)
-    return ApiResponse.ok(
-        await policy_service.update_policy(db, tenant, kind, data.body)
-    )
+    try:
+        doc = await policy_service.create_draft(db, tenant, kind, current_user.id)
+    except policy_service.PolicyError as e:
+        raise _policy_error(e) from e
+    return ApiResponse.ok(doc)
+
+
+@router.put("/policies/{kind}/draft", response_model=ApiResponse[PolicyAdminDocument])
+async def update_policy_draft(
+    kind: PolicyKind,
+    data: PolicyDraftUpdate,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    tenant = await _tenant(db, tenant_id)
+    try:
+        doc = await policy_service.update_draft(
+            db, tenant, kind, data.body, data.summary
+        )
+    except policy_service.PolicyError as e:
+        raise _policy_error(e) from e
+    return ApiResponse.ok(doc)
+
+
+@router.post(
+    "/policies/{kind}/publish", response_model=ApiResponse[PolicyAdminDocument]
+)
+async def publish_policy(
+    kind: PolicyKind,
+    data: PolicyPublish,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """바로 공개 또는 시행일 예약."""
+    tenant = await _tenant(db, tenant_id)
+    try:
+        doc = await policy_service.publish(db, tenant, kind, data.effective_at)
+    except policy_service.PolicyError as e:
+        raise _policy_error(e) from e
+    return ApiResponse.ok(doc)
+
+
+@router.post(
+    "/policies/{kind}/cancel-schedule",
+    response_model=ApiResponse[PolicyAdminDocument],
+)
+async def cancel_policy_schedule(
+    kind: PolicyKind,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """예약 취소 — 초안으로 돌아간다."""
+    tenant = await _tenant(db, tenant_id)
+    try:
+        doc = await policy_service.cancel_schedule(db, tenant, kind)
+    except policy_service.PolicyError as e:
+        raise _policy_error(e) from e
+    return ApiResponse.ok(doc)
+
+
+@router.get(
+    "/policies/{kind}/versions/{version}",
+    response_model=ApiResponse[PolicyVersionDocument],
+)
+async def get_policy_version(
+    kind: PolicyKind,
+    version: int,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """버전 이력에서 본문 보기 — 초안 · 예약 포함."""
+    tenant = await _tenant(db, tenant_id)
+    doc = await policy_service.get_version(db, tenant, kind, version, public=False)
+    if doc is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
+    return ApiResponse.ok(doc)

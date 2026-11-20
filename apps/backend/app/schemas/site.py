@@ -415,20 +415,60 @@ class PublicMenuNode(BaseModel):
 PolicyKind = Literal["terms", "privacy"]
 
 
+PolicyStatus = Literal["draft", "scheduled", "published", "archived"]
+
+
+class PolicyHistoryItem(BaseModel):
+    """홈페이지 '이전 버전' 한 줄"""
+
+    version: int
+    effective_at: datetime | None
+
+
 class PolicyDocument(BaseModel):
-    """홈페이지에 보이는 문서 — 고친 것이 없으면 기본 문안."""
+    """홈페이지에 보이는 문서 — 공개본, 없으면 기본 문안 (T-200 · T-224)."""
 
     kind: PolicyKind
     title: str
     body: str
     is_default: bool
-    # 사업체가 마지막으로 고친 시각 — 기본 문안이면 None
+    # 지금 문서가 시행된 시각 — 기본 문안이면 None
     updated_at: datetime | None = None
+    version: int | None = None
+    effective_at: datetime | None = None
+    history: list[PolicyHistoryItem] = Field(default_factory=list)
+
+
+class PolicyVersionSummary(BaseModel):
+    id: uuid.UUID
+    version: int
+    status: PolicyStatus
+    summary: str | None
+    effective_at: datetime | None
+    published_at: datetime | None
+    archived_at: datetime | None
+    created_at: datetime
+
+
+class PolicyWorkingVersion(PolicyVersionSummary):
+    body: str
+
+
+class PolicyVersionDocument(PolicyVersionSummary):
+    """버전 한 개의 본문 — 관리자 이력 보기 · 홈페이지 이전 버전"""
+
+    kind: PolicyKind
+    title: str
+    body: str
 
 
 class PolicyAdminDocument(PolicyDocument):
-    # 되돌리기 · 비교용 기본 문안
+    # 새 버전을 기본 문안으로 시작할 때 · 비교용
     default_body: str
+    # 작업 중인 버전(초안 · 예약) — 하나만
+    working: PolicyWorkingVersion | None = None
+    # 버전 이력 — 최신부터
+    versions: list[PolicyVersionSummary] = Field(default_factory=list)
 
 
 class PolicyAdminResponse(BaseModel):
@@ -436,9 +476,33 @@ class PolicyAdminResponse(BaseModel):
     privacy: PolicyAdminDocument
 
 
-class PolicyUpdate(BaseModel):
-    # None 이나 빈 글은 기본 문안으로 되돌린다
-    body: str | None = Field(default=None, max_length=30000)
+class PolicyDraftUpdate(BaseModel):
+    body: str = Field(min_length=1, max_length=30000)
+    summary: str | None = Field(default=None, max_length=500)
+
+    @field_validator("body")
+    @classmethod
+    def check_body(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("본문을 입력해 주세요.")
+        return v.strip()
+
+    @field_validator("summary")
+    @classmethod
+    def strip_summary(cls, v: str | None) -> str | None:
+        return (v or "").strip() or None
+
+
+class PolicyPublish(BaseModel):
+    # 없거나 지났으면 바로 공개, 앞날이면 예약
+    effective_at: datetime | None = None
+
+    @field_validator("effective_at")
+    @classmethod
+    def need_timezone(cls, v: datetime | None) -> datetime | None:
+        if v is not None and v.tzinfo is None:
+            raise ValueError("시행일에 시간대가 필요해요.")
+        return v
 
 
 # 앞에서 이름만 쓴 메뉴 트리 모델을 채운다

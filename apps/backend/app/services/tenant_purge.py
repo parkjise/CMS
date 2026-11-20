@@ -69,6 +69,9 @@ PURGE_TABLES = (
     "notification_settings",
     "seo_settings",
     "sns_channel_settings",
+    # 동의 기록이 정책 버전을 가리킨다 (T-224)
+    "consent_records",
+    "policy_versions",
     "site_settings",
     "template_change_history",
     "tenant_template_overrides",

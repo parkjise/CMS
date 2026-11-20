@@ -187,6 +187,15 @@ class TestGuestWrite:
             i=created["id"],
         )
         assert stored and stored[0][0].startswith("$2")
+        # 개인정보 수집 · 이용 동의 기록 (T-224) — 기본 문안이라 버전은 없다
+        consent = await _sql(
+            "SELECT kind, subject_type, source, version FROM consent_records"
+            " WHERE subject_id = :i",
+            i=created["id"],
+        )
+        assert [tuple(r) for r in consent] == [
+            ("privacy", "board_post", "board_write", None)
+        ]
 
     @pytest.mark.parametrize(
         "payload",

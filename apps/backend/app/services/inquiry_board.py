@@ -21,6 +21,7 @@ from app.schemas.inquiry_board import (
     BoardPostCreate,
     BoardPostDetail,
 )
+from app.services import inquiry as inquiry_service
 
 BOARD_TYPE = "CONSULT"
 MAX_PAGE_SIZE = 50
@@ -168,6 +169,7 @@ async def create_post(
         updated_at=now,
     )
     db.add(post)
+    await inquiry_service._record_consents(db, tenant_id, post, data, "consult_board")
     await db.commit()
     await db.refresh(post)
 

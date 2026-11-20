@@ -20,7 +20,7 @@ import { isFormScreen, resolveBoardRoute } from '@/lib/boardRoute'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/publicPosts'
 import { fetchSitePolicy } from '@/lib/fetchSitePolicy'
-import { type PolicyKind, type SitePolicy, isPolicyKind } from '@/lib/sitePolicy'
+import { type PolicyKind, type SitePolicy, isPolicyKind, policyVersionParam } from '@/lib/sitePolicy'
 import { fetchPublicSite } from '@/lib/publicSite'
 import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
 import { countSampleSettings } from '@/lib/sampleCount'
@@ -167,7 +167,14 @@ export async function CodeRoutePage({
   if (!resolved) notFound()
   if (resolved === SWITCHING) return <TemplateSwitching />
   const onCustomDomain = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
-  const { site, pageKey, detailId, memberPage, board, policy } = resolved
+  const { site, pageKey, detailId, memberPage, board } = resolved
+  // 이전 버전 (?v=2, T-224) — 없는 버전이면 404
+  const version = resolved.policy ? policyVersionParam(searchParams.v) : null
+  const policy =
+    resolved.policy && version !== null && version !== resolved.policy.version
+      ? await fetchSitePolicy(params.tenant_slug, resolved.policy.kind, version)
+      : resolved.policy
+  if (resolved.policy && !policy) notFound()
   const pageSections = site.sections.filter((s) => (s.page_key ?? 'home') === pageKey)
 
   return (
@@ -189,7 +196,7 @@ export async function CodeRoutePage({
         query={{ q: searchParams.q, p: searchParams.p, c: searchParams.c }}
         member={memberPage ? { page: memberPage, query: searchParams } : undefined}
         board={board}
-        policy={policy}
+        policy={policy ?? undefined}
       />
       {/* 관리자 로그인 · 편집 모드 진입 (T-125-A — 예전엔 코드형 템플릿에 입구가 없었음).
           카카오 · 상단으로는 템플릿 퀵메뉴가 맡으므로 끄고, 오른쪽 퀵메뉴와 겹치지 않게 왼쪽 */}

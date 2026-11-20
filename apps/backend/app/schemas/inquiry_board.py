@@ -20,6 +20,9 @@ class BoardPostCreate(BaseModel):
     message: str = Field(..., min_length=10, max_length=2000)
     is_secret: bool = True
     recaptcha_token: str | None = None
+    # 동의 체크박스 — true 면 동의 기록을 남긴다 (T-224)
+    terms_agree: bool = False
+    privacy_agree: bool = False
 
     @field_validator("phone")
     @classmethod

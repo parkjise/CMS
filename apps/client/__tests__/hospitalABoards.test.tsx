@@ -218,7 +218,15 @@ describe('상담 글쓰기 · 예약 폼 (T-123)', () => {
     await waitFor(() => expect(post).toHaveBeenCalled())
     expect(post).toHaveBeenCalledWith(
       '/inquiries',
-      expect.objectContaining({ inquiry_type: 'RESERVATION', reserved_date: '2026-11-05', reserved_time: '10:00', phone: '010-1234-5678' }),
+      expect.objectContaining({
+        inquiry_type: 'RESERVATION',
+        reserved_date: '2026-11-05',
+        reserved_time: '10:00',
+        phone: '010-1234-5678',
+        // 필수 동의 체크박스 → 동의 기록 (T-224)
+        terms_agree: true,
+        privacy_agree: true,
+      }),
       { params: { tenant_slug: 'demo' }, headers: {} },
     )
     expect(await screen.findByText(/예약 신청이 접수되었습니다/)).toBeInTheDocument()

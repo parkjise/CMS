@@ -29,7 +29,7 @@ from app.core.redis import get_redis
 from app.models.site_member import MemberSocialAccount, SiteMember
 from app.models.tenant import Tenant
 from app.schemas.site_member import SocialCompleteRequest
-from app.services import member_auth, member_features, member_verification
+from app.services import member_auth, member_features, member_verification, site_policy
 from app.services import social_providers as providers
 from app.services.domain import normalize_host
 from app.services.social_providers import Provider, SocialAuthError, SocialProfile
@@ -383,6 +383,15 @@ async def complete_signup(
     )
     db.add(member)
     await db.flush()
+    # 약관 · 개인정보 동의 — 가입과 같은 트랜잭션 (T-224)
+    await site_policy.record_consents(
+        db,
+        tenant.id,
+        ("terms", "privacy"),
+        subject_type="member",
+        subject_id=member.id,
+        source="member_join_social",
+    )
     db.add(
         MemberSocialAccount(
             tenant_id=tenant.id,

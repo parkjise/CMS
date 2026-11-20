@@ -52,6 +52,9 @@ export function ReserveForm({ tenantSlug, times }: Props) {
           reserved_date: String(data.get('date')),
           reserved_time: String(data.get('time')),
           recaptcha_token: recaptchaToken ?? undefined,
+          // 필수 동의 체크박스(이용약관 · 개인정보) — 동의 기록 (T-224)
+          terms_agree: true,
+          privacy_agree: true,
         },
         // 로그인한 방문자면 내 문의 · 내 예약에 연결 (T-111 · T-115)
         { params: { tenant_slug: tenantSlug }, headers: await memberAuthHeader(tenantSlug) },
