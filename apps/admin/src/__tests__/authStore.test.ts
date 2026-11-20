@@ -33,6 +33,22 @@ describe('authStore', () => {
     expect(state.tenantSlug).toBe('test-slug')
   })
 
+  it('login 직후 initialize 는 refresh 를 다시 부르지 않는다 (API 가 다른 사이트면 쿠키가 안 감)', async () => {
+    let refreshCalls = 0
+    server.use(
+      http.post(`${BASE}/v1/auth/refresh`, () => {
+        refreshCalls += 1
+        return HttpResponse.json({ success: false }, { status: 401 })
+      })
+    )
+    await useAuthStore.getState().login('admin@example.com', 'correct', 'test-slug')
+    await useAuthStore.getState().initialize()
+
+    expect(refreshCalls).toBe(0)
+    expect(useAuthStore.getState().isAuthenticated).toBe(true)
+    expect(useAuthStore.getState().accessToken).toBe('access-token-fake')
+  })
+
   it('login 실패 시 에러를 throw하고 상태 미변경', async () => {
     await expect(
       useAuthStore.getState().login('admin@example.com', 'wrong', 'test-slug')
