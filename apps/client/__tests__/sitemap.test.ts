@@ -51,6 +51,18 @@ beforeEach(() => {
 })
 
 describe('사이트맵 (T-140-C)', () => {
+  it('관리자 SEO 화면이 읽을 수 있게 모든 출처를 허용한다 (T-225)', async () => {
+    const res = await GET(new Request('http://x/sitemap.xml'), {
+      params: Promise.resolve({ tenant_slug: 'demo' }),
+    })
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe('*')
+    fetchPublicSite.mockResolvedValue(null)
+    const empty = await GET(new Request('http://x/sitemap.xml'), {
+      params: Promise.resolve({ tenant_slug: 'nope' }),
+    })
+    expect(empty.headers.get('Access-Control-Allow-Origin')).toBe('*')
+  })
+
   it('메인 · 템플릿 페이지 · 새 게시판 · 글 주소', async () => {
     fetchSitemapPosts.mockResolvedValue([post('news', 'p1'), post('notice', 'n1', true)])
     const { urls } = await locs()

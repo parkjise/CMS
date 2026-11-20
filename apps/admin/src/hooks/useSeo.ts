@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
+import { summarizeSitemap, type SitemapSummary } from '@/lib/sitemapCheck'
 
 export interface SeoSettings {
   id: string
@@ -76,5 +77,20 @@ export function useUpdateSeo() {
     onSuccess: (updated) => {
       queryClient.setQueryData(SEO_KEY, updated)
     },
+  })
+}
+
+/** 홈페이지가 실제로 내보내는 사이트맵 (T-225) — 누를 때만 불러온다 */
+export function useSitemapCheck(url: string, base: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...SEO_KEY, 'sitemap', url],
+    queryFn: async (): Promise<SitemapSummary> => {
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`sitemap ${res.status}`)
+      return summarizeSitemap(await res.text(), base)
+    },
+    enabled,
+    staleTime: 0,
+    retry: false,
   })
 }

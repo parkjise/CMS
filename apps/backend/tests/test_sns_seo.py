@@ -125,9 +125,9 @@ class TestSeoSettings:
         resp = await client.get(
             f"/api/public/sitemap/{test_tenant['slug']}.xml"
         )
-        assert resp.status_code == 200
-        assert "urlset" in resp.text
-        assert test_tenant["slug"] in resp.text
+        # 홈페이지 사이트맵으로 넘긴다 (T-225)
+        assert resp.status_code == 307
+        assert resp.headers["location"].endswith(f"/{test_tenant['slug']}/sitemap.xml")
 
     async def test_sitemap_not_found(self, client: AsyncClient):
         resp = await client.get("/api/public/sitemap/no-such-tenant.xml")
