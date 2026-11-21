@@ -1,6 +1,9 @@
 import { useEffect } from 'react'
 import { Navigate, useLocation, useParams } from 'react-router'
 
+const USER_SCROLL_EVENTS = ['wheel', 'touchstart', 'keydown', 'mousedown'] as const
+const SETTLE_MS = 2000
+
 export interface BoardSectionLink {
   id: string
   label: string
@@ -13,9 +16,25 @@ export function BoardSectionNav({ sections }: { sections: BoardSectionLink[] }) 
   useEffect(() => {
     const id = hash.replace('#', '')
     if (!id) return
-    // 구역이 그려진 다음에 옮긴다
-    const timer = window.setTimeout(() => document.getElementById(id)?.scrollIntoView(), 0)
-    return () => window.clearTimeout(timer)
+    const scroll = () => document.getElementById(id)?.scrollIntoView()
+    // 위 구역 내용이 늦게 불러와지면 이 구역이 밀려난다 — 화면이 자리 잡을 때까지 다시 맞춘다
+    const timer = window.setTimeout(scroll, 0)
+    const observer =
+      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => scroll())
+    // 관리자 화면은 본문(main)이 스크롤된다 — 구역들을 담은 상자의 높이 변화를 본다
+    observer?.observe(document.getElementById(id)?.parentElement ?? document.body)
+    const stop = () => {
+      observer?.disconnect()
+      USER_SCROLL_EVENTS.forEach((type) => window.removeEventListener(type, stop))
+    }
+    // 사용자가 직접 움직이면 그만 맞춘다
+    USER_SCROLL_EVENTS.forEach((type) => window.addEventListener(type, stop, { passive: true }))
+    const settle = window.setTimeout(stop, SETTLE_MS)
+    return () => {
+      window.clearTimeout(timer)
+      window.clearTimeout(settle)
+      stop()
+    }
   }, [hash])
 
   if (sections.length < 2) return null
