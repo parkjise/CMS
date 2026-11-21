@@ -936,7 +936,8 @@ test.describe('T-078 전체 통합 시나리오', () => {
 
       await page.goto(`${ADMIN_URL}/admin/content/${slider.id}`)
       // JSON 글자 대신 슬라이드 카드 — 휴대폰용 사진 칸도 있다
-      await expect(page.getByText('슬라이드 1 휴대폰용 사진')).toBeVisible()
+      // 주소 넣기 버튼에도 칸 이름이 붙는다 (T-226) — 칸 제목만
+      await expect(page.getByText('슬라이드 1 휴대폰용 사진', { exact: true })).toBeVisible()
       const title = page.getByLabel('슬라이드 2 제목')
       await title.fill('E2E 두 번째 슬라이드')
       await page.getByRole('button', { name: '슬라이드 2 위로' }).click()
