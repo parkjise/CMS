@@ -37,7 +37,8 @@
 | **Phase 18: 게시판 관리 모듈** | **84** | **84** | **100%** |
 | **Phase 19: 운영 안정화** | **2** | **2** | **100%** |
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
-| **합계** | **267** | **267** | **100%** |
+| **Phase 21: 관리자 화면 개선 · AI 보조** | **8** | **0** | **0%** |
+| **합계** | **275** | **267** | **97%** |
 
 ---
 
@@ -4380,6 +4381,83 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 게시글 관리 날짜 안내는 접어 두기, 신고된 글 0건 화면에 [신고 숨김 기준 설정하기]
 - **남은 제안 (별도 기획):** 게시판 설정 통합 저장, 게시판 메뉴 11 → 5개, 저장하고 이동 확인창, 약관 새 버전 임시 작성, AI 보조 기능 (QA 문서 2 · 3장)
 - **테스트:** admin 구역 스크롤 1 · 디자인 저장 1 추가, AEO · 신고 · 이미지 칸 · 사이드바 구역 검사 보강. 실제 화면(미리보기 빌드): 카테고리 · 권한 · 운영 이동과 사이드바 켜짐, 디자인 저장, AEO, 신고 0건, 이미지 칸 이름
+
+---
+
+## Phase 21: 관리자 화면 개선 · AI 보조 (`docs/CMS_Admin_UX_AI_Plan_v1.0.md` — 2026-11-21 기획)
+
+> 출처: QA 리포트 `docs/qa/게시판관리.md` 2 · 3장. 버그는 T-226 ✅.
+> 순서: 화면 개선 T-227 → (T-228 · T-230) / T-229 는 사용자 확인 뒤. AI 는 T-231 → T-232 → T-233, T-234 는 T-230 뒤.
+> DB 변경 없음. 머지 전 확인: T-229(메뉴 정책) · T-231(새 기능 플래그 · AI 호출 증가).
+> **시작 안내:** 기획서의 해당 절(U-x · A-x)을 먼저 읽는다. 각 태스크는 PR 하나. 공통 규칙(AI 2.0)을 어기는 구현 — 자동 저장 · 방문자 글 전송 · 새 사용 한도 — 은 하지 않는다.
+
+### T-227: 나가기 확인 창 — 저장하고 이동 (U-1)
+
+- **코드 시작점:** `apps/admin/src/hooks/useLeaveGuard.ts`, `apps/admin/src/components/site/SaveBar.tsx`, 사이트 관리 6개 화면 · `SeoPage.tsx` · `BoardDesignPage.tsx`
+- [ ] 공통 모달 [저장하고 이동] / [저장하지 않고 이동] / [계속 편집], 저장 실패면 남기 · 저장을 막는 값이면 [저장하고 이동] 끔
+- [ ] `useLeaveGuard({ dirty, onSave, saveBlockedReason })` — 예전 호출 호환, 게시판 디자인에도 연결
+- **테스트:** 훅 · 모달 (세 선택지 · 실패 · 막힘 · Escape), 사이트 관리 화면 하나 이상에서 저장하고 이동
+- **완료 조건:** `window.confirm` 을 쓰는 나가기 확인이 남지 않음 (창 닫기 `beforeunload` 는 브라우저 기본 그대로)
+
+### T-228: 게시판 설정 한 번에 저장 · 영구 삭제 확인 (U-2 · U-8)
+
+- **코드 시작점:** `apps/admin/src/pages/BoardSetupPage.tsx`, `BoardSettingsPage.tsx` · `BoardPermissionsPage.tsx` · `BoardOperationPage.tsx` · `BoardConnectionPage.tsx`(구역), `BoardSectionNav.tsx`, `BoardTrashPage.tsx`
+- [ ] 구역별 [저장] → 아래 저장 막대 하나, 바뀐 구역 값을 합쳐 `PATCH /v1/boards/{id}` 한 번 (메뉴 위치 즉시 저장도 막대로)
+- [ ] 구역 제목 · 바로가기 칩에 `수정됨` 점, 오류 `field` 로 그 구역 · 칸 표시, 나가기 확인(T-227)
+- [ ] 영향 안내 — 회원만 · 검색 노출 끔 · 사용 안 함 · 주소 변경 (AEO 연결 FAQ 게시판이면 구조화 데이터도)
+- [ ] 휴지통 게시판 [영구 삭제] 모달 — 지워질 글 · 필드 · 카테고리 · 첨부 수, 게시판 이름을 입력해야 켜짐
+- **테스트:** 여러 구역을 고쳐 요청 한 번 · 실패 시 값 유지 · 영향 안내 · 보기 전용 · 영구 삭제 이름 확인
+- **범위 밖:** 서버 API 변경 (필요 없음)
+
+### T-229: 게시판 관리 메뉴 정리 (U-3) — ⚠️ 사용자 확인 뒤 시작
+
+- **코드 시작점:** `apps/admin/src/components/layout/navigation.ts`, `apps/admin/src/lib/boardWorkspace.ts`, `apps/admin/src/pages/BoardsPage.tsx`
+- [ ] 하위 메뉴 11 → 6 (목록 · 게시글 관리 · 신고된 글 · 휴지통 · 변경 기록 · 게시판 만들기), 신고된 글에 처리 안 한 신고 수 배지
+- [ ] 예전 주소 `/admin/boards/{design|fields|categories|permissions|settings}` 는 지금처럼 마지막 게시판으로 (링크 호환)
+- [ ] 게시판 목록 행에 [디자인] 바로가기, 접힌 사이드바 · 휴대폰 메뉴 · 브레드크럼 맞춤
+- [ ] 게시판 기획서 4장 · 4.x 메뉴 트리 갱신 (T-187 결정 변경 기록)
+- **테스트:** 사이드바 · 켜짐 · 예전 주소 넘김 · 배지
+
+### T-230: 사이트 관리 작은 개선 (U-4 ~ U-7)
+
+- **코드 시작점:** `apps/admin/src/components/layout/navigation.ts`, `apps/admin/src/pages/PoliciesPage.tsx`, `apps/admin/src/components/content/SiteSettingsForm.tsx`, `apps/admin/src/pages/GeoPage.tsx`
+- [ ] SEO · AEO · GEO 메뉴 툴팁 · 화면 제목 아래 한 줄 설명 (메뉴 3개 유지)
+- [ ] 약관 [새 버전 만들기] → 저장할 때 초안 생성 (`POST draft` → `PUT draft`), [취소]는 흔적 없음, [바뀐 곳 보기] 줄 단위 비교
+- [ ] 기본정보 '아직 비어 있는 항목' 칩(누르면 그 칸), 1280px 이상에서 푸터 미리보기 오른쪽 고정
+- [ ] GEO [SEO 설정에서 바꾸기] 링크 · 입력한 항목 수 (점수 없음)
+- **테스트:** 약관 저장 전 취소 · 첫 저장 시 초안 생성 · 비교, 빈 항목 칩, GEO 링크
+
+### T-231: AI 보조 공통 + SEO · GEO 자동 채우기 (A-1) — ⚠️ 머지 전 확인
+
+- **코드 시작점:** `apps/backend/app/services/ai.py` · `ai_prompts.py`, `apps/backend/app/api/v1/endpoints/ai.py`, `apps/backend/scripts/seed.py`(기능 목록), `apps/admin/src/pages/SeoPage.tsx` · `GeoPage.tsx`
+- [ ] `POST /api/v1/ai/assist/{kind}` — kind 별 입력 · 결과 스키마 검증(한 번 재시도 → 502), 글자 수 · 개수 자르기, 문구 추천 월 한도 공유, 분당 제한 · 캐시 · `ai_usage_log.action_type = assist_{kind}`
+- [ ] 기능 플래그 `AI_SITE_ASSIST` · `AI_BOARD_ASSIST` (시드 · 슈퍼 어드민 목록)
+- [ ] 관리자 공통 AI 서랍 (미리보기 · 적용 · 다시 만들기 · 남은 횟수 · 확인 안내, 보기 전용 숨김)
+- [ ] `seo` · `geo` kind — 사이트 정보에서 메타 제목 · 설명 · 키워드 / 기업 소개 · 주제, 말투 선택, 항목별 골라 적용 → 저장 막대
+- **테스트:** backend 스키마 검증 · 재시도 · 한도 · 플래그 403 · 키 없음 502 · 보기 전용 403 (모델은 모킹), admin 서랍 · 적용 · 한도 초과 안내
+
+### T-232: AI 게시판 구성 추천 (A-2)
+
+- **코드 시작점:** `apps/admin/src/pages/BoardNewPage.tsx`, `BoardFieldsPage.tsx` · `BoardCategoriesPage.tsx`, `apps/backend/app/services/board.py`(`type-options`)
+- [ ] `board` kind — 목적 문장 → 유형(막힌 유형 제외) · 이름 · 설명 · 필드 8 · 카테고리 10 · 권한 · 운영 추천, 위험 조합은 서버가 기본값으로
+- [ ] 마법사 2 ~ 4단계 채우고 검토 단계로, 필드 화면은 골라 추가 (같은 이름 건너뜀)
+- **테스트:** 병원 업종 리뷰형 제외 · 위험 조합 교정 · 마법사 채움 · 중복 건너뜀
+
+### T-233: AI 공지 · FAQ 글 초안 (A-3)
+
+- **코드 시작점:** `apps/admin/src/components/boards/RichTextEditor.tsx`(본문 편집기), `apps/admin/src/pages/BoardPostEditPage.tsx`, `AeoPage.tsx`
+- [ ] `post` kind — 메모 → 제목 후보 3 · 본문(문단 · 목록), FAQ 게시판은 질문 · 답변
+- [ ] 편집기 노드 JSON 으로 넣기 (붙이기 / 바꾸기), AEO [질문 초안] → 글쓰기 + 서랍
+- **테스트:** 노드 변환(HTML 안 넣음) · 붙이기 · 바꾸기 · FAQ 쌍
+- **범위 밖:** 다국어 번역 (A-6)
+
+### T-234: AI 약관 변경 요약 (A-4)
+
+- **선행:** T-230 (줄 단위 비교)
+- [ ] `policy_summary` kind — 공개본(없으면 기본 문안)과 초안의 바뀐 줄만 보내 1 ~ 3줄 요약(500자)
+- [ ] '변경 내용 요약' 칸 옆 버튼, 법적 확인 안내
+- **테스트:** 바뀐 줄만 보냄 · 500자 자름 · 바뀐 게 없으면 버튼 끔
+- **보류 (법률 확인 뒤):** 업종 맞춤 약관 문안(A-5), 신고 글 AI 분석(A-7)
 
 ---
 
