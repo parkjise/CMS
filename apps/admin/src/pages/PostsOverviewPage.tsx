@@ -321,12 +321,18 @@ export function PostsOverviewPage() {
         </Button>
       </div>
 
-      <p className="text-xs text-slate-500">
-        작성일은 최초 저장일, 수정일은 마지막 갱신 시각입니다. 처음 만든 글도 수정일이 있습니다.
-        공개일은 최초 공개 시각이며, 기간 검색에서는 한 번도 공개하지 않은 글을 제외합니다. 현재
-        공개 중인 글만 찾으려면 상태도 공개로 선택해 주세요. 브라우저 시간대 기준이며 종료일을
-        포함합니다. 날짜 기준과 기간은 검색을 눌러 적용합니다.
-      </p>
+      {/* 안내가 길어 목록을 밀어낸다 — 필요할 때만 펼친다 (T-226) */}
+      <details className="text-xs text-slate-500">
+        <summary className="cursor-pointer font-medium text-slate-600">
+          날짜 기준 · 기간 검색 도움말
+        </summary>
+        <p className="mt-1.5">
+          작성일은 최초 저장일, 수정일은 마지막 갱신 시각입니다. 처음 만든 글도 수정일이 있습니다.
+          공개일은 최초 공개 시각이며, 기간 검색에서는 한 번도 공개하지 않은 글을 제외합니다. 현재
+          공개 중인 글만 찾으려면 상태도 공개로 선택해 주세요. 브라우저 시간대 기준이며 종료일을
+          포함합니다. 날짜 기준과 기간은 검색을 눌러 적용합니다.
+        </p>
+      </details>
       {dateError && (
         <p role="alert" className="text-sm text-red-600">
           {dateError}

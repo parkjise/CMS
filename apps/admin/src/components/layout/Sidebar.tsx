@@ -58,7 +58,7 @@ interface NavGroupProps {
 
 /** 눌러서 펼치는 메뉴 — 그 안의 화면에 있으면 펼친 채로 */
 function NavGroup({ item, children, onNavigate }: NavGroupProps) {
-  const { pathname } = useLocation()
+  const { pathname, hash } = useLocation()
   const badgeOf = useNavBadge()
   const inside = children.some(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
   const [open, setOpen] = useState(inside)
@@ -94,10 +94,10 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
               <Link
                 to={to}
                 onClick={onNavigate}
-                aria-current={isChildActive(pathname, to, children) ? 'page' : undefined}
+                aria-current={isChildActive(pathname, to, children, hash) ? 'page' : undefined}
                 className={[
                   'flex items-center gap-2 rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
-                  isChildActive(pathname, to, children)
+                  isChildActive(pathname, to, children, hash)
                     ? 'bg-blue-50 font-medium text-blue-700'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                 ].join(' ')}

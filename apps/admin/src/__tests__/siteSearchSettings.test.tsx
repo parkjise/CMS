@@ -178,6 +178,8 @@ describe('AEO 설정', () => {
       'href',
       '/admin/boards/new?example=faq'
     )
+    // 연결할 게시판이 없으면 저장 막대도 없다 (T-226)
+    expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
   })
 
   it('저장 실패는 알림으로, 바꾼 값은 그대로', async () => {

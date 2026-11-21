@@ -108,6 +108,11 @@ describe('신고된 글 (T-151-B)', () => {
     mockApi({ '/posts/reports': [] })
     renderReports()
     expect(await screen.findByText('처리할 신고가 없습니다.')).toBeInTheDocument()
+    // 신고가 없어도 숨김 기준을 미리 정할 수 있게 (T-226)
+    expect(screen.getByRole('link', { name: '신고 숨김 기준 설정하기' })).toHaveAttribute(
+      'href',
+      '/admin/boards/operation'
+    )
   })
 
   it('비공개된 글은 다시 공개할 수 있다', async () => {

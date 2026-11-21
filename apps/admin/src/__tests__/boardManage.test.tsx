@@ -593,6 +593,24 @@ describe('게시판 디자인 탭 (T-148)', () => {
   const renderDesign = (id = 'b1') =>
     renderAt(`/admin/boards/${id}/design`, <BoardDesignPage />, '/admin/boards/:boardId/design')
 
+  it('바꾼 게 없으면 저장을 끄고, 저장한 뒤에도 다시 꺼진다 (T-226)', async () => {
+    mockApi({})
+    patch.mockResolvedValue({ data: { data: board } })
+    renderDesign()
+    const select = await screen.findByLabelText('기본 정렬')
+    const save = screen.getByRole('button', { name: '저장' })
+    expect(save).toBeDisabled()
+    await userEvent.selectOptions(select, 'TITLE')
+    expect(save).toBeEnabled()
+    // 원래 값으로 되돌리면 다시 꺼진다
+    await userEvent.selectOptions(select, board.sort_order)
+    expect(save).toBeDisabled()
+    await userEvent.selectOptions(select, 'TITLE')
+    await userEvent.click(save)
+    await waitFor(() => expect(toast.success).toHaveBeenCalled())
+    expect(save).toBeDisabled()
+  })
+
   it('목록형 홈페이지 추가 정보 표 표시를 디자인과 함께 저장하고 실패 시 선택을 유지한다', async () => {
     mockApi({})
     patch.mockRejectedValueOnce(new Error('저장 실패')).mockResolvedValue({data:{data:board}})

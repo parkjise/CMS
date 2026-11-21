@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import type { ReportAction, ReportReason, ReportedPost } from '@cms/types'
 import { Button, toast } from '@cms/ui'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
+import { LINK_SECONDARY } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useReportedPosts, useResolveReports } from '@/hooks/useBoards'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -138,7 +139,13 @@ export function ReportedPostsPage() {
           <p className="p-8 text-center text-sm text-red-600">신고를 불러오지 못했습니다.</p>
         )}
         {reportsQuery.isSuccess && items.length === 0 && (
-          <p className="p-8 text-center text-sm text-slate-400">처리할 신고가 없습니다.</p>
+          <div className="space-y-4 p-8 text-center">
+            <p className="text-sm text-slate-400">처리할 신고가 없습니다.</p>
+            {/* 신고가 없어도 기준은 미리 정해 둘 수 있다 — 마지막으로 작업한 게시판의 운영 설정 */}
+            <Link to="/admin/boards/operation" className={LINK_SECONDARY}>
+              신고 숨김 기준 설정하기
+            </Link>
+          </div>
         )}
         <ul className="divide-y divide-slate-100">
           {items.map((item) => (

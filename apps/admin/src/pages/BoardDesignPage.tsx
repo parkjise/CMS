@@ -91,6 +91,17 @@ function BoardDesignForm({ board }: { board: Board }) {
   const [design, setDesign] = useState<BoardDesign>(board.design)
   const [sortOrder, setSortOrder] = useState(board.sort_order)
   const [pageSize, setPageSize] = useState(board.page_size)
+  const payload = { sort_order: sortOrder, page_size: pageSize, board_type: boardType, design }
+  // 마지막으로 저장한 값 — 바꾼 게 없으면 저장 버튼을 끈다
+  const [saved, setSaved] = useState(() =>
+    JSON.stringify({
+      sort_order: board.sort_order,
+      page_size: board.page_size,
+      board_type: board.board_type,
+      design: board.design,
+    })
+  )
+  const dirty = JSON.stringify(payload) !== saved
 
   const isSystem = board.system_key !== null
   // 사진 없는 글은 갤러리에서 빈 칸으로 보일 수 있다 (D-03)
@@ -106,15 +117,8 @@ function BoardDesignForm({ board }: { board: Board }) {
 
   const save = async () => {
     try {
-      await updateBoard.mutateAsync({
-        id: board.id,
-        payload: {
-          sort_order: sortOrder,
-          page_size: pageSize,
-          board_type: boardType,
-          design,
-        },
-      })
+      await updateBoard.mutateAsync({ id: board.id, payload })
+      setSaved(JSON.stringify(payload))
       toast.success('저장했습니다.')
     } catch (err) {
       toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
@@ -418,7 +422,7 @@ function BoardDesignForm({ board }: { board: Board }) {
 
         {canEdit && (
           <div className="flex justify-end">
-            <Button type="submit" loading={updateBoard.isPending}>
+            <Button type="submit" loading={updateBoard.isPending} disabled={!dirty}>
               저장
             </Button>
           </div>

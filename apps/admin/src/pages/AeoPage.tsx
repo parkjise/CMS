@@ -193,23 +193,26 @@ export function AeoPage() {
         </section>
       )}
       {query.data && query.data.boards.length > 0 && (
-        <ReadOnlyFieldset className="min-w-0 space-y-6">
-          {query.data.boards.map((board) => (
-            <BoardCard
-              key={board.id}
-              board={board}
-              on={selected.includes(board.id)}
-              onToggle={(on) => toggle(board.id, on)}
-            />
-          ))}
-        </ReadOnlyFieldset>
+        <>
+          <ReadOnlyFieldset className="min-w-0 space-y-6">
+            {query.data.boards.map((board) => (
+              <BoardCard
+                key={board.id}
+                board={board}
+                on={selected.includes(board.id)}
+                onToggle={(on) => toggle(board.id, on)}
+              />
+            ))}
+          </ReadOnlyFieldset>
+          {/* 연결할 FAQ 게시판이 없으면 저장할 것도 없다 */}
+          <SaveBar
+            dirty={dirty}
+            saving={save.isPending}
+            onReset={() => setSelected(saved)}
+            onSave={handleSave}
+          />
+        </>
       )}
-      <SaveBar
-        dirty={dirty}
-        saving={save.isPending}
-        onReset={() => setSelected(saved)}
-        onSave={handleSave}
-      />
     </SitePage>
   )
 }

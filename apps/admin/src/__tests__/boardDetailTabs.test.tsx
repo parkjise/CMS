@@ -131,3 +131,37 @@ describe('게시판 상세 탭 4개 (T-212)', () => {
     expect(router.state.location.hash).toBe(hash)
   })
 })
+
+describe('#구역 으로 들어오면 그 구역으로 (T-226)', () => {
+  // 위 구역 내용이 늦게 불러와져 높이가 바뀔 때를 흉내 낸다
+  let resized: () => void = () => {}
+  const scrolled = vi.fn()
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'ResizeObserver',
+      class {
+        constructor(callback: () => void) {
+          resized = callback
+        }
+        observe() {}
+        disconnect() {
+          resized = () => {}
+        }
+      }
+    )
+    HTMLElement.prototype.scrollIntoView = scrolled
+  })
+
+  it('높이가 바뀌면 다시 맞추고, 사용자가 움직이면 멈춘다', async () => {
+    render('/admin/boards/b1/categories')
+    await waitFor(() => expect(scrolled).toHaveBeenCalled())
+    const before = scrolled.mock.calls.length
+    resized()
+    expect(scrolled.mock.calls.length).toBe(before + 1)
+
+    window.dispatchEvent(new Event('wheel'))
+    resized()
+    expect(scrolled.mock.calls.length).toBe(before + 1)
+  })
+})

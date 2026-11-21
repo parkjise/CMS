@@ -56,16 +56,24 @@ export const ADMIN_NAVIGATION = [
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
 
+// 하위 메뉴가 따로 있는 합친 화면의 구역
+const HASH_SECTIONS: Record<string, string[]> = {
+  fields: ['#categories'],
+  settings: ['#permissions'],
+}
+
 const matches = (pathname: string, to: string) => pathname === to || pathname.startsWith(`${to}/`)
 
 /** 2뎁스 현재 화면 — 더 구체적인 형제 메뉴가 있으면 그쪽만 (목록과 생성이 함께 켜지지 않게) */
-export function isChildActive(pathname: string, to: string, siblings: { to: string }[]) {
+export function isChildActive(pathname: string, to: string, siblings: { to: string }[], hash = '') {
   // 게시판별 화면은 그 화면을 여는 하위 메뉴를 켠다 (T-187) — 글은 게시글 관리, 연결 · 운영은 환경설정
   const detail = pathname.match(
     /^\/admin\/boards\/[^/]+\/(design|fields|categories|permissions|operation|settings|connection|posts)(?:\/.*)?$/
   )
   if (detail) {
-    const section = detail[1]
+    // 합친 화면의 #구역 — 카테고리 · 권한 구역이면 그 메뉴를 켠다 (T-226)
+    const area = HASH_SECTIONS[detail[1]]?.includes(hash) ? hash.slice(1) : null
+    const section = area ?? detail[1]
     const target =
       section === 'posts'
         ? '/admin/posts'

@@ -155,7 +155,8 @@ describe('ImageUploadField', () => {
     await user.click(screen.getByRole('button', { name: '배경 이미지 삭제' }))
     expect(screen.getByTestId('value')).toBeEmptyDOMElement()
 
-    await user.click(screen.getByRole('button', { name: '주소로 넣기' }))
+    // 칸 이름이 함께 나와 로고 · 파비콘처럼 여럿 있어도 구분된다 (T-226)
+    await user.click(screen.getByRole('button', { name: '배경 이미지 주소로 넣기' }))
     await user.type(screen.getByLabelText('배경 이미지 주소'), 'https://cdn.example.com/b.jpg')
     expect(screen.getByTestId('value')).toHaveTextContent('https://cdn.example.com/b.jpg')
   })

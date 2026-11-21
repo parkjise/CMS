@@ -168,7 +168,8 @@ export function ImageUploadField({
           className="inline-flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700"
         >
           <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
-          주소로 넣기
+          {/* 한 화면에 이미지 칸이 여럿이면(로고 · 파비콘) 어느 칸인지 함께 말한다 */}
+          {label} 주소로 넣기
         </button>
         {showUrl && (
           <Input
