@@ -7,6 +7,7 @@ import { BoardListFieldSettings } from '@/components/boards/BoardListFieldSettin
 import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { BoardDesignPreview } from '@/components/boards/BoardDesignPreview'
 import { CARD, HELP_STRIP, PAGE, PANEL_LABEL } from '@/components/boards/boardStyles'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useBoardTypeOptions, useBoards, useUpdateBoard } from '@/hooks/useBoards'
 import { useCanEdit } from '@/hooks/useCanEdit'
@@ -115,13 +116,16 @@ function BoardDesignForm({ board }: { board: Board }) {
   }
   const change = (next: Partial<BoardDesign>) => setDesign((current) => ({ ...current, ...next }))
 
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
   const save = async () => {
     try {
       await updateBoard.mutateAsync({ id: board.id, payload })
       setSaved(JSON.stringify(payload))
       toast.success('저장했습니다.')
+      return true
     } catch (err) {
       toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
+      return false
     }
   }
 
@@ -131,9 +135,10 @@ function BoardDesignForm({ board }: { board: Board }) {
         className="min-w-0 space-y-5"
         onSubmit={(e) => {
           e.preventDefault()
-          save()
+          void save()
         }}
       >
+        <LeaveGuard dirty={dirty} onSave={save} />
         <ReadOnlyFieldset>
           {isSystem && (
             <p className={`mb-5 ${HELP_STRIP}`}>

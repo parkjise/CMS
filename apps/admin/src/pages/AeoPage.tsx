@@ -4,9 +4,9 @@ import { CircleCheck, CircleHelp, Plus, TriangleAlert } from 'lucide-react'
 import type { AeoBoard, AeoItem } from '@cms/types'
 import { Toggle, toast } from '@cms/ui'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useAeo, useUpdateAeo } from '@/hooks/useSearchSettings'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
@@ -155,7 +155,6 @@ export function AeoPage() {
   const [selected, setSelected] = useState<string[]>([])
   const saved = query.data?.faq_board_ids ?? []
   const dirty = Boolean(query.data) && !sameIds(selected, saved)
-  useLeaveGuard(dirty)
 
   useEffect(() => {
     if (query.data) setSelected(query.data.faq_board_ids)
@@ -164,11 +163,17 @@ export function AeoPage() {
   const toggle = (id: string, on: boolean) =>
     setSelected((ids) => (on ? [...ids.filter((x) => x !== id), id] : ids.filter((x) => x !== id)))
 
-  const handleSave = () =>
-    save.mutate(selected, {
-      onSuccess: () => toast.success('AEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.'),
-      onError: (error) => toast.error(pickErrorMessage(error, '저장하지 못했습니다.')),
-    })
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
+    try {
+      await save.mutateAsync(selected)
+      toast.success('AEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.')
+      return true
+    } catch (error) {
+      toast.error(pickErrorMessage(error, '저장하지 못했습니다.'))
+      return false
+    }
+  }
 
   return (
     <SitePage
@@ -209,10 +214,11 @@ export function AeoPage() {
             dirty={dirty}
             saving={save.isPending}
             onReset={() => setSelected(saved)}
-            onSave={handleSave}
+            onSave={() => void handleSave()}
           />
         </>
       )}
+      <LeaveGuard dirty={dirty} onSave={handleSave} />
     </SitePage>
   )
 }

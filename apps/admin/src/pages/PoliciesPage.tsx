@@ -3,10 +3,10 @@ import { CalendarClock, ExternalLink, FilePlus2, History, TriangleAlert } from '
 import { Button, Input, Modal, toast } from '@cms/ui'
 import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD } from '@/components/site/SitePage'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import {
   type PolicyDocument,
   type PolicyKind,
@@ -118,7 +118,6 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
   const [effective, setEffective] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
   const dirty = isDraft && (body !== working.body || summary !== (working.summary ?? ''))
-  useLeaveGuard(dirty)
 
   useEffect(() => {
     setBody(doc.working?.body ?? '')
@@ -128,14 +127,17 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
   const fail = (fallback: string) => (error: unknown) =>
     toast.error(pickErrorMessage(error, fallback))
 
-  const handleSave = () =>
-    save.mutate(
-      { kind: doc.kind, body, summary },
-      {
-        onSuccess: () => toast.success('초안을 저장했습니다.'),
-        onError: fail('초안을 저장하지 못했습니다.'),
-      }
-    )
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
+    try {
+      await save.mutateAsync({ kind: doc.kind, body, summary })
+      toast.success('초안을 저장했습니다.')
+      return true
+    } catch (error) {
+      fail('초안을 저장하지 못했습니다.')(error)
+      return false
+    }
+  }
 
   const handlePublish = () => {
     const at = fromSeoulInput(effective)
@@ -361,9 +363,10 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
             setBody(working.body)
             setSummary(working.summary ?? '')
           }}
-          onSave={handleSave}
+          onSave={() => void handleSave()}
         />
       )}
+      <LeaveGuard dirty={dirty} onSave={handleSave} />
       <VersionModal kind={doc.kind} version={viewing} onClose={() => setViewing(null)} />
     </section>
   )

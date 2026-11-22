@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useBlocker, useNavigate, useSearchParams } from 'react-router'
+import { Link, useNavigate, useSearchParams } from 'react-router'
 import type { Board, BoardOperation, BoardPermissions, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import {
@@ -11,6 +11,7 @@ import {
   useSlugCheck,
 } from '@/hooks/useBoards'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import {
   CARD,
   LINK_PRIMARY,
@@ -257,34 +258,9 @@ export function BoardNewPage() {
     goTo(step + 1)
   }
 
-  // 입력한 뒤 다른 메뉴로 가면 확인 (T-210) — 만든 뒤 · [취소] 로 나갈 때는 묻지 않는다
+  // 입력한 뒤 다른 메뉴 · [취소]로 나가면 확인 (T-210 → T-227 공통 확인 창) — 만든 뒤에는 묻지 않는다
   const typed = Boolean(name.trim() || description.trim() || slug)
-  const leaving = useRef(false)
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      typed && !created && !leaving.current && currentLocation.pathname !== nextLocation.pathname
-  )
-  useEffect(() => {
-    if (blocker.state !== 'blocked') return
-    if (window.confirm('게시판 만들기를 그만두고 나갈까요? 입력한 내용은 저장되지 않습니다.')) {
-      blocker.proceed()
-    } else {
-      blocker.reset()
-    }
-  }, [blocker])
-  useEffect(() => {
-    if (!typed || created) return
-    const warn = (event: BeforeUnloadEvent) => event.preventDefault()
-    window.addEventListener('beforeunload', warn)
-    return () => window.removeEventListener('beforeunload', warn)
-  }, [typed, created])
-
-  const cancel = () => {
-    if (typed && !window.confirm('게시판 만들기를 그만둘까요? 입력한 내용은 저장되지 않습니다.'))
-      return
-    leaving.current = true
-    navigate('/admin/boards')
-  }
+  const cancel = () => navigate('/admin/boards')
 
   const submit = async () => {
     try {
@@ -381,6 +357,10 @@ export function BoardNewPage() {
             </button>
           )
         }
+      />
+      <LeaveGuard
+        dirty={typed}
+        message="게시판 만들기를 그만두고 나갈까요? 입력한 내용은 저장되지 않습니다."
       />
 
       {!canEdit ? (

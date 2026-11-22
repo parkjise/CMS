@@ -215,7 +215,6 @@ describe('저장 막대 · 나가기 확인 (T-225)', () => {
   })
 
   it('고친 채 다른 화면으로 가면 확인을 묻고, 취소하면 남는다', async () => {
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const user = userEvent.setup()
     renderPage()
     const title = await screen.findByDisplayValue('강남 OO의원')
@@ -224,8 +223,12 @@ describe('저장 막대 · 나가기 확인 (T-225)', () => {
     await user.click(screen.getByRole('button', { name: /사이트맵/ }))
     await user.click(screen.getByText('규칙 보기'))
     await user.click(screen.getByRole('link', { name: 'GEO 설정' }))
-    await waitFor(() => expect(confirm).toHaveBeenCalled())
+    // 공통 나가기 확인 창 (T-227)
+    await user.click(await screen.findByRole('button', { name: '계속 편집' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
     expect(screen.queryByText('이동한 화면')).not.toBeInTheDocument()
+    // 사이트맵 탭에 있어도 고친 내용은 남아 있다
+    expect(screen.getByText('저장되지 않은 변경사항이 있습니다.')).toBeInTheDocument()
   })
 
   it('보기 전용 계정에는 저장 막대가 없다', async () => {

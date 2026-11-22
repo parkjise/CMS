@@ -18,10 +18,10 @@ import { KeywordTagInput } from '@/components/seo/KeywordTagInput'
 import { SearchConsoleGuideModal } from '@/components/seo/SearchConsoleGuideModal'
 import { SitemapCheck } from '@/components/seo/SitemapCheck'
 import { SocialPreview } from '@/components/seo/SocialPreview'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SitePage } from '@/components/site/SitePage'
 import { useDomainStatus } from '@/hooks/useDomain'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useGeo } from '@/hooks/useSearchSettings'
 import {
   type SeoSettings,
@@ -90,7 +90,6 @@ export function SeoPage() {
   const [guideOpen, setGuideOpen] = useState(false)
   const saved = useMemo(() => toDraft(seoQuery.data), [seoQuery.data])
   const dirty = !seoQuery.isLoading && !sameDraft(draft, saved)
-  useLeaveGuard(dirty)
 
   // 서버 응답 도착 시 폼 동기화 — 화면에 그리기 전에 채워 빈 폼이 한 번 보였다가
   // 높이가 바뀌며 밀리지 않게 (T-043-A)
@@ -135,7 +134,8 @@ export function SeoPage() {
     ogTitle.length > OG_TITLE_MAX ||
     ogDescription.length > OG_DESC_MAX
 
-  const handleSave = () => {
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
     const payload: SeoSettingsUpdate = {
       meta_title: metaTitle || null,
       meta_description: metaDescription || null,
@@ -151,11 +151,18 @@ export function SeoPage() {
       // 잠긴 요금제는 키워드를 보내지 않는다 (저장된 값은 그대로)
       ...(keywordsAllowed ? { keywords } : {}),
     }
-    updateMutation.mutate(payload, {
-      onSuccess: () => toast.success('SEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.'),
-      onError: (e) => toast.error(pickErrorMessage(e, '저장에 실패했습니다.')),
-    })
+    try {
+      await updateMutation.mutateAsync(payload)
+      toast.success('SEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.')
+      return true
+    } catch (e) {
+      toast.error(pickErrorMessage(e, '저장에 실패했습니다.'))
+      return false
+    }
   }
+  const overLimitMessage = overLimit
+    ? '글자 수 제한을 넘은 칸이 있어요. 줄인 뒤 저장해 주세요.'
+    : undefined
 
   return (
     <SitePage
@@ -480,9 +487,10 @@ export function SeoPage() {
         dirty={dirty}
         saving={updateMutation.isPending}
         onReset={() => setDraft(saved)}
-        onSave={handleSave}
-        error={overLimit ? '글자 수 제한을 넘은 칸이 있어요. 줄인 뒤 저장해 주세요.' : undefined}
+        onSave={() => void handleSave()}
+        error={overLimitMessage}
       />
+      <LeaveGuard dirty={dirty} onSave={handleSave} saveBlockedReason={overLimitMessage} />
 
       <SearchConsoleGuideModal
         open={guideOpen}
