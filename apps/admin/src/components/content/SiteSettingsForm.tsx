@@ -4,9 +4,9 @@ import type { DayHours, DayStatus, PublicFieldGroup, WeekdayKey, WeeklyHours } f
 import { Input, Toggle, toast } from '@cms/ui'
 import { FormField } from '@/components/content/forms/FormField'
 import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD } from '@/components/site/SitePage'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import {
   type SiteSettings,
   type SiteSettingsField,
@@ -269,7 +269,6 @@ export function SiteSettingsForm() {
   const [draft, setDraft] = useState<Draft>(() => toDraft(null))
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({})
   const dirty = query.data !== undefined && !sameDraft(draft, saved)
-  useLeaveGuard(dirty)
 
   useEffect(() => {
     if (query.data !== undefined) setDraft(toDraft(query.data))
@@ -294,25 +293,27 @@ export function SiteSettingsForm() {
       hidden: show ? d.hidden.filter((g) => g !== group) : [...d.hidden, group],
     }))
 
-  const handleSave = () =>
-    save.mutate(toPayload(draft), {
-      onSuccess: () => {
-        setErrors({})
-        toast.success('사이트 기본정보를 저장했습니다. 홈페이지에 바로 반영돼요.')
-      },
-      onError: (err) => {
-        const fe = fieldError(err)
-        if (fe?.field.startsWith('weekly_hours')) {
-          const day = fe.field.split('.')[1] as WeekdayKey | undefined
-          const prefix = day && DAY_LABEL[day] ? `${DAY_LABEL[day]}요일: ` : ''
-          setErrors({ weekly_hours: `${prefix}${fe.message}` })
-        } else if (fe && (FIELDS as string[]).includes(fe.field)) {
-          setErrors({ [fe.field]: fe.message })
-          document.getElementById(`site-${fe.field}`)?.focus()
-        }
-        toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
-      },
-    })
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
+    try {
+      await save.mutateAsync(toPayload(draft))
+      setErrors({})
+      toast.success('사이트 기본정보를 저장했습니다. 홈페이지에 바로 반영돼요.')
+      return true
+    } catch (err) {
+      const fe = fieldError(err)
+      if (fe?.field.startsWith('weekly_hours')) {
+        const day = fe.field.split('.')[1] as WeekdayKey | undefined
+        const prefix = day && DAY_LABEL[day] ? `${DAY_LABEL[day]}요일: ` : ''
+        setErrors({ weekly_hours: `${prefix}${fe.message}` })
+      } else if (fe && (FIELDS as string[]).includes(fe.field)) {
+        setErrors({ [fe.field]: fe.message })
+        document.getElementById(`site-${fe.field}`)?.focus()
+      }
+      toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
+      return false
+    }
+  }
 
   if (query.isLoading) {
     return (
@@ -561,8 +562,9 @@ export function SiteSettingsForm() {
           setDraft(saved)
           setErrors({})
         }}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
       />
+      <LeaveGuard dirty={dirty} onSave={handleSave} />
     </form>
   )
 }

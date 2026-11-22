@@ -5,9 +5,9 @@ import type { CrawlerPolicy, GeoEvidence, GeoSettings } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useGeo, useUpdateGeo } from '@/hooks/useSearchSettings'
 import { useSeoSettings } from '@/hooks/useSeo'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -76,7 +76,6 @@ export function GeoPage() {
     query.data &&
     JSON.stringify(toSettings(draft)) !== JSON.stringify(toSettings(toDraft(query.data.settings)))
   )
-  useLeaveGuard(dirty)
 
   const customRobots = seo.data?.robots_txt?.trim() ?? ''
   const robotsBase = customRobots ? `${customRobots}\n` : DEFAULT_ROBOTS
@@ -99,12 +98,17 @@ export function GeoPage() {
     patch({ evidence: draft.evidence.map((e, i) => (i === index ? { ...e, ...change } : e)) })
   const topicCount = draft ? toSettings(draft).topics.length : 0
 
-  const handleSave = () => {
-    if (!draft) return
-    save.mutate(toSettings(draft), {
-      onSuccess: () => toast.success('GEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.'),
-      onError: (error) => toast.error(pickErrorMessage(error, '저장하지 못했습니다.')),
-    })
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
+    if (!draft) return false
+    try {
+      await save.mutateAsync(toSettings(draft))
+      toast.success('GEO 설정을 저장했습니다. 홈페이지에 바로 반영돼요.')
+      return true
+    } catch (error) {
+      toast.error(pickErrorMessage(error, '저장하지 못했습니다.'))
+      return false
+    }
   }
 
   return (
@@ -351,8 +355,9 @@ export function GeoPage() {
         dirty={dirty}
         saving={save.isPending}
         onReset={() => query.data && setDraft(toDraft(query.data.settings))}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
       />
+      <LeaveGuard dirty={dirty} onSave={handleSave} />
     </SitePage>
   )
 }

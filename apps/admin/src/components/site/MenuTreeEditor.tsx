@@ -12,10 +12,10 @@ import {
 import type { MenuNode, MenuNodeType, SiteMenu } from '@cms/types'
 import { Button, Input, Modal, Toggle, toast } from '@cms/ui'
 import { FormField } from '@/components/content/forms/FormField'
+import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD } from '@/components/site/SitePage'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useLeaveGuard } from '@/hooks/useLeaveGuard'
 import { useResetSiteMenu, useSiteMenu, useUpdateSiteMenu } from '@/hooks/useSiteSettings'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import {
@@ -333,7 +333,6 @@ export function MenuTreeEditor() {
   const [deleting, setDeleting] = useState<MenuNode | null>(null)
   const [confirmReset, setConfirmReset] = useState(false)
   const dirty = Boolean(menu) && !sameTree(nodes, savedNodes)
-  useLeaveGuard(dirty)
 
   useEffect(() => {
     if (!menu) return
@@ -379,25 +378,29 @@ export function MenuTreeEditor() {
     setDeleting(null)
   }
 
-  const handleSave = () => {
+  // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
+  const handleSave = async () => {
     if (error) {
       toast.error(error)
-      return
+      return false
     }
-    save.mutate(
-      nodes.map(function trim(n): MenuNode {
-        return {
-          ...n,
-          label: n.label.trim(),
-          target: n.target?.trim() || null,
-          children: n.children.map(trim),
-        }
-      }),
-      {
-        onSuccess: () => toast.success('메뉴를 저장했습니다. 홈페이지에 바로 반영돼요.'),
-        onError: (err) => toast.error(pickErrorMessage(err, '메뉴를 저장하지 못했습니다.')),
-      }
-    )
+    try {
+      await save.mutateAsync(
+        nodes.map(function trim(n): MenuNode {
+          return {
+            ...n,
+            label: n.label.trim(),
+            target: n.target?.trim() || null,
+            children: n.children.map(trim),
+          }
+        })
+      )
+      toast.success('메뉴를 저장했습니다. 홈페이지에 바로 반영돼요.')
+      return true
+    } catch (err) {
+      toast.error(pickErrorMessage(err, '메뉴를 저장하지 못했습니다.'))
+      return false
+    }
   }
 
   return (
@@ -529,8 +532,9 @@ export function MenuTreeEditor() {
         dirty={dirty}
         saving={save.isPending}
         onReset={() => setNodes(savedNodes)}
-        onSave={handleSave}
+        onSave={() => void handleSave()}
       />
+      <LeaveGuard dirty={dirty} onSave={handleSave} saveBlockedReason={error ?? undefined} />
     </div>
   )
 }

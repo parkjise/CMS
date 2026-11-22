@@ -421,14 +421,17 @@ describe('게시판 추가 마법사', () => {
 
   it('취소 — 입력이 있으면 확인하고 목록으로 돌아간다', async () => {
     mockApi({})
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     renderNew()
     await userEvent.type(screen.getByLabelText(/게시판 이름/), '소식')
     await userEvent.click(screen.getByRole('button', { name: '취소' }))
-    expect(confirm).toHaveBeenCalled()
+    // 공통 나가기 확인 창 (T-227) — 저장 기능이 없어 [저장하고 이동]은 없다
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(/그만두고 나갈까요/)).toBeInTheDocument()
+    expect(within(dialog).queryByRole('button', { name: '저장하고 이동' })).not.toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: '계속 편집' }))
     expect(screen.getByLabelText(/게시판 이름/)).toHaveValue('소식')
-    confirm.mockReturnValue(true)
     await userEvent.click(screen.getByRole('button', { name: '취소' }))
+    await userEvent.click(await screen.findByRole('button', { name: '저장하지 않고 이동' }))
     expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
   })
 
@@ -1062,7 +1065,6 @@ describe('게시판 만들기 개선 (T-210)', () => {
 
   it('입력한 뒤 다른 화면으로 가려 하면 확인하고, 취소하면 남는다', async () => {
     mockWithSlugCheck(() => ({ available: true, reason: null }))
-    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(false)
     const router = createMemoryRouter(
       [
         { path: '/admin/boards/new', element: <BoardNewPage /> },
@@ -1073,13 +1075,11 @@ describe('게시판 만들기 개선 (T-210)', () => {
     renderWithQuery(<RouterProvider router={router} />)
     await userEvent.type(await screen.findByLabelText(/게시판 이름/), '소식')
     await act(() => router.navigate('/admin/inquiries'))
-    expect(confirm).toHaveBeenCalledWith(expect.stringContaining('그만두고 나갈까요'))
+    expect(await screen.findByText(/그만두고 나갈까요/)).toBeInTheDocument()
     expect(screen.queryByText('이동한 화면')).not.toBeInTheDocument()
 
-    confirm.mockReturnValue(true)
-    await act(() => router.navigate('/admin/inquiries'))
+    await userEvent.click(screen.getByRole('button', { name: '저장하지 않고 이동' }))
     expect(await screen.findByText('이동한 화면')).toBeInTheDocument()
-    confirm.mockRestore()
   })
 
   it('아무것도 입력하지 않았으면 묻지 않고 나간다', async () => {
