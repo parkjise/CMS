@@ -1,13 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router'
+import { renderWithQuery } from './renderWithQuery'
 import { Sidebar } from '@/components/layout/Sidebar'
 import { useFeatureStore } from '@/stores/featureStore'
 import type { ActiveFeature } from '@/stores/featureStore'
 
+// 신고된 글 메뉴의 처리 안 한 신고 수 (T-229)
+const { get } = vi.hoisted(() => ({ get: vi.fn() }))
+vi.mock('@/lib/api', () => ({ api: { get } }))
+beforeEach(() => get.mockResolvedValue({ data: { data: [] } }))
+
 function renderSidebar(path = '/') {
-  return render(
+  return renderWithQuery(
     <MemoryRouter initialEntries={[path]}>
       <Sidebar />
     </MemoryRouter>,
@@ -118,9 +124,11 @@ describe('게시판 관리 2뎁스 메뉴', () => {
   it.each([
     ['/admin/boards', '게시판 목록'],
     ['/admin/boards/b1/posts', '게시글 관리'],
-    ['/admin/boards/b1/settings', '환경설정'],
-    ['/admin/boards/b1/connection', '환경설정'],
-    ['/admin/boards/b1/design', '게시판 디자인'],
+    // 게시판별 탭(설정 · 디자인 · 필드)은 게시판 목록 아래 (T-229)
+    ['/admin/boards/b1/settings', '게시판 목록'],
+    ['/admin/boards/b1/design', '게시판 목록'],
+    ['/admin/boards/b1/fields', '게시판 목록'],
+    ['/admin/posts/reports', '신고된 글'],
     ['/admin/boards/trash', '휴지통'],
     ['/admin/posts', '게시글 관리'],
   ])('%s 에서는 펼친 채 %s 표시', (path, label) => {
@@ -129,9 +137,30 @@ describe('게시판 관리 2뎁스 메뉴', () => {
     expect(screen.getByRole('link', { name: label })).toHaveAttribute('aria-current', 'page')
   })
 
+  it('하위 메뉴는 6개 — 게시판별 화면은 게시판을 고른 뒤 탭으로 (T-229)', () => {
+    renderSidebar('/admin/boards')
+    const list = screen.getByRole('link', { name: '게시판 목록' }).closest('ul')!
+    expect(within(list).getAllByRole('link').map((a) => a.textContent)).toEqual([
+      '게시판 목록',
+      '게시판 만들기',
+      '게시글 관리',
+      '신고된 글',
+      '휴지통',
+      '변경 기록',
+    ])
+  })
+
+  it('처리 안 한 신고가 있으면 신고된 글 옆에 수를 보인다 (T-229)', async () => {
+    get.mockResolvedValue({ data: { data: [{ post_id: 'p1' }, { post_id: 'p2' }] } })
+    renderSidebar('/admin/boards')
+    const reports = screen.getByRole('link', { name: /^신고된 글/ })
+    await waitFor(() => expect(reports).toHaveTextContent('2건 처리 필요'))
+    expect(get).toHaveBeenCalledWith('/v1/posts/reports')
+  })
+
   it('하위 메뉴를 고르면 모바일 메뉴 닫기 호출', async () => {
     const onClose = vi.fn()
-    render(
+    renderWithQuery(
       <MemoryRouter initialEntries={['/admin/boards']}>
         <Sidebar onClose={onClose} />
       </MemoryRouter>,

@@ -158,9 +158,11 @@ export function useMenuParents() {
 const REPORTS_KEY = [...BOARDS_KEY, 'reports'] as const
 
 /** 처리하지 않은 신고가 있는 글 (T-151-B) */
-export function useReportedPosts() {
+/** enabled — 왼쪽 메뉴는 게시판 관리 메뉴가 있을 때만 신고 수를 읽는다 (T-229) */
+export function useReportedPosts(enabled = true) {
   return useQuery({
     queryKey: REPORTS_KEY,
+    enabled,
     queryFn: async (): Promise<ReportedPost[]> => {
       const { data } = await api.get('/v1/posts/reports')
       return data.data

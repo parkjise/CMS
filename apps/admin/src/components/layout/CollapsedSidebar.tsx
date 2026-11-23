@@ -9,7 +9,7 @@ import { useVisibleNavigation } from '@/lib/navItems'
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
 export function CollapsedSidebar() {
-  const { pathname, hash } = useLocation()
+  const { pathname } = useLocation()
   const tenantSlug = useAuthStore((s) => s.tenantSlug)
   const logout = useAuthStore((s) => s.logout)
   const [flyout, setFlyout] = useState<{ to: string; top: number; left: number } | null>(null)
@@ -150,11 +150,11 @@ export function CollapsedSidebar() {
                         to={to}
                         onClick={close}
                         aria-current={
-                          isChildActive(pathname, to, activeItem.children ?? [], hash)
+                          isChildActive(pathname, to, activeItem.children ?? [])
                             ? 'page'
                             : undefined
                         }
-                        className={`block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? [], hash) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
                         {label}
                       </Link>

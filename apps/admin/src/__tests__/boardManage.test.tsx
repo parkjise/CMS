@@ -163,6 +163,8 @@ describe('게시판 목록', () => {
     renderList()
     expect(await screen.findByRole('link', { name: '게시판 추가' })).toHaveAttribute('href', '/admin/boards/new')
     expect(screen.getByRole('link', { name: '병원 소식 설정' })).toHaveAttribute('href', '/admin/boards/b1/settings')
+    // 왼쪽 메뉴의 게시판 디자인 대신 행에서 바로 (T-229)
+    expect(screen.getByRole('link', { name: '병원 소식 디자인' })).toHaveAttribute('href', '/admin/boards/b1/design')
   })
 
   it('테마형에서도 공지 게시판에 "표시되지 않음" 안내가 없다 (T-176)', async () => {

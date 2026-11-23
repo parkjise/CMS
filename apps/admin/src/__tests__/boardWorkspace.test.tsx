@@ -119,17 +119,13 @@ describe('게시판 관리 하위 메뉴 (T-187)', () => {
     const active = (path: string) =>
       children.filter(({ to }) => isChildActive(path, to, children)).map(({ label }) => label)
     expect(active('/admin/boards/b1/posts/p1/edit')).toEqual(['게시글 관리'])
-    expect(active('/admin/boards/b1/operation')).toEqual(['환경설정'])
-    expect(active('/admin/boards/b1/fields')).toEqual(['필드 관리'])
-    expect(active('/admin/boards/design')).toEqual(['게시판 디자인'])
+    // 디자인 · 필드 · 설정 탭과 예전 하위 메뉴 주소는 게시판 목록 아래 (T-229)
+    expect(active('/admin/boards/b1/operation')).toEqual(['게시판 목록'])
+    expect(active('/admin/boards/b1/fields')).toEqual(['게시판 목록'])
+    expect(active('/admin/boards/design')).toEqual(['게시판 목록'])
     expect(active('/admin/boards')).toEqual(['게시판 목록'])
-    // 합친 화면의 #구역 은 그 하위 메뉴를 켠다 (T-226)
-    const activeAt = (path: string, hash: string) =>
-      children.filter(({ to }) => isChildActive(path, to, children, hash)).map(({ label }) => label)
-    expect(activeAt('/admin/boards/b1/fields', '#categories')).toEqual(['카테고리 관리'])
-    expect(activeAt('/admin/boards/b1/fields', '#fields')).toEqual(['필드 관리'])
-    expect(activeAt('/admin/boards/b1/settings', '#permissions')).toEqual(['권한 관리'])
-    expect(activeAt('/admin/boards/b1/settings', '#operation')).toEqual(['환경설정'])
+    expect(active('/admin/posts/reports')).toEqual(['신고된 글'])
+    expect(active('/admin/boards/new')).toEqual(['게시판 만들기'])
   })
 })
 

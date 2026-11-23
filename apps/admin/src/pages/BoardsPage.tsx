@@ -12,6 +12,7 @@ import {
   List,
   MessagesSquare,
   Newspaper,
+  Palette,
   Plus,
   Search,
   Settings,
@@ -232,7 +233,7 @@ export function BoardsPage() {
     <div className={PAGE}>
       <BoardPageTitle
         title="게시판 목록"
-        description="사이트의 게시판을 한곳에서 관리하세요. 이름을 누르면 글을, 설정 버튼을 누르면 게시판 설정을 엽니다."
+        description="사이트의 게시판을 한곳에서 관리하세요. 이름을 누르면 글을, 디자인 · 설정 버튼을 누르면 그 게시판의 디자인 · 설정을 엽니다."
         actions={
           canEdit &&
           limits?.can_create && (
@@ -531,6 +532,15 @@ export function BoardsPage() {
                           aria-label={`${board.name} 작업`}
                           className="flex items-center gap-0.5"
                         >
+                          {/* 왼쪽 메뉴의 게시판 디자인을 뺀 대신 행에서 바로 (T-229) */}
+                          <Link
+                            to={`/admin/boards/${board.id}/design`}
+                            aria-label={`${board.name} 디자인`}
+                            title="게시판 디자인"
+                            className={ICON_BUTTON}
+                          >
+                            <Palette className="h-4 w-4" aria-hidden />
+                          </Link>
                           <Link
                             to={`/admin/boards/${board.id}/settings`}
                             aria-label={`${board.name} 설정`}
@@ -630,7 +640,8 @@ export function BoardsPage() {
         <CircleHelp className="h-4 w-4 shrink-0" aria-hidden />
         <span>
           <strong className="font-medium text-slate-600">게시판과 게시글은 따로 관리해요.</strong>{' '}
-          게시판 설정은 설정 버튼에서, 글 쓰기와 고치기는 게시판 이름이나 게시글 관리에서 하세요.
+          게시판 디자인 · 필드 · 설정은 게시판 행의 버튼이나 게시판을 연 뒤 위쪽 탭에서, 글 쓰기와
+          고치기는 게시판 이름이나 게시글 관리에서 하세요.
         </span>
       </div>
       <div className={HELP_STRIP}>
