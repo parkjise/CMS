@@ -118,16 +118,80 @@ describe('약관 · 정책 관리', () => {
     )
   })
 
-  it('작업 중 버전이 없으면 공개본을 보여 주고 새 버전을 만든다', async () => {
-    post.mockReturnValue(
-      ok(doc('terms', { working: { ...version(1, 'draft'), body: '제1조 (목적)\n기본 약관' } }))
-    )
+  it('[새 버전 만들기]는 서버에 바로 만들지 않고, [취소]하면 아무것도 남지 않는다 (T-230)', async () => {
     const user = userEvent.setup()
     renderPage()
     expect(await screen.findByText(/기본 문안을 보여 주는 중이에요/)).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: '새 버전 만들기' }))
-    await waitFor(() => expect(post).toHaveBeenCalledWith('/v1/site-settings/policies/terms/draft'))
-    expect(await screen.findByLabelText('본문')).toHaveValue('제1조 (목적)\n기본 약관')
+    expect(post).not.toHaveBeenCalled()
+    expect(screen.getByLabelText('본문')).toHaveValue('제1조 (목적)\n기본 약관')
+    expect(screen.getByText(/v1 새 버전 — 아직 저장하지 않았어요/)).toBeInTheDocument()
+    // 저장 전에는 공개 · 예약 칸이 없다
+    expect(screen.queryByRole('button', { name: '바로 공개' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '취소' }))
+    expect(screen.queryByLabelText('본문')).not.toBeInTheDocument()
+    expect(post).not.toHaveBeenCalled()
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it('새 버전은 처음 저장할 때 초안을 만들고 고친 본문을 저장한다 (T-230)', async () => {
+    const draft = { ...version(1, 'draft', { summary: null }), body: '제1조 (목적)\n기본 약관' }
+    post.mockReturnValue(ok(doc('terms', { working: draft })))
+    put.mockImplementation((_url: string, body: { body: string; summary: string }) =>
+      ok(doc('terms', { working: { ...draft, body: body.body, summary: body.summary } }))
+    )
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: '새 버전 만들기' }))
+    const body = screen.getByLabelText('본문')
+    await user.type(body, '\n제2조 (정의)')
+    await user.type(screen.getByLabelText('변경 내용 요약'), '정의 조항 추가')
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    await waitFor(() =>
+      expect(put).toHaveBeenCalledWith('/v1/site-settings/policies/terms/draft', {
+        body: '제1조 (목적)\n기본 약관\n제2조 (정의)',
+        summary: '정의 조항 추가',
+      })
+    )
+    expect(post).toHaveBeenCalledWith('/v1/site-settings/policies/terms/draft')
+    expect(post.mock.invocationCallOrder[0]).toBeLessThan(put.mock.invocationCallOrder[0])
+    expect(toast.success).toHaveBeenCalledWith('새 버전 초안을 저장했습니다.')
+    // 이제 초안 — 공개할 수 있다
+    expect(await screen.findByRole('button', { name: '바로 공개' })).toBeInTheDocument()
+    expect(screen.getByLabelText('본문')).toHaveValue('제1조 (목적)\n기본 약관\n제2조 (정의)')
+  })
+
+  it('초안을 만든 뒤 저장이 실패해도 고친 본문은 남는다 (T-230)', async () => {
+    const draft = { ...version(1, 'draft', { summary: null }), body: '제1조 (목적)\n기본 약관' }
+    post.mockReturnValue(ok(doc('terms', { working: draft })))
+    put.mockRejectedValue(new Error('fail'))
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: '새 버전 만들기' }))
+    await user.type(screen.getByLabelText('본문'), '!')
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    await waitFor(() => expect(toast.error).toHaveBeenCalled())
+    expect(screen.getByLabelText('본문')).toHaveValue('제1조 (목적)\n기본 약관!')
+    expect(screen.getByText('저장되지 않은 변경사항이 있습니다.')).toBeInTheDocument()
+  })
+
+  it('[바뀐 곳 보기] — 공개본과 줄 단위로 비교 (T-230)', async () => {
+    const user = userEvent.setup()
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: '새 버전 만들기' }))
+    expect(screen.queryByRole('button', { name: '바뀐 곳 보기' })).not.toBeInTheDocument()
+    const body = screen.getByLabelText('본문')
+    await user.clear(body)
+    await user.type(body, '제1조 (목적)\n새 약관')
+    await user.click(screen.getByRole('button', { name: '바뀐 곳 보기' }))
+    const lines = within(await screen.findByRole('list', { name: '바뀐 곳' })).getAllByRole(
+      'listitem'
+    )
+    expect(lines.map((li) => li.textContent?.trim())).toEqual([
+      '제1조 (목적)',
+      '-뺀 줄: 기본 약관',
+      '+더한 줄: 새 약관',
+    ])
   })
 
   it('초안 — 저장 막대로 저장하고, 저장한 뒤 바로 공개한다', async () => {

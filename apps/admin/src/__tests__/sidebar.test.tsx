@@ -205,6 +205,23 @@ describe('사이트 관리 2뎁스 메뉴 (T-221)', () => {
     expect(links.map((a) => [a.textContent, a.getAttribute('href')])).toEqual(SITE_MENU)
   })
 
+  it('SEO · AEO · GEO 는 마우스를 올리면 쉬운 말 설명 (T-230)', () => {
+    renderSidebar('/admin/site/seo')
+    expect(screen.getByRole('link', { name: 'SEO 설정' })).toHaveAttribute(
+      'title',
+      '검색엔진에 보이는 제목 · 설명'
+    )
+    expect(screen.getByRole('link', { name: 'AEO 설정' })).toHaveAttribute(
+      'title',
+      '자주 묻는 질문을 답변 형식으로'
+    )
+    expect(screen.getByRole('link', { name: 'GEO 설정' })).toHaveAttribute(
+      'title',
+      'AI 답변 서비스에 브랜드 소개'
+    )
+    expect(screen.getByRole('link', { name: '메뉴 관리' })).not.toHaveAttribute('title')
+  })
+
   it('예전 단독 메뉴 SEO 설정 · 약관 · 방침은 없다', () => {
     renderSidebar('/admin/dashboard')
     expect(screen.queryByRole('link', { name: '약관 · 방침' })).not.toBeInTheDocument()

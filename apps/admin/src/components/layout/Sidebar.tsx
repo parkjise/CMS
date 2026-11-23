@@ -12,6 +12,8 @@ const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhos
 interface NavChild {
   to: string
   label: string
+  /** 마우스를 올리면 보이는 한 줄 설명 (T-230) */
+  hint?: string
 }
 
 interface NavItem {
@@ -100,11 +102,12 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
       </button>
       {open && (
         <ul id={listId} className="mt-0.5 space-y-0.5">
-          {children.map(({ to, label }) => (
+          {children.map(({ to, label, hint }) => (
             <li key={to}>
               {/* NavLink 는 주소 앞부분만 맞아도 켜져서, 켜짐은 isChildActive 로만 정한다 (T-187) */}
               <Link
                 to={to}
+                title={hint}
                 onClick={onNavigate}
                 aria-current={isChildActive(pathname, to, children) ? 'page' : undefined}
                 className={[

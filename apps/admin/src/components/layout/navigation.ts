@@ -14,6 +14,13 @@ import {
 /** 신고된 글 — 메뉴에 처리 안 한 신고 수를 보인다 (T-229) */
 export const REPORTS_PATH = '/admin/posts/reports'
 
+/** 낯선 검색 용어를 한 줄로 (T-230) — 메뉴 툴팁 · 화면 제목 아래에 같은 말 */
+export const SITE_HINTS = {
+  seo: '검색엔진에 보이는 제목 · 설명',
+  aeo: '자주 묻는 질문을 답변 형식으로',
+  geo: 'AI 답변 서비스에 브랜드 소개',
+} as const
+
 /** 사이트 공통 설정 (T-221, 사이트 관리 기획서) — 첫 화면은 기본정보 */
 export const SITE_HOME = '/admin/site/info'
 
@@ -27,9 +34,9 @@ export const ADMIN_NAVIGATION = [
       { to: SITE_HOME, label: '사이트 기본정보' },
       { to: '/admin/site/menu', label: '메뉴 관리' },
       { to: '/admin/site/policies', label: '약관 · 정책 관리' },
-      { to: '/admin/site/seo', label: 'SEO 설정' },
-      { to: '/admin/site/aeo', label: 'AEO 설정' },
-      { to: '/admin/site/geo', label: 'GEO 설정' },
+      { to: '/admin/site/seo', label: 'SEO 설정', hint: SITE_HINTS.seo },
+      { to: '/admin/site/aeo', label: 'AEO 설정', hint: SITE_HINTS.aeo },
+      { to: '/admin/site/geo', label: 'GEO 설정', hint: SITE_HINTS.geo },
     ],
   },
   { to: '/admin/content', icon: FileText, label: '콘텐츠 편집' },
