@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Board } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
-import { BoardConnectionPage } from '@/pages/BoardConnectionPage'
+import { BoardSetupPage } from '@/pages/BoardSetupPage'
 import { useAuthStore } from '@/stores/authStore'
 
 const { get, patch, toast } = vi.hoisted(() => ({
@@ -22,6 +22,12 @@ const board = {
   id: 'b1',
   name: '보도자료',
   slug: 'press',
+  description: '',
+  board_type: 'LIST',
+  post_count: 0,
+  seo_title: '',
+  seo_description: '',
+  seo_index: true,
   status: 'ACTIVE',
   system_key: null,
   menu_parent: '',
@@ -44,8 +50,8 @@ const render = (options: { key: string; title: string }[], b: Board = board) => 
   renderWithQuery(
     <RouterProvider
       router={createMemoryRouter(
-        [{ path: '/admin/boards/:boardId/connection', element: <BoardConnectionPage /> }],
-        { initialEntries: ['/admin/boards/b1/connection'] }
+        [{ path: '/admin/boards/:boardId/settings', element: <BoardSetupPage /> }],
+        { initialEntries: ['/admin/boards/b1/settings'] }
       )}
     />
   )
@@ -57,7 +63,7 @@ beforeEach(() => {
 })
 
 describe('메뉴 위치 — 2단계 메뉴 (T-216)', () => {
-  it('페이지 묶음 아래를 고르면 바로 저장하고 안내한다', async () => {
+  it('페이지 묶음 아래를 고르면 저장 막대로 저장한다 (T-228)', async () => {
     render([
       { key: 'about', title: '회사소개' },
       { key: 'business', title: '사업영역' },
@@ -65,10 +71,12 @@ describe('메뉴 위치 — 2단계 메뉴 (T-216)', () => {
     const select = await screen.findByLabelText('메뉴 위치')
     expect(select).toHaveValue('')
     await userEvent.selectOptions(select, 'about')
+    expect(patch).not.toHaveBeenCalled()
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', { menu_parent: 'about' })
     )
-    expect(toast.success).toHaveBeenCalledWith('회사소개 아래 하위 탭에 넣었습니다.')
+    expect(toast.success).toHaveBeenCalled()
   })
 
   it('테마형 템플릿이면 고르는 칸 대신 안내', async () => {

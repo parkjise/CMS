@@ -9,6 +9,7 @@ import type {
   Board,
   BoardLimits,
   BoardPresetField,
+  BoardPurgePreview,
   BoardStatus,
   BoardType,
   BodyNode,
@@ -404,6 +405,19 @@ export function useRestoreBoard() {
 }
 
 /** 휴지통 게시판 영구 삭제 (T-196) — 글 · 필드 · 카테고리도 함께 */
+/** 영구 삭제 확인 창의 함께 지워지는 수 (T-228) — 창을 열 때만 */
+export function usePurgePreview(id: string | null) {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'purge-preview', id],
+    queryFn: async (): Promise<BoardPurgePreview> => {
+      const { data } = await api.get(`/v1/boards/${id}/purge-preview`)
+      return data.data
+    },
+    enabled: id !== null,
+    staleTime: 0,
+  })
+}
+
 export function usePurgeBoard() {
   const invalidate = useInvalidateBoards()
   return useMutation({

@@ -5,10 +5,9 @@ import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Board, BoardLimits } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { boardSlugError } from '@/lib/boardLabels'
-import { BoardConnectionPage } from '@/pages/BoardConnectionPage'
 import { BoardDesignPage } from '@/pages/BoardDesignPage'
 import { BoardNewPage } from '@/pages/BoardNewPage'
-import { BoardSettingsPage } from '@/pages/BoardSettingsPage'
+import { BoardSetupPage } from '@/pages/BoardSetupPage'
 import { BoardTrashPage } from '@/pages/BoardTrashPage'
 import { BoardsPage } from '@/pages/BoardsPage'
 import { useAuthStore } from '@/stores/authStore'
@@ -118,6 +117,7 @@ const mockApi = ({
     if (url === '/v1/boards') return ok(config?.params?.trash ? trash : boards)
     if (url === '/v1/boards/type-options') return ok({ blocked, system_blocked: SYSTEM_BLOCKED })
     if (url === '/v1/site-settings/menu') return ok({ mode, reorderable: mode === 'code', items: [] })
+    if (url === '/v1/boards/menu-parents') return ok([])
     return ok(undefined)
   })
 }
@@ -456,16 +456,17 @@ describe('게시판 추가 마법사', () => {
 
 describe('기본 정보 탭', () => {
   const renderSettings = (id = 'b1') =>
-    renderAt(`/admin/boards/${id}/settings`, <BoardSettingsPage />, '/admin/boards/:boardId/settings')
+    // 기본 정보 · 연결은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
+    renderAt(`/admin/boards/${id}/settings`, <BoardSetupPage />, '/admin/boards/:boardId/settings')
 
   it('이름 · 설명을 저장한다', async () => {
     mockApi({})
     patch.mockResolvedValue({ data: { data: board } })
     renderSettings()
-    const name = await screen.findByLabelText(/게시판 이름/)
+    const name = await screen.findByLabelText(/^게시판 이름/)
     await userEvent.clear(name)
     await userEvent.type(name, '새 이름')
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         name: '새 이름',
@@ -484,7 +485,7 @@ describe('기본 정보 탭', () => {
     await userEvent.type(await screen.findByLabelText(/검색 제목/), '  소식 모음 ')
     await userEvent.type(screen.getByLabelText(/검색 설명/), '병원 소식')
     await userEvent.click(screen.getByLabelText(/검색 결과에 표시/))
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         name: '병원 소식',
@@ -500,9 +501,9 @@ describe('기본 정보 탭', () => {
     mockApi({ boards: [notice] })
     patch.mockResolvedValue({ data: { data: notice } })
     renderSettings('n1')
-    await screen.findByLabelText(/게시판 이름/)
+    await userEvent.type(await screen.findByLabelText(/^게시판 이름/), '!')
     expect(screen.queryByLabelText(/검색 제목/)).not.toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() => expect(patch).toHaveBeenCalled())
     expect(patch.mock.calls[0][1]).not.toHaveProperty('seo_title')
   })
@@ -511,7 +512,7 @@ describe('기본 정보 탭', () => {
     mockApi({})
     renderSettings()
     const tabs = await screen.findByRole('navigation', { name: '게시판 상세' })
-    await screen.findByLabelText(/게시판 이름/)
+    await screen.findByLabelText(/^게시판 이름/)
     expect(within(tabs).getAllByRole('link').map((a) => a.textContent)).toEqual([
       '글 관리',
       '필드 · 카테고리',
@@ -528,7 +529,7 @@ describe('기본 정보 탭', () => {
   it('기본 게시판은 필드 관리 · 카테고리 탭 · 삭제 버튼 없음', async () => {
     mockApi({ boards: [notice] })
     renderSettings('n1')
-    await screen.findByLabelText(/게시판 이름/)
+    await screen.findByLabelText(/^게시판 이름/)
     expect(screen.queryByRole('link', { name: '필드 · 카테고리' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '권한' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: '운영 설정' })).not.toBeInTheDocument()
@@ -570,8 +571,8 @@ describe('기본 정보 탭', () => {
     mockApi({})
     patch.mockRejectedValue(new Error('x'))
     renderSettings()
-    await screen.findByLabelText(/게시판 이름/)
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.type(await screen.findByLabelText(/^게시판 이름/), '!')
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() => expect(toast.error).toHaveBeenCalled())
   })
 
@@ -579,8 +580,8 @@ describe('기본 정보 탭', () => {
     setRole('TENANT_VIEWER')
     mockApi({})
     renderSettings()
-    expect(await screen.findByLabelText(/게시판 이름/)).toBeDisabled()
-    for (const name of ['저장', '복제', '휴지통으로']) {
+    expect(await screen.findByLabelText(/^게시판 이름/)).toBeDisabled()
+    for (const name of ['변경사항 저장', '복제', '휴지통으로']) {
       expect(screen.queryByRole('button', { name })).not.toBeInTheDocument()
     }
   })
@@ -810,7 +811,7 @@ const menuNode = (
 
 describe('홈페이지 연결 탭', () => {
   const renderConnection = (id = 'b1') =>
-    renderAt(`/admin/boards/${id}/connection`, <BoardConnectionPage />, '/admin/boards/:boardId/connection')
+    renderAt(`/admin/boards/${id}/settings`, <BoardSetupPage />, '/admin/boards/:boardId/settings')
 
   const withMenu = (visible: boolean) => {
     mockApi({})
@@ -839,12 +840,10 @@ describe('홈페이지 연결 탭', () => {
     patch.mockResolvedValue({ data: { data: board } })
     renderConnection()
     await userEvent.click(await screen.findByLabelText(/게시판 사용/))
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
-        slug: 'board-1',
-        status: 'INACTIVE',
-      }),
+      // 바뀐 값만 보낸다 (T-228)
+      expect(patch).toHaveBeenCalledWith('/v1/boards/b1', { status: 'INACTIVE' }),
     )
   })
 
@@ -862,7 +861,7 @@ describe('홈페이지 연결 탭', () => {
     await userEvent.type(slug, '-2')
     expect(screen.getByText(/이전 주소는 더 이상 열리지 않습니다/)).toBeInTheDocument()
     await userEvent.type(slug, '한글')
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     expect(await screen.findByText(/영문 소문자/)).toBeInTheDocument()
     expect(patch).not.toHaveBeenCalled()
   })
@@ -927,7 +926,7 @@ describe('홈페이지 연결 탭', () => {
     mockApi({})
     renderConnection()
     expect(await screen.findByLabelText('주소 이름')).toBeDisabled()
-    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
   })
 })
 

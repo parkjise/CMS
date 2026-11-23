@@ -7,6 +7,18 @@ const SETTLE_MS = 2000
 export interface BoardSectionLink {
   id: string
   label: string
+  /** 저장하지 않은 변경이 있는 구역 (T-228) */
+  modified?: boolean
+}
+
+/** 저장하지 않은 변경 표시 — 주황 점 + 화면 읽기 프로그램용 글자 (T-228) */
+function ModifiedDot() {
+  return (
+    <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-700">
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+      수정됨
+    </span>
+  )
 }
 
 /** 합친 화면의 구역 바로가기 (T-212) — 주소의 #구역 으로 들어오면 그 구역으로 */
@@ -44,34 +56,45 @@ export function BoardSectionNav({ sections }: { sections: BoardSectionLink[] }) 
         <a
           key={section.id}
           href={`#${section.id}`}
-          className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium ${
             hash === `#${section.id}`
               ? 'border-blue-600 bg-blue-50 text-blue-700'
               : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
           }`}
         >
           {section.label}
+          {section.modified && (
+            <>
+              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+              <span className="sr-only">(수정됨)</span>
+            </>
+          )}
         </a>
       ))}
     </nav>
   )
 }
 
-/** 구역 하나 — 제목과 그 구역의 원래 화면 내용 (저장은 구역마다 따로) */
+/** 구역 하나 — 제목과 그 구역의 내용. 설정 화면은 저장 막대로 한 번에, 필드 · 카테고리는 따로 */
 export function BoardSectionBlock({
   id,
   title,
+  modified = false,
   children,
 }: {
   id: string
   title: string
+  modified?: boolean
   children: React.ReactNode
 }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-6 space-y-4">
-      <h2 id={`${id}-title`} className="text-base font-semibold text-slate-800">
-        {title}
-      </h2>
+      <div className="flex items-center gap-2">
+        <h2 id={`${id}-title`} className="text-base font-semibold text-slate-800">
+          {title}
+        </h2>
+        {modified && <ModifiedDot />}
+      </div>
       {children}
     </section>
   )

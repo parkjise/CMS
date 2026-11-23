@@ -1,13 +1,7 @@
-import { useState } from 'react'
-import { useParams } from 'react-router'
-import type { Board, BoardOperation, ReportHideCount } from '@cms/types'
-import { Button, Toggle, toast } from '@cms/ui'
-import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
-import { PAGE } from '@/components/boards/boardStyles'
+import type { Board, BoardOperation, BoardPermissions, ReportHideCount } from '@cms/types'
+import { Toggle } from '@cms/ui'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
-import { useCanEdit } from '@/hooks/useCanEdit'
-import { pickErrorMessage } from '@/lib/errorMessages'
+import { usePermissionOptions } from '@/hooks/useBoards'
 
 // 신고 자동 비공개 기준 (T-175) — 저장하지 않은 게시판은 5
 const DEFAULT_REPORT_HIDE_COUNT: ReportHideCount = 5
@@ -20,39 +14,28 @@ const REPORT_HIDE_OPTIONS: { value: ReportHideCount; label: string }[] = [
 
 const CARD_CLASS = 'space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm'
 
-function OperationForm({ board }: { board: Board }) {
-  const canEdit = useCanEdit()
-  const updateBoard = useUpdateBoard()
-  const [operation, setOperation] = useState<BoardOperation>(board.operation)
-  const memberWrite = board.permissions.write === 'MEMBER'
+interface BoardOperationFieldsProps {
+  board: Board
+  value: BoardOperation
+  onChange: (change: Partial<BoardOperation>) => void
+  /** 권한 구역에서 고친 값 — 안내가 바로 따라간다 */
+  permissions: BoardPermissions
+}
+
+/** 운영 설정 구역 (BM-11, T-151) — 저장은 게시판 설정 아래 저장 막대에서 한 번에 (T-228) */
+export function BoardOperationFields({
+  board,
+  value: operation,
+  onChange: change,
+  permissions,
+}: BoardOperationFieldsProps) {
+  const memberWrite = permissions.write === 'MEMBER'
   // 비회원 글쓰기도 회원 글쓰기와 같은 이유로 막힌다 (병원 업종 · 필수 칸) — 서버가 다시 확인한다
   const guestBlocked = usePermissionOptions(board.id).data?.member_write_blocked ?? null
-  const memberOnlyRead = board.permissions.read === 'MEMBER'
-  const changed =
-    operation.allow_secret !== board.operation.allow_secret ||
-    operation.notify_new_post !== board.operation.notify_new_post ||
-    operation.allow_guest !== board.operation.allow_guest ||
-    (operation.report_hide_count ?? DEFAULT_REPORT_HIDE_COUNT) !==
-      (board.operation.report_hide_count ?? DEFAULT_REPORT_HIDE_COUNT)
-  const change = (next: Partial<BoardOperation>) => setOperation((current) => ({ ...current, ...next }))
-
-  const save = async () => {
-    try {
-      await updateBoard.mutateAsync({ id: board.id, payload: { operation } })
-      toast.success('저장했습니다.')
-    } catch (err) {
-      toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
-    }
-  }
+  const memberOnlyRead = permissions.read === 'MEMBER'
 
   return (
-    <form
-      className="space-y-5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        save()
-      }}
-    >
+    <div className="space-y-5">
       {!memberWrite && (
         <p className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
           아래 설정은 회원이 홈페이지에서 쓰는 글에 쓰입니다. 위 권한에서 글쓰기를 회원도로 바꾸면 적용됩니다.
@@ -113,40 +96,6 @@ function OperationForm({ board }: { board: Board }) {
           </p>
         </div>
       </ReadOnlyFieldset>
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button type="submit" loading={updateBoard.isPending} disabled={!changed}>
-            저장
-          </Button>
-        </div>
-      )}
-    </form>
-  )
-}
-
-/** 운영 설정 (BM-11, T-151) */
-export function BoardOperationSection({ boardId }: { boardId: string }) {
-  const boardsQuery = useBoards()
-  const board = boardsQuery.data?.find((b) => b.id === boardId)
-
-  return (
-    <>
-      {boardsQuery.isLoading && <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />}
-      {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
-      {boardsQuery.isSuccess && !board && <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>}
-      {board?.system_key && <p className="text-sm text-slate-500">기본 게시판에는 운영 설정이 없습니다.</p>}
-      {board && !board.system_key && <OperationForm key={board.id} board={board} />}
-    </>
-  )
-}
-
-/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
-export function BoardOperationPage() {
-  const { boardId = '' } = useParams()
-  return (
-    <div className={PAGE}>
-      <BoardDetailHeader boardId={boardId} />
-      <BoardOperationSection boardId={boardId} />
     </div>
   )
 }

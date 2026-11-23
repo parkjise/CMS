@@ -1,14 +1,7 @@
-import { useState } from 'react'
-import { useParams } from 'react-router'
 import type { Board, BoardPermissions } from '@cms/types'
-import { Button, toast } from '@cms/ui'
-import { BoardDetailHeader } from '@/components/boards/BoardDetailHeader'
 import { PermissionMatrix } from '@/components/boards/PermissionMatrix'
-import { PAGE } from '@/components/boards/boardStyles'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
-import { useBoards, usePermissionOptions, useUpdateBoard } from '@/hooks/useBoards'
-import { useCanEdit } from '@/hooks/useCanEdit'
-import { pickErrorMessage } from '@/lib/errorMessages'
+import { usePermissionOptions } from '@/hooks/useBoards'
 import { type PermissionOption as Option, READ_OPTIONS, WRITE_OPTIONS } from '@/lib/boardPermissions'
 
 const LABEL_CLASS = 'mb-1.5 block text-sm font-medium text-slate-700'
@@ -59,36 +52,31 @@ function Choice<T extends string>({ name, legend, options, value, memberBlocked,
   )
 }
 
-function PermissionsForm({ board }: { board: Board }) {
-  const canEdit = useCanEdit()
-  const updateBoard = useUpdateBoard()
+interface BoardPermissionFieldsProps {
+  board: Board
+  value: BoardPermissions
+  onChange: (value: BoardPermissions) => void
+  /** 운영 설정 구역에서 고친 비회원 글쓰기 — 표가 바로 따라간다 */
+  allowGuest: boolean
+}
+
+/** 권한 구역 (BM-10, T-150) — 저장은 게시판 설정 아래 저장 막대에서 한 번에 (T-228) */
+export function BoardPermissionFields({
+  board,
+  value: permissions,
+  onChange,
+  allowGuest,
+}: BoardPermissionFieldsProps) {
   // 못 읽었으면 막지 않는다 — 저장할 때 서버가 다시 확인한다
   const options = usePermissionOptions(board.id).data
   const readBlocked = options?.member_read_blocked ?? null
   const writeBlocked = options?.member_write_blocked ?? null
-  const [permissions, setPermissions] = useState<BoardPermissions>(board.permissions)
   const saved = board.permissions
-  const changed = permissions.read !== saved.read || permissions.write !== saved.write
-
-  const save = async () => {
-    try {
-      await updateBoard.mutateAsync({ id: board.id, payload: { permissions } })
-      toast.success('저장했습니다.')
-    } catch (err) {
-      toast.error(pickErrorMessage(err, '저장하지 못했습니다.'))
-    }
-  }
 
   return (
-    <form
-      className="space-y-5"
-      onSubmit={(e) => {
-        e.preventDefault()
-        save()
-      }}
-    >
+    <div className="space-y-5">
       {/* 역할 × 동작 요약 — 아래에서 고르면 바로 바뀐다 (T-213) */}
-      <PermissionMatrix permissions={permissions} allowGuest={board.operation.allow_guest} />
+      <PermissionMatrix permissions={permissions} allowGuest={allowGuest} />
       <ReadOnlyFieldset>
         <div className={CARD_CLASS}>
           <Choice
@@ -98,7 +86,7 @@ function PermissionsForm({ board }: { board: Board }) {
             value={permissions.read}
             saved={saved.read}
             memberBlocked={readBlocked}
-            onChange={(read) => setPermissions((current) => ({ ...current, read }))}
+            onChange={(read) => onChange({ ...permissions, read })}
           />
           {readBlocked && (
             <p className="text-sm text-amber-700">
@@ -122,7 +110,7 @@ function PermissionsForm({ board }: { board: Board }) {
             value={permissions.write}
             saved={saved.write}
             memberBlocked={writeBlocked}
-            onChange={(write) => setPermissions((current) => ({ ...current, write }))}
+            onChange={(write) => onChange({ ...permissions, write })}
           />
           {writeBlocked && (
             <p className="text-sm text-amber-700">
@@ -137,41 +125,6 @@ function PermissionsForm({ board }: { board: Board }) {
           )}
         </div>
       </ReadOnlyFieldset>
-
-      {canEdit && (
-        <div className="flex justify-end">
-          <Button type="submit" loading={updateBoard.isPending} disabled={!changed}>
-            저장
-          </Button>
-        </div>
-      )}
-    </form>
-  )
-}
-
-/** 게시판 권한 (BM-10, T-150) */
-export function BoardPermissionsSection({ boardId }: { boardId: string }) {
-  const boardsQuery = useBoards()
-  const board = boardsQuery.data?.find((b) => b.id === boardId)
-
-  return (
-    <>
-      {boardsQuery.isLoading && <div className="h-40 animate-pulse rounded-lg border border-slate-200 bg-slate-50" />}
-      {boardsQuery.isError && <p className="text-sm text-red-600">게시판을 불러오지 못했습니다.</p>}
-      {boardsQuery.isSuccess && !board && <p className="text-sm text-slate-500">게시판을 찾을 수 없습니다.</p>}
-      {board?.system_key && <p className="text-sm text-slate-500">기본 게시판은 누구나 읽을 수 있고 권한을 바꿀 수 없습니다.</p>}
-      {board && !board.system_key && <PermissionsForm key={board.id} board={board} />}
-    </>
-  )
-}
-
-/** 한 구역만 보는 화면 — 앱은 합친 화면(설정 · 필드 · 카테고리)을 쓴다 (T-212) */
-export function BoardPermissionsPage() {
-  const { boardId = '' } = useParams()
-  return (
-    <div className={PAGE}>
-      <BoardDetailHeader boardId={boardId} />
-      <BoardPermissionsSection boardId={boardId} />
     </div>
   )
 }

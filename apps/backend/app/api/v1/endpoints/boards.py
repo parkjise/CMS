@@ -34,6 +34,7 @@ from app.schemas.board import (
     BoardCreate,
     BoardLimitsResponse,
     BoardPresetField,
+    BoardPurgePreviewResponse,
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
@@ -424,6 +425,24 @@ async def delete_board(
     await board_service.delete_board(db, board)
     await _audit_board(db, current_user, "BOARD_DELETED", board)
     return ApiResponse.ok({"deleted": True})
+
+
+@router.get(
+    "/{board_id}/purge-preview",
+    response_model=ApiResponse[BoardPurgePreviewResponse],
+)
+async def purge_preview(
+    board_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+    current_user: User = Depends(get_current_user),
+):
+    """영구 삭제하면 함께 지워지는 글 · 칸 · 카테고리 · 첨부 수 (T-228)."""
+    board = await board_service.get_trashed_board(db, tenant_id, board_id)
+    if board is None:
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    counts = await trash_service.purge_preview(db, board)
+    return ApiResponse.ok(BoardPurgePreviewResponse(**counts))
 
 
 @router.delete("/{board_id}/permanent", response_model=ApiResponse[dict])

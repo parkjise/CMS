@@ -1,12 +1,14 @@
+import { useState } from 'react'
 import dayjs from 'dayjs'
 import { Trash2 } from 'lucide-react'
 import { useSearchParams } from 'react-router'
 import { Button, toast } from '@cms/ui'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
+import { PurgeBoardDialog } from '@/components/boards/PurgeBoardDialog'
 import { TrashPostsSection } from '@/components/boards/TrashPostsSection'
 import { HELP_STRIP, LIST_CARD, PAGE, TD, TH } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { usePurgeBoard, useRestoreBoard, useTrashedBoards } from '@/hooks/useBoards'
+import { useRestoreBoard, useTrashedBoards } from '@/hooks/useBoards'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { TRASH_RETENTION_DAYS, purgeLabel } from '@/lib/trash'
 
@@ -20,22 +22,8 @@ export function BoardTrashPage() {
   const tab: TrashTab = searchParams.get('tab') === 'posts' ? 'posts' : 'boards'
   const trashQuery = useTrashedBoards()
   const restoreBoard = useRestoreBoard()
-  const purgeBoard = usePurgeBoard()
-
-  const purge = async (id: string, name: string) => {
-    if (
-      !window.confirm(
-        `'${name}' 게시판을 영구 삭제할까요? 안의 글 · 필드 · 카테고리도 함께 지워지고 되돌릴 수 없습니다.`
-      )
-    )
-      return
-    try {
-      await purgeBoard.mutateAsync(id)
-      toast.success('게시판을 영구 삭제했습니다.')
-    } catch (error) {
-      toast.error(pickErrorMessage(error, '영구 삭제하지 못했습니다.'))
-    }
-  }
+  // 영구 삭제 확인 창의 게시판 (T-228)
+  const [purging, setPurging] = useState<{ id: string; name: string } | null>(null)
 
   const restore = async (id: string) => {
     try {
@@ -142,7 +130,7 @@ export function BoardTrashPage() {
                               variant="ghost"
                               size="sm"
                               className="text-red-600"
-                              onClick={() => purge(board.id, board.name)}
+                              onClick={() => setPurging({ id: board.id, name: board.name })}
                             >
                               영구 삭제
                             </Button>
@@ -165,6 +153,7 @@ export function BoardTrashPage() {
           있어요.
         </span>
       </div>
+      <PurgeBoardDialog board={purging} onClose={() => setPurging(null)} />
     </div>
   )
 }

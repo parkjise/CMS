@@ -2,12 +2,12 @@ import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import type { Board, PermissionOptions, PostListItem, ReportedPost } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { breadcrumbsFor } from '@/components/layout/navigation'
-import { BoardOperationPage } from '@/pages/BoardOperationPage'
 import { BoardPostsPage } from '@/pages/BoardPostsPage'
+import { BoardSetupPage } from '@/pages/BoardSetupPage'
 import { ReportedPostsPage } from '@/pages/ReportedPostsPage'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -74,7 +74,8 @@ const mockApi = (routes: Record<string, unknown>) =>
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok([board])
     for (const [suffix, data] of Object.entries(routes)) if (url.endsWith(suffix)) return ok(data)
-    if (url.endsWith('/categories') || url.endsWith('/fields')) return ok([])
+    if (url.endsWith('/categories') || url.endsWith('/fields') || url.endsWith('/menu-parents'))
+      return ok([])
     return ok(null)
   })
 
@@ -158,24 +159,31 @@ describe('비회원 글쓰기 설정 (T-151-B)', () => {
     options: PermissionOptions = { member_read_blocked: null, member_write_blocked: null },
   ) => {
     mockApi({ '/permission-options': options })
-    return renderAt('/admin/boards/b1/operation', '/admin/boards/:boardId/operation', <BoardOperationPage />)
+    // 운영 설정은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
+    const router = createMemoryRouter(
+      [{ path: '/admin/boards/:boardId/settings', element: <BoardSetupPage /> }],
+      { initialEntries: ['/admin/boards/b1/settings'] },
+    )
+    return renderWithQuery(<RouterProvider router={router} />)
   }
 
   it('켜서 저장한다', async () => {
     patch.mockResolvedValue({ data: { data: board } })
     renderOperation()
     await userEvent.click(await screen.findByText('비회원 글쓰기 허용'))
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
-        operation: { allow_secret: false, notify_new_post: false, allow_guest: true },
+        operation: { allow_secret: false, notify_new_post: false, allow_guest: true, report_hide_count: 5 },
       }),
     )
   })
 
   it('병원 업종 등으로 막혔으면 이유와 함께 고를 수 없다', async () => {
     renderOperation({ member_read_blocked: null, member_write_blocked: '병원 업종은 홈페이지 회원 글쓰기를 쓸 수 없습니다.' })
-    expect(await screen.findByText('병원 업종은 홈페이지 회원 글쓰기를 쓸 수 없습니다.')).toBeInTheDocument()
+    // 권한 구역(회원 글쓰기)에도 같은 까닭이 나온다
+    const operation = await screen.findByRole('region', { name: '운영 설정' })
+    expect(await within(operation).findByText('병원 업종은 홈페이지 회원 글쓰기를 쓸 수 없습니다.')).toBeInTheDocument()
     expect(screen.getByLabelText(/비회원 글쓰기 허용/)).toBeDisabled()
   })
 })

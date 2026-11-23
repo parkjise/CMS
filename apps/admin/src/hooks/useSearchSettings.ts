@@ -6,9 +6,11 @@ import { api } from '@/lib/api'
 const AEO_KEY = ['seo-settings', 'aeo'] as const
 const GEO_KEY = ['seo-settings', 'geo'] as const
 
-export function useAeo() {
+/** enabled — 게시판 설정은 FAQ 게시판일 때만 읽는다 (T-228) */
+export function useAeo(enabled = true) {
   return useQuery({
     queryKey: AEO_KEY,
+    enabled,
     queryFn: async (): Promise<AeoResponse> => {
       const { data } = await api.get('/v1/seo-settings/aeo')
       return data.data
