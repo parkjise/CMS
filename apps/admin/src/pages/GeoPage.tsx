@@ -7,10 +7,12 @@ import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
+import { AiFillAssist } from '@/components/ai/AiFillAssist'
 import { SITE_HINTS } from '@/components/layout/navigation'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
 import { useGeo, useUpdateGeo } from '@/hooks/useSearchSettings'
 import { useSeoSettings } from '@/hooks/useSeo'
+import { AI_SITE_ASSIST } from '@/lib/aiAssist'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { composeRobotsTxt, mentionsAgent } from '@/lib/robotsPreview'
 
@@ -124,9 +126,30 @@ export function GeoPage() {
       {draft && query.data && (
         <ReadOnlyFieldset className="min-w-0 space-y-6">
           <section className={SITE_CARD} aria-labelledby="geo-brand">
-            <h2 id="geo-brand" className="text-base font-semibold text-slate-900">
-              기업 · 브랜드 정보
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="geo-brand" className="mr-auto text-base font-semibold text-slate-900">
+                기업 · 브랜드 정보
+              </h2>
+              {/* AI 로 채우기 (기획서 A-1) — 기능 스위치가 켜졌을 때만 보인다 */}
+              <AiFillAssist
+                kind="geo"
+                flag={AI_SITE_ASSIST}
+                buttonLabel="사이트 정보로 채우기"
+                title="기업 소개 · 주제 추천"
+                fields={[
+                  { key: 'description', label: '기업 소개', current: draft.description },
+                  { key: 'topics', label: '서비스 · 주제 키워드', current: draft.topics },
+                ]}
+                onApply={(values) =>
+                  patch({
+                    ...(values.description !== undefined && { description: values.description }),
+                    ...(values.topics !== undefined && {
+                      topics: values.topics.slice(0, TOPICS_MAX).join(', '),
+                    }),
+                  })
+                }
+              />
+            </div>
             <p className="text-sm text-slate-500">
               공식 이름 · 주소 · 연락처는{' '}
               <Link to="/admin/site/info" className="text-blue-600 hover:underline">

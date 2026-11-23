@@ -20,6 +20,7 @@ import { SitemapCheck } from '@/components/seo/SitemapCheck'
 import { SocialPreview } from '@/components/seo/SocialPreview'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
+import { AiFillAssist } from '@/components/ai/AiFillAssist'
 import { SITE_HINTS } from '@/components/layout/navigation'
 import { SitePage } from '@/components/site/SitePage'
 import { useDomainStatus } from '@/hooks/useDomain'
@@ -32,6 +33,7 @@ import {
   useUpdateSeo,
 } from '@/hooks/useSeo'
 import { useAuthStore } from '@/stores/authStore'
+import { AI_SITE_ASSIST } from '@/lib/aiAssist'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { composeRobotsTxt } from '@/lib/robotsPreview'
 
@@ -209,6 +211,33 @@ export function SeoPage() {
           <ReadOnlyFieldset className="min-w-0 space-y-6 lg:col-span-2">
             {activeTab === 'basic' && (
               <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm md:p-6">
+                {/* AI 로 채우기 (기획서 A-1) — 기능 스위치가 켜졌을 때만 보인다 */}
+                <div className="mb-4 flex justify-end empty:hidden">
+                  <AiFillAssist
+                    kind="seo"
+                    flag={AI_SITE_ASSIST}
+                    buttonLabel="사이트 정보로 채우기"
+                    title="SEO 문구 추천"
+                    fields={[
+                      { key: 'meta_title', label: '메타 제목', current: metaTitle },
+                      { key: 'meta_description', label: '메타 설명', current: metaDescription },
+                      ...(keywordsAllowed
+                        ? [{ key: 'keywords' as const, label: '대표 키워드', current: keywords }]
+                        : []),
+                    ]}
+                    onApply={(values) =>
+                      patch({
+                        ...(values.meta_title !== undefined && { metaTitle: values.meta_title }),
+                        ...(values.meta_description !== undefined && {
+                          metaDescription: values.meta_description,
+                        }),
+                        ...(values.keywords !== undefined && {
+                          keywords: values.keywords.slice(0, limits?.keywords_max ?? 5),
+                        }),
+                      })
+                    }
+                  />
+                </div>
                 <FormField
                   label="메타 제목 (Title)"
                   hint="검색 결과 상단에 노출되는 페이지 제목. 50~60자 권장."
