@@ -4,7 +4,7 @@ import { Button } from '@cms/ui'
 import { AiDrawer } from '@/components/ai/AiDrawer'
 import { useAiAssist, useAiAssistEnabled } from '@/hooks/useAiAssist'
 import {
-  type AssistKind,
+  type AssistInputs,
   type AssistResults,
   type AssistTone,
   TONES,
@@ -13,15 +13,16 @@ import {
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 type Value = string | string[]
+type FillKind = 'seo' | 'geo'
 
-export interface FillField<K extends AssistKind> {
+export interface FillField<K extends FillKind> {
   key: keyof AssistResults[K] & string
   label: string
   /** 지금 폼의 값 — 비어 있으면 처음부터 골라 둔다 */
   current: Value
 }
 
-interface AiFillAssistProps<K extends AssistKind> {
+interface AiFillAssistProps<K extends FillKind> {
   kind: K
   flag: string
   buttonLabel: string
@@ -35,7 +36,7 @@ const isEmpty = (value: Value) => (Array.isArray(value) ? value.length === 0 : v
 const show = (value: Value) => (Array.isArray(value) ? value.join(', ') : value)
 
 /** [✨ …로 채우기] 버튼 + 결과 서랍 — SEO · GEO 문구 (기획서 A-1, T-231-A) */
-export function AiFillAssist<K extends AssistKind>({
+export function AiFillAssist<K extends FillKind>({
   kind,
   flag,
   buttonLabel,
@@ -53,7 +54,7 @@ export function AiFillAssist<K extends AssistKind>({
   const result = assist.data?.result as Record<string, Value> | undefined
 
   const generate = () =>
-    assist.mutate(tone, {
+    assist.mutate({ tone } as AssistInputs[K], {
       // 지금 값이 있는 칸은 덮어쓰지 않게 처음엔 고르지 않는다
       onSuccess: () =>
         setPicked(fields.filter((field) => isEmpty(field.current)).map((field) => field.key)),
