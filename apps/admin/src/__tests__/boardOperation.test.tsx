@@ -2,13 +2,13 @@ import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, renderHook, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import type { Board, Post, PostListItem } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
 import { useSSENotifications } from '@/hooks/useSSENotifications'
-import { BoardOperationPage } from '@/pages/BoardOperationPage'
 import { BoardPostEditPage } from '@/pages/BoardPostEditPage'
 import { BoardPostsPage } from '@/pages/BoardPostsPage'
+import { BoardSetupPage } from '@/pages/BoardSetupPage'
 import { useAuthStore } from '@/stores/authStore'
 
 const { get, post, patch, toast } = vi.hoisted(() => ({
@@ -62,7 +62,8 @@ const mockApi = (boards: Board[] = [board], extra: Record<string, unknown> = {})
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok(boards)
     for (const [suffix, data] of Object.entries(extra)) if (url.endsWith(suffix)) return ok(data)
-    if (url.endsWith('/categories') || url.endsWith('/fields')) return ok([])
+    if (url.endsWith('/categories') || url.endsWith('/fields') || url.endsWith('/menu-parents'))
+      return ok([])
     return ok(null)
   })
 
@@ -84,20 +85,26 @@ beforeEach(() => {
 describe('운영 설정 (T-151-A)', () => {
   const renderPage = (boards?: Board[]) => {
     mockApi(boards)
-    return renderAt('/admin/boards/b1/operation', '/admin/boards/:boardId/operation', <BoardOperationPage />)
+    // 운영 설정은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
+    const router = createMemoryRouter(
+      [{ path: '/admin/boards/:boardId/settings', element: <BoardSetupPage /> }],
+      { initialEntries: ['/admin/boards/b1/settings'] },
+    )
+    return renderWithQuery(<RouterProvider router={router} />)
   }
 
   it('비밀글 허용 · 새 글 알림을 저장한다', async () => {
     patch.mockResolvedValue({ data: { data: board } })
     renderPage()
-    const save = await screen.findByRole('button', { name: '저장' })
+    const save = await screen.findByRole('button', { name: '변경사항 저장' })
     expect(save).toBeDisabled()
     await userEvent.click(screen.getByText('비밀글 허용'))
     await userEvent.click(screen.getByText('새 글 알림'))
     await userEvent.click(save)
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
-        operation: { allow_secret: true, notify_new_post: true, allow_guest: false },
+        // 저장하지 않은 신고 기준은 기본 5 로 함께 보낸다
+        operation: { allow_secret: true, notify_new_post: true, allow_guest: false, report_hide_count: 5 },
       }),
     )
     expect(toast.success).toHaveBeenCalled()
@@ -118,30 +125,36 @@ describe('운영 설정 (T-151-A)', () => {
     setRole('TENANT_VIEWER')
     const { unmount } = renderPage()
     expect(await screen.findByText('비밀글 허용')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '변경사항 저장' })).not.toBeInTheDocument()
     unmount()
     renderPage([{ ...board, system_key: 'notice' }])
-    expect(await screen.findByText('기본 게시판에는 운영 설정이 없습니다.')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '기본 정보' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '운영 설정' })).not.toBeInTheDocument()
   })
 })
 
 describe('신고 자동 비공개 기준 (T-175)', () => {
   const renderPage = (boards?: Board[]) => {
     mockApi(boards)
-    return renderAt('/admin/boards/b1/operation', '/admin/boards/:boardId/operation', <BoardOperationPage />)
+    // 운영 설정은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
+    const router = createMemoryRouter(
+      [{ path: '/admin/boards/:boardId/settings', element: <BoardSetupPage /> }],
+      { initialEntries: ['/admin/boards/b1/settings'] },
+    )
+    return renderWithQuery(<RouterProvider router={router} />)
   }
 
   it('저장하지 않은 게시판은 5건이 기본', async () => {
     renderPage()
     expect(await screen.findByLabelText('신고가 몇 건 모이면 글을 숨길까요')).toHaveValue('5')
-    expect(screen.getByRole('button', { name: '저장' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '변경사항 저장' })).toBeDisabled()
   })
 
   it('알림만으로 바꿔 저장한다', async () => {
     patch.mockResolvedValue({ data: { data: board } })
     renderPage()
     await userEvent.selectOptions(await screen.findByLabelText('신고가 몇 건 모이면 글을 숨길까요'), '0')
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', { name: '변경사항 저장' }))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', {
         operation: { allow_secret: false, notify_new_post: false, allow_guest: false, report_hide_count: 0 },

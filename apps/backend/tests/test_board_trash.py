@@ -333,3 +333,55 @@ class TestBulkPurge:
     async def test_unauthenticated_401(self, client):
         resp = await client.post(PURGE, json={"post_ids": [str(uuid.uuid4())]})
         assert resp.status_code == 401
+
+
+class TestPurgePreview:
+    """영구 삭제 확인 창의 함께 지워지는 수 (T-228)."""
+
+    async def test_counts_posts_fields_categories(
+        self, client, auth_headers, tenant, board
+    ):
+        url = f"{BOARDS}/{board['id']}"
+        field = await client.post(
+            f"{url}/fields",
+            json={"label": "연락처", "field_type": "TEXT"},
+            headers=auth_headers,
+        )
+        assert field.status_code == 201, field.text
+        category = await client.post(
+            f"{url}/categories", json={"name": "행사"}, headers=auth_headers
+        )
+        assert category.status_code == 201, category.text
+        await _post(client, auth_headers, board, title="남은 글")
+        trashed = await _post(client, auth_headers, board, title="휴지통 글")
+        await client.delete(f"{url}/posts/{trashed['id']}", headers=auth_headers)
+        await client.delete(url, headers=auth_headers)
+
+        resp = await client.get(f"{url}/purge-preview", headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        # 글은 휴지통 글까지 모두 지워진다
+        assert resp.json()["data"] == {
+            "posts": 2,
+            "fields": 1,
+            "categories": 1,
+            "attachments": 0,
+        }
+
+    async def test_live_board_404(self, client, auth_headers, tenant, board):
+        resp = await client.get(
+            f"{BOARDS}/{board['id']}/purge-preview", headers=auth_headers
+        )
+        assert resp.status_code == 404
+
+    async def test_other_tenant_404(
+        self, client, auth_headers, tenant, board, other_tenant
+    ):
+        await client.delete(f"{BOARDS}/{board['id']}", headers=auth_headers)
+        resp = await client.get(
+            f"{BOARDS}/{board['id']}/purge-preview", headers=other_tenant["headers"]
+        )
+        assert resp.status_code == 404
+
+    async def test_requires_login(self, client, tenant, board):
+        resp = await client.get(f"{BOARDS}/{board['id']}/purge-preview")
+        assert resp.status_code == 401

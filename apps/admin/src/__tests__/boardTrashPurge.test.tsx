@@ -89,19 +89,45 @@ describe('휴지통 30일 · 영구 삭제 (T-196)', () => {
     expect(within(row).getByText('admin@test.com')).toBeInTheDocument()
   })
 
-  it('확인하면 게시판을 영구 삭제하고, 취소하면 아무것도 하지 않는다', async () => {
-    get.mockImplementation(() => ok([trashed]))
+  it('함께 지워지는 수를 보여 주고, 이름을 똑같이 입력해야 영구 삭제한다 (T-228)', async () => {
+    get.mockImplementation((url: string) =>
+      url === '/v1/boards/b9/purge-preview'
+        ? ok({ posts: 3, fields: 2, categories: 1, attachments: 4 })
+        : ok([trashed])
+    )
     renderTrash()
-    const button = await screen.findByRole('button', { name: '영구 삭제' })
-
-    confirm.mockReturnValueOnce(false)
-    await userEvent.click(button)
-    expect(del).not.toHaveBeenCalled()
-
-    confirm.mockReturnValueOnce(true)
-    await userEvent.click(button)
+    await userEvent.click(await screen.findByRole('button', { name: '영구 삭제' }))
+    const dialog = await screen.findByRole('dialog')
+    const counts = await within(dialog).findByRole('list', { name: '함께 지워지는 것' })
+    expect(
+      within(counts)
+        .getAllByRole('listitem')
+        .map((li) => li.textContent)
+    ).toEqual(['글 3개', '필드 2개', '카테고리 1개', '첨부 4개'])
+    const submit = within(dialog).getByRole('button', { name: '영구 삭제' })
+    expect(submit).toBeDisabled()
+    const input = within(dialog).getByLabelText(/게시판 이름을 입력해 주세요/)
+    await userEvent.type(input, '옛 소')
+    expect(submit).toBeDisabled()
+    await userEvent.type(input, '식')
+    await userEvent.click(submit)
     await waitFor(() => expect(del).toHaveBeenCalledWith('/v1/boards/b9/permanent'))
     expect(toast.success).toHaveBeenCalledWith('게시판을 영구 삭제했습니다.')
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+  })
+
+  it('취소하면 아무것도 지우지 않고, 수를 못 읽어도 무엇이 지워지는지 알린다', async () => {
+    get.mockImplementation((url: string) =>
+      url === '/v1/boards/b9/purge-preview' ? Promise.reject(new Error('down')) : ok([trashed])
+    )
+    renderTrash()
+    await userEvent.click(await screen.findByRole('button', { name: '영구 삭제' }))
+    const dialog = await screen.findByRole('dialog')
+    expect(await within(dialog).findByText(/모두 지워집니다/)).toBeInTheDocument()
+    await userEvent.click(within(dialog).getByRole('button', { name: '취소' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(del).not.toHaveBeenCalled()
+    expect(confirm).not.toHaveBeenCalled()
   })
 
   it('보기 전용 계정은 영구 삭제 버튼이 없다', async () => {

@@ -206,6 +206,14 @@ export interface PublicCategory {
   parent_id?: string | null
 }
 
+/** 휴지통 게시판을 영구 삭제하면 함께 지워지는 수 (T-228) — 글은 휴지통 글까지 */
+export interface BoardPurgePreview {
+  posts: number
+  fields: number
+  categories: number
+  attachments: number
+}
+
 /** 게시판 추가 한도 — limit 이 null 이면 제한 없음 (기획서 4장) */
 export interface BoardLimits {
   plan: string

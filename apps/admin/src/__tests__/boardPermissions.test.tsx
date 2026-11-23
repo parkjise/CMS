@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, MemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import type { Board, PermissionOptions, PostListItem } from '@cms/types'
 import { renderWithQuery } from './renderWithQuery'
-import { BoardPermissionsPage } from '@/pages/BoardPermissionsPage'
+import { BoardSetupPage } from '@/pages/BoardSetupPage'
 import { BoardPostsPage } from '@/pages/BoardPostsPage'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -60,16 +60,17 @@ const renderPage = (boards: Board[] = [board], options: PermissionOptions = OPEN
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok(boards)
     if (url.endsWith('/permission-options')) return ok(options)
+    if (url.endsWith('/menu-parents')) return ok([])
     return ok(null)
   })
-  return renderWithQuery(
-    <MemoryRouter initialEntries={['/admin/boards/b1/permissions']}>
-      <Routes>
-        <Route path="/admin/boards/:boardId/permissions" element={<BoardPermissionsPage />} />
-      </Routes>
-    </MemoryRouter>,
+  // 권한은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
+  const router = createMemoryRouter(
+    [{ path: '/admin/boards/:boardId/settings', element: <BoardSetupPage /> }],
+    { initialEntries: ['/admin/boards/b1/settings'] },
   )
+  return renderWithQuery(<RouterProvider router={router} />)
 }
+const SAVE = { name: '변경사항 저장' }
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -80,7 +81,7 @@ describe('게시판 권한 — 읽기 (T-150-A)', () => {
   it('회원만 읽기로 바꿔 저장한다', async () => {
     patch.mockResolvedValue({ data: { data: board } })
     renderPage()
-    const save = await screen.findByRole('button', { name: '저장' })
+    const save = await screen.findByRole('button', SAVE)
     expect(save).toBeDisabled()
     await userEvent.click(screen.getByLabelText(/회원만/))
     expect(screen.getByText(/로그인 안내가 나옵니다/)).toBeInTheDocument()
@@ -98,7 +99,7 @@ describe('게시판 권한 — 읽기 (T-150-A)', () => {
     })
     renderPage()
     await userEvent.click(await screen.findByLabelText(/회원만/))
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', SAVE))
     await waitFor(() => expect(toast.error).toHaveBeenCalled())
   })
 
@@ -115,19 +116,20 @@ describe('게시판 권한 — 읽기 (T-150-A)', () => {
     })
     expect(await screen.findByText(/아무도 이 게시판의 글을 읽을 수 없습니다/)).toBeInTheDocument()
     await userEvent.click(screen.getByLabelText(/누구나/))
-    expect(screen.getByRole('button', { name: '저장' })).toBeEnabled()
+    expect(screen.getByRole('button', SAVE)).toBeEnabled()
   })
 
   it('보기 전용 계정은 저장 버튼이 없다', async () => {
     setRole('TENANT_VIEWER')
     renderPage()
     expect(await screen.findByLabelText(/누구나/)).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: '저장' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', SAVE)).not.toBeInTheDocument()
   })
 
-  it('기본 게시판은 권한을 바꿀 수 없다', async () => {
+  it('기본 게시판은 권한 구역이 없다', async () => {
     renderPage([{ ...board, system_key: 'notice' }])
-    expect(await screen.findByText(/기본 게시판은 누구나 읽을 수 있고/)).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: '기본 정보' })).toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: '권한' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText(/회원만/)).not.toBeInTheDocument()
   })
 })
@@ -138,7 +140,7 @@ describe('게시판 권한 — 글쓰기 (T-150-B)', () => {
     renderPage()
     await userEvent.click(await screen.findByLabelText(/회원도/))
     expect(screen.getByText(/1시간에 10개까지/)).toBeInTheDocument()
-    await userEvent.click(screen.getByRole('button', { name: '저장' }))
+    await userEvent.click(screen.getByRole('button', SAVE))
     await waitFor(() =>
       expect(patch).toHaveBeenCalledWith('/v1/boards/b1', { permissions: { read: 'PUBLIC', write: 'MEMBER' } }),
     )
@@ -147,7 +149,8 @@ describe('게시판 권한 — 글쓰기 (T-150-B)', () => {
   it('병원 업종 · 필수 칸이면 이유를 보여 주고 고를 수 없다', async () => {
     renderPage([board], { member_read_blocked: null, member_write_blocked: HOSPITAL })
     await waitFor(() => expect(screen.getByLabelText(/회원도/)).toBeDisabled())
-    expect(screen.getByText(HOSPITAL)).toBeInTheDocument()
+    // 운영 설정 구역(비회원 글쓰기)에도 같은 까닭이 나온다
+    expect(within(screen.getByRole('region', { name: '권한' })).getByText(HOSPITAL)).toBeInTheDocument()
     expect(screen.getByLabelText(/회원만/)).toBeEnabled()
   })
 
@@ -157,8 +160,8 @@ describe('게시판 권한 — 글쓰기 (T-150-B)', () => {
       member_write_blocked: HOSPITAL,
     })
     expect(await screen.findByText(/지금은 회원이 글을 쓸 수 없습니다/)).toBeInTheDocument()
-    await userEvent.click(screen.getByLabelText(/관리자만/))
-    expect(screen.getByRole('button', { name: '저장' })).toBeEnabled()
+    await userEvent.click(screen.getByRole('radio', { name: /관리자만/ }))
+    expect(screen.getByRole('button', SAVE)).toBeEnabled()
   })
 })
 

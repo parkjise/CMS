@@ -202,6 +202,15 @@ class BoardResponse(BaseModel):
     deleted_by: str | None = None
 
 
+class BoardPurgePreviewResponse(BaseModel):
+    """영구 삭제하면 함께 지워지는 것의 수 (T-228)"""
+
+    posts: int
+    fields: int
+    categories: int
+    attachments: int
+
+
 class BoardRestoreResponse(BaseModel):
     board: BoardResponse
     # 원래 주소를 다른 게시판이 쓰고 있어 번호를 붙였는지

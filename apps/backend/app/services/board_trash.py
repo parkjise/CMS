@@ -11,11 +11,17 @@ from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.audit import AuditLog
-from app.models.board import Board, BoardPost
+from app.models.board import (
+    Board,
+    BoardCategory,
+    BoardField,
+    BoardPost,
+    BoardPostAttachment,
+)
 from app.models.user import User
 from app.services import site_cache
 
@@ -120,6 +126,35 @@ async def purge_posts(
     await db.commit()
     await site_cache.purge_site(db, tenant_id)
     return len(posts)
+
+
+async def purge_preview(db: AsyncSession, board: Board) -> dict[str, int]:
+    """영구 삭제하면 함께 지워지는 것의 수 (T-228) — 확인 창에 보여 준다.
+
+    글은 휴지통에 있는 것까지 모두, 칸 · 카테고리 · 첨부는 지금 쓰는 것만 센다.
+    """
+    post_ids = select(BoardPost.id).where(BoardPost.board_id == board.id)
+    queries = {
+        "posts": select(func.count())
+        .select_from(BoardPost)
+        .where(BoardPost.board_id == board.id),
+        "fields": select(func.count())
+        .select_from(BoardField)
+        .where(BoardField.board_id == board.id, BoardField.deleted_at.is_(None)),
+        "categories": select(func.count())
+        .select_from(BoardCategory)
+        .where(BoardCategory.board_id == board.id, BoardCategory.deleted_at.is_(None)),
+        "attachments": select(func.count())
+        .select_from(BoardPostAttachment)
+        .where(
+            BoardPostAttachment.post_id.in_(post_ids),
+            BoardPostAttachment.deleted_at.is_(None),
+        ),
+    }
+    return {
+        key: int((await db.execute(query)).scalar_one())
+        for key, query in queries.items()
+    }
 
 
 async def purge_board(db: AsyncSession, board: Board, actor: User) -> None:
