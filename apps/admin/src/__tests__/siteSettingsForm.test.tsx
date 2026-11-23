@@ -68,6 +68,33 @@ beforeEach(() => {
 })
 
 describe('사이트 기본정보', () => {
+  it('비어 있는 핵심 항목을 위에 알리고, 누르면 그 칸으로 (T-230)', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(ok(SAVED))
+    const user = userEvent.setup()
+    renderPage()
+    const missing = await screen.findByRole('region', { name: /아직 비어 있는 항목/ })
+    // 저장값: 전화 · 주소는 있고 사이트명 · 이메일 · 보호책임자는 비어 있다
+    expect(
+      within(missing)
+        .getAllByRole('button')
+        .map((b) => b.textContent)
+    ).toEqual(['사이트명', '대표 이메일', '개인정보 보호책임자'])
+    await user.click(within(missing).getByRole('button', { name: '대표 이메일' }))
+    expect(screen.getByLabelText('대표 이메일')).toHaveFocus()
+    // 입력하면 바로 목록에서 빠진다
+    await user.type(screen.getByLabelText('대표 이메일'), 'a@b.c')
+    expect(within(missing).queryByRole('button', { name: '대표 이메일' })).not.toBeInTheDocument()
+  })
+
+  it('푸터 미리보기는 따로 둔 칸에서 입력하는 대로 바뀐다 (T-230)', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue(ok(SAVED))
+    const user = userEvent.setup()
+    renderPage()
+    const preview = await screen.findByRole('complementary', { name: '푸터 미리보기' })
+    await user.type(screen.getByLabelText('사이트명'), '바른치과')
+    expect(preview).toHaveTextContent('바른치과')
+  })
+
   it('저장된 값을 불러오고, 고친 값만 바뀐 채 저장한다 (빈 칸은 "" 로 지우기)', async () => {
     vi.spyOn(api, 'get').mockResolvedValue(ok(SAVED))
     const put = vi

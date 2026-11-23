@@ -20,6 +20,7 @@ import { SitemapCheck } from '@/components/seo/SitemapCheck'
 import { SocialPreview } from '@/components/seo/SocialPreview'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
+import { SITE_HINTS } from '@/components/layout/navigation'
 import { SitePage } from '@/components/site/SitePage'
 import { useDomainStatus } from '@/hooks/useDomain'
 import { useGeo } from '@/hooks/useSearchSettings'
@@ -167,6 +168,7 @@ export function SeoPage() {
   return (
     <SitePage
       title="SEO 설정"
+      summary={SITE_HINTS.seo}
       description="검색 결과와 소셜 공유에 보이는 정보, 검색엔진 수집 · 사이트맵을 설정합니다. 탭을 옮겨도 고친 내용은 남고, 아래 [변경사항 저장]으로 한꺼번에 저장해요."
     >
       <div className="border-b border-slate-200">

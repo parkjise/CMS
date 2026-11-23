@@ -1,5 +1,12 @@
-import { useEffect, useState } from 'react'
-import { CalendarClock, ExternalLink, FilePlus2, History, TriangleAlert } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import {
+  CalendarClock,
+  ExternalLink,
+  FilePlus2,
+  GitCompare,
+  History,
+  TriangleAlert,
+} from 'lucide-react'
 import { Button, Input, Modal, toast } from '@cms/ui'
 import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
@@ -19,6 +26,7 @@ import {
   useSavePolicyDraft,
 } from '@/hooks/usePolicies'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { collapseSame, lineDiff } from '@/lib/lineDiff'
 import { fromSeoulInput, seoulDateTime } from '@/lib/seoulTime'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -99,6 +107,60 @@ function VersionModal({ kind, version, onClose }: VersionModalProps) {
   )
 }
 
+interface DiffModalProps {
+  open: boolean
+  onClose: () => void
+  title: string
+  before: string
+  after: string
+}
+
+/** 지금 공개본(없으면 기본 문안)과 고친 본문의 줄 단위 비교 (T-230) */
+function DiffModal({ open, onClose, title, before, after }: DiffModalProps) {
+  const rows = useMemo(
+    () => (open ? collapseSame(lineDiff(before, after)) : []),
+    [open, before, after]
+  )
+  return (
+    <Modal open={open} onClose={onClose} title={title} size="xl">
+      <p className="mb-3 text-xs text-slate-500">
+        <span className="rounded bg-emerald-50 px-1 text-emerald-800">+ 더한 줄</span>{' '}
+        <span className="rounded bg-rose-50 px-1 text-rose-800 line-through">- 뺀 줄</span>
+      </p>
+      <ol
+        aria-label="바뀐 곳"
+        className="max-h-[60vh] overflow-auto rounded border border-slate-200 font-mono text-xs leading-relaxed"
+      >
+        {rows.map((line, index) =>
+          line.kind === 'skipped' ? (
+            <li key={index} className="bg-slate-50 px-3 py-1 text-center text-slate-400">
+              … 같은 줄 {line.count}개 …
+            </li>
+          ) : (
+            <li
+              key={index}
+              className={`whitespace-pre-wrap px-3 py-0.5 ${
+                line.kind === 'added'
+                  ? 'bg-emerald-50 text-emerald-900'
+                  : line.kind === 'removed'
+                    ? 'bg-rose-50 text-rose-900 line-through'
+                    : 'text-slate-500'
+              }`}
+            >
+              <span aria-hidden className="mr-2 select-none">
+                {line.kind === 'added' ? '+' : line.kind === 'removed' ? '-' : ' '}
+              </span>
+              {line.kind === 'added' && <span className="sr-only">더한 줄: </span>}
+              {line.kind === 'removed' && <span className="sr-only">뺀 줄: </span>}
+              {line.text || ' '}
+            </li>
+          )
+        )}
+      </ol>
+    </Modal>
+  )
+}
+
 interface EditorProps {
   doc: PolicyDocument
   homepageUrl: string | null
@@ -117,12 +179,39 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
   const [summary, setSummary] = useState(working?.summary ?? '')
   const [effective, setEffective] = useState('')
   const [viewing, setViewing] = useState<number | null>(null)
-  const dirty = isDraft && (body !== working.body || summary !== (working.summary ?? ''))
+  const [comparing, setComparing] = useState(false)
+  // [새 버전 만들기] — 서버에 초안을 바로 만들지 않고, 처음 저장할 때 만든다 (T-230)
+  const [composing, setComposing] = useState(false)
+  // 새 버전 초안이 막 생겼을 때 한 번은 서버 값(복사본)으로 입력을 덮지 않는다 — 이어지는 본문
+  // 저장이 실패해도 고친 글이 남게
+  const keepLocal = useRef(false)
+  const editing = isDraft || composing
+  const dirty = composing
+    ? body !== doc.body || summary !== ''
+    : isDraft && (body !== working.body || summary !== (working.summary ?? ''))
 
   useEffect(() => {
+    if (keepLocal.current) {
+      keepLocal.current = false
+      return
+    }
     setBody(doc.working?.body ?? '')
     setSummary(doc.working?.summary ?? '')
   }, [doc.working])
+
+  const startComposing = () => {
+    setBody(doc.body)
+    setSummary('')
+    setComposing(true)
+  }
+
+  const stopComposing = () => {
+    if (dirty && !window.confirm('작성한 새 버전을 버릴까요? 저장하지 않아 아무것도 남지 않아요.'))
+      return
+    setComposing(false)
+    setBody('')
+    setSummary('')
+  }
 
   const fail = (fallback: string) => (error: unknown) =>
     toast.error(pickErrorMessage(error, fallback))
@@ -130,8 +219,18 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
   // 성공 여부를 돌려준다 — 나가기 확인의 [저장하고 이동] (T-227)
   const handleSave = async () => {
     try {
+      if (composing) {
+        keepLocal.current = true
+        await create.mutateAsync(doc.kind).catch((error: unknown) => {
+          // 초안이 안 생겼으면 덮을 서버 값도 없다
+          keepLocal.current = false
+          throw error
+        })
+        // 초안이 생겼다 — 아래 저장이 실패해도 이제는 그 초안을 고치는 화면
+        setComposing(false)
+      }
       await save.mutateAsync({ kind: doc.kind, body, summary })
-      toast.success('초안을 저장했습니다.')
+      toast.success(composing ? '새 버전 초안을 저장했습니다.' : '초안을 저장했습니다.')
       return true
     } catch (error) {
       fail('초안을 저장하지 못했습니다.')(error)
@@ -234,7 +333,7 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
             ))}
           </ul>
         )
-      ) : !working ? (
+      ) : !editing && working?.status !== 'scheduled' ? (
         <div className="space-y-3">
           <p className="text-sm text-slate-600">
             {doc.version
@@ -245,21 +344,12 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
             {doc.body}
           </pre>
           {canEdit && (
-            <Button
-              type="button"
-              loading={create.isPending}
-              onClick={() =>
-                create.mutate(doc.kind, {
-                  onSuccess: () => toast.success('새 버전 초안을 만들었습니다.'),
-                  onError: fail('새 버전을 만들지 못했습니다.'),
-                })
-              }
-            >
+            <Button type="button" onClick={startComposing}>
               <FilePlus2 className="mr-1.5 h-4 w-4" aria-hidden />새 버전 만들기
             </Button>
           )}
         </div>
-      ) : working.status === 'scheduled' ? (
+      ) : working?.status === 'scheduled' ? (
         <div className="space-y-3">
           <p
             className="flex items-center gap-2 rounded-lg bg-blue-50 px-4 py-3 text-sm text-blue-800"
@@ -290,10 +380,22 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
         </div>
       ) : (
         <ReadOnlyFieldset className="min-w-0 space-y-4">
-          <p className="text-xs text-slate-500">
-            v{working.version} 초안 — 저장해도 홈페이지는 그대로예요. 공개하거나 시행일이 되면
-            바뀌어요.
-          </p>
+          {composing ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="mr-auto text-xs text-slate-500">
+                v{(doc.version ?? 0) + 1} 새 버전 — 아직 저장하지 않았어요. 저장하면 초안이 생기고,
+                [취소]하면 아무것도 남지 않아요.
+              </p>
+              <Button type="button" variant="secondary" size="sm" onClick={stopComposing}>
+                취소
+              </Button>
+            </div>
+          ) : (
+            <p className="text-xs text-slate-500">
+              v{working?.version} 초안 — 저장해도 홈페이지는 그대로예요. 공개하거나 시행일이 되면
+              바뀌어요.
+            </p>
+          )}
           <label className="block">
             <span className="mb-1 block text-sm font-medium text-slate-700">본문</span>
             <textarea
@@ -315,6 +417,19 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
             >
               기본 문안으로 채우기
             </button>
+            {body !== doc.body && (
+              <>
+                {' · '}
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-1 font-medium text-blue-600 hover:underline"
+                  onClick={() => setComparing(true)}
+                >
+                  <GitCompare className="h-3.5 w-3.5" aria-hidden />
+                  바뀐 곳 보기
+                </button>
+              </>
+            )}
           </p>
           <FormField
             label="변경 내용 요약"
@@ -329,45 +444,58 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
               onChange={(e) => setSummary(e.target.value)}
             />
           </FormField>
-          <div className="space-y-2 rounded-lg border border-slate-200 p-4">
-            <FormField
-              label="시행일 (한국 시간, 선택)"
-              htmlFor={`${doc.kind}-effective`}
-              hint="비우면 바로 공개해요. 앞날을 고르면 그때 자동으로 시행돼요."
-            >
-              <input
-                id={`${doc.kind}-effective`}
-                type="datetime-local"
-                className="h-10 rounded-lg border border-slate-300 px-3 text-sm"
-                value={effective}
-                onChange={(e) => setEffective(e.target.value)}
-              />
-            </FormField>
-            <Button
-              type="button"
-              loading={publish.isPending}
-              disabled={dirty || !summary.trim()}
-              onClick={handlePublish}
-            >
-              {effective ? '시행일 예약' : '바로 공개'}
-            </Button>
-            {dirty && <p className="text-xs text-amber-700">바꾼 내용을 먼저 저장해 주세요.</p>}
-          </div>
+          {composing ? (
+            <p className="text-xs text-slate-500">
+              저장한 뒤 공개하거나 시행일을 예약할 수 있어요.
+            </p>
+          ) : (
+            <div className="space-y-2 rounded-lg border border-slate-200 p-4">
+              <FormField
+                label="시행일 (한국 시간, 선택)"
+                htmlFor={`${doc.kind}-effective`}
+                hint="비우면 바로 공개해요. 앞날을 고르면 그때 자동으로 시행돼요."
+              >
+                <input
+                  id={`${doc.kind}-effective`}
+                  type="datetime-local"
+                  className="h-10 rounded-lg border border-slate-300 px-3 text-sm"
+                  value={effective}
+                  onChange={(e) => setEffective(e.target.value)}
+                />
+              </FormField>
+              <Button
+                type="button"
+                loading={publish.isPending}
+                disabled={dirty || !summary.trim()}
+                onClick={handlePublish}
+              >
+                {effective ? '시행일 예약' : '바로 공개'}
+              </Button>
+              {dirty && <p className="text-xs text-amber-700">바꾼 내용을 먼저 저장해 주세요.</p>}
+            </div>
+          )}
         </ReadOnlyFieldset>
       )}
-      {isDraft && tab === 'edit' && (
+      {editing && tab === 'edit' && (
         <SaveBar
           dirty={dirty}
-          saving={save.isPending}
+          saving={create.isPending || save.isPending}
           onReset={() => {
-            setBody(working.body)
-            setSummary(working.summary ?? '')
+            setBody(working?.body ?? doc.body)
+            setSummary(working?.summary ?? '')
           }}
           onSave={() => void handleSave()}
         />
       )}
       <LeaveGuard dirty={dirty} onSave={handleSave} />
       <VersionModal kind={doc.kind} version={viewing} onClose={() => setViewing(null)} />
+      <DiffModal
+        open={comparing}
+        onClose={() => setComparing(false)}
+        title={`${doc.title} — ${doc.version ? `v${doc.version} 공개본` : '기본 문안'}과 비교`}
+        before={doc.body}
+        after={body}
+      />
     </section>
   )
 }

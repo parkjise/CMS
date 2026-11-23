@@ -231,6 +231,20 @@ describe('GEO 설정', () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalled())
   })
 
+  it('쉬운 말 한 줄 · SEO 바로가기 · 입력한 항목 수 (T-230)', async () => {
+    const user = userEvent.setup()
+    renderAt('/admin/site/geo', <GeoPage />)
+    expect(await screen.findByText('AI 답변 서비스에 브랜드 소개')).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'SEO 설정에서 바꾸기 →' })).toHaveAttribute(
+      'href',
+      '/admin/site/seo'
+    )
+    expect(screen.getByText(/3가지 중\s*0\s*가지 입력/)).toBeInTheDocument()
+    await user.type(screen.getByLabelText('기업 소개'), '강남 치과')
+    await user.type(screen.getByLabelText('서비스 · 주제 키워드'), '임플란트')
+    expect(screen.getByText(/3가지 중\s*2\s*가지 입력/)).toBeInTheDocument()
+  })
+
   it('크롤러 정책을 robots.txt 예상 결과에 바로 보여 준다', async () => {
     const user = userEvent.setup()
     renderAt('/admin/site/geo', <GeoPage />)

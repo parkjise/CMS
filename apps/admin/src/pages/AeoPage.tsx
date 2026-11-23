@@ -6,6 +6,7 @@ import { Toggle, toast } from '@cms/ui'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
+import { SITE_HINTS } from '@/components/layout/navigation'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
 import { useAeo, useUpdateAeo } from '@/hooks/useSearchSettings'
 import { pickErrorMessage } from '@/lib/errorMessages'
@@ -178,6 +179,7 @@ export function AeoPage() {
   return (
     <SitePage
       title="AEO 설정"
+      summary={SITE_HINTS.aeo}
       description="자주 묻는 질문을 검색엔진과 AI 답변 서비스가 읽기 쉬운 형식으로 내보내요. 질문 · 답변은 FAQ 게시판에서 쓰고, 여기서는 연결만 합니다."
     >
       <p

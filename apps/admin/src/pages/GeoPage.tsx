@@ -7,6 +7,7 @@ import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
+import { SITE_HINTS } from '@/components/layout/navigation'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
 import { useGeo, useUpdateGeo } from '@/hooks/useSearchSettings'
 import { useSeoSettings } from '@/hooks/useSeo'
@@ -114,6 +115,7 @@ export function GeoPage() {
   return (
     <SitePage
       title="GEO 설정"
+      summary={SITE_HINTS.geo}
       description="AI 검색 · 답변 서비스가 사업체를 정확히 소개하도록 공식 정보와 출처를 정리하고, AI 크롤러의 접근을 정해요."
     >
       {(query.isLoading || !draft || !query.data) && (
@@ -134,7 +136,22 @@ export function GeoPage() {
               <Link to="/admin/site/seo" className="text-blue-600 hover:underline">
                 SEO 설정
               </Link>
-              의 대표 주소({seo.data?.canonical_url || '미설정'})를 그대로 써요.
+              의 대표 주소({seo.data?.canonical_url || '미설정'})를 그대로 써요.{' '}
+              <Link to="/admin/site/seo" className="font-medium text-blue-600 hover:underline">
+                SEO 설정에서 바꾸기 →
+              </Link>
+            </p>
+            {/* 점수 대신 사실만 (SM-06 — 근거 없는 지표를 보여 주지 않는다, T-230) */}
+            <p className="text-xs text-slate-500" role="status">
+              기업 소개 · 주제 키워드 · 공식 프로필 3가지 중{' '}
+              {
+                [
+                  draft.description.trim(),
+                  topicCount > 0,
+                  draft.profile_urls.some((u) => u.trim()),
+                ].filter(Boolean).length
+              }
+              가지 입력
             </p>
             <FormField
               label="기업 소개"

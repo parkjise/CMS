@@ -134,6 +134,51 @@ function TextField({ field, label, placeholder, hint, type, value, error, onChan
   )
 }
 
+/** 비어 있으면 위에 알려 줄 핵심 항목 (T-230) — 필수는 아니다(T-222 결정), 안내만 */
+const KEY_FIELDS: { field: SiteSettingsField; label: string }[] = [
+  { field: 'site_name', label: '사이트명' },
+  { field: 'phone', label: '대표 전화' },
+  { field: 'address', label: '기본 주소' },
+  { field: 'email', label: '대표 이메일' },
+  { field: 'privacy_officer', label: '개인정보 보호책임자' },
+]
+
+/** 아직 비어 있는 핵심 항목 — 누르면 그 칸으로 */
+function MissingFields({ draft }: { draft: Draft }) {
+  const missing = KEY_FIELDS.filter(({ field }) => !draft.text[field].trim())
+  if (missing.length === 0) return null
+  return (
+    <section
+      className="space-y-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3"
+      aria-labelledby="site-missing"
+    >
+      <h2 id="site-missing" className="text-sm font-medium text-amber-900">
+        아직 비어 있는 항목 {missing.length}개
+      </h2>
+      <p className="text-xs text-amber-800">
+        비워도 저장할 수 있지만, 홈페이지 푸터 · 약관 · 검색 결과에 쓰여요.
+      </p>
+      <ul className="flex flex-wrap gap-2">
+        {missing.map(({ field, label }) => (
+          <li key={field}>
+            <button
+              type="button"
+              className="rounded-full border border-amber-300 bg-white px-3 py-1 text-xs font-medium text-amber-900 hover:bg-amber-100"
+              onClick={() => {
+                const input = document.getElementById(`site-${field}`)
+                input?.scrollIntoView?.({ block: 'center' })
+                input?.focus()
+              }}
+            >
+              {label}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )
+}
+
 const STATUS_LABEL: Record<DayStatus, string> = { open: '영업', closed: '휴무', '24h': '24시간' }
 const TIME = 'h-9 w-[6.5rem] rounded-md border border-slate-300 px-2 text-sm disabled:bg-slate-50 disabled:text-slate-400'
 
@@ -342,218 +387,228 @@ export function SiteSettingsForm() {
         if (dirty) handleSave()
       }}
     >
-      <section className={SITE_CARD} aria-labelledby="site-brand">
-        <h2 id="site-brand" className={heading}>
-          <Building2 className={icon} aria-hidden="true" /> 브랜드 정보
-        </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <TextField
-            {...field('site_name')}
-            label="사이트명"
-            placeholder="바른치과 공식 사이트"
-            hint="홈페이지 맨 위 · 브라우저 탭 · 검색 결과 이름. 비우면 사업체 이름을 써요."
-          />
-          <TextField
-            {...field('company_name')}
-            label="회사명 · 상호명"
-            placeholder="주식회사 예시"
-            hint="푸터 · 약관에 쓰여요. 비우면 사업체 이름을 써요."
-          />
-        </div>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          <ImageUploadField
-            label="로고"
-            context="site"
-            value={draft.text.logo_url}
-            onChange={(url) => change('logo_url', url)}
-            hint="홈페이지 맨 위에 상호 대신 보여요. 가로로 긴 이미지(예: 400×120)를 권장해요."
-          />
-          <ImageUploadField
-            label="파비콘 (브라우저 탭 아이콘)"
-            context="site"
-            value={draft.text.favicon_url}
-            onChange={(url) => change('favicon_url', url)}
-            hint="정사각형 이미지(예: 512×512)를 권장해요."
-          />
-        </div>
-        {(errors.logo_url || errors.favicon_url) && (
-          <p className="text-xs text-rose-600" role="alert">
-            {errors.logo_url ?? errors.favicon_url}
-          </p>
-        )}
-      </section>
-
-      <section className={SITE_CARD} aria-labelledby="site-business">
-        <h2 id="site-business" className={heading}>
-          <Building2 className={icon} aria-hidden="true" /> 사업자 · 연락처 정보
-        </h2>
-        <p className="text-sm text-slate-500">
-          비워 둔 칸은 홈페이지에 보이지 않아요. 사업자등록번호는 형식만 확인하며 실제 사업자
-          확인은 하지 않아요.
-        </p>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <TextField {...field('ceo')} label="대표자" placeholder="홍길동" hint="공동대표는 쉼표로 함께 적어 주세요." />
-          <TextField
-            {...field('business_number')}
-            label="사업자등록번호"
-            placeholder="123-45-67890"
-            hint="숫자 10자리 — 하이픈은 자동으로 넣어요."
-          />
-          <TextField
-            {...field('mail_order_number')}
-            label="통신판매업 신고번호"
-            placeholder="제2026-서울강남-00000호"
-          />
-          <div className="grid grid-cols-2 gap-3">
-            <TextField {...field('business_type')} label="업태" placeholder="정보통신업" />
-            <TextField {...field('business_item')} label="종목" placeholder="소프트웨어 개발" />
-          </div>
-          <TextField {...field('phone')} label="대표 전화" placeholder="02-1234-5678" />
-          <div className="space-y-2">
-            {draft.csSame ? (
-              <FormField label="고객센터 전화">
-                <p className="text-sm text-slate-500">대표 전화와 같아요.</p>
-              </FormField>
-            ) : (
-              <TextField {...field('cs_phone')} label="고객센터 전화" placeholder="1588-1234" />
-            )}
-            <label className="flex items-center gap-2 text-xs text-slate-600">
-              <input
-                type="checkbox"
-                checked={draft.csSame}
-                onChange={(e) => setDraft((d) => ({ ...d, csSame: e.target.checked }))}
+      <MissingFields draft={draft} />
+      {/* 넓은 화면은 푸터 미리보기를 오른쪽에 붙여 입력하며 바로 본다 (T-230) */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-start">
+        <div className="min-w-0 space-y-6">
+          <section className={SITE_CARD} aria-labelledby="site-brand">
+            <h2 id="site-brand" className={heading}>
+              <Building2 className={icon} aria-hidden="true" /> 브랜드 정보
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <TextField
+                {...field('site_name')}
+                label="사이트명"
+                placeholder="바른치과 공식 사이트"
+                hint="홈페이지 맨 위 · 브라우저 탭 · 검색 결과 이름. 비우면 사업체 이름을 써요."
               />
-              대표번호와 동일
-            </label>
-          </div>
-          <TextField {...field('fax')} label="팩스" placeholder="선택 입력" />
-          <TextField {...field('email')} label="대표 이메일" type="email" placeholder="hello@example.com" />
-          <TextField
-            {...field('postal_code')}
-            label="우편번호"
-            placeholder="06236"
-            hint="숫자 5자리"
-          />
-          <div className="hidden md:block" />
-          <TextField {...field('address')} label="기본 주소" placeholder="서울특별시 강남구 테헤란로 123" />
-          <TextField {...field('address_detail')} label="상세 주소" placeholder="4층" />
-        </div>
-        <TextField {...field('parking')} label="주차 안내" placeholder="건물 내 주차 2시간 무료" />
-      </section>
-
-      <section className={SITE_CARD} aria-labelledby="site-hours">
-        <h2 id="site-hours" className={heading}>
-          <Clock className={icon} aria-hidden="true" /> 운영시간
-        </h2>
-        <Toggle
-          checked={draft.useWeek}
-          onChange={(e) => setDraft((d) => ({ ...d, useWeek: e.target.checked }))}
-          label="요일별로 입력하기"
-          description="요일마다 영업 · 휴무 · 24시간과 점심시간을 정해요. 검색 결과의 영업시간 정보에도 쓰여요."
-        />
-        {draft.useWeek ? (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[640px] text-sm">
-                <thead>
-                  <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
-                    <th className="py-2 font-medium">요일</th>
-                    <th className="py-2 font-medium">운영 상태</th>
-                    <th className="py-2 font-medium">영업시간</th>
-                    <th className="py-2 font-medium">점심시간 (선택)</th>
-                    <th className="py-2" aria-label="복사" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {WEEKDAYS.map((day) => (
-                    <DayRow
-                      key={day}
-                      day={day}
-                      hours={draft.week[day]}
-                      onChange={(h) => setDay(day, h)}
-                      onCopy={() => copyDay(day)}
-                    />
-                  ))}
-                </tbody>
-              </table>
+              <TextField
+                {...field('company_name')}
+                label="회사명 · 상호명"
+                placeholder="주식회사 예시"
+                hint="푸터 · 약관에 쓰여요. 비우면 사업체 이름을 써요."
+              />
             </div>
-            {errors.weekly_hours ? (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <ImageUploadField
+                label="로고"
+                context="site"
+                value={draft.text.logo_url}
+                onChange={(url) => change('logo_url', url)}
+                hint="홈페이지 맨 위에 상호 대신 보여요. 가로로 긴 이미지(예: 400×120)를 권장해요."
+              />
+              <ImageUploadField
+                label="파비콘 (브라우저 탭 아이콘)"
+                context="site"
+                value={draft.text.favicon_url}
+                onChange={(url) => change('favicon_url', url)}
+                hint="정사각형 이미지(예: 512×512)를 권장해요."
+              />
+            </div>
+            {(errors.logo_url || errors.favicon_url) && (
               <p className="text-xs text-rose-600" role="alert">
-                {errors.weekly_hours}
-              </p>
-            ) : (
-              <p className="text-xs text-slate-500">
-                닫는 시각이 여는 시각보다 이르면 다음 날 새벽에 닫는 것으로 봐요. (예: 18:00 ~
-                02:00)
+                {errors.logo_url ?? errors.favicon_url}
               </p>
             )}
-          </>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <TextField {...field('hours_weekday')} label="평일" placeholder="오전 9:00 - 오후 6:00" />
-            <TextField {...field('hours_saturday')} label="토요일" placeholder="오전 9:00 - 오후 1:00" />
-          </div>
-        )}
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <TextField {...field('hours_note')} label="휴무일 안내" placeholder="일요일 및 공휴일 휴무" />
-          <TextField {...field('hours_temp_note')} label="임시 운영 안내" placeholder="명절 휴무 등" />
+          </section>
+
+          <section className={SITE_CARD} aria-labelledby="site-business">
+            <h2 id="site-business" className={heading}>
+              <Building2 className={icon} aria-hidden="true" /> 사업자 · 연락처 정보
+            </h2>
+            <p className="text-sm text-slate-500">
+              비워 둔 칸은 홈페이지에 보이지 않아요. 사업자등록번호는 형식만 확인하며 실제 사업자
+              확인은 하지 않아요.
+            </p>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <TextField {...field('ceo')} label="대표자" placeholder="홍길동" hint="공동대표는 쉼표로 함께 적어 주세요." />
+              <TextField
+                {...field('business_number')}
+                label="사업자등록번호"
+                placeholder="123-45-67890"
+                hint="숫자 10자리 — 하이픈은 자동으로 넣어요."
+              />
+              <TextField
+                {...field('mail_order_number')}
+                label="통신판매업 신고번호"
+                placeholder="제2026-서울강남-00000호"
+              />
+              <div className="grid grid-cols-2 gap-3">
+                <TextField {...field('business_type')} label="업태" placeholder="정보통신업" />
+                <TextField {...field('business_item')} label="종목" placeholder="소프트웨어 개발" />
+              </div>
+              <TextField {...field('phone')} label="대표 전화" placeholder="02-1234-5678" />
+              <div className="space-y-2">
+                {draft.csSame ? (
+                  <FormField label="고객센터 전화">
+                    <p className="text-sm text-slate-500">대표 전화와 같아요.</p>
+                  </FormField>
+                ) : (
+                  <TextField {...field('cs_phone')} label="고객센터 전화" placeholder="1588-1234" />
+                )}
+                <label className="flex items-center gap-2 text-xs text-slate-600">
+                  <input
+                    type="checkbox"
+                    checked={draft.csSame}
+                    onChange={(e) => setDraft((d) => ({ ...d, csSame: e.target.checked }))}
+                  />
+                  대표번호와 동일
+                </label>
+              </div>
+              <TextField {...field('fax')} label="팩스" placeholder="선택 입력" />
+              <TextField {...field('email')} label="대표 이메일" type="email" placeholder="hello@example.com" />
+              <TextField
+                {...field('postal_code')}
+                label="우편번호"
+                placeholder="06236"
+                hint="숫자 5자리"
+              />
+              <div className="hidden md:block" />
+              <TextField {...field('address')} label="기본 주소" placeholder="서울특별시 강남구 테헤란로 123" />
+              <TextField {...field('address_detail')} label="상세 주소" placeholder="4층" />
+            </div>
+            <TextField {...field('parking')} label="주차 안내" placeholder="건물 내 주차 2시간 무료" />
+          </section>
+
+          <section className={SITE_CARD} aria-labelledby="site-hours">
+            <h2 id="site-hours" className={heading}>
+              <Clock className={icon} aria-hidden="true" /> 운영시간
+            </h2>
+            <Toggle
+              checked={draft.useWeek}
+              onChange={(e) => setDraft((d) => ({ ...d, useWeek: e.target.checked }))}
+              label="요일별로 입력하기"
+              description="요일마다 영업 · 휴무 · 24시간과 점심시간을 정해요. 검색 결과의 영업시간 정보에도 쓰여요."
+            />
+            {draft.useWeek ? (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs text-slate-500">
+                        <th className="py-2 font-medium">요일</th>
+                        <th className="py-2 font-medium">운영 상태</th>
+                        <th className="py-2 font-medium">영업시간</th>
+                        <th className="py-2 font-medium">점심시간 (선택)</th>
+                        <th className="py-2" aria-label="복사" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {WEEKDAYS.map((day) => (
+                        <DayRow
+                          key={day}
+                          day={day}
+                          hours={draft.week[day]}
+                          onChange={(h) => setDay(day, h)}
+                          onCopy={() => copyDay(day)}
+                        />
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {errors.weekly_hours ? (
+                  <p className="text-xs text-rose-600" role="alert">
+                    {errors.weekly_hours}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    닫는 시각이 여는 시각보다 이르면 다음 날 새벽에 닫는 것으로 봐요. (예: 18:00 ~
+                    02:00)
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <TextField {...field('hours_weekday')} label="평일" placeholder="오전 9:00 - 오후 6:00" />
+                <TextField {...field('hours_saturday')} label="토요일" placeholder="오전 9:00 - 오후 1:00" />
+              </div>
+            )}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <TextField {...field('hours_note')} label="휴무일 안내" placeholder="일요일 및 공휴일 휴무" />
+              <TextField {...field('hours_temp_note')} label="임시 운영 안내" placeholder="명절 휴무 등" />
+            </div>
+          </section>
+
+          <section className={SITE_CARD} aria-labelledby="site-privacy">
+            <h2 id="site-privacy" className={heading}>
+              <ShieldCheck className={icon} aria-hidden="true" /> 개인정보 담당 · 표시 설정
+            </h2>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <TextField
+                {...field('privacy_officer')}
+                label="개인정보 보호책임자"
+                placeholder="담당자명 또는 부서"
+                hint="개인정보처리방침 기본 문안에도 들어가요. 비우면 대표자를 써요."
+              />
+              <TextField
+                {...field('privacy_email')}
+                label="개인정보 문의 이메일"
+                type="email"
+                placeholder="privacy@example.com"
+                hint="비우면 대표 이메일을 써요."
+              />
+            </div>
+            <TextField
+              {...field('copyright')}
+              label="저작권 문구"
+              placeholder="© Example. All rights reserved."
+              hint="비우면 '© 올해 사이트명'으로 보여요."
+            />
+
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium text-slate-700">홈페이지에 보일 항목</legend>
+              <p className="text-xs text-slate-500">
+                끈 항목은 홈페이지 화면 · 공개 API · 검색 구조화 데이터 · 약관 기본 문안에서 모두
+                빠져요. 온라인으로 판매한다면 사업자 정보 · 대표자 · 주소 · 전화번호를 공개해야 할 수
+                있어요.
+              </p>
+              <div className="flex flex-wrap gap-x-5 gap-y-2">
+                {PUBLIC_OPTIONS.map((option) => (
+                  <label key={option.key} className="flex items-center gap-2 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={!draft.hidden.includes(option.key)}
+                      onChange={(e) => togglePublic(option.key, e.target.checked)}
+                    />
+                    {option.label}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </section>
         </div>
-      </section>
 
-      <section className={SITE_CARD} aria-labelledby="site-privacy">
-        <h2 id="site-privacy" className={heading}>
-          <ShieldCheck className={icon} aria-hidden="true" /> 개인정보 담당 · 표시 설정
-        </h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <TextField
-            {...field('privacy_officer')}
-            label="개인정보 보호책임자"
-            placeholder="담당자명 또는 부서"
-            hint="개인정보처리방침 기본 문안에도 들어가요. 비우면 대표자를 써요."
-          />
-          <TextField
-            {...field('privacy_email')}
-            label="개인정보 문의 이메일"
-            type="email"
-            placeholder="privacy@example.com"
-            hint="비우면 대표 이메일을 써요."
-          />
-        </div>
-        <TextField
-          {...field('copyright')}
-          label="저작권 문구"
-          placeholder="© Example. All rights reserved."
-          hint="비우면 '© 올해 사이트명'으로 보여요."
-        />
-
-        <fieldset className="space-y-2">
-          <legend className="text-sm font-medium text-slate-700">홈페이지에 보일 항목</legend>
-          <p className="text-xs text-slate-500">
-            끈 항목은 홈페이지 화면 · 공개 API · 검색 구조화 데이터 · 약관 기본 문안에서 모두
-            빠져요. 온라인으로 판매한다면 사업자 정보 · 대표자 · 주소 · 전화번호를 공개해야 할 수
-            있어요.
-          </p>
-          <div className="flex flex-wrap gap-x-5 gap-y-2">
-            {PUBLIC_OPTIONS.map((option) => (
-              <label key={option.key} className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={!draft.hidden.includes(option.key)}
-                  onChange={(e) => togglePublic(option.key, e.target.checked)}
-                />
-                {option.label}
-              </label>
-            ))}
-          </div>
-        </fieldset>
-
-        <div className="space-y-2">
-          <h3 className="flex items-center gap-1.5 text-sm font-medium text-slate-700">
+        <aside className={`${SITE_CARD} xl:sticky xl:top-6`} aria-labelledby="site-footer-preview">
+          <h2
+            id="site-footer-preview"
+            className="flex items-center gap-1.5 text-sm font-medium text-slate-700"
+          >
             <Eye className="h-4 w-4 text-slate-500" aria-hidden /> 푸터 미리보기
-          </h3>
+          </h2>
+          <p className="text-xs text-slate-500">입력하는 대로 바뀌어요. 저장해야 홈페이지에 반영돼요.</p>
           <FooterPreview draft={draft} />
-        </div>
-      </section>
+        </aside>
+      </div>
 
       <SaveBar
         dirty={dirty}

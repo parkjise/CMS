@@ -144,19 +144,20 @@ export function CollapsedSidebar() {
                     {activeItem.label}
                   </p>
                   <div className="mt-1 space-y-1">
-                    {activeItem.children.map(({ to, label }) => (
+                    {activeItem.children.map((child) => (
                       <Link
-                        key={to}
-                        to={to}
+                        key={child.to}
+                        to={child.to}
+                        title={'hint' in child ? child.hint : undefined}
                         onClick={close}
                         aria-current={
-                          isChildActive(pathname, to, activeItem.children ?? [])
+                          isChildActive(pathname, child.to, activeItem.children ?? [])
                             ? 'page'
                             : undefined
                         }
-                        className={`block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
+                        className={`block rounded-lg px-3 py-2.5 text-sm ${isChildActive(pathname, child.to, activeItem.children ?? []) ? 'bg-blue-50 font-medium text-blue-700' : 'text-slate-600 hover:bg-slate-100'}`}
                       >
-                        {label}
+                        {child.label}
                       </Link>
                     ))}
                   </div>
