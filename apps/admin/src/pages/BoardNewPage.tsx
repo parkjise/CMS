@@ -11,6 +11,7 @@ import {
   useSlugCheck,
 } from '@/hooks/useBoards'
 import { BoardPageTitle } from '@/components/boards/BoardPageTitle'
+import { BoardSuggestAssist, type BoardSuggestionPick } from '@/components/ai/BoardSuggestAssist'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import {
   CARD,
@@ -20,6 +21,9 @@ import {
   TAG_DEFAULT,
 } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
+import { type AddStructureResult, useAddSuggestedStructure } from '@/hooks/useBoardSuggestion'
+import type { SuggestedField } from '@/lib/aiAssist'
+import { withoutTaken } from '@/lib/boardSuggestion'
 import { BOARD_EXAMPLES } from '@/lib/boardExamples'
 import { READ_OPTIONS, WRITE_OPTIONS } from '@/lib/boardPermissions'
 import { BASE_FIELDS, BOARD_TYPES, boardSlugError, boardTypeLabel } from '@/lib/boardLabels'
@@ -200,6 +204,11 @@ export function BoardNewPage() {
   ].join(' / ')
   const [errors, setErrors] = useState<{ name?: string; slug?: string }>({})
   const [created, setCreated] = useState<Board | null>(null)
+  // AI 추천 필드 · 카테고리 (T-232-A) — 게시판을 만든 뒤 차례로 만든다
+  const [aiFields, setAiFields] = useState<SuggestedField[]>([])
+  const [aiCategories, setAiCategories] = useState<string[]>([])
+  const addStructure = useAddSuggestedStructure()
+  const [addedStructure, setAddedStructure] = useState<AddStructureResult | null>(null)
   const slugInput = useRef<HTMLInputElement>(null)
   // 주소 이름 — 입력을 멈추면 서버에 미리 확인 (T-210)
   const [checkedSlug, setCheckedSlug] = useState('')
@@ -233,12 +242,43 @@ export function BoardNewPage() {
         : pickedPresets.filter((picked) => picked !== key),
     }))
 
+  // 기본 필드 · 함께 만들 추천 칸과 이름이 같은 AI 필드는 건너뛴다
+  const extraFields = withoutTaken(aiFields, (f) => f.label, [
+    ...BASE_FIELDS.map((f) => f.label),
+    ...presets.filter((p) => sendPresets.includes(p.key)).map((p) => p.label),
+  ])
+
   const limits = limitsQuery.data
   const last = STEPS.length - 1
 
   const goTo = (target: number) => {
     setStep(target)
     setReached((r) => Math.max(r, target))
+  }
+
+  // AI 추천 적용 (기획서 A-2) — 2 ~ 4단계 값을 채우고 검토 단계로. 만들기는 관리자가 누른다
+  const applySuggestion = ({ suggestion, basics, access, fields, categories }: BoardSuggestionPick) => {
+    if (!blockedTypes[suggestion.board_type]) setBoardType(suggestion.board_type)
+    if (basics) {
+      setName(suggestion.name.slice(0, 100))
+      setDescription(suggestion.description.slice(0, 200))
+      setErrors({})
+    }
+    if (access) {
+      // 회원 값을 고를 수 없는 사업체면 그 칸은 처음 값으로 — 4단계 막힘과 같게
+      const read = readBlocked && suggestion.permissions.read === 'MEMBER' ? 'PUBLIC' : suggestion.permissions.read
+      const write = writeBlocked && suggestion.permissions.write === 'MEMBER' ? 'ADMIN' : suggestion.permissions.write
+      setPermissions({ read, write })
+      setOperation({
+        allow_guest: writeBlocked ? false : suggestion.operation.allow_guest,
+        allow_secret: write === 'MEMBER' && suggestion.operation.allow_secret,
+        notify_new_post: suggestion.operation.notify_new_post,
+      })
+    }
+    setAiFields(fields)
+    setAiCategories(categories)
+    // 이름이 비었으면 1단계에서 채우게
+    goTo(basics || name.trim() ? last : 0)
   }
 
   const next = () => {
@@ -276,6 +316,18 @@ export function BoardNewPage() {
         operation,
       })
       setCreatedPresets(sendPresets.length)
+      if (extraFields.length || aiCategories.length) {
+        // 게시판은 만들어졌다 — 일부를 못 만들어도 완료 화면에서 알린다
+        setAddedStructure(
+          await addStructure
+            .mutateAsync({ boardId: board.id, fields: extraFields, categories: aiCategories })
+            .catch(() => ({
+              fields: 0,
+              categories: 0,
+              failed: extraFields.length + aiCategories.length,
+            }))
+        )
+      }
       setCreated(board)
     } catch (error) {
       const message = pickErrorMessage(error, '게시판을 만들지 못했습니다.')
@@ -311,6 +363,18 @@ export function BoardNewPage() {
                 : '상단 메뉴에는 넣지 않았습니다.'}{' '}
             메뉴 이름과 보이기는 공통 설정의 상단 메뉴에서 바꿀 수 있습니다.
           </p>
+          {addedStructure && (addedStructure.fields > 0 || addedStructure.categories > 0) && (
+            <p className="text-sm text-slate-600">
+              AI 추천 필드 {addedStructure.fields}개 · 카테고리 {addedStructure.categories}개를
+              함께 만들었습니다.
+            </p>
+          )}
+          {addedStructure && addedStructure.failed > 0 && (
+            <p className="text-sm text-amber-700" role="alert">
+              추천 필드 · 카테고리 {addedStructure.failed}개를 만들지 못했습니다. 필드 · 카테고리
+              화면에서 추가해 주세요.
+            </p>
+          )}
           {createdPresets > 0 && (
             <p className="text-sm text-slate-600">
               추천 칸 {createdPresets}개를 함께 만들었습니다. 이름 · 선택지 · 순서는 칸 설정에서
@@ -436,6 +500,21 @@ export function BoardNewPage() {
           <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
             <section className={`space-y-5 ${CARD}`}>
               <h2 className="text-base font-semibold text-slate-800">{STEP_TITLES[step]}</h2>
+
+              {step === 0 && (
+                <div className="flex justify-end empty:hidden">
+                  <BoardSuggestAssist
+                    mode="new"
+                    buttonLabel="AI 로 구성 추천받기"
+                    title="게시판 구성 추천"
+                    defaultPurpose={description}
+                    currentName={name}
+                    blockedTypes={blockedTypes}
+                    applyLabel="적용하고 검토하기"
+                    onApply={applySuggestion}
+                  />
+                </div>
+              )}
 
               {step === 0 && (
                 <div className="grid gap-5 md:grid-cols-2">
@@ -619,14 +698,62 @@ export function BoardNewPage() {
                       ))}
                     </fieldset>
                   )}
+                  {(aiFields.length > 0 || aiCategories.length > 0) && (
+                    <div className="space-y-2.5 rounded-lg border border-violet-100 bg-violet-50/40 p-4 text-sm">
+                      <p className="font-medium text-slate-700">AI 추천으로 함께 만들 것</p>
+                      {aiFields.length > 0 && (
+                        <ul className="space-y-1">
+                          {aiFields.map((field) => {
+                            const skipped = !extraFields.includes(field)
+                            return (
+                              <li key={field.label} className="flex items-center gap-2">
+                                <span className={skipped ? 'text-slate-400 line-through' : 'text-slate-900'}>
+                                  {field.label}
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                  ({fieldTypeLabel(field.field_type)}
+                                  {field.choices.length > 0 && `: ${field.choices.join(' · ')}`})
+                                  {skipped && ' 같은 이름의 칸이 있어 건너뜀'}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="ml-auto text-xs text-slate-500 hover:text-rose-600"
+                                  aria-label={`${field.label} 빼기`}
+                                  onClick={() => setAiFields((list) => list.filter((f) => f !== field))}
+                                >
+                                  빼기
+                                </button>
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      )}
+                      {aiCategories.length > 0 && (
+                        <p className="text-slate-700">
+                          카테고리: {aiCategories.join(' · ')}{' '}
+                          <button
+                            type="button"
+                            className="text-xs text-slate-500 hover:text-rose-600"
+                            onClick={() => setAiCategories([])}
+                          >
+                            빼기
+                          </button>
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        게시판을 만든 뒤 차례로 만들어요. 이름 · 선택지는 필드 · 카테고리 화면에서
+                        고칠 수 있어요.
+                      </p>
+                    </div>
+                  )}
                   {presetsQuery.isError && (
                     <p className="text-xs text-slate-500">
                       추천 칸을 불러오지 못했습니다. 칸은 만든 뒤 칸 설정에서 추가할 수 있습니다.
                     </p>
                   )}
                   <p className="text-xs text-slate-500">
-                    사용자 정의 필드 {sendPresets.length}개 ·{' '}
-                    {sendPresets.length
+                    사용자 정의 필드 {sendPresets.length + extraFields.length}개 ·{' '}
+                    {sendPresets.length + extraFields.length
                       ? '추천 칸과 함께 시작합니다.'
                       : '기본 필드만으로 시작합니다.'}
                   </p>
@@ -750,9 +877,18 @@ export function BoardNewPage() {
                     />
                     <SummaryRow
                       label="필드 구성"
-                      value={`기본 필드 ${BASE_FIELDS.length}개 / 추천 칸 ${sendPresets.length}개`}
+                      value={`기본 필드 ${BASE_FIELDS.length}개 / 추천 칸 ${sendPresets.length}개${
+                        extraFields.length ? ` / AI 추천 ${extraFields.length}개` : ''
+                      }`}
                       onEdit={() => goTo(2)}
                     />
+                    {aiCategories.length > 0 && (
+                      <SummaryRow
+                        label="카테고리"
+                        value={aiCategories.join(' · ')}
+                        onEdit={() => goTo(2)}
+                      />
+                    )}
                     <SummaryRow label="권한" value={accessSummary} onEdit={() => goTo(3)} />
                   </div>
                 </>
@@ -773,7 +909,11 @@ export function BoardNewPage() {
                     다음 단계 →
                   </Button>
                 ) : (
-                  <Button type="button" loading={createBoard.isPending} onClick={submit}>
+                  <Button
+                    type="button"
+                    loading={createBoard.isPending || addStructure.isPending}
+                    onClick={submit}
+                  >
                     게시판 만들기
                   </Button>
                 )}

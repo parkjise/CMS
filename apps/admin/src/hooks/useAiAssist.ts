@@ -1,6 +1,11 @@
 import { useMutation } from '@tanstack/react-query'
 import { api } from '@/lib/api'
-import { type AssistKind, type AssistResponse, type AssistTone, isAiPreview } from '@/lib/aiAssist'
+import {
+  type AssistInputs,
+  type AssistKind,
+  type AssistResponse,
+  isAiPreview,
+} from '@/lib/aiAssist'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import { useFeatureStore } from '@/stores/featureStore'
 
@@ -14,13 +19,13 @@ export function useAiAssistEnabled(flag: string): boolean {
 /** `POST /api/v1/ai/assist/{kind}` — 결과는 미리보기로만, 저장은 관리자가 (기획서 2.0) */
 export function useAiAssist<K extends AssistKind>(kind: K) {
   return useMutation({
-    mutationFn: async (tone: AssistTone): Promise<AssistResponse<K>> => {
+    mutationFn: async (input: AssistInputs[K]): Promise<AssistResponse<K>> => {
       // DEV 를 먼저 봐야 운영 빌드에서 예시 결과 파일이 아예 빠진다
       if (import.meta.env.DEV && isAiPreview()) {
         const { previewAssist } = await import('@/lib/aiAssistPreview')
-        return previewAssist(kind, tone)
+        return previewAssist(kind, input)
       }
-      const { data } = await api.post(`/v1/ai/assist/${kind}`, { tone })
+      const { data } = await api.post(`/v1/ai/assist/${kind}`, input)
       return data.data
     },
   })

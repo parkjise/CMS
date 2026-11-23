@@ -1,7 +1,13 @@
-import type { AssistKind, AssistResponse, AssistTone } from '@/lib/aiAssist'
+import type {
+  AssistInputs,
+  AssistKind,
+  AssistResponse,
+  AssistResults,
+  AssistTone,
+} from '@/lib/aiAssist'
 
 /**
- * 미리보기 모드의 예시 결과 (T-231-A) — 개발 서버에서만 읽는다(동적 import).
+ * 미리보기 모드의 예시 결과 (T-231-A · T-232-A) — 개발 서버에서만 읽는다(동적 import).
  * 서버 응답과 같은 모양이라 서버를 붙여도 화면은 그대로다.
  */
 const SEO: Record<AssistTone, AssistResponse<'seo'>['result']> = {
@@ -43,14 +49,89 @@ const GEO: Record<AssistTone, AssistResponse<'geo'>['result']> = {
   },
 }
 
+/** 게시판 구성 — 목적 문장의 낱말로 예시 하나를 고른다 (서버는 목적 · 업종 · 있는 게시판을 함께 본다) */
+const BOARDS: { words: string[]; result: AssistResults['board'] }[] = [
+  {
+    words: ['후기', '리뷰'],
+    result: {
+      board_type: 'REVIEW',
+      name: '치료 후기',
+      description: '진료를 받은 분들의 후기를 모읍니다.',
+      fields: [
+        {
+          label: '받은 진료',
+          field_type: 'SELECT',
+          choices: ['임플란트', '교정', '스케일링', '충치 치료'],
+        },
+        { label: '방문 시기', field_type: 'DATE', choices: [] },
+      ],
+      categories: ['임플란트', '교정', '일반 진료'],
+      permissions: { read: 'PUBLIC', write: 'MEMBER' },
+      operation: { allow_secret: false, notify_new_post: true, allow_guest: false },
+      reason: '후기는 회원만 쓰게 해 광고 · 도배 글을 줄이고, 새 후기는 알림으로 바로 확인해요.',
+    },
+  },
+  {
+    words: ['자주', '질문', 'faq'],
+    result: {
+      board_type: 'FAQ',
+      name: '자주 묻는 질문',
+      description: '예약 · 진료 · 비용에 대해 자주 받는 질문을 정리합니다.',
+      fields: [],
+      categories: ['예약', '진료', '비용', '주차 · 위치'],
+      permissions: { read: 'PUBLIC', write: 'ADMIN' },
+      operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
+      reason: '답은 관리자가 쓰는 글이라 누구나 읽기 · 관리자 글쓰기로 충분해요.',
+    },
+  },
+  {
+    words: ['채용', '구인', '모집'],
+    result: {
+      board_type: 'CARD',
+      name: '채용 공고',
+      description: '함께 일할 분을 찾는 공고를 올립니다.',
+      fields: [
+        { label: '모집 직무', field_type: 'TEXT', choices: [] },
+        { label: '고용 형태', field_type: 'SELECT', choices: ['정규직', '계약직', '파트타임'] },
+        { label: '마감일', field_type: 'DATE', choices: [] },
+        { label: '지원 링크', field_type: 'URL', choices: [] },
+      ],
+      categories: ['진료', '데스크 · 상담', '경영 지원'],
+      permissions: { read: 'PUBLIC', write: 'ADMIN' },
+      operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
+      reason: '공고는 관리자만 올리고, 지원은 링크나 온라인 상담으로 받아요.',
+    },
+  },
+]
+
+const NEWS: AssistResults['board'] = {
+  board_type: 'LIST',
+  name: '병원 소식',
+  description: '진료 시간 변경 · 휴진 · 새 소식을 알립니다.',
+  fields: [{ label: '적용 기간', field_type: 'TEXT', choices: [] }],
+  categories: ['공지', '휴진 안내', '이벤트'],
+  permissions: { read: 'PUBLIC', write: 'ADMIN' },
+  operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
+  reason: '알림 글은 관리자만 쓰고 누구나 읽게 하는 것이 기본이에요.',
+}
+
+const suggestBoard = (purpose: string) => {
+  const text = purpose.toLowerCase()
+  return BOARDS.find((board) => board.words.some((word) => text.includes(word)))?.result ?? NEWS
+}
+
 let used = 3
 
 export async function previewAssist<K extends AssistKind>(
   kind: K,
-  tone: AssistTone
+  input: AssistInputs[K]
 ): Promise<AssistResponse<K>> {
   await new Promise((resolve) => window.setTimeout(resolve, 600))
   used += 1
-  const result = (kind === 'seo' ? SEO[tone] : GEO[tone]) as AssistResponse<K>['result']
+  const result = (
+    kind === 'board'
+      ? suggestBoard((input as AssistInputs['board']).purpose)
+      : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
+  ) as AssistResponse<K>['result']
   return { result, usage: { used, limit: 20, remaining: Math.max(20 - used, 0) } }
 }
