@@ -11,6 +11,9 @@ import {
   Sparkles,
 } from 'lucide-react'
 
+/** 신고된 글 — 메뉴에 처리 안 한 신고 수를 보인다 (T-229) */
+export const REPORTS_PATH = '/admin/posts/reports'
+
 /** 사이트 공통 설정 (T-221, 사이트 관리 기획서) — 첫 화면은 기본정보 */
 export const SITE_HOME = '/admin/site/info'
 
@@ -35,17 +38,14 @@ export const ADMIN_NAVIGATION = [
     to: '/admin/boards',
     icon: ClipboardList,
     label: '게시판 관리',
+    // 11 → 6 (T-229, 2026-11-23 사용자 결정) — 디자인 · 필드 · 카테고리 · 권한 · 설정은
+    // 게시판을 고른 뒤 탭으로. 예전 주소(/admin/boards/design 등)는 마지막 게시판으로 그대로 열린다
     children: [
       { to: '/admin/boards', label: '게시판 목록' },
       { to: '/admin/boards/new', label: '게시판 만들기' },
-      { to: '/admin/boards/design', label: '게시판 디자인' },
-      { to: '/admin/boards/fields', label: '필드 관리' },
       { to: '/admin/posts', label: '게시글 관리' },
-      { to: '/admin/boards/categories', label: '카테고리 관리' },
-      { to: '/admin/boards/permissions', label: '권한 관리' },
+      { to: REPORTS_PATH, label: '신고된 글' },
       { to: '/admin/boards/trash', label: '휴지통' },
-      { to: '/admin/boards/settings', label: '환경설정' },
-      { to: '/admin/posts/reports', label: '신고된 글' },
       { to: '/admin/boards/history', label: '변경 기록' },
     ],
   },
@@ -56,32 +56,14 @@ export const ADMIN_NAVIGATION = [
   { to: '/admin/billing', icon: CreditCard, label: '요금제' },
 ]
 
-// 하위 메뉴가 따로 있는 합친 화면의 구역
-const HASH_SECTIONS: Record<string, string[]> = {
-  fields: ['#categories'],
-  settings: ['#permissions'],
-}
-
 const matches = (pathname: string, to: string) => pathname === to || pathname.startsWith(`${to}/`)
 
 /** 2뎁스 현재 화면 — 더 구체적인 형제 메뉴가 있으면 그쪽만 (목록과 생성이 함께 켜지지 않게) */
-export function isChildActive(pathname: string, to: string, siblings: { to: string }[], hash = '') {
-  // 게시판별 화면은 그 화면을 여는 하위 메뉴를 켠다 (T-187) — 글은 게시글 관리, 연결 · 운영은 환경설정
-  const detail = pathname.match(
-    /^\/admin\/boards\/[^/]+\/(design|fields|categories|permissions|operation|settings|connection|posts)(?:\/.*)?$/
-  )
-  if (detail) {
-    // 합친 화면의 #구역 — 카테고리 · 권한 구역이면 그 메뉴를 켠다 (T-226)
-    const area = HASH_SECTIONS[detail[1]]?.includes(hash) ? hash.slice(1) : null
-    const section = area ?? detail[1]
-    const target =
-      section === 'posts'
-        ? '/admin/posts'
-        : section === 'connection' || section === 'operation'
-          ? '/admin/boards/settings'
-          : `/admin/boards/${section}`
-    if (siblings.some((item) => item.to === target)) return to === target
-  }
+export function isChildActive(pathname: string, to: string, siblings: { to: string }[]) {
+  // 게시판별 화면 — 글은 게시글 관리, 나머지 탭(필드 · 디자인 · 설정)은 게시판 목록 (T-187 → T-229)
+  const boardPosts = /^\/admin\/boards\/[^/]+\/posts(?:\/.*)?$/.test(pathname)
+  if (boardPosts && siblings.some((item) => item.to === '/admin/posts'))
+    return to === '/admin/posts'
   return (
     matches(pathname, to) &&
     !siblings.some((other) => other.to.startsWith(`${to}/`) && matches(pathname, other.to))

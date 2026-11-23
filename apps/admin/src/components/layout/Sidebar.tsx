@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { ChevronDown, X, ExternalLink, LogOut, Layers } from 'lucide-react'
-import { isChildActive } from './navigation'
+import { REPORTS_PATH, isChildActive } from './navigation'
 import type { LucideIcon } from 'lucide-react'
+import { useReportedPosts } from '@/hooks/useBoards'
 import { useAuthStore } from '@/stores/authStore'
 import { type NavBadge, useNavBadge, useVisibleNavigation } from '@/lib/navItems'
 
@@ -50,6 +51,16 @@ function Badge({ badge }: { badge: NavBadge }) {
   return null
 }
 
+/** 처리하지 않은 신고 수 (T-229) — 신고된 글 메뉴 옆 */
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span className="min-w-5 rounded-full bg-rose-100 px-1.5 py-0.5 text-center text-[10px] font-semibold text-rose-700">
+      {count > 99 ? '99+' : count}
+      <span className="sr-only">건 처리 필요</span>
+    </span>
+  )
+}
+
 interface NavGroupProps {
   item: NavItem
   children: NavChild[]
@@ -58,8 +69,9 @@ interface NavGroupProps {
 
 /** 눌러서 펼치는 메뉴 — 그 안의 화면에 있으면 펼친 채로 */
 function NavGroup({ item, children, onNavigate }: NavGroupProps) {
-  const { pathname, hash } = useLocation()
+  const { pathname } = useLocation()
   const badgeOf = useNavBadge()
+  const reportCount = useReportedPosts(item.to === '/admin/boards').data?.length ?? 0
   const inside = children.some(({ to }) => pathname === to || pathname.startsWith(`${to}/`))
   const [open, setOpen] = useState(inside)
   const Icon = item.icon
@@ -94,16 +106,17 @@ function NavGroup({ item, children, onNavigate }: NavGroupProps) {
               <Link
                 to={to}
                 onClick={onNavigate}
-                aria-current={isChildActive(pathname, to, children, hash) ? 'page' : undefined}
+                aria-current={isChildActive(pathname, to, children) ? 'page' : undefined}
                 className={[
                   'flex items-center gap-2 rounded-lg py-2 pl-10 pr-3 text-sm transition-colors',
-                  isChildActive(pathname, to, children, hash)
+                  isChildActive(pathname, to, children)
                     ? 'bg-blue-50 font-medium text-blue-700'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900',
                 ].join(' ')}
               >
                 <span className="flex-1">{label}</span>
                 <Badge badge={badgeOf(to)} />
+                {to === REPORTS_PATH && reportCount > 0 && <CountBadge count={reportCount} />}
               </Link>
             </li>
           ))}
