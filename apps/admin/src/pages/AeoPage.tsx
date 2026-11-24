@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { CircleCheck, CircleHelp, Plus, TriangleAlert } from 'lucide-react'
+import { CircleCheck, CircleHelp, Plus, Sparkles, TriangleAlert } from 'lucide-react'
 import type { AeoBoard, AeoItem } from '@cms/types'
 import { Toggle, toast } from '@cms/ui'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
@@ -8,7 +8,9 @@ import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_HINTS } from '@/components/layout/navigation'
 import { SITE_CARD, SitePage } from '@/components/site/SitePage'
+import { useAiAssistEnabled } from '@/hooks/useAiAssist'
 import { useAeo, useUpdateAeo } from '@/hooks/useSearchSettings'
+import { AI_BOARD_ASSIST } from '@/lib/aiAssist'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 const LINK = 'text-sm font-medium text-blue-600 hover:underline'
@@ -35,9 +37,11 @@ interface BoardCardProps {
   board: AeoBoard
   on: boolean
   onToggle: (on: boolean) => void
+  /** [✨ 질문 초안] — 글쓰기로 가며 초안 서랍을 연다 (T-233-A) */
+  aiDraft: boolean
 }
 
-function BoardCard({ board, on, onToggle }: BoardCardProps) {
+function BoardCard({ board, on, onToggle, aiDraft }: BoardCardProps) {
   const blocked = blockedReason(board)
   const included = board.items.filter((item) => item.public)
   const excluded = board.items.length - included.length
@@ -56,6 +60,15 @@ function BoardCard({ board, on, onToggle }: BoardCardProps) {
           <Plus className="h-4 w-4" aria-hidden />
           질문 추가
         </Link>
+        {aiDraft && (
+          <Link
+            to={`/admin/boards/${board.id}/posts/new?ai-draft`}
+            className="inline-flex items-center gap-1 text-sm font-medium text-violet-700 hover:underline"
+          >
+            <Sparkles className="h-4 w-4" aria-hidden />
+            질문 초안
+          </Link>
+        )}
       </div>
 
       {board.items.length === 0 ? (
@@ -153,6 +166,7 @@ const sameIds = (a: string[], b: string[]) =>
 export function AeoPage() {
   const query = useAeo()
   const save = useUpdateAeo()
+  const aiDraft = useAiAssistEnabled(AI_BOARD_ASSIST)
   const [selected, setSelected] = useState<string[]>([])
   const saved = query.data?.faq_board_ids ?? []
   const dirty = Boolean(query.data) && !sameIds(selected, saved)
@@ -208,6 +222,7 @@ export function AeoPage() {
                 board={board}
                 on={selected.includes(board.id)}
                 onToggle={(on) => toggle(board.id, on)}
+                aiDraft={aiDraft}
               />
             ))}
           </ReadOnlyFieldset>

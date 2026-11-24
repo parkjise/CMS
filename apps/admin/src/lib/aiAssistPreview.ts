@@ -7,7 +7,7 @@ import type {
 } from '@/lib/aiAssist'
 
 /**
- * 미리보기 모드의 예시 결과 (T-231-A · T-232-A) — 개발 서버에서만 읽는다(동적 import).
+ * 미리보기 모드의 예시 결과 (T-231-A · T-232-A · T-233-A) — 개발 서버에서만 읽는다(동적 import).
  * 서버 응답과 같은 모양이라 서버를 붙여도 화면은 그대로다.
  */
 const SEO: Record<AssistTone, AssistResponse<'seo'>['result']> = {
@@ -120,6 +120,35 @@ const suggestBoard = (purpose: string) => {
   return BOARDS.find((board) => board.words.some((word) => text.includes(word)))?.result ?? NEWS
 }
 
+/** 글 초안 — 서버는 게시판 유형으로 FAQ 를 가린다. 미리보기는 메모가 묻는 말이면 FAQ 예시 */
+const NOTICE: AssistResults['post'] = {
+  titles: ['추석 연휴 휴진 안내', '추석 연휴 진료 일정을 알려 드려요', '[공지] 9월 추석 연휴 휴진'],
+  body: [
+    {
+      type: 'p',
+      text: '추석 연휴 동안 아래와 같이 휴진합니다. 진료 일정에 참고해 주세요.',
+    },
+    { type: 'ul', items: ['휴진: 9월 14일(월) ~ 9월 18일(금)', '정상 진료: 9월 19일(토)부터'] },
+    {
+      type: 'p',
+      text: '연휴 중 급한 문의는 카카오톡 채널로 남겨 주세요.\n확인하는 대로 답변 드리겠습니다.',
+    },
+  ],
+}
+
+const FAQ: AssistResults['post'] = {
+  titles: ['주차할 수 있나요?'],
+  body: [
+    { type: 'p', text: '네, 건물 지하 주차장을 이용하실 수 있어요.' },
+    {
+      type: 'ul',
+      items: ['진료 받으신 분은 2시간 무료', '접수 데스크에서 차량 번호를 알려 주세요'],
+    },
+  ],
+}
+
+const draftPost = (memo: string) => (/[?？]|질문|묻|나요|까요/.test(memo) ? FAQ : NOTICE)
+
 let used = 3
 
 export async function previewAssist<K extends AssistKind>(
@@ -131,7 +160,9 @@ export async function previewAssist<K extends AssistKind>(
   const result = (
     kind === 'board'
       ? suggestBoard((input as AssistInputs['board']).purpose)
-      : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
+      : kind === 'post'
+        ? draftPost((input as AssistInputs['post']).memo)
+        : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
   ) as AssistResponse<K>['result']
   return { result, usage: { used, limit: 20, remaining: Math.max(20 - used, 0) } }
 }
