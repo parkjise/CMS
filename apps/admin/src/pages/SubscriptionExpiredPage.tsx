@@ -1,6 +1,7 @@
 import { Lock } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { useAuthStore } from '@/stores/authStore'
+import { appPath } from '@/lib/appPath'
 
 /** 구독 만료(SUSPENDED) 시 접근을 차단하고 재구독을 유도하는 페이지. */
 export function SubscriptionExpiredPage() {
@@ -8,7 +9,7 @@ export function SubscriptionExpiredPage() {
 
   const handleLogout = async () => {
     await logout()
-    window.location.href = '/login'
+    window.location.href = appPath('/login')
   }
 
   return (
@@ -22,7 +23,7 @@ export function SubscriptionExpiredPage() {
         즉시 다시 이용하실 수 있습니다.
       </p>
       <div className="mt-6 flex gap-2">
-        <Button onClick={() => (window.location.href = '/admin/billing?tab=method')}>
+        <Button onClick={() => (window.location.href = appPath('/admin/billing?tab=method'))}>
           재구독하기
         </Button>
         <Button variant="ghost" onClick={handleLogout}>

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/authStore'
+import { appPath } from '@/lib/appPath'
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api'
 
@@ -74,7 +75,7 @@ api.interceptors.response.use(
     } catch (refreshError) {
       rejectQueue(refreshError)
       useAuthStore.getState().clearAuth()
-      window.location.href = '/login'
+      window.location.href = appPath('/login')
       return Promise.reject(refreshError)
     } finally {
       isRefreshing = false

@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router'
 import { PrivateRoute } from '@/components/PrivateRoute'
+import { APP_BASE } from '@/lib/appPath'
 import { AdminLayout } from '@/components/layout/AdminLayout'
 import { FeatureGuard } from '@/components/layout/FeatureGuard'
 import { PageFallback } from '@/components/layout/PageFallback'
@@ -222,4 +223,7 @@ export const router = createBrowserRouter([
     ],
   },
   { path: '*', element: <NotFoundPage /> },
-])
+],
+  // GitHub Pages 개발 배포처럼 하위 경로에 놓일 때 (T-236)
+  { basename: APP_BASE || undefined }
+)

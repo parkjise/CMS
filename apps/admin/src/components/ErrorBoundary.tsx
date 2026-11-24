@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
 import { Button } from '@cms/ui'
+import { appPath } from '@/lib/appPath'
 
 interface ErrorBoundaryProps {
   children: ReactNode
@@ -38,7 +39,7 @@ export class ErrorBoundary extends Component<
   }
 
   handleHome = () => {
-    window.location.href = '/admin/dashboard'
+    window.location.href = appPath('/admin/dashboard')
   }
 
   render() {

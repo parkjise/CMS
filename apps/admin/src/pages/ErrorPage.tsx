@@ -1,6 +1,7 @@
 import { AlertTriangle } from 'lucide-react'
 import { useRouteError } from 'react-router'
 import { Button } from '@cms/ui'
+import { appPath } from '@/lib/appPath'
 
 /** React Router의 errorElement로 사용 — 라우터 단에서 throw된 에러 처리. */
 export function ErrorPage() {
@@ -27,7 +28,7 @@ export function ErrorPage() {
           <Button onClick={() => window.location.reload()}>새로고침</Button>
           <Button
             variant="secondary"
-            onClick={() => (window.location.href = '/admin/dashboard')}
+            onClick={() => (window.location.href = appPath('/admin/dashboard'))}
           >
             대시보드로 이동
           </Button>

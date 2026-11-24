@@ -17,6 +17,7 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useNavVisibility } from '@/lib/navItems'
 import { SITE_HOME } from './navigation'
+import { appPath } from '@/lib/appPath'
 
 const CLIENT_BASE_URL =
   import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
@@ -46,7 +47,7 @@ export function BottomTabBar() {
 
   const handleLogout = async () => {
     await logout()
-    window.location.href = '/login'
+    window.location.href = appPath('/login')
   }
 
   return (
