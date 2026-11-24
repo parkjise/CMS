@@ -1,0 +1,1 @@
+import{j as i}from"./vendor-react-3rmQyQBN.js";import{o}from"./index-0zkPVkFk.js";const a=({children:s,className:t="min-w-0"})=>{const e=o();return i.jsx("fieldset",{disabled:!e,className:t,children:s})};export{a as R};
