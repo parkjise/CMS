@@ -7,7 +7,7 @@ import type {
 } from '@/lib/aiAssist'
 
 /**
- * 미리보기 모드의 예시 결과 (T-231-A · T-232-A · T-233-A) — 개발 서버에서만 읽는다(동적 import).
+ * 미리보기 모드의 예시 결과 (T-231-A ~ T-234-A) — 개발 서버에서만 읽는다(동적 import).
  * 서버 응답과 같은 모양이라 서버를 붙여도 화면은 그대로다.
  */
 const SEO: Record<AssistTone, AssistResponse<'seo'>['result']> = {
@@ -149,6 +149,11 @@ const FAQ: AssistResults['post'] = {
 
 const draftPost = (memo: string) => (/[?？]|질문|묻|나요|까요/.test(memo) ? FAQ : NOTICE)
 
+/** 약관 요약 — 서버는 바뀐 줄만 보고 만든다. 미리보기는 늘 같은 예시 */
+const POLICY_SUMMARY: AssistResults['policy_summary'] = {
+  summary: '개인정보 보관 기간 조항을 고쳤습니다.\n바뀐 내용은 시행일부터 적용됩니다.',
+}
+
 let used = 3
 
 export async function previewAssist<K extends AssistKind>(
@@ -162,7 +167,9 @@ export async function previewAssist<K extends AssistKind>(
       ? suggestBoard((input as AssistInputs['board']).purpose)
       : kind === 'post'
         ? draftPost((input as AssistInputs['post']).memo)
-        : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
+        : kind === 'policy_summary'
+          ? POLICY_SUMMARY
+          : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
   ) as AssistResponse<K>['result']
   return { result, usage: { used, limit: 20, remaining: Math.max(20 - used, 0) } }
 }

@@ -10,7 +10,7 @@ import type { BoardOperation, BoardPermissions, BoardType, FieldType } from '@cm
 export const AI_SITE_ASSIST = 'AI_SITE_ASSIST'
 export const AI_BOARD_ASSIST = 'AI_BOARD_ASSIST'
 
-export type AssistKind = 'seo' | 'geo' | 'board' | 'post'
+export type AssistKind = 'seo' | 'geo' | 'board' | 'post' | 'policy_summary'
 
 export type AssistTone = 'trust' | 'friendly' | 'expert'
 
@@ -57,6 +57,8 @@ export interface AssistResults {
   geo: { description: string; topics: string[] }
   board: BoardSuggestion
   post: PostDraftSuggestion
+  /** 1 ~ 3줄, 500자 안 (A-4) */
+  policy_summary: { summary: string }
 }
 
 /** kind 마다 화면이 보내는 값 — 나머지(사이트 정보 · 업종 · 있는 게시판)는 서버가 직접 읽는다 */
@@ -67,6 +69,8 @@ export interface AssistInputs {
   board: { purpose: string; board_id?: string }
   /** 게시판 유형 · 사업체 이름 · 연락처는 서버가 board_id 와 사이트 기본정보로 읽는다 */
   post: { memo: string; board_id: string }
+  /** 편집 중인 본문 — 서버가 공개본(없으면 기본 문안)과 줄 단위로 비교해 바뀐 줄만 모델에 보낸다 */
+  policy_summary: { kind: 'terms' | 'privacy'; body: string }
 }
 
 export const PURPOSE_MAX = 200
@@ -101,3 +105,12 @@ export function isAiPreview(): boolean {
 
 /** 결과에 숫자가 있으면 사실인지 확인하라고 알린다 (기획서 A-1) */
 export const hasNumber = (text: string) => /\d/.test(text)
+
+/** 약관 요약 칸은 한 줄 입력 (A-4) — 줄을 이어 붙이고 길이를 맞춘다 */
+export const toSummaryLine = (text: string, maxLength: number) =>
+  text
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .join(' ')
+    .slice(0, maxLength)
