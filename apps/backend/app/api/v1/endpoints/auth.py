@@ -35,17 +35,20 @@ def _set_refresh_cookie(response: Response, token: str) -> None:
         key=_REFRESH_COOKIE,
         value=token,
         httponly=True,
-        secure=(settings.app_env != "development"),
-        samesite="lax",
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
         domain=settings.cookie_domain_value,
         max_age=_COOKIE_MAX_AGE,
     )
 
 
 def _delete_refresh_cookie(response: Response) -> None:
+    # 만들 때와 같은 속성이어야 다른 사이트 화면에서도 지워진다
     response.delete_cookie(
         key=_REFRESH_COOKIE,
         httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
         domain=settings.cookie_domain_value,
     )
 

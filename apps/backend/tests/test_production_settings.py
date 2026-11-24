@@ -56,6 +56,7 @@ def test_production_with_real_values_starts():
         ("notification_mode", "test"),
         ("payment_mode", "test"),
         ("social_mode", "test"),
+        ("cookie_samesite", "none"),
     ],
 )
 def test_production_rejects_dev_value(field, value):

@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.core.config import settings
+
 
 class TestLogin:
     async def test_login_success(self, client: AsyncClient, test_user: dict):
@@ -233,3 +235,39 @@ class TestLogout:
         # 쿠키 없이도 204 반환 (멱등성)
         resp = await client.post("/api/v1/auth/logout")
         assert resp.status_code == 204
+
+
+class TestRefreshCookieAttributes:
+    """T-235 — 개발 배포(GitHub Pages → 터널)만 SameSite=None + Secure."""
+
+    async def _login(self, client: AsyncClient, test_user: dict) -> str:
+        resp = await client.post(
+            "/api/v1/auth/login",
+            json={
+                "email": test_user["email"],
+                "password": test_user["password"],
+                "tenant_slug": test_user["tenant_slug"],
+            },
+        )
+        assert resp.status_code == 200
+        return resp.headers["set-cookie"].lower()
+
+    async def test_default_is_lax(self, client: AsyncClient, test_user: dict):
+        cookie = await self._login(client, test_user)
+        assert "samesite=lax" in cookie
+        assert "httponly" in cookie
+
+    async def test_samesite_none_is_secure(
+        self, client: AsyncClient, test_user: dict, monkeypatch: pytest.MonkeyPatch
+    ):
+        monkeypatch.setattr(settings, "cookie_samesite", "none")
+        cookie = await self._login(client, test_user)
+        assert "samesite=none" in cookie
+        assert "secure" in cookie
+
+        # 지우는 쿠키도 같은 속성이어야 다른 사이트 화면에서 지워진다
+        resp = await client.post("/api/v1/auth/logout")
+        assert resp.status_code == 204
+        cleared = resp.headers["set-cookie"].lower()
+        assert "samesite=none" in cleared
+        assert "secure" in cleared
