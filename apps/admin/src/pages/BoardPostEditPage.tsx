@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import type {
   BoardCategory,
   BoardField,
@@ -12,7 +12,8 @@ import type {
   PostVersionDetail,
 } from '@cms/types'
 import { Button, Input, Toggle, toast } from '@cms/ui'
-import { RichTextEditor } from '@/components/boards/RichTextEditor'
+import { type RichTextEditorHandle, RichTextEditor } from '@/components/boards/RichTextEditor'
+import { type PostDraftPick, PostDraftAssist } from '@/components/ai/PostDraftAssist'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { PostMoveDialog } from '@/components/boards/PostMoveDialog'
 import { PostAttachmentsField } from '@/components/boards/PostAttachmentsField'
@@ -31,6 +32,7 @@ import {
   toCustomData,
   validateCustomValues,
 } from '@/lib/customFields'
+import { draftToNodes } from '@/lib/aiPostDraft'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { categoryLabel, orderTree } from '@/lib/categoryTree'
 import { isScheduled } from '@/lib/postStatus'
@@ -61,6 +63,10 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
   const [categoryId, setCategoryId] = useState(post?.category_id ?? '')
   const [isSecret, setIsSecret] = useState(post?.is_secret ?? false)
   const board = useBoards().data?.find((b) => b.id === boardId)
+  // AEO [✨ 질문 초안] 으로 들어오면 초안 서랍을 열고 시작 (T-233-A)
+  const [searchParams] = useSearchParams()
+  const [aiDraftOnStart, setAiDraftOnStart] = useState(() => !post && searchParams.has('ai-draft'))
+  const editor = useRef<RichTextEditorHandle>(null)
   // 비밀글을 허용한 게시판이거나 이미 비밀글일 때만 (T-151-A)
   const secretChoice = Boolean(board?.operation?.allow_secret || post?.is_secret)
   const [body, setBody] = useState<BodyNode[]>(post?.body ?? [])
@@ -151,6 +157,11 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
     setBodyReady(true)
   }
 
+  // 편집기가 뜨며 서랍도 열렸다 — 보관본을 불러와 편집기를 다시 그릴 때는 열지 않는다
+  useEffect(() => {
+    if (bodyReady) setAiDraftOnStart(false)
+  }, [bodyReady])
+
   /** 보관본 · 이전 버전으로 편집 칸을 채운다 — 저장은 관리자가 */
   const fillForm = (content: Omit<PostDraft, 'saved_at'>) => {
     setTitle(content.title)
@@ -181,6 +192,16 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
     })
     toast.info('이전 버전 내용을 편집 칸에 불러왔어요. 저장해야 글이 바뀌어요.')
     window.scrollTo?.({ top: 0, behavior: 'smooth' })
+  }
+
+  // AI 초안 (T-233-A) — 편집 칸에만 넣고, 저장은 관리자가
+  const applyAiDraft = ({ title: nextTitle, body: blocks, mode }: PostDraftPick) => {
+    if (nextTitle) {
+      setTitle(nextTitle.slice(0, TITLE_MAX))
+      setTitleError(undefined)
+    }
+    if (blocks) editor.current?.insertNodes(draftToNodes(blocks), mode)
+    toast.info('초안을 편집 칸에 넣었어요. 내용을 확인한 뒤 저장해 주세요.')
   }
 
   const discardDraft = () => {
@@ -327,9 +348,20 @@ function PostForm({ boardId, post, fields, categories }: PostFormProps) {
             <p className="mb-2 text-sm font-medium text-slate-700">내용</p>
             <RichTextEditor
               key={editorKey}
+              ref={editor}
               initial={editorInitial}
               editable={canEdit}
               onChange={changeBody}
+              toolbarEnd={
+                <PostDraftAssist
+                  boardId={boardId}
+                  faq={board?.board_type === 'FAQ'}
+                  currentTitle={title}
+                  bodyEmpty={body.length === 0}
+                  defaultOpen={aiDraftOnStart}
+                  onApply={applyAiDraft}
+                />
+              }
             />
           </div>
           <Toggle

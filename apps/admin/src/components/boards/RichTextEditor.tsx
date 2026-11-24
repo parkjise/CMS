@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { type ReactNode, type Ref, useEffect, useImperativeHandle, useRef } from 'react'
 import Image from '@tiptap/extension-image'
 import { Table, TableCell, TableHeader, TableRow } from '@tiptap/extension-table'
 import TextAlign from '@tiptap/extension-text-align'
@@ -31,14 +31,23 @@ import type { BodyNode, RichNode } from '@cms/types'
 import { toast } from '@cms/ui'
 import { uploadImage } from '@/hooks/useUploadImage'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import type { DraftMode } from '@/lib/aiPostDraft'
 import { checkImageFile } from '@/lib/imageFile'
 import { fromEditorDoc, normalizeLink, toEditorDoc } from '@/lib/richBody'
+
+export interface RichTextEditorHandle {
+  /** AI 초안 넣기 (T-233-A) — 본문 끝에 붙이거나 본문을 바꾼다. 실행 취소로 되돌릴 수 있다 */
+  insertNodes: (nodes: RichNode[], mode: DraftMode) => void
+}
 
 interface RichTextEditorProps {
   /** 처음 내용 — 이후 값은 편집기가 갖고 onChange 로 알린다 */
   initial: BodyNode[]
   editable: boolean
   onChange: (body: RichNode[]) => void
+  ref?: Ref<RichTextEditorHandle>
+  /** 툴바 오른쪽 끝 — [✨ AI 초안] */
+  toolbarEnd?: ReactNode
 }
 
 const EXTENSIONS = [
@@ -110,7 +119,7 @@ const TextTool = ({ label, disabled, onClick }: { label: string; disabled?: bool
 
 const Divider = () => <span className="mx-1 h-5 w-px bg-slate-200" aria-hidden />
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({ editor, end }: { editor: Editor; end?: ReactNode }) {
   const fileInput = useRef<HTMLInputElement>(null)
   const state = useEditorState({
     editor,
@@ -209,6 +218,7 @@ function Toolbar({ editor }: { editor: Editor }) {
         <Divider />
         <Tool label="실행 취소" icon={Undo2} disabled={!state.canUndo} onClick={() => chain().undo().run()} />
         <Tool label="다시 실행" icon={Redo2} disabled={!state.canRedo} onClick={() => chain().redo().run()} />
+        {end && <div className="ml-auto">{end}</div>}
       </div>
       {state.table && (
         <div className="mt-1.5 flex flex-wrap gap-1" role="group" aria-label="표 편집">
@@ -235,7 +245,7 @@ function Toolbar({ editor }: { editor: Editor }) {
 }
 
 /** 글 본문 편집기 (T-143, 게시판 모듈 기획서 10장) — 저장 값은 HTML 이 아닌 노드 목록 */
-export function RichTextEditor({ initial, editable, onChange }: RichTextEditorProps) {
+export function RichTextEditor({ initial, editable, onChange, ref, toolbarEnd }: RichTextEditorProps) {
   const editor = useEditor({
     extensions: EXTENSIONS,
     content: toEditorDoc(initial),
@@ -254,11 +264,27 @@ export function RichTextEditor({ initial, editable, onChange }: RichTextEditorPr
     // eslint-disable-next-line react-hooks/exhaustive-deps -- 처음 한 번만
   }, [editor])
 
+  // 노드 JSON 으로 넣는다 — HTML 로 읽지 않으니 글자는 글자 그대로 (onUpdate 가 바뀐 본문을 알린다)
+  useImperativeHandle(
+    ref,
+    () => ({
+      insertNodes: (nodes, mode) => {
+        if (!editor) return
+        if (mode === 'replace') {
+          editor.chain().focus().setContent({ type: 'doc', content: nodes }).run()
+        } else {
+          editor.chain().insertContentAt(editor.state.doc.content.size, nodes).focus('end').run()
+        }
+      },
+    }),
+    [editor]
+  )
+
   if (!editor) return <div className="h-64 animate-pulse rounded-lg bg-slate-100" />
 
   return (
     <div>
-      {editable && <Toolbar editor={editor} />}
+      {editable && <Toolbar editor={editor} end={toolbarEnd} />}
       <EditorContent editor={editor} />
     </div>
   )
