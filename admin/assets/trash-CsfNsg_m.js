@@ -1,1 +1,0 @@
-import{b1 as t}from"./vendor-vLcYB2Gq.js";const n=30,s=({purge_at:e})=>{if(!e)return null;const o=Math.ceil(t(e).diff(t(),"hour")/24);return o>0?`${o}일 뒤 영구 삭제`:"곧 영구 삭제"},r=e=>[s(e),e.deleted_by?`${e.deleted_by} 삭제`:null].filter(Boolean).join(" · ");export{n as T,s as p,r as t};

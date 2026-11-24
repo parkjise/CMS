@@ -1,0 +1,1 @@
+import{j as o}from"./vendor-react-BjgHXRQd.js";function a({current:t,max:e}){const s=t>e;return o.jsxs("span",{className:`text-xs ${s?"font-medium text-rose-600":"text-slate-500"}`,"aria-live":"polite",children:[t,"/",e]})}export{a as C};
