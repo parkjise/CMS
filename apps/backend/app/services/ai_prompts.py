@@ -108,6 +108,7 @@ def build_copy_messages(
 # ───────────────────────── AI 보조 (assist, 기획서 2장) ─────────────────────────
 # 변경 이력:
 # - assist-v1 (2026-11): seo · geo 채우기 (T-231-B)
+# - assist-v1 board (2026-11): 게시판 구성 추천 (T-232-B) — 다른 kind 프롬프트는 그대로
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -141,7 +142,28 @@ _ASSIST_FORMATS: dict[str, str] = {
     ),
 }
 
-_ASSIST_TARGETS = {"seo": "검색엔진 노출 문구(SEO)", "geo": "AI 답변용 기업 소개(GEO)"}
+_ASSIST_FORMATS["board"] = (
+    '{{"board_type": "{board_types} 중 \'고를 수 있는 유형\'에 있는 것 하나",'
+    ' "name": "게시판 이름, 20자 안팎", "description": "한 줄 설명, {desc_max}자 이내",'
+    ' "fields": [{{"label": "추가 칸 이름", "field_type": "{field_types} 중 하나",'
+    ' "choices": ["SELECT · MULTI_SELECT 만 선택지"]}}],'
+    ' "categories": ["카테고리 이름"],'
+    ' "permissions": {{"read": "PUBLIC|MEMBER", "write": "ADMIN|MEMBER"}},'
+    ' "operation": {{"allow_secret": false, "notify_new_post": false,'
+    ' "allow_guest": false}},'
+    ' "reason": "권한 · 운영을 이렇게 정한 까닭 한 줄"}}\n'
+    "- fields 는 최대 {fields_max}개, 제목 · 본문 · 작성일은 이미 있으니 넣지 않는다\n"
+    "- categories 는 최대 {categories_max}개\n"
+    "- '지금 게시판'이 있으면 그 게시판에 더할 필드 · 카테고리만 추천하고, 이미 있는 "
+    "이름은 넣지 않는다\n"
+    "- 후기 · 리뷰는 회원만 쓰게(비회원 글쓰기 끔), 공지 · 소식 · FAQ 는 관리자 글쓰기"
+)
+
+_ASSIST_TARGETS = {
+    "seo": "검색엔진 노출 문구(SEO)",
+    "geo": "AI 답변용 기업 소개(GEO)",
+    "board": "게시판 구성(유형 · 이름 · 추가 칸 · 카테고리 · 권한)",
+}
 
 
 def build_assist_messages(

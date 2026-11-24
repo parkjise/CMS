@@ -12,7 +12,8 @@ import hashlib
 import json
 import logging
 import uuid
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, get_args
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
@@ -23,18 +24,27 @@ from sqlalchemy.orm import selectinload
 from app.core.config import settings
 from app.core.redis import get_redis
 from app.models.ai import AiUsageLog
+from app.models.board import Board, BoardCategory
 from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.tenant import Tenant
 from app.schemas.ai_assist import (
+    PURPOSE_MAX,
+    AssistRequest,
     AssistResponse,
     AssistResult,
     AssistUsage,
+    BoardAssistResult,
     GeoAssistResult,
     SeoAssistResult,
+    SuggestedField,
 )
+from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 from app.schemas.seo import GEO_DESCRIPTION_MAX, GEO_TOPIC_LENGTH, GEO_TOPICS_MAX
 from app.services import ai as ai_service
+from app.services import board as board_service
+from app.services import board_access
+from app.services import board_field as field_service
 from app.services import feature as feature_service
 from app.services.ai_prompts import ASSIST_PROMPT_VERSION, build_assist_messages
 from app.services.rich_text import RICH_TEXT_VALUE_TYPE, to_plain_text
@@ -50,11 +60,47 @@ logger = logging.getLogger("app.ai")
 AI_SITE_ASSIST = "AI_SITE_ASSIST"
 AI_BOARD_ASSIST = "AI_BOARD_ASSIST"
 
-# kind → 기능 스위치. board · post · policy_summary 는 T-232-B ~ T-234-B 에서 더한다
-ASSIST_FLAGS: dict[str, str] = {"seo": AI_SITE_ASSIST, "geo": AI_SITE_ASSIST}
+# kind → 기능 스위치. post · policy_summary 는 T-233-B · T-234-B 에서 더한다
+ASSIST_FLAGS: dict[str, str] = {
+    "seo": AI_SITE_ASSIST,
+    "geo": AI_SITE_ASSIST,
+    "board": AI_BOARD_ASSIST,
+}
+RESULT_MODELS: dict[str, type[AssistResult]] = {
+    "seo": SeoAssistResult,
+    "geo": GeoAssistResult,
+    "board": BoardAssistResult,
+}
 
 META_TITLE_MAX = 60
 META_DESC_MAX = 160
+
+# 게시판 구성 추천 (A-2) — 저장 API 규칙과 같게
+BOARD_TYPES: tuple[str, ...] = get_args(BoardType)
+FIELD_TYPES: tuple[str, ...] = get_args(FieldType)
+BOARD_NAME_MAX = 100
+BOARD_DESC_MAX = 200
+FIELD_LABEL_MAX = 50
+FIELD_CHOICE_MAX = 100
+FIELD_CHOICES_MAX = 20
+CATEGORY_NAME_MAX = 30
+BOARD_FIELDS_MAX = 8
+BOARD_CATEGORIES_MAX = 10
+REASON_MAX = 300
+_BOARDS_IN_PROMPT = 30
+# 별점은 리뷰형이 늘 만든다 — 추천 칸으로는 받지 않는다
+_SKIPPED_FIELD_TYPES = frozenset({"RATING"})
+# 글쓰기 화면에 원래 있는 칸 — 같은 이름의 추가 칸은 받지 않는다
+_BASE_FIELDS = ("제목", "내용", "본문", "작성자", "작성일")
+_TYPE_LABELS = {
+    "LIST": "목록형",
+    "GALLERY": "갤러리형",
+    "FAQ": "FAQ형",
+    "CARD": "카드형",
+    "WEBZINE": "웹진형",
+    "REVIEW": "리뷰형",
+    "QNA": "문의형",
+}
 _SECTIONS_MAX = 12
 _DAY_LABELS = {
     "mon": "월",
@@ -68,6 +114,29 @@ _DAY_LABELS = {
 
 ASSIST_FAILED_MESSAGE = "AI 가 알맞은 답을 주지 못했어요. 잠시 뒤 다시 시도해 주세요."
 UNKNOWN_KIND_MESSAGE = "지원하지 않는 AI 보조예요."
+PURPOSE_REQUIRED_MESSAGE = "어떤 게시판인지 한두 문장으로 적어 주세요."
+BOARD_NOT_FOUND_MESSAGE = "게시판을 찾을 수 없습니다."
+NOTE_GUEST_REVIEW = "후기는 비회원 글쓰기를 꺼서 광고 · 도배 글을 막았어요."
+NOTE_GUEST_MEMBER_ONLY = "비회원 글쓰기는 회원 글쓰기 게시판에서만 켤 수 있어 껐어요."
+NOTE_READ_BLOCKED = "회원 기능을 쓸 수 없어 누구나 읽기로 했어요."
+NOTE_WRITE_BLOCKED = "회원 글쓰기를 쓸 수 없어 관리자 글쓰기로 했어요."
+
+
+@dataclass
+class AssistContext:
+    """결과를 고칠 때 쓰는 사업체 사정 — 프롬프트에 알려 줘도 서버가 다시 지킨다."""
+
+    allow_keywords: bool = True
+    # 게시판 구성 (board)
+    blocked_types: dict[str, str] = field(default_factory=dict)
+    read_blocked: str | None = None
+    write_blocked: str | None = None
+    # 있는 게시판에 더하기 — 그 게시판 유형 그대로, 이미 있는 이름은 건너뜀
+    fixed_type: str | None = None
+    taken_fields: set[str] = field(default_factory=set)
+    taken_categories: set[str] = field(default_factory=set)
+
+
 FEATURE_OFF_MESSAGE = "이 기능은 현재 비활성화되어 있습니다."
 LIMIT_MESSAGE = "이번 달 AI 문구 추천 사용 한도를 초과했습니다."
 
@@ -98,8 +167,127 @@ def _text(raw: Any, max_length: int) -> str:
     return " ".join(str(raw or "").split())[:max_length]
 
 
+def same_name(name: str) -> str:
+    """이름 비교 — 띄어쓰기 · 대소문자 무시 (화면 lib/boardSuggestion.ts 와 같게)."""
+    return "".join(name.split()).lower()
+
+
+def _board_fields(raw: Any, taken: set[str]) -> list[SuggestedField]:
+    """기존 칸 유형만, 고르기 칸은 선택지가 있을 때만 — 있는 이름 · 별점은 건너뜀."""
+    if not isinstance(raw, list):
+        return []
+    seen = set(taken)
+    result: list[SuggestedField] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        label = _text(item.get("label"), FIELD_LABEL_MAX)
+        field_type = str(item.get("field_type") or "").upper()
+        if (
+            not label
+            or field_type not in FIELD_TYPES
+            or field_type in _SKIPPED_FIELD_TYPES
+            or same_name(label) in seen
+        ):
+            continue
+        choices = (
+            _clean_words(
+                item.get("choices"),
+                max_count=FIELD_CHOICES_MAX,
+                max_length=FIELD_CHOICE_MAX,
+            )
+            if field_type in field_service.CHOICE_TYPES
+            else []
+        )
+        if field_type in field_service.CHOICE_TYPES and not choices:
+            continue
+        seen.add(same_name(label))
+        result.append(
+            SuggestedField.model_validate(
+                {"label": label, "field_type": field_type, "choices": choices}
+            )
+        )
+        if len(result) == BOARD_FIELDS_MAX:
+            break
+    return result
+
+
+def _board_result(parsed: dict, ctx: AssistContext) -> BoardAssistResult:
+    """모델 답 → 게시판 추천. 고를 수 없는 유형 · 위험한 권한 조합은 기본값으로 고치고
+    까닭을 덧붙인다 (기획서 A-2 안전)."""
+    notes: list[str] = []
+    raw_type = str(parsed.get("board_type") or "").upper()
+    if ctx.fixed_type:
+        board_type = ctx.fixed_type
+    elif raw_type in BOARD_TYPES and raw_type not in ctx.blocked_types:
+        board_type = raw_type
+    else:
+        board_type = "LIST"
+        if raw_type in ctx.blocked_types:
+            notes.append(f"{ctx.blocked_types[raw_type]} 목록형으로 바꿨어요.")
+
+    name = _text(parsed.get("name"), BOARD_NAME_MAX)
+    if not name:
+        raise ValueError("게시판 이름이 비어 있습니다.")
+
+    categories = [
+        c
+        for c in _clean_words(
+            parsed.get("categories"),
+            max_count=BOARD_CATEGORIES_MAX * 2,
+            max_length=CATEGORY_NAME_MAX,
+        )
+        if same_name(c) not in ctx.taken_categories
+    ]
+    deduped: list[str] = []
+    for c in categories:
+        if same_name(c) not in {same_name(d) for d in deduped}:
+            deduped.append(c)
+
+    perms = parsed.get("permissions")
+    perms = perms if isinstance(perms, dict) else {}
+    read = perms.get("read") if perms.get("read") in ("PUBLIC", "MEMBER") else "PUBLIC"
+    write = perms.get("write") if perms.get("write") in ("ADMIN", "MEMBER") else "ADMIN"
+    if read == "MEMBER" and ctx.read_blocked:
+        read = "PUBLIC"
+        notes.append(NOTE_READ_BLOCKED)
+    if write == "MEMBER" and ctx.write_blocked:
+        write = "ADMIN"
+        notes.append(NOTE_WRITE_BLOCKED)
+
+    op = parsed.get("operation")
+    op = op if isinstance(op, dict) else {}
+    allow_guest = op.get("allow_guest") is True
+    if allow_guest and board_type == board_service.REVIEW_TYPE:
+        allow_guest = False
+        notes.append(NOTE_GUEST_REVIEW)
+    elif allow_guest and write != "MEMBER":
+        allow_guest = False
+        notes.append(NOTE_GUEST_MEMBER_ONLY)
+
+    reason = " ".join([_text(parsed.get("reason"), REASON_MAX), *notes]).strip()
+    return BoardAssistResult.model_validate(
+        {
+            "board_type": board_type,
+            "name": name,
+            "description": _text(parsed.get("description"), BOARD_DESC_MAX),
+            "fields": _board_fields(parsed.get("fields"), ctx.taken_fields),
+            "categories": deduped[:BOARD_CATEGORIES_MAX],
+            "permissions": BoardPermissions.model_validate(
+                {"read": read, "write": write}
+            ),
+            "operation": BoardOperation(
+                allow_secret=op.get("allow_secret") is True,
+                notify_new_post=op.get("notify_new_post") is True,
+                allow_guest=allow_guest,
+            ),
+            "reason": reason[:REASON_MAX],
+        }
+    )
+
+
 def parse_assist_result(
-    kind: str, content: str, *, allow_keywords: bool
+    kind: str, content: str, ctx: AssistContext | None = None
 ) -> AssistResult:
     """모델 답 → 결과 스키마. 모양이 맞지 않거나 필수 글이 비면 ValueError."""
     try:
@@ -108,8 +296,11 @@ def parse_assist_result(
         raise ValueError("AI 응답을 JSON 으로 읽을 수 없습니다.") from exc
     if not isinstance(parsed, dict):
         raise ValueError("AI 응답이 객체가 아닙니다.")
+    ctx = ctx or AssistContext()
 
     try:
+        if kind == "board":
+            return _board_result(parsed, ctx)
         if kind == "seo":
             seo = SeoAssistResult(
                 meta_title=_text(parsed.get("meta_title"), META_TITLE_MAX),
@@ -120,7 +311,7 @@ def parse_assist_result(
                         max_count=KEYWORDS_MAX,
                         max_length=KEYWORD_MAX_LENGTH,
                     )
-                    if allow_keywords
+                    if ctx.allow_keywords
                     else []
                 ),
             )
@@ -270,7 +461,7 @@ async def _set_cached(key: str, result: AssistResult) -> None:
 
 
 async def generate(
-    kind: str, messages: list, *, allow_keywords: bool
+    kind: str, messages: list, ctx: AssistContext
 ) -> tuple[AssistResult, int]:
     """모델 호출 → 결과 검증(한 번 다시 묻기). 장애 · 키 없음 · 계속 틀리면 502."""
     last_error: Exception | None = None
@@ -283,9 +474,7 @@ async def generate(
                 status_code=status.HTTP_502_BAD_GATEWAY, detail=ASSIST_FAILED_MESSAGE
             ) from exc
         try:
-            return parse_assist_result(
-                kind, content, allow_keywords=allow_keywords
-            ), tokens
+            return parse_assist_result(kind, content, ctx), tokens
         except ValueError as exc:
             last_error = exc
     raise HTTPException(
@@ -301,12 +490,134 @@ def _usage(used: int, limit: int | None) -> AssistUsage:
     )
 
 
+def _validation_error(message: str, field_name: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail={"code": "VALIDATION_ERROR", "message": message, "field": field_name},
+    )
+
+
+async def build_board_context(
+    db: AsyncSession, tenant: Tenant, body: AssistRequest
+) -> tuple[dict, AssistContext]:
+    """게시판 구성 추천 — 목적 · 업종 · 있는 게시판 · 고를 수 있는 유형 · 회원 기능.
+
+    board_id 가 있으면 그 게시판(유형 · 설명 · 있는 필드 · 카테고리)에 더할 것만.
+    """
+    purpose = _text(body.purpose, PURPOSE_MAX)
+    if not purpose:
+        raise _validation_error(PURPOSE_REQUIRED_MESSAGE, "purpose")
+
+    ctx = AssistContext(
+        blocked_types=await board_service.blocked_types(db, tenant.id),
+        read_blocked=await board_access.tenant_read_blocked(db, tenant.id),
+        write_blocked=await board_access.tenant_write_blocked(db, tenant.id),
+        taken_fields={same_name(n) for n in _BASE_FIELDS},
+    )
+    site = (await db.execute(select(SiteSetting))).scalar_one_or_none()
+    boards = (
+        await db.execute(
+            select(Board.name, Board.board_type)
+            .where(Board.tenant_id == tenant.id, Board.deleted_at.is_(None))
+            .order_by(Board.created_at)
+            .limit(_BOARDS_IN_PROMPT)
+        )
+    ).all()
+    facts: dict[str, Any] = {
+        "목적": purpose,
+        "업종": tenant.template_type,
+        "사이트명": (site.site_name if site else None) or tenant.name,
+        "업태": site.business_type if site else None,
+        "종목": site.business_item if site else None,
+        "있는 게시판": [f"{name} ({_TYPE_LABELS.get(t, t)})" for name, t in boards],
+        "고를 수 있는 유형": [
+            f"{t} {_TYPE_LABELS[t]}" for t in BOARD_TYPES if t not in ctx.blocked_types
+        ],
+        "회원 읽기": "쓸 수 없음" if ctx.read_blocked else "쓸 수 있음",
+        "회원 글쓰기": "쓸 수 없음" if ctx.write_blocked else "쓸 수 있음",
+    }
+
+    if body.board_id is not None:
+        board = await board_service.get_board(db, tenant.id, body.board_id)
+        if board is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=BOARD_NOT_FOUND_MESSAGE
+            )
+        fields = await field_service.list_fields(db, board.id)
+        categories = (
+            (
+                await db.execute(
+                    select(BoardCategory.name).where(
+                        BoardCategory.board_id == board.id,
+                        BoardCategory.deleted_at.is_(None),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        ctx.fixed_type = board.board_type
+        ctx.taken_fields |= {same_name(f.label) for f in fields}
+        ctx.taken_categories = {same_name(c) for c in categories}
+        facts["지금 게시판"] = {
+            "이름": board.name,
+            "유형": _TYPE_LABELS.get(board.board_type, board.board_type),
+            "설명": (board.settings or {}).get(board_service.DESCRIPTION_KEY) or None,
+            "있는 필드": [f.label for f in fields],
+            "있는 카테고리": list(categories),
+        }
+    return {k: v for k, v in facts.items() if v not in (None, "", [], {})}, ctx
+
+
+async def _prepare(
+    db: AsyncSession, tenant: Tenant, kind: str, body: AssistRequest
+) -> tuple[dict, AssistContext, dict[str, Any]]:
+    """kind 마다 (사이트 정보, 결과 고칠 사정, 프롬프트 한도)."""
+    if kind == "board":
+        facts, ctx = await build_board_context(db, tenant, body)
+        return (
+            facts,
+            ctx,
+            {
+                "desc_max": BOARD_DESC_MAX,
+                "fields_max": BOARD_FIELDS_MAX,
+                "categories_max": BOARD_CATEGORIES_MAX,
+                "field_types": "|".join(
+                    t for t in FIELD_TYPES if t not in _SKIPPED_FIELD_TYPES
+                ),
+                "board_types": "|".join(BOARD_TYPES),
+            },
+        )
+    ctx = AssistContext(allow_keywords=keywords_allowed(tenant.plan_type))
+    facts = await build_assist_facts(db, tenant, kind)
+    if kind == "seo":
+        return (
+            facts,
+            ctx,
+            {
+                "title_max": META_TITLE_MAX,
+                "desc_max": META_DESC_MAX,
+                "keywords_max": KEYWORDS_MAX,
+                "keyword_len": KEYWORD_MAX_LENGTH,
+            },
+        )
+    return (
+        facts,
+        ctx,
+        {
+            "desc_max": GEO_DESCRIPTION_MAX,
+            "topics_max": GEO_TOPICS_MAX,
+            "topic_len": GEO_TOPIC_LENGTH,
+        },
+    )
+
+
 async def assist(
     db: AsyncSession,
     tenant_id: uuid.UUID,
     user_id: uuid.UUID,
     kind: str,
-    tone: str,
+    body: AssistRequest,
 ) -> AssistResponse:
     flag = ASSIST_FLAGS.get(kind)
     if flag is None:
@@ -322,16 +633,17 @@ async def assist(
     tenant = await ai_service._get_tenant(db, tenant_id)
     limit = ai_service.monthly_limit(tenant.plan_type)
     used = await ai_service.copy_quota_used(db, tenant_id)
-    allow_keywords = keywords_allowed(tenant.plan_type)
 
-    facts = await build_assist_facts(db, tenant, kind)
-    cache_key = _cache_key(tenant_id, kind, tone, {**facts, "kw": allow_keywords})
+    facts, ctx, limits = await _prepare(db, tenant, kind, body)
+    # 게시판 추천은 말투를 받지 않는다
+    tone = body.tone if kind in ("seo", "geo") else "trust"
+    cache_key = _cache_key(tenant_id, kind, tone, {**facts, "kw": ctx.allow_keywords})
     cached = await _get_cached(cache_key)
     if cached is not None:
         # 같은 입력이면 다시 부르지 않는다 — 비용 0, 사용량도 그대로
-        model = SeoAssistResult if kind == "seo" else GeoAssistResult
         return AssistResponse(
-            result=model.model_validate(cached), usage=_usage(used, limit)
+            result=RESULT_MODELS[kind].model_validate(cached),
+            usage=_usage(used, limit),
         )
 
     if limit is not None and used >= limit:
@@ -344,23 +656,10 @@ async def assist(
         tone=tone,
         template_type=tenant.template_type,
         facts_json=json.dumps(facts, ensure_ascii=False),
-        limits=(
-            {
-                "title_max": META_TITLE_MAX,
-                "desc_max": META_DESC_MAX,
-                "keywords_max": KEYWORDS_MAX,
-                "keyword_len": KEYWORD_MAX_LENGTH,
-            }
-            if kind == "seo"
-            else {
-                "desc_max": GEO_DESCRIPTION_MAX,
-                "topics_max": GEO_TOPICS_MAX,
-                "topic_len": GEO_TOPIC_LENGTH,
-            }
-        ),
-        keywords_allowed=allow_keywords,
+        limits=limits,
+        keywords_allowed=ctx.allow_keywords,
     )
-    result, tokens = await generate(kind, messages, allow_keywords=allow_keywords)
+    result, tokens = await generate(kind, messages, ctx)
 
     db.add(
         AiUsageLog(
