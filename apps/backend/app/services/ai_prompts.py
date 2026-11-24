@@ -112,6 +112,7 @@ def build_copy_messages(
 # - assist-v1 (2026-11): seo · geo 채우기 (T-231-B)
 # - assist-v1 board (2026-11): 게시판 구성 추천 (T-232-B) — 다른 kind 프롬프트는 그대로
 # - assist-v1 post (2026-11): 공지 · FAQ 글 초안 (T-233-B)
+# - assist-v1 policy_summary (2026-11): 약관 변경 요약 (T-234-B)
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -181,12 +182,21 @@ _ASSIST_FORMATS["post_faq"] = (
     "- titles 는 질문 하나, body 는 그 질문의 답변\n" + _POST_RULES
 )
 
+_ASSIST_FORMATS["policy_summary"] = (
+    '{{"summary": "바뀐 내용 요약 1 ~ {lines_max}줄, {summary_max}자 이내"}}\n'
+    '- 사이트 정보의 \'바뀐 줄\'에서 "+ " 는 더한 줄, "- " 는 뺀 줄이다. '
+    "바뀐 줄에 없는 내용은 쓰지 않는다\n"
+    "- 무엇이 바뀌었는지만 쓴다. 법적 효력 · 유불리 해석은 하지 않는다\n"
+    "- 버전 이력에 남는 문장이라 '~을(를) 고쳤습니다'처럼 담담하게 쓴다"
+)
+
 _ASSIST_TARGETS = {
     "seo": "검색엔진 노출 문구(SEO)",
     "geo": "AI 답변용 기업 소개(GEO)",
     "board": "게시판 구성(유형 · 이름 · 추가 칸 · 카테고리 · 권한)",
     "post": "공지 · 소식 글 초안",
     "post_faq": "자주 묻는 질문(FAQ)의 질문 · 답변 초안",
+    "policy_summary": "이용약관 · 개인정보처리방침의 변경 내용 요약",
 }
 
 

@@ -8,6 +8,7 @@
 - 분당 제한 · 같은 입력 1시간 캐시 · ai_usage_log(action_type = assist_{kind})
 """
 
+import difflib
 import hashlib
 import json
 import logging
@@ -37,6 +38,7 @@ from app.schemas.ai_assist import (
     AssistUsage,
     BoardAssistResult,
     GeoAssistResult,
+    PolicySummaryResult,
     PostAssistResult,
     SeoAssistResult,
     SuggestedField,
@@ -45,7 +47,7 @@ from app.schemas.board import BoardOperation, BoardPermissions, BoardType, Field
 from app.schemas.seo import GEO_DESCRIPTION_MAX, GEO_TOPIC_LENGTH, GEO_TOPICS_MAX
 from app.services import ai as ai_service
 from app.services import board as board_service
-from app.services import board_access
+from app.services import board_access, site_policy
 from app.services import board_field as field_service
 from app.services import feature as feature_service
 from app.services.ai_prompts import ASSIST_PROMPT_VERSION, build_assist_messages
@@ -62,18 +64,20 @@ logger = logging.getLogger("app.ai")
 AI_SITE_ASSIST = "AI_SITE_ASSIST"
 AI_BOARD_ASSIST = "AI_BOARD_ASSIST"
 
-# kind → 기능 스위치. policy_summary 는 T-234-B 에서 더한다
+# kind → 기능 스위치 (기획서 2.0 표)
 ASSIST_FLAGS: dict[str, str] = {
     "seo": AI_SITE_ASSIST,
     "geo": AI_SITE_ASSIST,
     "board": AI_BOARD_ASSIST,
     "post": AI_BOARD_ASSIST,
+    "policy_summary": AI_SITE_ASSIST,
 }
 RESULT_MODELS: dict[str, type[AssistResult]] = {
     "seo": SeoAssistResult,
     "geo": GeoAssistResult,
     "board": BoardAssistResult,
     "post": PostAssistResult,
+    "policy_summary": PolicySummaryResult,
 }
 
 META_TITLE_MAX = 60
@@ -104,6 +108,11 @@ DRAFT_BLOCKS_MAX = 12
 DRAFT_TEXT_MAX = 1000
 DRAFT_ITEMS_MAX = 10
 DRAFT_ITEM_MAX = 200
+# 약관 변경 요약 (A-4) — 바뀐 줄만 보낸다. 약관 전체를 보내지 않게 줄 수 · 글자 수 제한
+POLICY_SUMMARY_LINES = 3
+CHANGED_LINES_MAX = 200
+CHANGED_CHARS_MAX = 6000
+_POLICY_TITLES = {"terms": "이용약관", "privacy": "개인정보처리방침"}
 _TYPE_LABELS = {
     "LIST": "목록형",
     "GALLERY": "갤러리형",
@@ -129,6 +138,8 @@ UNKNOWN_KIND_MESSAGE = "지원하지 않는 AI 보조예요."
 PURPOSE_REQUIRED_MESSAGE = "어떤 게시판인지 한두 문장으로 적어 주세요."
 MEMO_REQUIRED_MESSAGE = "어떤 글을 쓸지 메모를 적어 주세요."
 BOARD_REQUIRED_MESSAGE = "글을 쓸 게시판을 알려 주세요."
+POLICY_KIND_MESSAGE = "요약할 문서(이용약관 · 개인정보처리방침)를 알려 주세요."
+POLICY_UNCHANGED_MESSAGE = "공개본과 바뀐 곳이 없어요."
 BOARD_NOT_FOUND_MESSAGE = "게시판을 찾을 수 없습니다."
 NOTE_GUEST_REVIEW = "후기는 비회원 글쓰기를 꺼서 광고 · 도배 글을 막았어요."
 NOTE_GUEST_MEMBER_ONLY = "비회원 글쓰기는 회원 글쓰기 게시판에서만 켤 수 있어 껐어요."
@@ -352,6 +363,47 @@ def _post_result(parsed: dict, ctx: AssistContext) -> PostAssistResult:
     return PostAssistResult.model_validate({"titles": titles, "body": body})
 
 
+def changed_lines(before: str, after: str) -> tuple[list[str], int, int]:
+    """줄 단위 비교 (화면 lib/lineDiff.ts 와 같은 뜻) — 바뀐 줄만 '+ ' · '- ' 를 붙여서.
+
+    빈 줄은 빼고, (바뀐 줄, 더한 줄 수, 뺀 줄 수). 바뀐 줄은 개수 · 글자 수로 자른다.
+    """
+    a = before.splitlines()
+    b = after.splitlines()
+    lines: list[str] = []
+    added = removed = 0
+    for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(
+        a=a, b=b, autojunk=False
+    ).get_opcodes():
+        if tag in ("replace", "delete"):
+            for line in a[i1:i2]:
+                if line.strip():
+                    removed += 1
+                    lines.append(f"- {line.strip()}")
+        if tag in ("replace", "insert"):
+            for line in b[j1:j2]:
+                if line.strip():
+                    added += 1
+                    lines.append(f"+ {line.strip()}")
+    kept: list[str] = []
+    size = 0
+    for line in lines[:CHANGED_LINES_MAX]:
+        size += len(line)
+        if size > CHANGED_CHARS_MAX:
+            break
+        kept.append(line)
+    return kept, added, removed
+
+
+def _summary_result(parsed: dict) -> PolicySummaryResult:
+    """요약 — 1 ~ 3줄, 500자. 비면 다시 묻는다."""
+    text = _lines(parsed.get("summary"), site_policy.SUMMARY_MAX)
+    summary = "\n".join(text.splitlines()[:POLICY_SUMMARY_LINES])
+    if not summary:
+        raise ValueError("요약이 비어 있습니다.")
+    return PolicySummaryResult(summary=summary)
+
+
 def parse_assist_result(
     kind: str, content: str, ctx: AssistContext | None = None
 ) -> AssistResult:
@@ -369,6 +421,8 @@ def parse_assist_result(
             return _board_result(parsed, ctx)
         if kind == "post":
             return _post_result(parsed, ctx)
+        if kind == "policy_summary":
+            return _summary_result(parsed)
         if kind == "seo":
             seo = SeoAssistResult(
                 meta_title=_text(parsed.get("meta_title"), META_TITLE_MAX),
@@ -668,10 +722,42 @@ async def build_post_context(
     return {k: v for k, v in facts.items() if v not in (None, "")}, ctx
 
 
+async def build_policy_context(
+    db: AsyncSession, tenant: Tenant, body: AssistRequest
+) -> tuple[dict, AssistContext]:
+    """약관 요약 — 공개본(없으면 기본 문안)은 서버가 읽고, 바뀐 줄만 보낸다 (A-4)."""
+    if body.kind is None:
+        raise _validation_error(POLICY_KIND_MESSAGE, "kind")
+    published = (await site_policy.get_policy(db, tenant, body.kind))["body"]
+    lines, added, removed = changed_lines(published, body.body)
+    if not lines:
+        raise _validation_error(POLICY_UNCHANGED_MESSAGE, "body")
+    facts: dict[str, Any] = {
+        "문서": _POLICY_TITLES[body.kind],
+        "더한 줄 수": added,
+        "뺀 줄 수": removed,
+        "바뀐 줄": lines,
+    }
+    shown = len(lines)
+    if shown < added + removed:
+        facts["보내지 않은 바뀐 줄"] = added + removed - shown
+    return facts, AssistContext()
+
+
 async def _prepare(
     db: AsyncSession, tenant: Tenant, kind: str, body: AssistRequest
 ) -> tuple[dict, AssistContext, dict[str, Any]]:
     """kind 마다 (사이트 정보, 결과 고칠 사정, 프롬프트 한도)."""
+    if kind == "policy_summary":
+        facts, ctx = await build_policy_context(db, tenant, body)
+        return (
+            facts,
+            ctx,
+            {
+                "lines_max": POLICY_SUMMARY_LINES,
+                "summary_max": site_policy.SUMMARY_MAX,
+            },
+        )
     if kind == "post":
         facts, ctx = await build_post_context(db, tenant, body)
         return (

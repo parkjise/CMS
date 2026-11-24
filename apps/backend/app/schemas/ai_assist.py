@@ -11,11 +11,12 @@ from pydantic import BaseModel, Field
 
 from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 
-AssistKind = Literal["seo", "geo", "board", "post"]
+AssistKind = Literal["seo", "geo", "board", "post", "policy_summary"]
 AssistTone = Literal["trust", "friendly", "expert"]
 
 PURPOSE_MAX = 200
 MEMO_MAX = 500
+POLICY_BODY_MAX = 30000
 
 
 class AssistRequest(BaseModel):
@@ -24,12 +25,16 @@ class AssistRequest(BaseModel):
     - seo · geo: tone
     - board: purpose (필수), board_id (있으면 그 게시판에 더할 필드 · 카테고리만)
     - post: memo (필수), board_id (필수 — 게시판 유형으로 FAQ 를 가린다)
+    - policy_summary: kind (terms · privacy), body (편집 중인 본문, 저장 전이어도) —
+      공개본(없으면 기본 문안)은 서버가 읽어 바뀐 줄만 모델에 보낸다
     """
 
     tone: AssistTone = "trust"
     purpose: str = Field(default="", max_length=PURPOSE_MAX)
     memo: str = Field(default="", max_length=MEMO_MAX)
     board_id: uuid.UUID | None = None
+    kind: Literal["terms", "privacy"] | None = None
+    body: str = Field(default="", max_length=POLICY_BODY_MAX)
 
 
 class SeoAssistResult(BaseModel):
@@ -87,7 +92,19 @@ class PostAssistResult(BaseModel):
     body: list[DraftBlock]
 
 
-AssistResult = SeoAssistResult | GeoAssistResult | BoardAssistResult | PostAssistResult
+class PolicySummaryResult(BaseModel):
+    """약관 변경 내용 요약 (A-4) — 1 ~ 3줄, 500자 안."""
+
+    summary: str
+
+
+AssistResult = (
+    SeoAssistResult
+    | GeoAssistResult
+    | BoardAssistResult
+    | PostAssistResult
+    | PolicySummaryResult
+)
 
 
 class AssistUsage(BaseModel):
