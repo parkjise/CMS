@@ -21,6 +21,7 @@ from app.schemas.common import ApiResponse
 from app.schemas.public_site import (
     PublicDomainResponse,
     PublicMemberFlags,
+    PublicPageResponse,
     PublicSectionResponse,
     PublicSeoResponse,
     PublicSiteAvailability,
@@ -38,6 +39,7 @@ from app.schemas.site import (
 from app.services import board as board_service
 from app.services import domain as domain_service
 from app.services import member_features, section_draft
+from app.services import page as page_service
 from app.services import seo as seo_service
 from app.services import site_policy as policy_service
 from app.services import site_settings as site_settings_service
@@ -175,6 +177,10 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             )
         ],
         notice_board=PublicBoardResponse(**notice) if notice else None,
+        pages=[
+            PublicPageResponse.model_validate(p)
+            for p in await page_service.public_pages(db, tid)
+        ],
     )
 
 

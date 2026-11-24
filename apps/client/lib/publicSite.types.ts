@@ -117,6 +117,23 @@ export type PublicSiteSettings = Pick<SiteInfoFields, LegacySiteField> &
     hidden_fields?: PublicFieldGroup[]
   }
 
+/**
+ * 페이지 (T-239, 페이지 관리) — 템플릿 기본 페이지는 숨김 · SEO 만(행이 없으면 공개),
+ * 직접 만든 페이지는 공개된 것만 온다
+ */
+export interface PublicPage {
+  page_key: string
+  title: string
+  origin: 'TEMPLATE' | 'CUSTOM'
+  parent_key: string | null
+  show_in_menu: boolean
+  is_public: boolean
+  seo_title: string | null
+  seo_description: string | null
+  og_image_url: string | null
+  noindex: boolean
+}
+
 export interface PublicSite {
   tenant: PublicTenant
   sections: PublicSection[]
@@ -130,7 +147,21 @@ export interface PublicSite {
   boards?: PublicBoard[]
   /** 코드형 공지 페이지가 따를 공지 게시판 (T-220) — 테마형은 boards 안에 */
   notice_board?: PublicBoard | null
+  /** 페이지 (T-239) — 이전 백엔드 응답 · 캐시에는 없다 */
+  pages?: PublicPage[]
 }
+
+/** 페이지 설정 — 없으면 null (템플릿 기본 페이지는 공개로 본다) */
+export const pageOf = (site: PublicSite, key: string): PublicPage | null =>
+  site.pages?.find((p) => p.page_key === key) ?? null
+
+/** 숨긴 템플릿 기본 페이지 — 주소로 들어와도 404 (홈은 숨길 수 없다) */
+export const pageHidden = (site: PublicSite, key: string): boolean =>
+  key !== 'home' && pageOf(site, key)?.is_public === false
+
+/** 직접 만든 공개 페이지 (T-239) */
+export const customPages = (site: PublicSite): PublicPage[] =>
+  (site.pages ?? []).filter((p) => p.origin === 'CUSTOM' && p.is_public)
 
 /** 회원 메뉴 · 화면을 보여줄지 — 응답에 없으면(이전 버전 캐시 등) 숨긴다 */
 export const memberEnabled = (site: PublicSite | null | undefined): boolean =>

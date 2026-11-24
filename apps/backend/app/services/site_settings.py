@@ -177,6 +177,19 @@ async def _custom_page_options(
     ]
 
 
+async def _hidden_template_pages(db: AsyncSession, tenant_id: UUID) -> set[str]:
+    """숨긴 템플릿 기본 페이지 (T-239) — 메뉴 후보 · 홈페이지 메뉴에서 빠진다"""
+    rows = await db.execute(
+        select(Page.page_key).where(
+            Page.tenant_id == tenant_id,
+            Page.origin == "TEMPLATE",
+            Page.is_public.is_(False),
+            Page.deleted_at.is_(None),
+        )
+    )
+    return set(rows.scalars())
+
+
 async def _menu_context(db: AsyncSession, tenant_id: UUID) -> _MenuContext:
     override = await template_service.get_current_override(db, tenant_id)
     template = await db.get(Template, override.template_id) if override else None
@@ -196,9 +209,11 @@ async def _menu_context(db: AsyncSession, tenant_id: UUID) -> _MenuContext:
         ).scalars()
     )
     if menu:
+        hidden = await _hidden_template_pages(db, tenant_id)
         pages = [
             MenuPageOption(key=p["key"], label=p["title"], parent=p.get("parent"))
             for p in menu
+            if p["key"] not in hidden
         ]
         pages += _with_parents(pages, await _custom_page_options(db, tenant_id))
         # 코드형 기본 게시판(공지 등)은 템플릿 페이지가 따로 있다

@@ -1,6 +1,6 @@
 import type { PublicBoard } from '@cms/types'
 import type { Metadata } from 'next'
-import type { PublicSeoSettings, PublicSite } from './publicSite.types'
+import type { PublicPage, PublicSeoSettings, PublicSite } from './publicSite.types'
 
 /** 검색 노출 설정 (T-129) — 'noindex,follow' 등. 값이 없으면 전체 허용 */
 export function robotsFrom(seo: PublicSeoSettings | null | undefined): {
@@ -20,6 +20,30 @@ export function canonicalMeta(site: PublicSite, path = ''): Pick<Metadata, 'alte
   const custom = site.tenant.custom_domain ? `https://${site.tenant.custom_domain}` : null
   const base = (site.seo_settings?.canonical_url ?? custom)?.replace(/\/+$/, '')
   return base ? { alternates: { canonical: `${base}${path}` } } : {}
+}
+
+/**
+ * 페이지별 검색 설정 (T-239) — 제목 · 설명 · 공유 이미지는 비면 사이트 값(레이아웃) 그대로,
+ * 검색 결과 제외를 켠 페이지만 robots 를 넣는다 (그 밖은 레이아웃 설정 T-129 를 따른다)
+ */
+export function pageSeoMeta(
+  page: PublicPage | null,
+  fallbackTitle: string,
+): Pick<Metadata, 'title' | 'description' | 'openGraph' | 'robots'> {
+  return {
+    title: page?.seo_title || fallbackTitle,
+    ...(page?.seo_description ? { description: page.seo_description } : {}),
+    ...(page?.seo_title || page?.seo_description || page?.og_image_url
+      ? {
+          openGraph: {
+            title: page.seo_title || fallbackTitle,
+            ...(page.seo_description ? { description: page.seo_description } : {}),
+            ...(page.og_image_url ? { images: [page.og_image_url] } : {}),
+          },
+        }
+      : {}),
+    ...(page?.noindex ? { robots: { index: false, follow: false } } : {}),
+  }
 }
 
 /**

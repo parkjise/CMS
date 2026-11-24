@@ -27,7 +27,7 @@
 | 사이트 | 사업체(테넌트) 하나 = 사이트 하나. 모든 표에 `tenant_id` + RLS | `site_id` 개념 없음. 사이트 필터 제거 |
 | 페이지 | 섹션의 `page_key`(기본 `home`)로 구분. 코드형 템플릿은 매니페스트 `pages` 가 페이지 목록을 정함 (기획서 11.9). 테마형은 한 페이지(메뉴 = 홈 섹션 이동) | `pages` 표를 추가해 **템플릿 기본 페이지 + 직접 만든 페이지**를 함께 관리 |
 | 주소 | `/{slug}` 홈, `/{slug}/{page_key}`, 게시판 `/{slug}/b/{게시판}/{글}`, 공지 `/{slug}/notice/{글}` | 직접 만든 페이지도 `/{slug}/{page_key}` **한 단계**만. 상위 페이지는 메뉴 묶음용 |
-| 예약 주소 | `preview` · `login` · `sitemap.xml` · `member` · `paused` · `b` · `notice` + 템플릿 페이지 키 | 페이지 주소로 쓸 수 없음 (서버에서 검사) |
+| 예약 주소 | `preview` · `login` · `sitemap.xml` · `member` · `paused` · `b` · `notice` · `terms` · `privacy` + 템플릿 페이지 키 | 페이지 주소로 쓸 수 없음 (서버에서 검사) |
 | 편집 | 관리자 섹션 편집(`/admin/content`) + 홈페이지 인라인 편집 모드. **저장 즉시 공개** | MVP 는 즉시 공개 유지. 초안/발행 분리는 별도 단계 |
 | 메뉴 | 사이트 관리 > 메뉴(`/admin/site/menu`, `site_settings.menu_items`) | 새 페이지가 메뉴 선택지에 자동으로 나타남 |
 | SEO | 사이트 전체 하나(`seo_settings`) | 페이지별 제목·설명·OG 이미지·검색 제외 추가 (비면 사이트 값) |
@@ -289,7 +289,7 @@ CREATE TABLE page_redirects (
 | DELETE | `/pages/{id}` | 휴지통 이동 (기본 페이지·홈은 403) |
 | POST | `/pages/{id}/restore` | 휴지통 복구 |
 | GET | `/sections?page_key=` | 기존 API 에 페이지 필터 (T-238) |
-| GET | `/public/site/{slug}` | 응답에 `pages` (공개·메뉴 정보·SEO) 추가 (T-239) |
+| GET | `/public/site/{slug}` | 응답에 `pages` — 템플릿 기본 페이지(숨김 · SEO) + 직접 만든 공개 페이지(스위치 켜진 사업체만) (T-239) |
 
 ## 3. 수용 기준
 

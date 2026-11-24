@@ -236,6 +236,8 @@ class TestCreate:
             ("b", 400, "영문 소문자"),
             ("member", 409, "다른 화면"),
             ("notice", 409, "공지사항"),
+            ("terms", 409, "이용약관"),
+            ("privacy", 409, "개인정보처리방침"),
         ],
     )
     async def test_key_rules(
@@ -614,3 +616,53 @@ class TestMenu:
         await feature_service.invalidate_cache(pages_on["id"])
         resp = await client.get("/api/v1/site-settings/menu", headers=auth_headers)
         assert not [p for p in resp.json()["data"]["pages"] if p["custom"]]
+
+
+class TestPublicSite:
+    """홈페이지 공개 사이트 응답의 pages (T-239)"""
+
+    async def _pages(self, client: AsyncClient, slug: str) -> dict:
+        resp = await client.get(f"/api/public/site/{slug}")
+        assert resp.status_code == 200, resp.text
+        return {p["page_key"]: p for p in resp.json()["data"]["pages"]}
+
+    async def test_public_custom_pages_and_template_seo(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        pages_on: dict,
+        code_template: str,
+    ):
+        await _create(client, auth_headers, "event", seo_title="이벤트 | 하나")
+        await _create(client, auth_headers, "secret", is_public=False)
+        listed = await _list(client, auth_headers)
+        about = next(p for p in listed["pages"] if p["page_key"] == "about")
+        await client.patch(
+            f"{_URL}/{about['id']}",
+            headers=auth_headers,
+            json={"is_public": False, "noindex": True},
+        )
+        pages = await self._pages(client, pages_on["slug"])
+        assert set(pages) == {"home", "about", "about-history", "event"}
+        assert pages["event"]["seo_title"] == "이벤트 | 하나"
+        assert pages["event"]["origin"] == "CUSTOM"
+        assert (pages["about"]["is_public"], pages["about"]["noindex"]) == (False, True)
+        # 숨긴 템플릿 페이지는 메뉴 후보에서도 빠진다
+        resp = await client.get("/api/v1/site-settings/menu", headers=auth_headers)
+        keys = [p["key"] for p in resp.json()["data"]["pages"]]
+        assert "about" not in keys
+        assert "event" in keys
+
+    async def test_switch_off_hides_custom_pages(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        await _create(client, auth_headers, "event")
+        await _sql(
+            "DELETE FROM tenant_features WHERE tenant_id = :t", {"t": pages_on["id"]}
+        )
+        await feature_service.invalidate_cache(pages_on["id"])
+        from app.services import site_cache
+
+        await site_cache.purge_slugs([pages_on["slug"]], [uuid.UUID(pages_on["id"])])
+        pages = await self._pages(client, pages_on["slug"])
+        assert "event" not in pages
