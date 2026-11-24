@@ -5,6 +5,7 @@ import { ExternalLink, Layers, LogOut } from 'lucide-react'
 import { isChildActive } from './navigation'
 import { useAuthStore } from '@/stores/authStore'
 import { useVisibleNavigation } from '@/lib/navItems'
+import { appPath } from '@/lib/appPath'
 
 const CLIENT_BASE_URL = import.meta.env.VITE_CLIENT_BASE_URL ?? 'http://localhost:3000'
 
@@ -65,7 +66,7 @@ export function CollapsedSidebar() {
 
   const handleLogout = async () => {
     await logout()
-    window.location.href = '/login'
+    window.location.href = appPath('/login')
   }
 
   return (
