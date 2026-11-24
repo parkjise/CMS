@@ -675,3 +675,82 @@ class TestPostEndpoint:
             json={"memo": "휴진", "board_id": str(uuid.uuid4())},
         )
         assert resp.status_code == 403
+
+
+# ═════════════════════ T-234-B 약관 변경 요약 (policy_summary) ═════════════════════
+
+_POLICY = "/api/v1/ai/assist/policy_summary"
+
+
+class TestChangedLines:
+    def test_only_changed_lines_with_marks(self):
+        before = "제1조 목적\n\n제2조 정의\n보관 기간은 1년\n제3조 끝"
+        after = "제1조 목적\n\n제2조 정의\n보관 기간은 3년\n\n제3조 끝\n제4조 새 조항"
+        lines, added, removed = ai_assist.changed_lines(before, after)
+        assert lines == ["- 보관 기간은 1년", "+ 보관 기간은 3년", "+ 제4조 새 조항"]
+        assert (added, removed) == (2, 1)
+
+    def test_long_changes_are_cut(self):
+        after = "\n".join(f"새 줄 {i} " + "가" * 50 for i in range(500))
+        lines, added, _removed = ai_assist.changed_lines("", after)
+        assert added == 500
+        assert len(lines) < 200
+        assert sum(len(line) for line in lines) <= ai_assist.CHANGED_CHARS_MAX
+
+    def test_summary_is_one_to_three_lines(self):
+        content = json.dumps(
+            {"summary": "첫 줄\n\n둘째 줄\n셋째 줄\n넷째 줄"}, ensure_ascii=False
+        )
+        result = ai_assist.parse_assist_result("policy_summary", content)
+        assert result.summary == "첫 줄\n둘째 줄\n셋째 줄"
+        long = json.dumps({"summary": "가" * 700}, ensure_ascii=False)
+        cut = ai_assist.parse_assist_result("policy_summary", long)
+        assert len(cut.summary) == 500
+        with pytest.raises(ValueError):
+            ai_assist.parse_assist_result("policy_summary", '{"summary": " "}')
+
+
+class TestPolicySummaryEndpoint:
+    async def _published(self, client: AsyncClient, headers: dict) -> str:
+        resp = await client.get("/api/v1/site-settings/policies", headers=headers)
+        assert resp.status_code == 200, resp.text
+        return resp.json()["data"]["terms"]["body"]
+
+    async def test_needs_kind_and_a_change(
+        self, client: AsyncClient, auth_headers: dict, assist_tenant: dict
+    ):
+        no_kind = await client.post(_POLICY, headers=auth_headers, json={"body": "x"})
+        assert no_kind.status_code == 400
+        assert no_kind.json()["error"]["field"] == "kind"
+        published = await self._published(client, auth_headers)
+        same = await client.post(
+            _POLICY, headers=auth_headers, json={"kind": "terms", "body": published}
+        )
+        assert same.status_code == 400
+        assert same.json()["error"]["field"] == "body"
+
+    async def test_sends_only_changed_lines(
+        self, client: AsyncClient, auth_headers: dict, assist_tenant: dict, monkeypatch
+    ):
+        published = await self._published(client, auth_headers)
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return '{"summary": "보관 기간 조항을 더했습니다."}', 80
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        edited = published + "\n제99조 (보관) 기록은 3년 보관합니다."
+        resp = await client.post(
+            _POLICY, headers=auth_headers, json={"kind": "terms", "body": edited}
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["result"] == {
+            "summary": "보관 기간 조항을 더했습니다."
+        }
+        prompt = seen[0]
+        assert "+ 제99조 (보관) 기록은 3년 보관합니다." in prompt
+        # 약관 전체를 보내지 않는다 — 바뀌지 않은 첫 줄은 없다
+        first = next(line for line in published.splitlines() if line.strip())
+        assert first not in prompt
+        assert resp.json()["data"]["usage"]["used"] == 1
