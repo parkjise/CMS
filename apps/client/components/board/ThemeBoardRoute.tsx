@@ -15,7 +15,7 @@ import { Navbar } from '@/components/layout/Navbar'
 import { boardScreen, isFormScreen, isMemberOnly, resolveBoardRoute } from '@/lib/boardRoute'
 import { boardPageKey } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
-import { memberEnabled } from '@/lib/publicSite.types'
+import { customPages, memberEnabled } from '@/lib/publicSite.types'
 import { boardSeoMeta, canonicalMeta } from '@/lib/seoMeta'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { themeHomeSections } from '@/lib/themeSections'
@@ -75,7 +75,7 @@ export async function renderThemeBoard(tenant_slug: string, path: string[], sear
         menuTree={site.site_settings?.menu_tree}
         sections={themeHomeSections(site.sections, site.boards)}
         tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined}
-        site={{ slug: tenant_slug, boards: site.boards, subPage: true }}
+        site={{ slug: tenant_slug, boards: site.boards, subPage: true, pages: customPages(site) }}
       />
       <main className="flex-1">
         {screen.kind === 'write' || screen.kind === 'edit' ? (

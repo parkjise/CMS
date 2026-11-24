@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import type { PublicPage, PublicSection, PublicSite } from '@/lib/publicSite.types'
 
 // 직접 만든 페이지 · 페이지별 검색 설정 (T-239, 페이지 관리 기획서)
@@ -28,8 +28,16 @@ vi.mock('@/templates/CodeTemplateRenderer', () => ({
 }))
 vi.mock('@/components/edit/EditToolbar', () => ({ EditToolbar: () => null }))
 vi.mock('@/components/layout/FloatingButtons', () => ({ FloatingButtons: () => null }))
+vi.mock('@/components/layout/Footer', () => ({ Footer: () => null }))
+vi.mock('@/components/sections/SectionRenderer', () => ({
+  SectionRenderer: ({ section }: { section: { id: string } }) => (
+    <div data-testid="section">{section.id}</div>
+  ),
+}))
 
+import ThemeCustomPage, { generateMetadata as themeMeta } from '@/app/[tenant_slug]/[page_key]/page'
 import { GET } from '@/app/[tenant_slug]/sitemap.xml/route'
+import { Navbar } from '@/components/layout/Navbar'
 import { CodeRoutePage, codeRouteMetadata } from '@/templates/codeRoute'
 import { hospitalAEntry } from '@/templates/hospital-a/entry'
 import { hospitalAManifest } from '@/templates/hospital-a/manifest'
@@ -82,6 +90,8 @@ const site = (pages: PublicPage[], sections: PublicSection[] = []): PublicSite =
     boards: [],
     pages,
   }) as unknown as PublicSite
+
+const sectionIds = () => screen.queryAllByTestId('section').map((el) => el.textContent)
 
 const route = (path?: string[]) =>
   CodeRoutePage({ entry: hospitalAEntry, params: { tenant_slug: 'demo', path }, searchParams: {} })
@@ -198,5 +208,87 @@ describe('사이트맵', () => {
     expect(found).toContain('http://localhost:3000/demo/notice')
     for (const gone of ['quiet', 'about', 'business'])
       expect(found).not.toContain(`http://localhost:3000/demo/${gone}`)
+  })
+})
+
+// ── 테마형 (T-240) ──────────────────────────────────────────────────────────
+
+describe('테마형 — 직접 만든 페이지 라우트', () => {
+  const themeSite = (pages: PublicPage[], sections: PublicSection[] = []) =>
+    ({
+      ...site(pages, sections),
+      template: { renderer: 'theme', code: 'HOSPITAL_CLEAN' },
+    }) as PublicSite
+  const props = (page_key: string) => ({
+    params: Promise.resolve({ tenant_slug: 'demo', page_key }),
+  })
+
+  it('공개된 직접 페이지 — 제목 · 그 페이지의 켜진 테마 섹션만, 검색 설정', async () => {
+    fetchPublicSite.mockResolvedValue(
+      themeSite(
+        [page('event', { title: '겨울 이벤트', seo_description: '한정' })],
+        [
+          section('intro', 'INTRO', 'event', 1),
+          section('code-only', 'SUB_HERO', 'event', 0),
+          section('off', 'INTRO', 'event', 2, false),
+          section('home', 'INTRO', 'home', 1),
+        ]
+      )
+    )
+    render(await ThemeCustomPage(props('event')))
+    expect(screen.getByRole('heading', { level: 1, name: '겨울 이벤트' })).toBeInTheDocument()
+    expect(sectionIds()).toEqual(['intro'])
+    expect(await themeMeta(props('event'))).toMatchObject({
+      title: '겨울 이벤트 | 데모',
+      description: '한정',
+    })
+  })
+
+  it('없는 · 숨긴 페이지는 404, 코드형 사이트면 전환 안내', async () => {
+    fetchPublicSite.mockResolvedValue(themeSite([page('event')]))
+    await expect(ThemeCustomPage(props('nope'))).rejects.toThrow('NEXT_NOT_FOUND')
+    fetchPublicSite.mockResolvedValue(site([page('event')]))
+    render(await ThemeCustomPage(props('event')))
+    expect(screen.getByRole('heading', { name: /새로 단장하는 중/ })).toBeInTheDocument()
+    await expect(ThemeCustomPage(props('nope'))).rejects.toThrow('NEXT_NOT_FOUND')
+  })
+})
+
+describe('테마형 메뉴 — 직접 만든 페이지 링크', () => {
+  const nav = () => screen.getByRole('navigation', { name: '페이지 내 섹션' })
+  const pages = [
+    page('event', { title: '이벤트' }),
+    page('faq', { title: 'FAQ', parent_key: 'event' }),
+    page('quiet', { title: '조용', show_in_menu: false }),
+  ]
+
+  it('메뉴 설정 전: 맨 위 · 메뉴 표시 페이지만 섹션 뒤에', () => {
+    render(
+      <Navbar
+        tenantName="OO"
+        sections={[section('s1', 'INTRO', 'home', 1)]}
+        site={{ slug: 'demo', pages }}
+      />
+    )
+    expect(
+      within(nav())
+        .getAllByRole('link')
+        .map((a) => [a.textContent, a.getAttribute('href')])
+    ).toEqual([['이벤트', '/demo/event']])
+  })
+
+  it('메뉴 트리: 페이지 주소로 링크', () => {
+    render(
+      <Navbar
+        tenantName="OO"
+        sections={[]}
+        menuTree={[{ label: '자주 묻는 질문', type: 'page', target: 'faq', children: [] }] as never}
+        site={{ slug: 'demo', pages }}
+      />
+    )
+    expect(within(nav()).getByRole('link', { name: '자주 묻는 질문' })).toHaveAttribute(
+      'href',
+      '/demo/faq'
+    )
   })
 })

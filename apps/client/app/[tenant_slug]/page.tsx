@@ -9,7 +9,7 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { EditToolbar } from '@/components/edit/EditToolbar'
 import { buildLocalBusinessJsonLd, serializeJsonLd } from '@/lib/jsonLd'
 import { countSampleSettings } from '@/lib/sampleCount'
-import { memberEnabled } from '@/lib/publicSite.types'
+import { customPages, memberEnabled } from '@/lib/publicSite.types'
 import { themeHomeSections } from '@/lib/themeSections'
 import { usesCodeTemplate } from '@/templates/manifests'
 import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
@@ -55,7 +55,7 @@ export default async function TenantHomePage({ params }: Props) {
       />
 
       <EditToolbar sampleCount={sampleCount} />
-      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} menuTree={site.site_settings?.menu_tree} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} site={{ slug: tenant_slug, boards: site.boards }} />
+      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} menuTree={site.site_settings?.menu_tree} sections={activeSections} tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined} site={{ slug: tenant_slug, boards: site.boards, pages: customPages(site) }} />
 
       <main className="flex-1">
         {activeSections.length === 0 ? (

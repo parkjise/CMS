@@ -5,7 +5,7 @@ import { FloatingButtons } from '@/components/layout/FloatingButtons'
 import { Footer } from '@/components/layout/Footer'
 import { Navbar } from '@/components/layout/Navbar'
 import { fetchPublicSite } from '@/lib/publicSite'
-import { memberEnabled } from '@/lib/publicSite.types'
+import { customPages, memberEnabled } from '@/lib/publicSite.types'
 import { canonicalMeta } from '@/lib/seoMeta'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { fetchSitePolicy } from '@/lib/fetchSitePolicy'
@@ -46,7 +46,7 @@ export async function renderThemePolicy(
         menuTree={site.site_settings?.menu_tree}
         sections={themeHomeSections(site.sections, site.boards)}
         tenantSlug={memberEnabled(site) ? site.tenant.slug : undefined}
-        site={{ slug, boards: site.boards, subPage: true }}
+        site={{ slug, boards: site.boards, subPage: true, pages: customPages(site) }}
       />
       <main className="flex-1">
         <PolicyArticle policy={policy} />
