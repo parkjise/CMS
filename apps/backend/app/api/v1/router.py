@@ -15,6 +15,7 @@ from app.api.v1.endpoints import (
     inquiries,
     notification_settings,
     notifications,
+    pages,
     preferences,
     sections,
     seo,
@@ -42,6 +43,7 @@ _tenant_only = [
 api_router.include_router(auth.router)
 api_router.include_router(notifications.router)
 api_router.include_router(sections.router, dependencies=_tenant_only)
+api_router.include_router(pages.router, dependencies=_tenant_only)
 api_router.include_router(inquiries.router, dependencies=_tenant_only)
 api_router.include_router(sns.router, dependencies=_tenant_only)
 api_router.include_router(seo.router, dependencies=_tenant_only)

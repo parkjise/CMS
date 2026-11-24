@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.template_samples import load_menu
 from app.models.board import Board
+from app.models.page import Page
 from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.template import Template
@@ -27,6 +28,7 @@ from app.schemas.site import (
     SiteSettingsUpdate,
 )
 from app.services import board as board_service
+from app.services import feature as feature_service
 from app.services import site_cache
 from app.services import template as template_service
 from app.services.section_manage import THEME_SECTION_TYPES
@@ -123,6 +125,7 @@ class _MenuContext:
         self.pages = pages
         self.page_keys = {p.key for p in pages}
         self.top_page_keys = {p.key for p in pages if not p.parent}
+        self.custom_keys = {p.key for p in pages if p.custom}
         self.boards = boards
         self.public_boards = {str(b["id"]): b for b in public_boards}
 
@@ -137,8 +140,41 @@ class _MenuContext:
             for b in self.public_boards.values()
             if self.board_in_menu(b)
         ]
-        tops = [(p.key, p.label) for p in self.pages if not p.parent]
+        tops = [(p.key, p.label) for p in self.pages if not p.parent and p.in_menu]
         return [*tops, *boards]
+
+
+async def _custom_page_options(
+    db: AsyncSession, tenant_id: UUID
+) -> list[MenuPageOption]:
+    """직접 만든 공개 페이지 (T-237) — 스위치가 꺼졌으면 없다.
+
+    숨김 · 휴지통 페이지는 빠져 홈페이지 메뉴에서도 사라진다.
+    """
+    if not await feature_service.is_enabled(db, tenant_id, "CUSTOM_PAGES"):
+        return []
+    rows = (
+        await db.execute(
+            select(Page)
+            .where(
+                Page.tenant_id == tenant_id,
+                Page.origin == "CUSTOM",
+                Page.is_public.is_(True),
+                Page.deleted_at.is_(None),
+            )
+            .order_by(Page.display_order, Page.created_at)
+        )
+    ).scalars()
+    return [
+        MenuPageOption(
+            key=p.page_key,
+            label=p.title,
+            parent=p.parent_key,
+            custom=True,
+            in_menu=p.show_in_menu,
+        )
+        for p in rows
+    ]
 
 
 async def _menu_context(db: AsyncSession, tenant_id: UUID) -> _MenuContext:
@@ -164,6 +200,7 @@ async def _menu_context(db: AsyncSession, tenant_id: UUID) -> _MenuContext:
             MenuPageOption(key=p["key"], label=p["title"], parent=p.get("parent"))
             for p in menu
         ]
+        pages += _with_parents(pages, await _custom_page_options(db, tenant_id))
         # 코드형 기본 게시판(공지 등)은 템플릿 페이지가 따로 있다
         boards = [b for b in boards if b.system_key is None]
         return _MenuContext("code", f"code:{code}", pages, boards, public_boards)
@@ -181,8 +218,20 @@ async def _menu_context(db: AsyncSession, tenant_id: UUID) -> _MenuContext:
     pages = [
         MenuPageOption(key=str(sec.id), label=sec.label) for sec in result.scalars()
     ]
+    pages += _with_parents(pages, await _custom_page_options(db, tenant_id))
     boards = [b for b in boards if b.system_key in (None, board_service.NOTICE_KEY)]
     return _MenuContext("theme", "theme", pages, boards, public_boards)
+
+
+def _with_parents(
+    pages: list[MenuPageOption], custom: list[MenuPageOption]
+) -> list[MenuPageOption]:
+    """상위 페이지가 메뉴 후보에 없으면(숨김 · 다른 템플릿) 맨 위로 올린다."""
+    keys = {p.key for p in pages} | {p.key for p in custom}
+    for page in custom:
+        if page.parent and page.parent not in keys:
+            page.parent = None
+    return custom
 
 
 def _legacy(saved: list[dict]) -> list[dict]:
@@ -232,7 +281,9 @@ def _node_for(
             visible=visible,
         )
     return MenuNode(
-        id=f"p-{key[:38]}" if ctx.mode == "code" else f"s-{key[:8]}",
+        id=f"p-{key[:38]}"
+        if ctx.mode == "code" or key in ctx.custom_keys
+        else f"s-{key[:8]}",
         label=label[:MENU_LABEL_MAX],
         type="page",
         target=key,
@@ -249,10 +300,13 @@ def _converted_tree(ctx: _MenuContext, saved: list[dict]) -> list[MenuNode]:
     nodes = []
     for key, default_label, label, visible in _legacy_order(ctx, saved):
         node = _node_for(ctx, key, label or default_label, visible)
-        if ctx.mode == "code" and node.type == "page":
+        if node.type == "page":
+            # 하위 페이지 — 코드형 템플릿 하위 페이지 · 직접 만든 페이지 (T-237)
             node.children = [
                 _node_for(ctx, p.key, p.label) for p in ctx.pages if p.parent == key
-            ] + [
+            ]
+        if ctx.mode == "code" and node.type == "page":
+            node.children += [
                 _node_for(ctx, board_menu_key(b["id"]), b["name"])
                 for b in ctx.public_boards.values()
                 if b.get("menu_parent") == key
@@ -513,3 +567,39 @@ async def public_menu(
         node = _node_for(ctx, key, label)
         nodes.extend(_public_nodes(ctx, [node], hidden))
     return nodes, hidden
+
+
+def _renamed_nodes(nodes: list[dict], old_key: str, new_key: str) -> list[dict]:
+    out = []
+    for node in nodes:
+        node = dict(node)
+        if node.get("type") == "page" and node.get("target") == old_key:
+            node["target"] = new_key
+        node["children"] = _renamed_nodes(node.get("children") or [], old_key, new_key)
+        out.append(node)
+    return out
+
+
+async def rename_page_target(
+    db: AsyncSession, tenant_id: UUID, old_key: str, new_key: str
+) -> None:
+    """페이지 주소를 바꾸면 저장한 메뉴(모든 템플릿 트리 · 예전 방식)도 따라간다.
+
+    커밋은 부르는 쪽이 한다.
+    """
+    setting = await get_site_settings(db)
+    if setting is None or not setting.menu_items:
+        return
+    items = []
+    for item in setting.menu_items:
+        item = dict(item)
+        if "scope" in item:
+            item["nodes"] = _renamed_nodes(item.get("nodes") or [], old_key, new_key)
+            item["known"] = [
+                new_key if k == old_key else k for k in item.get("known") or []
+            ]
+        elif item.get("key") == old_key:
+            item["key"] = new_key
+        items.append(item)
+    setting.menu_items = items
+    setting.updated_at = datetime.now(UTC)

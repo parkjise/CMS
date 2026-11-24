@@ -356,11 +356,15 @@ class MenuTreeUpdate(BaseModel):
 
 
 class MenuPageOption(BaseModel):
-    """연결할 수 있는 페이지 — 코드형은 템플릿 페이지(하위 포함), 테마형은 홈 섹션"""
+    """연결할 수 있는 페이지 — 코드형은 템플릿 페이지(하위 포함), 테마형은 홈 섹션,
+    둘 다 직접 만든 공개 페이지 (T-237)"""
 
     key: str
     label: str
     parent: str | None = None
+    # 직접 만든 페이지 (T-237) — 메뉴 표시를 끄면 기본 메뉴 후보에서 빠진다
+    custom: bool = False
+    in_menu: bool = True
 
 
 class MenuBoardOption(BaseModel):
