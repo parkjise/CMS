@@ -269,7 +269,9 @@ CREATE TABLE page_redirects (
 -- 두 표 모두 RLS 표준 정책 적용, 해지 사업체 파기 목록(PURGE)에 추가
 ```
 
-- 템플릿 기본 페이지는 템플릿 적용 시 `origin=TEMPLATE` 행을 만든다 (기존 사업체는 마이그레이션에서 매니페스트 기준으로 채움).
+- 템플릿 기본 페이지(`origin=TEMPLATE`)는 페이지 목록을 읽을 때 지금 템플릿 기준으로 맞춘다 — 없는 것은 만들고, 다른 템플릿의 것은 숨겼다가 그 템플릿으로 돌아가면 SEO 값 그대로 되살린다. 마이그레이션은 기존 사업체의 홈 행만 만든다 (T-237).
+- 주소를 바꾸면 섹션 · 하위 페이지 · 저장한 메뉴가 따라가고 `page_redirects` 에 남는다. 이전 기록은 새 주소로 곧장 이어 붙이고, 새 주소를 쓰던 기록은 지운다.
+- 페이지를 지우면 그 페이지 섹션도 같은 시각으로 숨기고, 복구할 때 그 시각의 섹션만 살린다. 복제는 섹션 · 섹션 값을 복사한 숨김 페이지(갤러리 사진 제외).
 - 섹션·섹션 설정 표는 바꾸지 않는다. 직접 만든 페이지 삭제 시 그 `page_key` 섹션도 소프트 삭제.
 - 요금제별 직접 만든 페이지 수 한도는 기존 요금제 한도 설정에 추가 (값은 결정 필요).
 
@@ -277,7 +279,7 @@ CREATE TABLE page_redirects (
 
 | 메서드 | 주소 | 설명 |
 |---|---|---|
-| GET | `/pages` | 목록 (기본 + 직접, 한도 정보 포함) |
+| GET | `/pages` | 목록 (기본 + 직접, 휴지통, 한도, 스위치) — 스위치가 꺼져도 볼 수 있음. 아래는 모두 `CUSTOM_PAGES` 필요 |
 | POST | `/pages` | 추가 (`CUSTOM_PAGES` 스위치 · 한도 · 주소 검사) |
 | GET | `/pages/check-key?key=` | 주소 사용 가능 여부 (입력 중 확인) |
 | PATCH | `/pages/{id}` | 이름·주소·상위·메뉴·공개·SEO 수정 (주소 변경 시 리다이렉트 등록) |
@@ -285,8 +287,8 @@ CREATE TABLE page_redirects (
 | PATCH | `/pages/reorder` | 순서 |
 | DELETE | `/pages/{id}` | 휴지통 이동 (기본 페이지·홈은 403) |
 | POST | `/pages/{id}/restore` | 휴지통 복구 |
-| GET | `/sections?page_key=` | 기존 API 에 페이지 필터 |
-| GET | `/public/site/{slug}` | 응답에 `pages` (공개·메뉴 정보·SEO) 추가 |
+| GET | `/sections?page_key=` | 기존 API 에 페이지 필터 (T-238) |
+| GET | `/public/site/{slug}` | 응답에 `pages` (공개·메뉴 정보·SEO) 추가 (T-239) |
 
 ## 3. 수용 기준
 

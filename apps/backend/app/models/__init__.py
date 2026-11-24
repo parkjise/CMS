@@ -17,6 +17,7 @@ from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.file import UploadedFile
 from app.models.gallery import GalleryItem
 from app.models.inquiry import Inquiry, InquiryAttachment
+from app.models.page import Page, PageRedirect
 from app.models.policy import ConsentRecord, PolicyVersion
 from app.models.preference import AdminUserPreference
 from app.models.section import Section, SectionSetting
@@ -40,6 +41,8 @@ __all__ = [
     "BoardPostVersion",
     "Tenant",
     "User",
+    "Page",
+    "PageRedirect",
     "Section",
     "SectionSetting",
     "Inquiry",

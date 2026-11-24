@@ -54,6 +54,9 @@ PURGE_TABLES = (
     "gallery_items",
     "section_settings",
     "sections",
+    # 페이지 (T-237)
+    "page_redirects",
+    "pages",
     "inquiry_attachments",
     "inquiries",
     "member_password_reset_tokens",

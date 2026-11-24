@@ -252,6 +252,9 @@ FEATURES = [
      "menu_position": 44, "default_enabled": False},
     {"key": "AI_BOARD_ASSIST", "name": "AI 게시판 보조", "category": "AI",
      "menu_position": 45, "default_enabled": False},
+    # 페이지 직접 추가 (페이지 관리 기획서, T-237) — 처음엔 꺼 둔다
+    {"key": "CUSTOM_PAGES", "name": "페이지 직접 추가", "category": "CONTENT",
+     "menu_position": 15, "default_enabled": False},
     {"key": "NAVER_ANALYTICS", "name": "네이버 애널리틱스", "category": "ANALYTICS",
      "menu_position": 50, "default_enabled": False, "is_active": False},
 ]

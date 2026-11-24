@@ -34,3 +34,15 @@ def load_menu(code: str) -> list[dict]:
     if not path.exists():
         return []
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def template_pages(code: str) -> list[dict]:
+    """코드형 템플릿의 모든 페이지 [{key, title, parent?}] — 홈 · 메뉴 · 샘플 순.
+
+    메뉴에 없는 페이지(샘플에만 있는 것)는 이름 대신 주소를 쓴다.
+    """
+    pages = [{"key": "home", "title": "홈"}, *load_menu(code)]
+    known = {p["key"] for p in pages}
+    sample_pages = load_sample(code).get("pages") or {}
+    pages += [{"key": key, "title": key} for key in sample_pages if key not in known]
+    return pages
