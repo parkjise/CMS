@@ -5,7 +5,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import { http, HttpResponse } from 'msw'
 import { server } from './server'
-import { ContentPage } from '@/pages/ContentPage'
+import { PageSections } from '@/components/content/PageSections'
+import { ContentRedirect } from '@/components/pages/ContentRedirect'
 import type { Section, SectionLimits } from '@/hooks/useSections'
 
 // AD-02 섹션 추가 · 삭제 + 요금제 한도 (T-037-A) — 실제 훅 · API 호출을 MSW 로 확인
@@ -83,11 +84,11 @@ beforeEach(() => {
   )
 })
 
-const renderPage = (url = '/admin/content') =>
+const renderPage = (pageKey = 'home') =>
   render(
     <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
-      <MemoryRouter initialEntries={[url]}>
-        <ContentPage />
+      <MemoryRouter initialEntries={[`/admin/pages/${pageKey}`]}>
+        <PageSections pageKey={pageKey} />
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -184,7 +185,7 @@ describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
         <MemoryRouter initialEntries={['/admin/content?tab=settings']}>
           <Routes>
-            <Route path="/admin/content" element={<ContentPage />} />
+            <Route path="/admin/content" element={<ContentRedirect />} />
             <Route path="/admin/site/info" element={<p>사이트 기본정보 화면</p>} />
           </Routes>
         </MemoryRouter>
@@ -196,6 +197,5 @@ describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {
   it('콘텐츠 편집에는 섹션 목록만 — 공통 설정 탭이 없다', () => {
     renderPage()
     expect(screen.queryByRole('button', { name: '공통 설정' })).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: '콘텐츠 편집' })).toBeInTheDocument()
   })
 })

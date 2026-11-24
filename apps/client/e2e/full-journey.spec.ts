@@ -660,7 +660,7 @@ test.describe('T-078 전체 통합 시나리오', () => {
     await expect(report.getByText('기본 점검')).toBeVisible()
     const fix = report.getByRole('link', { name: /고치러 가기|으로|보기/ }).first()
     await fix.click()
-    await expect(page).toHaveURL(/\/admin\/(content|seo)/)
+    await expect(page).toHaveURL(/\/admin\/(content|pages|seo|site\/seo)/)
   })
 
   test('시나리오 17: 관리자 SEO 화면에서 대표 키워드를 저장하면 홈페이지 JSON-LD 에 들어간다 (T-040-A)', async ({

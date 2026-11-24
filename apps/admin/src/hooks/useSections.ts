@@ -57,13 +57,17 @@ export function useReorderSections() {
       const previous = queryClient.getQueryData<Section[]>(SECTIONS_QUERY_KEY)
 
       if (previous) {
-        const map = new Map(previous.map((s) => [s.id, s]))
-        const reordered = orderedIds
-          .map((id, idx) => {
-            const s = map.get(id)
-            return s ? { ...s, display_order: idx } : null
-          })
-          .filter((s): s is Section => s !== null)
+        // 한 페이지의 섹션만 옮긴다 (T-238) — 다른 페이지 섹션은 그대로 두고 그 자리에 차례로
+        const moved = new Set(orderedIds)
+        const order = new Map(orderedIds.map((id, idx) => [id, idx]))
+        const byId = new Map(previous.map((s) => [s.id, s]))
+        let next = 0
+        const reordered = previous.map((s) => {
+          if (!moved.has(s.id)) return s
+          const id = orderedIds[next++]
+          const item = byId.get(id) ?? s
+          return { ...item, display_order: order.get(id) ?? item.display_order }
+        })
         queryClient.setQueryData<Section[]>(SECTIONS_QUERY_KEY, reordered)
       }
 

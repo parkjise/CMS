@@ -1,7 +1,7 @@
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Smartphone, Sliders } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router'
+import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { toast } from '@cms/ui'
 import { getFormForType } from '@/components/content/forms'
 import { MobileSettingsForm } from '@/components/content/forms/MobileSettingsForm'
@@ -17,7 +17,7 @@ import { sampleKeys } from '@/lib/sampleContent'
 type SubTab = 'desktop' | 'mobile'
 
 export function SectionEditorPage() {
-  const { sectionId } = useParams<{ sectionId: string }>()
+  const { sectionId, pageKey = 'home' } = useParams<{ sectionId: string; pageKey: string }>()
   const navigate = useNavigate()
   const [subTab, setSubTab] = useState<SubTab>('desktop')
 
@@ -99,7 +99,7 @@ export function SectionEditorPage() {
       <div className="p-8">
         <button
           type="button"
-          onClick={() => navigate('/admin/content')}
+          onClick={() => navigate(`/admin/pages/${pageKey}`)}
           className="mb-4 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
         >
           <ArrowLeft className="h-4 w-4" /> 목록으로
@@ -112,6 +112,10 @@ export function SectionEditorPage() {
   }
 
   const section = sectionQuery.data
+  // 예전 주소 · 리포트 링크는 홈 아래로 온다 — 그 섹션의 페이지 주소로 맞춘다 (T-238)
+  const sectionPage = section.page_key ?? 'home'
+  if (sectionPage !== pageKey)
+    return <Navigate to={`/admin/pages/${sectionPage}/sections/${section.id}`} replace />
   const Form = getFormForType(section.section_type)
   const samples = sampleKeys(section)
 
@@ -119,7 +123,7 @@ export function SectionEditorPage() {
     <div className="space-y-6 p-6 md:p-8">
       <div>
         <Link
-          to="/admin/content"
+          to={`/admin/pages/${pageKey}`}
           className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
         >
           <ArrowLeft className="h-4 w-4" /> 섹션 목록

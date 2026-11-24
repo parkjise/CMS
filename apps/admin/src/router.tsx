@@ -11,11 +11,14 @@ import { BOARD_SECTIONS } from '@/lib/boardWorkspace'
 import { type LazyPage, lazyPage } from '@/lib/lazyPage'
 import { BoardSectionRedirect } from '@/components/boards/BoardSectionNav'
 import { SITE_HOME } from '@/components/layout/navigation'
+import { ContentRedirect } from '@/components/pages/ContentRedirect'
 
 // 로그인 화면도 따로 — 폼 라이브러리(react-hook-form · zod)가 다른 화면 첫 로딩에 섞이지 않게 (T-043-B)
 const LoginPage = lazyPage(() => import('@/pages/LoginPage'), 'LoginPage')
 const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'), 'DashboardPage')
-const ContentPage = lazyPage(() => import('@/pages/ContentPage'), 'ContentPage')
+// 페이지 관리 (T-238) — 예전 콘텐츠 편집은 페이지별 [섹션] 탭으로
+const PagesPage = lazyPage(() => import('@/pages/PagesPage'), 'PagesPage')
+const PageDetailPage = lazyPage(() => import('@/pages/PageDetailPage'), 'PageDetailPage')
 const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
@@ -50,7 +53,10 @@ const ForbiddenPage = lazyPage(() => import('@/pages/ForbiddenPage'), 'Forbidden
 const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/login\/?$/, LoginPage],
   [/^\/admin\/dashboard\/?$/, DashboardPage],
-  [/^\/admin\/content\/?$/, ContentPage],
+  [/^\/admin\/pages\/?$/, PagesPage],
+  [/^\/admin\/pages\/[^/]+\/sections\/[^/]+\/?$/, SectionEditorPage],
+  [/^\/admin\/pages\/[^/]+\/?$/, PageDetailPage],
+  [/^\/admin\/content\/?$/, PageDetailPage],
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
@@ -117,13 +123,20 @@ export const router = createBrowserRouter([
             element: withSuspense(<DashboardPage />),
           },
           {
-            path: '/admin/content',
-            element: withFeature('SECTION_EDITOR', <ContentPage />),
+            path: '/admin/pages',
+            element: withFeature('SECTION_EDITOR', <PagesPage />),
           },
           {
-            path: '/admin/content/:sectionId',
+            path: '/admin/pages/:pageKey',
+            element: withFeature('SECTION_EDITOR', <PageDetailPage />),
+          },
+          {
+            path: '/admin/pages/:pageKey/sections/:sectionId',
             element: withFeature('SECTION_EDITOR', <SectionEditorPage />),
           },
+          // 예전 콘텐츠 편집 주소 (T-238)
+          { path: '/admin/content', element: <ContentRedirect /> },
+          { path: '/admin/content/:sectionId', element: <ContentRedirect /> },
           { path: '/admin/sns', element: withSuspense(<SnsPage />) },
           {
             path: '/admin/inquiries',
