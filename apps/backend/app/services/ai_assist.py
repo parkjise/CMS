@@ -29,6 +29,7 @@ from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.tenant import Tenant
 from app.schemas.ai_assist import (
+    MEMO_MAX,
     PURPOSE_MAX,
     AssistRequest,
     AssistResponse,
@@ -36,6 +37,7 @@ from app.schemas.ai_assist import (
     AssistUsage,
     BoardAssistResult,
     GeoAssistResult,
+    PostAssistResult,
     SeoAssistResult,
     SuggestedField,
 )
@@ -60,16 +62,18 @@ logger = logging.getLogger("app.ai")
 AI_SITE_ASSIST = "AI_SITE_ASSIST"
 AI_BOARD_ASSIST = "AI_BOARD_ASSIST"
 
-# kind → 기능 스위치. post · policy_summary 는 T-233-B · T-234-B 에서 더한다
+# kind → 기능 스위치. policy_summary 는 T-234-B 에서 더한다
 ASSIST_FLAGS: dict[str, str] = {
     "seo": AI_SITE_ASSIST,
     "geo": AI_SITE_ASSIST,
     "board": AI_BOARD_ASSIST,
+    "post": AI_BOARD_ASSIST,
 }
 RESULT_MODELS: dict[str, type[AssistResult]] = {
     "seo": SeoAssistResult,
     "geo": GeoAssistResult,
     "board": BoardAssistResult,
+    "post": PostAssistResult,
 }
 
 META_TITLE_MAX = 60
@@ -92,6 +96,14 @@ _BOARDS_IN_PROMPT = 30
 _SKIPPED_FIELD_TYPES = frozenset({"RATING"})
 # 글쓰기 화면에 원래 있는 칸 — 같은 이름의 추가 칸은 받지 않는다
 _BASE_FIELDS = ("제목", "내용", "본문", "작성자", "작성일")
+# 공지 · FAQ 글 초안 (A-3) — 제목은 글 저장 규칙(200자), 본문은 문단 · 목록만
+POST_TITLE_MAX = 200
+POST_TITLE_HINT = 40
+POST_TITLES = 3
+DRAFT_BLOCKS_MAX = 12
+DRAFT_TEXT_MAX = 1000
+DRAFT_ITEMS_MAX = 10
+DRAFT_ITEM_MAX = 200
 _TYPE_LABELS = {
     "LIST": "목록형",
     "GALLERY": "갤러리형",
@@ -115,6 +127,8 @@ _DAY_LABELS = {
 ASSIST_FAILED_MESSAGE = "AI 가 알맞은 답을 주지 못했어요. 잠시 뒤 다시 시도해 주세요."
 UNKNOWN_KIND_MESSAGE = "지원하지 않는 AI 보조예요."
 PURPOSE_REQUIRED_MESSAGE = "어떤 게시판인지 한두 문장으로 적어 주세요."
+MEMO_REQUIRED_MESSAGE = "어떤 글을 쓸지 메모를 적어 주세요."
+BOARD_REQUIRED_MESSAGE = "글을 쓸 게시판을 알려 주세요."
 BOARD_NOT_FOUND_MESSAGE = "게시판을 찾을 수 없습니다."
 NOTE_GUEST_REVIEW = "후기는 비회원 글쓰기를 꺼서 광고 · 도배 글을 막았어요."
 NOTE_GUEST_MEMBER_ONLY = "비회원 글쓰기는 회원 글쓰기 게시판에서만 켤 수 있어 껐어요."
@@ -135,6 +149,8 @@ class AssistContext:
     fixed_type: str | None = None
     taken_fields: set[str] = field(default_factory=set)
     taken_categories: set[str] = field(default_factory=set)
+    # 글 초안 (post) — FAQ 게시판이면 질문 하나 · 답변
+    faq: bool = False
 
 
 FEATURE_OFF_MESSAGE = "이 기능은 현재 비활성화되어 있습니다."
@@ -286,6 +302,56 @@ def _board_result(parsed: dict, ctx: AssistContext) -> BoardAssistResult:
     )
 
 
+def _lines(raw: Any, max_length: int) -> str:
+    """문단 글자 — 줄바꿈은 두고 줄마다 띄어쓰기만 정리한다."""
+    lines = [" ".join(line.split()) for line in str(raw or "").splitlines()]
+    return "\n".join(line for line in lines if line)[:max_length]
+
+
+def _draft_body(raw: Any) -> list[dict]:
+    """본문 — 문단 · 글머리 목록만. 모르는 칸 · 빈 칸은 빼고, 글 하나면 빈 줄로 나눔."""
+    if isinstance(raw, str):
+        raw = [{"type": "p", "text": part} for part in raw.split("\n\n")]
+    if not isinstance(raw, list):
+        return []
+    blocks: list[dict] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        if item.get("type") == "ul":
+            raw_items = item.get("items")
+            items = [
+                _text(i, DRAFT_ITEM_MAX)
+                for i in (raw_items if isinstance(raw_items, list) else [])
+            ]
+            items = [i for i in items if i][:DRAFT_ITEMS_MAX]
+            if items:
+                blocks.append({"type": "ul", "items": items})
+        elif item.get("type") == "p":
+            text = _lines(item.get("text"), DRAFT_TEXT_MAX)
+            if text:
+                blocks.append({"type": "p", "text": text})
+        if len(blocks) == DRAFT_BLOCKS_MAX:
+            break
+    return blocks
+
+
+def _post_result(parsed: dict, ctx: AssistContext) -> PostAssistResult:
+    raw_titles = parsed.get("titles")
+    if not isinstance(raw_titles, list):
+        raw_titles = [parsed.get("question") or parsed.get("title")]
+    titles: list[str] = []
+    for raw in raw_titles:
+        title = _text(raw, POST_TITLE_MAX)
+        if title and title not in titles:
+            titles.append(title)
+    titles = titles[: 1 if ctx.faq else POST_TITLES]
+    body = _draft_body(parsed.get("body", parsed.get("answer")))
+    if not titles or not body:
+        raise ValueError("제목 · 본문이 비어 있습니다.")
+    return PostAssistResult.model_validate({"titles": titles, "body": body})
+
+
 def parse_assist_result(
     kind: str, content: str, ctx: AssistContext | None = None
 ) -> AssistResult:
@@ -301,6 +367,8 @@ def parse_assist_result(
     try:
         if kind == "board":
             return _board_result(parsed, ctx)
+        if kind == "post":
+            return _post_result(parsed, ctx)
         if kind == "seo":
             seo = SeoAssistResult(
                 meta_title=_text(parsed.get("meta_title"), META_TITLE_MAX),
@@ -569,10 +637,52 @@ async def build_board_context(
     return {k: v for k, v in facts.items() if v not in (None, "", [], {})}, ctx
 
 
+async def build_post_context(
+    db: AsyncSession, tenant: Tenant, body: AssistRequest
+) -> tuple[dict, AssistContext]:
+    """글 초안 — 메모 · 게시판 이름 · 유형 · 사업체 이름 · 사업체 연락처.
+
+    연락처는 사이트 기본정보에 사업체가 적은 것만 (방문자 정보는 보내지 않는다, 2.0).
+    """
+    memo = _lines(body.memo, MEMO_MAX)
+    if not memo:
+        raise _validation_error(MEMO_REQUIRED_MESSAGE, "memo")
+    if body.board_id is None:
+        raise _validation_error(BOARD_REQUIRED_MESSAGE, "board_id")
+    board = await board_service.get_board(db, tenant.id, body.board_id)
+    if board is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=BOARD_NOT_FOUND_MESSAGE
+        )
+    site = (await db.execute(select(SiteSetting))).scalar_one_or_none()
+    type_label = _TYPE_LABELS.get(board.board_type, board.board_type)
+    facts: dict[str, Any] = {
+        "메모": memo,
+        "게시판": f"{board.name} ({type_label})",
+        "업종": tenant.template_type,
+        "사업체 이름": (site.site_name if site else None) or tenant.name,
+        "전화": ((site.phone or site.cs_phone) if site else None),
+        "이메일": site.email if site else None,
+    }
+    ctx = AssistContext(faq=board.board_type == "FAQ")
+    return {k: v for k, v in facts.items() if v not in (None, "")}, ctx
+
+
 async def _prepare(
     db: AsyncSession, tenant: Tenant, kind: str, body: AssistRequest
 ) -> tuple[dict, AssistContext, dict[str, Any]]:
     """kind 마다 (사이트 정보, 결과 고칠 사정, 프롬프트 한도)."""
+    if kind == "post":
+        facts, ctx = await build_post_context(db, tenant, body)
+        return (
+            facts,
+            ctx,
+            {
+                "titles_count": POST_TITLES,
+                "title_len": POST_TITLE_HINT,
+                "blocks_max": DRAFT_BLOCKS_MAX,
+            },
+        )
     if kind == "board":
         facts, ctx = await build_board_context(db, tenant, body)
         return (
@@ -652,7 +762,7 @@ async def assist(
         )
 
     messages = build_assist_messages(
-        kind=kind,
+        kind="post_faq" if ctx.faq else kind,
         tone=tone,
         template_type=tenant.template_type,
         facts_json=json.dumps(facts, ensure_ascii=False),
