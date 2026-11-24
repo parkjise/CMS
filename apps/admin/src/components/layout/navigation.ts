@@ -39,7 +39,7 @@ export const ADMIN_NAVIGATION = [
       { to: '/admin/site/geo', label: 'GEO 설정', hint: SITE_HINTS.geo },
     ],
   },
-  { to: '/admin/content', icon: FileText, label: '콘텐츠 편집' },
+  { to: '/admin/pages', icon: FileText, label: '페이지 관리' },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
   {
     to: '/admin/boards',
@@ -109,7 +109,15 @@ export function breadcrumbsFor(pathname: string) {
     } else if (base.to === '/admin/site') {
       const entry = base.children?.find((item) => item.to === pathname)
       if (entry) crumbs.push({ label: entry.label })
-    } else if (base.to === '/admin/content') crumbs.push({ label: '섹션 편집' })
+    } else if (base.to === '/admin/pages') {
+      // 페이지 이름은 화면 제목에 — 경로는 '페이지 편집 / 섹션 편집' 만 (T-238)
+      crumbs.push(
+        tail.includes('/sections/')
+          ? { label: '페이지 편집', to: pathname.split('/sections/')[0] }
+          : { label: '페이지 편집' }
+      )
+      if (tail.includes('/sections/')) crumbs.push({ label: '섹션 편집' })
+    }
   }
   return crumbs
 }

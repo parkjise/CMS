@@ -159,7 +159,7 @@ describe('대시보드 샘플 안내 (T-120)', () => {
     expect(screen.getByText('샘플 3개 남음')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: '콘텐츠 바꾸러 가기' })).toHaveAttribute(
       'href',
-      '/admin/content',
+      '/admin/pages',
     )
   })
 

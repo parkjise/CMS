@@ -132,7 +132,9 @@ describe('tenant admin appearance', () => {
     ['/admin/boards/b1/design', ['게시판 관리', '게시판 디자인']],
     ['/admin/boards/b1/posts', ['게시판 관리', '게시글 목록']],
     ['/admin/boards/trash', ['게시판 관리', '휴지통']],
-    ['/admin/content/section1', ['콘텐츠 편집', '섹션 편집']],
+    ['/admin/pages', ['페이지 관리']],
+    ['/admin/pages/event', ['페이지 관리', '페이지 편집']],
+    ['/admin/pages/home/sections/section1', ['페이지 관리', '페이지 편집', '섹션 편집']],
   ])('builds breadcrumbs for %s', (path, expected) => {
     expect(breadcrumbsFor(path).map(({ label }) => label)).toEqual(expected)
   })

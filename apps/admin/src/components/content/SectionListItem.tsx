@@ -118,7 +118,7 @@ export function SectionListItem({
 
       {/* 라벨 + 타입 (클릭 시 상세 편집으로) */}
       <Link
-        to={`/admin/content/${section.id}`}
+        to={`/admin/pages/${section.page_key ?? 'home'}/sections/${section.id}`}
         className="group flex min-w-0 flex-1 items-center gap-2 hover:text-blue-600"
       >
         <div className="min-w-0 flex-1">

@@ -25,9 +25,15 @@ interface SectionListProps {
   sections: Section[]
   /** 서버 한도 응답의 can_delete — 요금제 · 템플릿이 허용할 때만 삭제 버튼 (T-037-A) */
   canDelete?: boolean
+  /** 섹션이 없을 때 문구 — 직접 만든 페이지는 템플릿 적용이 답이 아니다 (T-238) */
+  emptyText?: string
 }
 
-export function SectionList({ sections, canDelete = false }: SectionListProps) {
+export function SectionList({
+  sections,
+  canDelete = false,
+  emptyText = '구성된 섹션이 없습니다. 템플릿을 적용해주세요.',
+}: SectionListProps) {
   const reorder = useReorderSections()
   const toggle = useToggleSection()
   const [deleting, setDeleting] = useState<Section | null>(null)
@@ -66,7 +72,7 @@ export function SectionList({ sections, canDelete = false }: SectionListProps) {
   if (sections.length === 0) {
     return (
       <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-slate-200 text-sm text-slate-400">
-        구성된 섹션이 없습니다. 템플릿을 적용해주세요.
+        {emptyText}
       </div>
     )
   }

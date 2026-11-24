@@ -78,7 +78,7 @@ describe('ReportsPage', () => {
     expect(screen.getByText('문의 버튼이 있어요')).toBeInTheDocument()
     expect(screen.getByRole('link', { name: /이 섹션 고치러 가기/ })).toHaveAttribute(
       'href',
-      '/admin/content/s-hero',
+      '/admin/pages/home/sections/s-hero',
     )
     expect(screen.getByRole('link', { name: /SEO 설정으로/ })).toHaveAttribute('href', '/admin/site/seo')
   })
@@ -120,8 +120,8 @@ describe('ReportsPage', () => {
 
 describe('reportLinks', () => {
   it('섹션 항목은 섹션 편집, 코드 항목은 관련 화면, 모르는 코드는 링크 없음', () => {
-    expect(fixLink({ code: 'x', title: '', detail: '', section_id: 's1' })?.to).toBe('/admin/content/s1')
-    expect(fixLink({ code: 'contact_missing', title: '', detail: '' })?.to).toBe('/admin/content')
+    expect(fixLink({ code: 'x', title: '', detail: '', section_id: 's1' })?.to).toBe('/admin/pages/home/sections/s1')
+    expect(fixLink({ code: 'contact_missing', title: '', detail: '' })?.to).toBe('/admin/pages/home')
     expect(fixLink({ code: 'unknown', title: '', detail: '' })).toBeNull()
     expect(periodLabel('2026-09-01')).toBe('2026년 9월')
   })

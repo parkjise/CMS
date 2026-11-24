@@ -1,34 +1,30 @@
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useState } from 'react'
-import { Navigate, useSearchParams } from 'react-router'
 import { Lock, Plus } from 'lucide-react'
 import { Button } from '@cms/ui'
 import { AddSectionModal } from '@/components/content/AddSectionModal'
 import { SectionList } from '@/components/content/SectionList'
-import { SITE_HOME } from '@/components/layout/navigation'
 import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
-export function ContentPage() {
-  // 공통 설정은 사이트 관리로 옮겼다 (T-221) — 예전 '공통 설정 열기' 링크(T-125-F)도 그리로
-  const [searchParams] = useSearchParams()
-  const { data: sections, isLoading, isError } = useSections()
-  if (searchParams.get('tab') === 'settings') return <Navigate to={SITE_HOME} replace />
+interface PageSectionsProps {
+  /** 이 페이지의 섹션만 (T-238) — 섹션 추가는 아직 홈만 (직접 만든 페이지는 T-241) */
+  pageKey: string
+}
+
+/** 한 페이지의 섹션 — 페이지 관리 > 페이지 편집의 [섹션] 탭 (예전 콘텐츠 편집 화면) */
+export function PageSections({ pageKey }: PageSectionsProps) {
+  const { data, isLoading, isError } = useSections()
+  const sections = (data ?? []).filter((s) => (s.page_key ?? 'home') === pageKey)
 
   return (
-    <div className="space-y-6 p-6 md:p-8">
-      {/* 헤더 */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">콘텐츠 편집</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          홈페이지에 노출될 섹션을 관리합니다. 드래그로 순서를 바꾸고 토글로 노출
-          여부를 조정하세요.
-        </p>
-      </div>
-
-      <ReadOnlyFieldset>
-        <SectionsTab sections={sections ?? []} isLoading={isLoading} isError={isError} />
-      </ReadOnlyFieldset>
-    </div>
+    <ReadOnlyFieldset>
+      <SectionsTab
+        sections={sections}
+        isLoading={isLoading}
+        isError={isError}
+        canAdd={pageKey === 'home'}
+      />
+    </ReadOnlyFieldset>
   )
 }
 
@@ -40,9 +36,10 @@ interface SectionsTabProps {
     : never
   isLoading: boolean
   isError: boolean
+  canAdd: boolean
 }
 
-function SectionsTab({ sections, isLoading, isError }: SectionsTabProps) {
+function SectionsTab({ sections, isLoading, isError, canAdd }: SectionsTabProps) {
   if (isLoading) {
     return (
       <ul className="space-y-2">
@@ -64,20 +61,34 @@ function SectionsTab({ sections, isLoading, isError }: SectionsTabProps) {
     )
   }
 
-  return <SectionsWithLimits sections={sections} />
+  return <SectionsWithLimits sections={sections} canAdd={canAdd} />
 }
 
 // ── 섹션 추가 · 삭제 (기획서 AD-02 · 3.2, T-037-A) ─────────────────────────
 
-function SectionsWithLimits({ sections }: { sections: SectionsTabProps['sections'] }) {
+function SectionsWithLimits({
+  sections,
+  canAdd,
+}: {
+  sections: SectionsTabProps['sections']
+  canAdd: boolean
+}) {
   const { data: limits } = useSectionLimits()
   const [adding, setAdding] = useState(false)
 
   return (
     <div className="space-y-4">
-      <SectionList sections={sections} canDelete={limits?.can_delete ?? false} />
-      {limits && <AddSectionBar limits={limits} onAdd={() => setAdding(true)} />}
-      {limits && (
+      <SectionList
+        sections={sections}
+        canDelete={limits?.can_delete ?? false}
+        emptyText={
+          canAdd
+            ? undefined
+            : '이 페이지에는 아직 섹션이 없어요. 직접 만든 페이지에 섹션을 넣는 기능은 준비 중이에요.'
+        }
+      />
+      {limits && canAdd && <AddSectionBar limits={limits} onAdd={() => setAdding(true)} />}
+      {limits && canAdd && (
         <AddSectionModal open={adding} limits={limits} onClose={() => setAdding(false)} />
       )}
     </div>

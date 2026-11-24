@@ -39,7 +39,7 @@ describe('Sidebar 기능 게이팅', () => {
   it('loaded 전에는 게이팅 메뉴도 모두 노출된다 (graceful)', () => {
     renderSidebar()
     expect(screen.getByText('대시보드')).toBeInTheDocument()
-    expect(screen.getByText('콘텐츠 편집')).toBeInTheDocument()
+    expect(screen.getByText('페이지 관리')).toBeInTheDocument()
     expect(screen.getByText('방문자 분석')).toBeInTheDocument()
   })
 
@@ -52,8 +52,8 @@ describe('Sidebar 기능 게이팅', () => {
     renderSidebar()
     // NAVER_ANALYTICS 미배포 → 방문자 분석 숨김
     expect(screen.queryByText('방문자 분석')).not.toBeInTheDocument()
-    // 콘텐츠 편집은 켜져 있으므로 노출
-    expect(screen.getByText('콘텐츠 편집')).toBeInTheDocument()
+    // 페이지 관리(섹션 편집 기능)는 켜져 있으므로 노출
+    expect(screen.getByText('페이지 관리')).toBeInTheDocument()
     // 대시보드는 always
     expect(screen.getByText('대시보드')).toBeInTheDocument()
   })
@@ -195,8 +195,8 @@ describe('사이트 관리 2뎁스 메뉴 (T-221)', () => {
     renderSidebar('/admin/dashboard')
     const nav = screen.getByRole('navigation')
     // 문서 순서대로 찾는다
-    const top = within(nav).getAllByText(/^(대시보드|사이트 관리|콘텐츠 편집)$/)
-    expect(top.map((el) => el.textContent)).toEqual(['대시보드', '사이트 관리', '콘텐츠 편집'])
+    const top = within(nav).getAllByText(/^(대시보드|사이트 관리|페이지 관리)$/)
+    expect(top.map((el) => el.textContent)).toEqual(['대시보드', '사이트 관리', '페이지 관리'])
 
     await userEvent.click(group())
     const links = within(nav)

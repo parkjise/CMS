@@ -7,7 +7,7 @@ import { useFeatureStore } from '@/stores/featureStore'
  * 2뎁스 메뉴도 같은 표로 거른다 — 사이트 관리의 검색 설정 3개 (T-221)
  */
 export const NAV_FEATURE_MAP: Record<string, string> = {
-  '/admin/content': 'SECTION_EDITOR',
+  '/admin/pages': 'SECTION_EDITOR',
   '/admin/boards': 'BOARD_MANAGER',
   '/admin/site/seo': 'SEO_WIZARD',
   '/admin/site/aeo': 'SEO_WIZARD',

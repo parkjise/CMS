@@ -24,7 +24,7 @@ const CLIENT_BASE_URL =
 
 const PRIMARY = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: '대시보드' },
-  { to: '/admin/content', icon: FileText, label: '콘텐츠' },
+  { to: '/admin/pages', icon: FileText, label: '페이지' },
   { to: '/admin/inquiries', icon: MessageSquare, label: '문의' },
 ] as const
 
