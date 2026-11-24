@@ -513,3 +513,165 @@ class TestBoardEndpoint:
             json={"purpose": "후기", "board_id": str(uuid.uuid4())},
         )
         assert resp.status_code == 404
+
+
+# ═════════════════════ T-233-B 공지 · FAQ 글 초안 (post) ═════════════════════
+
+_POST = "/api/v1/ai/assist/post"
+
+POST_ANSWER = {
+    "titles": ["추석 연휴 휴진 안내", "추석 연휴 진료 일정", "[공지] 추석 휴진"],
+    "body": [
+        {"type": "p", "text": "추석 연휴 동안 휴진합니다.\n진료 일정에 참고해 주세요."},
+        {"type": "ul", "items": ["휴진: 9월 14일 ~ 18일", "정상 진료: 9월 19일"]},
+    ],
+}
+
+
+def _post(ctx: ai_assist.AssistContext | None = None, **overrides):
+    content = json.dumps({**POST_ANSWER, **overrides}, ensure_ascii=False)
+    return ai_assist.parse_assist_result("post", content, ctx)
+
+
+class TestPostResult:
+    def test_titles_and_paragraph_list_body(self):
+        result = _post()
+        assert result.titles == POST_ANSWER["titles"]
+        assert result.model_dump()["body"] == POST_ANSWER["body"]
+
+    def test_cuts_and_drops_unknown_blocks(self):
+        result = _post(
+            titles=["가" * 250, "같은 제목", "같은 제목", "넷째", "다섯째"],
+            body=[
+                {"type": "h2", "text": "제목 칸은 받지 않는다"},
+                {"type": "p", "text": "  "},
+                {"type": "ul", "items": ["", *[f"항목 {i}" for i in range(15)]]},
+            ]
+            + [{"type": "p", "text": f"문단 {i}"} for i in range(20)],
+        )
+        assert result.titles == ["가" * 200, "같은 제목", "넷째"]
+        assert len(result.body) == 12
+        assert result.body[0].items == [f"항목 {i}" for i in range(10)]
+
+    def test_faq_has_one_question(self):
+        result = _post(ai_assist.AssistContext(faq=True))
+        assert result.titles == ["추석 연휴 휴진 안내"]
+
+    def test_question_answer_keys_and_plain_text_body(self):
+        content = json.dumps(
+            {"question": "주차되나요?", "answer": "네, 됩니다.\n\n2시간 무료예요."},
+            ensure_ascii=False,
+        )
+        result = ai_assist.parse_assist_result(
+            "post", content, ai_assist.AssistContext(faq=True)
+        )
+        assert result.titles == ["주차되나요?"]
+        assert [b.text for b in result.body] == ["네, 됩니다.", "2시간 무료예요."]
+
+    @pytest.mark.parametrize("override", [{"titles": []}, {"body": []}])
+    def test_needs_title_and_body(self, override: dict):
+        with pytest.raises(ValueError):
+            _post(**override)
+
+
+async def _make_board(client: AsyncClient, headers: dict, tenant_id: str, **body):
+    await _sql(
+        "UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t", {"t": tenant_id}
+    )
+    resp = await client.post("/api/v1/boards", headers=headers, json=body)
+    assert resp.status_code == 201, resp.text
+    return resp.json()["data"]["id"]
+
+
+class TestPostEndpoint:
+    async def test_memo_and_board_are_required(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict
+    ):
+        no_memo = await client.post(
+            _POST, headers=auth_headers, json={"board_id": str(uuid.uuid4())}
+        )
+        assert no_memo.status_code == 400
+        assert no_memo.json()["error"]["field"] == "memo"
+        no_board = await client.post(_POST, headers=auth_headers, json={"memo": "휴진"})
+        assert no_board.status_code == 400
+        assert no_board.json()["error"]["field"] == "board_id"
+        unknown = await client.post(
+            _POST,
+            headers=auth_headers,
+            json={"memo": "휴진", "board_id": str(uuid.uuid4())},
+        )
+        assert unknown.status_code == 404
+
+    async def test_notice_draft_uses_memo_and_business_contact(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict, monkeypatch
+    ):
+        board_id = await _make_board(
+            client, auth_headers, board_tenant["id"], name="병원 소식"
+        )
+        await _sql(
+            "INSERT INTO site_settings (id, tenant_id, site_name, phone, address,"
+            " created_at, updated_at) VALUES (gen_random_uuid(), :t, '바른치과의원',"
+            " '02-123-4567', '서울특별시 강남구 테헤란로 1', now(), now())",
+            {"t": board_tenant["id"]},
+        )
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return json.dumps(POST_ANSWER, ensure_ascii=False), 200
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _POST,
+            headers=auth_headers,
+            json={"memo": "추석 연휴 9/14~9/18 휴진", "board_id": board_id},
+        )
+        await _sql(
+            "DELETE FROM site_settings WHERE tenant_id = :t", {"t": board_tenant["id"]}
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["result"]["titles"] == POST_ANSWER["titles"]
+        assert data["usage"]["used"] == 1
+        prompt = seen[0]
+        assert "추석 연휴 9/14~9/18 휴진" in prompt
+        assert "바른치과의원" in prompt
+        assert "02-123-4567" in prompt  # 사업체 연락처는 글에 쓸 수 있게
+        assert "테헤란로" not in prompt  # 주소는 보내지 않는다
+        assert "제목 후보 3개" in prompt
+
+    async def test_faq_board_gets_question_and_answer(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict, monkeypatch
+    ):
+        board_id = await _make_board(
+            client,
+            auth_headers,
+            board_tenant["id"],
+            name="자주 묻는 질문",
+            board_type="FAQ",
+        )
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return json.dumps(POST_ANSWER, ensure_ascii=False), 200
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _POST,
+            headers=auth_headers,
+            json={"memo": "주차 되나요? 2시간 무료", "board_id": board_id},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["result"]["titles"] == ["추석 연휴 휴진 안내"]
+        assert "titles 는 질문 하나" in seen[0]
+
+    async def test_site_switch_alone_is_not_enough(
+        self, client: AsyncClient, auth_headers: dict, assist_tenant: dict
+    ):
+        resp = await client.post(
+            _POST,
+            headers=auth_headers,
+            json={"memo": "휴진", "board_id": str(uuid.uuid4())},
+        )
+        assert resp.status_code == 403

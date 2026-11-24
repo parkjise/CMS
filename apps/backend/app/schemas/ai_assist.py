@@ -5,16 +5,17 @@
 """
 
 import uuid
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
 
 from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 
-AssistKind = Literal["seo", "geo", "board"]
+AssistKind = Literal["seo", "geo", "board", "post"]
 AssistTone = Literal["trust", "friendly", "expert"]
 
 PURPOSE_MAX = 200
+MEMO_MAX = 500
 
 
 class AssistRequest(BaseModel):
@@ -22,10 +23,12 @@ class AssistRequest(BaseModel):
 
     - seo · geo: tone
     - board: purpose (필수), board_id (있으면 그 게시판에 더할 필드 · 카테고리만)
+    - post: memo (필수), board_id (필수 — 게시판 유형으로 FAQ 를 가린다)
     """
 
     tone: AssistTone = "trust"
     purpose: str = Field(default="", max_length=PURPOSE_MAX)
+    memo: str = Field(default="", max_length=MEMO_MAX)
     board_id: uuid.UUID | None = None
 
 
@@ -63,7 +66,28 @@ class BoardAssistResult(BaseModel):
     reason: str
 
 
-AssistResult = SeoAssistResult | GeoAssistResult | BoardAssistResult
+class DraftParagraph(BaseModel):
+    type: Literal["p"] = "p"
+    text: str
+
+
+class DraftList(BaseModel):
+    type: Literal["ul"] = "ul"
+    items: list[str]
+
+
+# 글 초안 본문 한 칸 — 문단 · 글머리 목록만, 글자 그대로 (화면이 편집기 노드로 바꾼다)
+DraftBlock = Annotated[DraftParagraph | DraftList, Field(discriminator="type")]
+
+
+class PostAssistResult(BaseModel):
+    """공지 · FAQ 글 초안 (A-3) — FAQ 게시판이면 titles 는 질문 하나, body 는 답변."""
+
+    titles: list[str]
+    body: list[DraftBlock]
+
+
+AssistResult = SeoAssistResult | GeoAssistResult | BoardAssistResult | PostAssistResult
 
 
 class AssistUsage(BaseModel):

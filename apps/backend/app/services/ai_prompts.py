@@ -9,6 +9,8 @@ ai_usage_log 와 응답(prompt_version)에 버전을 기록해 추후 품질 분
   중복·군더더기를 제거해 입력 토큰을 약 40% 절감. 품질 핵심(키워드/톤/길이/JSON)은 유지.
 """
 
+from typing import Any
+
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 
 PROMPT_VERSION = "v2"
@@ -109,6 +111,7 @@ def build_copy_messages(
 # 변경 이력:
 # - assist-v1 (2026-11): seo · geo 채우기 (T-231-B)
 # - assist-v1 board (2026-11): 게시판 구성 추천 (T-232-B) — 다른 kind 프롬프트는 그대로
+# - assist-v1 post (2026-11): 공지 · FAQ 글 초안 (T-233-B)
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -159,10 +162,31 @@ _ASSIST_FORMATS["board"] = (
     "- 후기 · 리뷰는 회원만 쓰게(비회원 글쓰기 끔), 공지 · 소식 · FAQ 는 관리자 글쓰기"
 )
 
+_POST_RULES = (
+    "- body 는 문단(p)과 글머리 목록(ul)만, 최대 {blocks_max}칸. HTML 태그 · 마크다운 "
+    "기호(**, #, -)는 쓰지 않는다\n"
+    "- 메모의 날짜 · 시간 · 연락 방법은 그대로 옮기고, 메모에 없는 일정 · 가격 · "
+    "혜택은 지어내지 않는다\n"
+    "- 사업체 연락처는 사이트 정보에 있을 때만 쓴다"
+)
+_ASSIST_FORMATS["post"] = (
+    '{{"titles": ["제목 후보 {titles_count}개, 각 {title_len}자 안팎"],'
+    ' "body": [{{"type": "p", "text": "문단"}},'
+    ' {{"type": "ul", "items": ["목록 한 줄"]}}]}}\n' + _POST_RULES
+)
+_ASSIST_FORMATS["post_faq"] = (
+    '{{"titles": ["방문자가 묻는 질문 한 문장"],'
+    ' "body": [{{"type": "p", "text": "답변 문단"}},'
+    ' {{"type": "ul", "items": ["목록 한 줄"]}}]}}\n'
+    "- titles 는 질문 하나, body 는 그 질문의 답변\n" + _POST_RULES
+)
+
 _ASSIST_TARGETS = {
     "seo": "검색엔진 노출 문구(SEO)",
     "geo": "AI 답변용 기업 소개(GEO)",
     "board": "게시판 구성(유형 · 이름 · 추가 칸 · 카테고리 · 권한)",
+    "post": "공지 · 소식 글 초안",
+    "post_faq": "자주 묻는 질문(FAQ)의 질문 · 답변 초안",
 }
 
 
@@ -172,10 +196,13 @@ def build_assist_messages(
     tone: str,
     template_type: str,
     facts_json: str,
-    limits: dict[str, int],
+    limits: dict[str, Any],
     keywords_allowed: bool = True,
 ) -> list[BaseMessage]:
-    """AI 보조 seo · geo 메시지 — 사이트 정보는 사람 메시지에 JSON 으로."""
+    """AI 보조 메시지 — 사이트 정보는 사람 메시지에 JSON 으로.
+
+    kind 는 형식 이름 — FAQ 게시판 글 초안은 post_faq.
+    """
     keywords_rule = (
         f'"대표 키워드 {limits.get("keywords_max", 0)}개, '
         f'각 {limits.get("keyword_len", 0)}자 이내"'
