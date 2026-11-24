@@ -103,3 +103,69 @@ def build_copy_messages(
     )
     human = _HUMAN_TEMPLATE.format(current_value=current_value or "", count=count)
     return [SystemMessage(content=system), HumanMessage(content=human)]
+
+
+# ───────────────────────── AI 보조 (assist, 기획서 2장) ─────────────────────────
+# 변경 이력:
+# - assist-v1 (2026-11): seo · geo 채우기 (T-231-B)
+
+ASSIST_PROMPT_VERSION = "assist-v1"
+
+ASSIST_TONES: dict[str, str] = {
+    "trust": "신뢰감 있게",
+    "friendly": "친근하게",
+    "expert": "전문적으로",
+}
+
+_ASSIST_SYSTEM = """한국 소상공인 홈페이지의 {target}을(를) 쓰는 도우미.
+업종 가이드: {guidance}
+말투: {tone}
+
+규칙:
+- 사용자가 주는 사이트 정보(JSON)에 있는 사실만 쓴다. 정보에 없는 수치 · 수상 · 자격 \
+· 가격 · 경력 · 후기는 지어내지 않는다.
+- 한국어. 아래 형식의 JSON 객체 하나로만 답한다.
+{format}"""
+
+_ASSIST_FORMATS: dict[str, str] = {
+    "seo": (
+        '{{"meta_title": "검색 결과 제목, {title_max}자 이내, 사이트명 포함",'
+        ' "meta_description": "검색 결과 설명, {desc_max}자 이내",'
+        ' "keywords": [{keywords_rule}]}}'
+    ),
+    "geo": (
+        '{{"description": "AI 답변 서비스가 인용할 기업 소개 — 무엇을 · 어디서 · '
+        '누구에게, {desc_max}자 이내",'
+        ' "topics": ["이 사업체를 설명하는 주제 낱말, 최대 {topics_max}개, '
+        '각 {topic_len}자 이내"]}}'
+    ),
+}
+
+_ASSIST_TARGETS = {"seo": "검색엔진 노출 문구(SEO)", "geo": "AI 답변용 기업 소개(GEO)"}
+
+
+def build_assist_messages(
+    *,
+    kind: str,
+    tone: str,
+    template_type: str,
+    facts_json: str,
+    limits: dict[str, int],
+    keywords_allowed: bool = True,
+) -> list[BaseMessage]:
+    """AI 보조 seo · geo 메시지 — 사이트 정보는 사람 메시지에 JSON 으로."""
+    keywords_rule = (
+        f'"대표 키워드 {limits.get("keywords_max", 0)}개, '
+        f'각 {limits.get("keyword_len", 0)}자 이내"'
+        if keywords_allowed
+        else ""
+    )
+    fmt = _ASSIST_FORMATS[kind].format(keywords_rule=keywords_rule, **limits)
+    system = _ASSIST_SYSTEM.format(
+        target=_ASSIST_TARGETS[kind],
+        guidance=industry_guidance(template_type or "GENERAL"),
+        tone=ASSIST_TONES.get(tone, ASSIST_TONES["trust"]),
+        format=fmt,
+    )
+    human = f"사이트 정보:\n{facts_json}"
+    return [SystemMessage(content=system), HumanMessage(content=human)]

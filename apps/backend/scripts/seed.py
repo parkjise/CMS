@@ -247,6 +247,11 @@ FEATURES = [
      "menu_path": "/admin/reports", "menu_icon": "chart-bar",
      "menu_label": "월간 리포트", "menu_position": 42,
      "default_enabled": True, "required_plan": "STANDARD"},
+    # AI 보조 (관리자 화면 개선 · AI 보조 기획서 2.0) — 메뉴 없이 버튼만, 문구 추천 한도 공유
+    {"key": "AI_SITE_ASSIST", "name": "AI 사이트 문구 보조", "category": "AI",
+     "menu_position": 44, "default_enabled": False},
+    {"key": "AI_BOARD_ASSIST", "name": "AI 게시판 보조", "category": "AI",
+     "menu_position": 45, "default_enabled": False},
     {"key": "NAVER_ANALYTICS", "name": "네이버 애널리틱스", "category": "ANALYTICS",
      "menu_position": 50, "default_enabled": False, "is_active": False},
 ]

@@ -23,9 +23,10 @@ from app.schemas.ai import (
     TemplateRecommendRequest,
     TemplateRecommendResponse,
 )
+from app.schemas.ai_assist import AssistResponse, AssistToneRequest
 from app.schemas.common import ApiResponse
 from app.services import ai as ai_service
-from app.services import ai_report, ai_template
+from app.services import ai_assist, ai_report, ai_template
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -53,6 +54,22 @@ async def suggest_copy(
     tenant_id: UUID = Depends(get_tenant_id),
 ):
     result = await ai_service.suggest_copy(db, tenant_id, current_user.id, body)
+    return ApiResponse.ok(result)
+
+
+@router.post("/assist/{kind}", response_model=ApiResponse[AssistResponse])
+async def assist(
+    kind: str,
+    body: AssistToneRequest,
+    db: AsyncSession = Depends(get_db_with_rls),
+    current_user: User = Depends(get_current_user),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """AI 보조 (기획서 AI 2장) — 결과는 미리보기용, 저장은 관리자가.
+
+    kind 마다 기능 스위치가 다르다 (seo · geo → AI_SITE_ASSIST) — 서비스가 확인한다.
+    """
+    result = await ai_assist.assist(db, tenant_id, current_user.id, kind, body.tone)
     return ApiResponse.ok(result)
 
 

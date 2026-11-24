@@ -16,7 +16,7 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -47,6 +47,8 @@ logger = logging.getLogger("app.ai")
 MODEL_NAME = "gpt-4o-mini"
 ACTION_COPY_SUGGEST = "COPY_SUGGEST"
 ACTION_CHAT_EDIT = "CHAT_EDIT"
+# AI 보조 (ai_assist) 는 action_type = assist_{kind} — 문구 추천 월 한도를 함께 쓴다
+ASSIST_ACTION_PREFIX = "assist_"
 MAX_PARSE_RETRIES = 1  # 파싱 실패 시 1회 재시도
 
 # GPT-4o-mini 비용 추정 단가 (USD per 1M tokens).
@@ -198,6 +200,25 @@ async def monthly_usage(
     return int((await db.execute(stmt)).scalar_one())
 
 
+async def copy_quota_used(db: AsyncSession, tenant_id: uuid.UUID) -> int:
+    """문구 추천 한도에 든 이번 달 사용 — 문구 추천 + AI 보조 (기획서 AI 2.0)."""
+    stmt = (
+        select(func.count())
+        .select_from(AiUsageLog)
+        .where(
+            AiUsageLog.tenant_id == tenant_id,
+            or_(
+                AiUsageLog.action_type == ACTION_COPY_SUGGEST,
+                AiUsageLog.action_type.startswith(
+                    ASSIST_ACTION_PREFIX, autoescape=True
+                ),
+            ),
+            AiUsageLog.created_at >= _month_start(),
+        )
+    )
+    return int((await db.execute(stmt)).scalar_one())
+
+
 # ───────────────────────── 비용 추정 (T-073) ─────────────────────────
 
 
@@ -303,7 +324,7 @@ async def suggest_copy(
     tenant = await _get_tenant(db, tenant_id)
 
     limit = monthly_limit(tenant.plan_type)
-    used = await monthly_usage(db, tenant_id, ACTION_COPY_SUGGEST)
+    used = await copy_quota_used(db, tenant_id)
 
     # 요청에 키워드가 없으면 SEO 대표 키워드로 (T-040-A) — 캐시 키에도 반영된다
     if not request.tenant_context.keywords:
@@ -582,7 +603,7 @@ async def get_usage(db: AsyncSession, tenant_id: uuid.UUID) -> AiUsageResponse:
     """테넌트의 이번 달 AI 기능 사용 현황을 플랜 한도와 함께 반환한다."""
     tenant = await _get_tenant(db, tenant_id)
 
-    copy_used = await monthly_usage(db, tenant_id, ACTION_COPY_SUGGEST)
+    copy_used = await copy_quota_used(db, tenant_id)
     chat_used = await monthly_usage(db, tenant_id, ACTION_CHAT_EDIT)
     cost = await monthly_cost_usd(db, tenant_id)
 
