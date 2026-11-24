@@ -8,6 +8,7 @@ import {
   TriangleAlert,
 } from 'lucide-react'
 import { Button, Input, Modal, toast } from '@cms/ui'
+import { PolicySummaryAssist } from '@/components/ai/PolicySummaryAssist'
 import { FormField } from '@/components/content/forms/FormField'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
@@ -435,6 +436,16 @@ function PolicyEditor({ doc, homepageUrl }: EditorProps) {
             label="변경 내용 요약"
             htmlFor={`${doc.kind}-summary`}
             hint="버전 이력에 남아요. 공개 · 예약하려면 꼭 적어 주세요."
+            trailing={
+              <PolicySummaryAssist
+                kind={doc.kind}
+                before={doc.body}
+                after={body}
+                currentSummary={summary}
+                maxLength={SUMMARY_MAX}
+                onApply={setSummary}
+              />
+            }
           >
             <Input
               id={`${doc.kind}-summary`}

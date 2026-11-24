@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event'
 import { RouterProvider, createMemoryRouter } from 'react-router'
 import { renderWithQuery } from './renderWithQuery'
 import { PoliciesPage } from '@/pages/PoliciesPage'
+import { AI_SITE_ASSIST, toSummaryLine } from '@/lib/aiAssist'
 import { fromSeoulInput, seoulDateTime } from '@/lib/seoulTime'
 import { useAuthStore } from '@/stores/authStore'
+import { useFeatureStore } from '@/stores/featureStore'
 
 // 사이트 관리 → 약관 · 정책 관리 — 버전 · 예약 (T-200 · T-224, 사이트 관리 기획서 SM-03)
 
@@ -76,7 +78,10 @@ beforeEach(() => {
   withDocs()
 })
 
-afterEach(() => confirm.mockReset())
+afterEach(() => {
+  confirm.mockReset()
+  useFeatureStore.getState().reset()
+})
 
 describe('시간 도우미', () => {
   it('한국 시간으로 보여 주고 보낸다', () => {
@@ -298,5 +303,69 @@ describe('약관 · 정책 관리', () => {
     renderPage()
     expect(await screen.findByText(/기본 문안을 보여 주는 중이에요/)).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: '새 버전 만들기' })).not.toBeInTheDocument()
+  })
+})
+
+describe('[✨ 바뀐 곳으로 요약] (T-234-A)', () => {
+  const flagOn = (on: boolean) =>
+    useFeatureStore.setState({ loaded: true, flags: on ? { [AI_SITE_ASSIST]: true } : {} })
+
+  const compose = async (user: ReturnType<typeof userEvent.setup>) => {
+    renderPage()
+    await user.click(await screen.findByRole('button', { name: '새 버전 만들기' }))
+  }
+
+  it('요약 칸은 한 줄 — 줄을 잇고 길이를 자른다', () => {
+    expect(toSummaryLine(' 보관 기간 수정\n\n 시행일부터 적용 ', 500)).toBe(
+      '보관 기간 수정 시행일부터 적용'
+    )
+    expect(toSummaryLine('가나다라', 2)).toBe('가나')
+  })
+
+  it('기능 스위치가 꺼져 있으면(지금 모든 사업체) 버튼이 없다', async () => {
+    flagOn(false)
+    const user = userEvent.setup()
+    await compose(user)
+    expect(screen.getByLabelText('변경 내용 요약')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '바뀐 곳으로 요약' })).not.toBeInTheDocument()
+  })
+
+  it('바뀐 게 없으면 끄고, 고치면 편집 중인 본문을 보내 요약 칸에 채운다 — 저장은 관리자가', async () => {
+    flagOn(true)
+    post.mockImplementation((url: string) =>
+      url === '/v1/ai/assist/policy_summary'
+        ? ok({
+            result: { summary: '정의 조항을 더했습니다.\n시행일부터 적용됩니다.' },
+            usage: { used: 2, limit: 20, remaining: 18 },
+          })
+        : ok(null)
+    )
+    const user = userEvent.setup()
+    await compose(user)
+    const button = screen.getByRole('button', { name: '바뀐 곳으로 요약' })
+    expect(button).toBeDisabled()
+
+    await user.type(screen.getByLabelText('본문'), '{Enter}제2조 (정의)')
+    await user.type(screen.getByLabelText('변경 내용 요약'), '직접 쓴 요약')
+    await user.click(button)
+    const drawer = screen.getByRole('dialog', { name: 'AI 로 변경 내용 요약' })
+    expect(within(drawer).getByText(/법적 효력이 있는 문서예요/)).toBeInTheDocument()
+    expect(within(drawer).getByRole('status')).toHaveTextContent('더한 줄 1개 · 뺀 줄 0개')
+
+    await user.click(within(drawer).getByRole('button', { name: '요약 만들기' }))
+    await within(drawer).findByLabelText('AI 요약')
+    expect(post).toHaveBeenCalledWith('/v1/ai/assist/policy_summary', {
+      kind: 'terms',
+      body: '제1조 (목적)\n기본 약관\n제2조 (정의)',
+    })
+    expect(within(drawer).getByText(/지금: 직접 쓴 요약/)).toBeInTheDocument()
+
+    await user.click(within(drawer).getByRole('button', { name: '요약 칸에 채우기' }))
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('변경 내용 요약')).toHaveValue(
+      '정의 조항을 더했습니다. 시행일부터 적용됩니다.'
+    )
+    expect(post).toHaveBeenCalledTimes(1)
+    expect(put).not.toHaveBeenCalled()
   })
 })
