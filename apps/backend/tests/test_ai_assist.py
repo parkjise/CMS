@@ -44,14 +44,16 @@ class TestParseAssistResult:
             },
             ensure_ascii=False,
         )
-        result = ai_assist.parse_assist_result("seo", content, allow_keywords=True)
+        result = ai_assist.parse_assist_result("seo", content)
         assert len(result.meta_title) == 60
         assert len(result.meta_description) == 160
         # 중복 · 빈 값 · 30자 넘는 낱말은 빼고 5개로
         assert result.keywords == ["임플란트", "강남 치과", "k0", "k1", "k2"]
 
     def test_seo_without_keyword_plan_has_no_keywords(self):
-        result = ai_assist.parse_assist_result("seo", SEO_ANSWER, allow_keywords=False)
+        result = ai_assist.parse_assist_result(
+            "seo", SEO_ANSWER, ai_assist.AssistContext(allow_keywords=False)
+        )
         assert result.keywords == []
 
     def test_geo_cuts_topics(self):
@@ -59,14 +61,12 @@ class TestParseAssistResult:
             {"description": "소개" * 300, "topics": [f"주제{i}" for i in range(15)]},
             ensure_ascii=False,
         )
-        result = ai_assist.parse_assist_result("geo", content, allow_keywords=True)
+        result = ai_assist.parse_assist_result("geo", content)
         assert len(result.description) == 500
         assert len(result.topics) == 10
 
     def test_code_fence_is_fine(self):
-        result = ai_assist.parse_assist_result(
-            "seo", f"```json\n{SEO_ANSWER}\n```", allow_keywords=True
-        )
+        result = ai_assist.parse_assist_result("seo", f"```json\n{SEO_ANSWER}\n```")
         assert result.meta_title.startswith("바른치과의원")
 
     @pytest.mark.parametrize(
@@ -80,13 +80,11 @@ class TestParseAssistResult:
     )
     def test_wrong_shape_raises(self, content: str):
         with pytest.raises(ValueError):
-            ai_assist.parse_assist_result("seo", content, allow_keywords=True)
+            ai_assist.parse_assist_result("seo", content)
 
     def test_geo_needs_description(self):
         with pytest.raises(ValueError):
-            ai_assist.parse_assist_result(
-                "geo", '{"topics": ["a"]}', allow_keywords=True
-            )
+            ai_assist.parse_assist_result("geo", '{"topics": ["a"]}')
 
 
 class TestSiteFacts:
@@ -304,3 +302,214 @@ class TestAssistEndpoint:
     ):
         resp = await client.post(_SEO, headers=auth_headers, json={"tone": "angry"})
         assert resp.status_code in (400, 422)
+
+
+# ═════════════════════ T-232-B 게시판 구성 추천 (board) ═════════════════════
+
+_BOARD = "/api/v1/ai/assist/board"
+
+BOARD_ANSWER = {
+    "board_type": "REVIEW",
+    "name": "치료 후기",
+    "description": "진료를 받은 분들의 후기를 모읍니다.",
+    "fields": [
+        {"label": "받은 진료", "field_type": "SELECT", "choices": ["임플란트", "교정"]},
+        {"label": "방문 시기", "field_type": "DATE", "choices": []},
+    ],
+    "categories": ["임플란트", "교정"],
+    "permissions": {"read": "PUBLIC", "write": "MEMBER"},
+    "operation": {"allow_secret": False, "notify_new_post": True, "allow_guest": True},
+    "reason": "후기는 회원이 쓰고 새 글은 알림으로 확인해요.",
+}
+
+
+def _board(ctx: ai_assist.AssistContext | None = None, **overrides):
+    content = json.dumps({**BOARD_ANSWER, **overrides}, ensure_ascii=False)
+    return ai_assist.parse_assist_result("board", content, ctx)
+
+
+class TestBoardResult:
+    def test_dangerous_review_guest_is_turned_off_with_reason(self):
+        result = _board()
+        assert result.board_type == "REVIEW"
+        assert result.operation.allow_guest is False
+        assert result.operation.notify_new_post is True
+        assert result.reason.endswith(ai_assist.NOTE_GUEST_REVIEW)
+
+    def test_guest_needs_member_writing(self):
+        result = _board(
+            board_type="LIST", permissions={"read": "PUBLIC", "write": "ADMIN"}
+        )
+        assert result.operation.allow_guest is False
+        assert ai_assist.NOTE_GUEST_MEMBER_ONLY in result.reason
+
+    def test_blocked_type_becomes_list(self):
+        ctx = ai_assist.AssistContext(blocked_types={"REVIEW": "병원 업종은 안 돼요."})
+        result = _board(ctx)
+        assert result.board_type == "LIST"
+        assert "병원 업종은 안 돼요. 목록형으로 바꿨어요." in result.reason
+
+    def test_unknown_type_becomes_list(self):
+        assert _board(board_type="FORUM").board_type == "LIST"
+
+    def test_member_access_blocked_falls_back(self):
+        ctx = ai_assist.AssistContext(read_blocked="꺼짐", write_blocked="병원")
+        result = _board(
+            ctx,
+            board_type="LIST",
+            permissions={"read": "MEMBER", "write": "MEMBER"},
+            operation={"allow_guest": False},
+        )
+        assert result.permissions.read == "PUBLIC"
+        assert result.permissions.write == "ADMIN"
+        assert ai_assist.NOTE_READ_BLOCKED in result.reason
+        assert ai_assist.NOTE_WRITE_BLOCKED in result.reason
+
+    def test_fields_and_categories_are_cut_to_save_rules(self):
+        fields = [
+            {"label": "별점", "field_type": "RATING"},  # 리뷰형이 늘 만든다
+            {"label": "제목", "field_type": "TEXT"},  # 원래 있는 칸
+            {"label": "고르기", "field_type": "SELECT", "choices": []},  # 선택지 없음
+            {"label": "모르는 칸", "field_type": "MAP"},
+            {"label": "있는 칸", "field_type": "TEXT"},
+            {"label": "있는칸", "field_type": "TEXT"},  # 띄어쓰기만 다른 이름
+        ] + [{"label": f"칸 {i}", "field_type": "TEXT"} for i in range(12)]
+        categories = ["예약", "예 약", "있는 분류", "x" * 31] + [
+            f"분류{i}" for i in range(15)
+        ]
+        ctx = ai_assist.AssistContext(
+            taken_fields={ai_assist.same_name(n) for n in ("제목", "있는 칸")},
+            taken_categories={ai_assist.same_name("있는분류")},
+        )
+        result = _board(ctx, fields=fields, categories=categories)
+        assert [f.label for f in result.fields] == [f"칸 {i}" for i in range(8)]
+        assert result.categories == ["예약"] + [f"분류{i}" for i in range(9)]
+
+    def test_adding_to_existing_board_keeps_its_type(self):
+        result = _board(ai_assist.AssistContext(fixed_type="FAQ"))
+        assert result.board_type == "FAQ"
+
+    def test_needs_name(self):
+        with pytest.raises(ValueError):
+            _board(name="  ")
+
+
+@pytest.fixture
+async def board_tenant(test_tenant: dict, monkeypatch):
+    from app.services import site_cache
+
+    async def no_purge(_db, _tenant_id):
+        return True
+
+    monkeypatch.setattr(site_cache, "purge_site", no_purge)
+    await _enable(test_tenant["id"], "AI_BOARD_ASSIST")
+    yield test_tenant
+    for table in ("ai_usage_log", "tenant_features"):
+        await _sql(
+            f"DELETE FROM {table} WHERE tenant_id = :t", {"t": test_tenant["id"]}
+        )
+
+
+class TestBoardEndpoint:
+    async def test_site_switch_alone_is_not_enough(
+        self, client: AsyncClient, auth_headers: dict, assist_tenant: dict
+    ):
+        # AI_SITE_ASSIST 만 켠 사업체 — 게시판 보조는 AI_BOARD_ASSIST
+        resp = await client.post(_BOARD, headers=auth_headers, json={"purpose": "후기"})
+        assert resp.status_code == 403
+
+    async def test_purpose_is_required(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict
+    ):
+        resp = await client.post(_BOARD, headers=auth_headers, json={"purpose": "  "})
+        assert resp.status_code == 400
+        assert resp.json()["error"]["field"] == "purpose"
+
+    async def test_hospital_never_gets_review_type(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict, monkeypatch
+    ):
+        await _sql(
+            "UPDATE tenants SET template_type = 'HOSPITAL' WHERE id = :t",
+            {"t": board_tenant["id"]},
+        )
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return json.dumps(BOARD_ANSWER, ensure_ascii=False), 300
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _BOARD, headers=auth_headers, json={"purpose": "치료 후기를 받는 게시판"}
+        )
+        assert resp.status_code == 200, resp.text
+        result = resp.json()["data"]["result"]
+        assert result["board_type"] == "LIST"
+        # 병원은 회원 글쓰기도 못 쓴다
+        assert result["permissions"]["write"] == "ADMIN"
+        assert result["operation"]["allow_guest"] is False
+        assert [f["label"] for f in result["fields"]] == ["받은 진료", "방문 시기"]
+        assert "치료 후기를 받는 게시판" in seen[0]
+        assert "REVIEW 리뷰형" not in seen[0]  # 고를 수 있는 유형에서 뺐다
+        assert resp.json()["data"]["usage"]["used"] == 1
+
+    async def test_existing_board_gets_only_new_fields_and_categories(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict, monkeypatch
+    ):
+        # 게시판 추가는 STANDARD 부터
+        await _sql(
+            "UPDATE tenants SET plan_type = 'STANDARD' WHERE id = :t",
+            {"t": board_tenant["id"]},
+        )
+        made = await client.post(
+            "/api/v1/boards",
+            headers=auth_headers,
+            json={"name": "자주 묻는 질문", "board_type": "FAQ"},
+        )
+        assert made.status_code == 201, made.text
+        board_id = made.json()["data"]["id"]
+        field = await client.post(
+            f"/api/v1/boards/{board_id}/fields",
+            headers=auth_headers,
+            json={"label": "방문 시기", "field_type": "DATE"},
+        )
+        assert field.status_code == 201, field.text
+        category = await client.post(
+            f"/api/v1/boards/{board_id}/categories",
+            headers=auth_headers,
+            json={"name": "교정"},
+        )
+        assert category.status_code == 201, category.text
+
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return json.dumps(BOARD_ANSWER, ensure_ascii=False), 300
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _BOARD,
+            headers=auth_headers,
+            json={"purpose": "예약 질문", "board_id": board_id},
+        )
+        assert resp.status_code == 200, resp.text
+        result = resp.json()["data"]["result"]
+        assert result["board_type"] == "FAQ"
+        assert [f["label"] for f in result["fields"]] == ["받은 진료"]
+        assert result["categories"] == ["임플란트"]
+        assert "방문 시기" in seen[0]  # 있는 필드를 알려 준다
+
+    async def test_unknown_board_is_404(
+        self, client: AsyncClient, auth_headers: dict, board_tenant: dict, monkeypatch
+    ):
+        async def fake_call(_messages):
+            return json.dumps(BOARD_ANSWER, ensure_ascii=False), 1
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _BOARD,
+            headers=auth_headers,
+            json={"purpose": "후기", "board_id": str(uuid.uuid4())},
+        )
+        assert resp.status_code == 404
