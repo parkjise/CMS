@@ -37,8 +37,8 @@
 | **Phase 18: 게시판 관리 모듈** | **84** | **84** | **100%** |
 | **Phase 19: 운영 안정화** | **2** | **2** | **100%** |
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
-| **Phase 21: 관리자 화면 개선 · AI 보조** | **13** | **9** | **69%** |
-| **합계** | **280** | **276** | **99%** |
+| **Phase 21: 관리자 화면 개선 · AI 보조** | **13** | **10** | **77%** |
+| **합계** | **280** | **277** | **99%** |
 
 ---
 
@@ -4440,13 +4440,15 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 기능 스위치 `AI_SITE_ASSIST` 가 꺼졌거나 보기 전용이면 버튼 없음, 개발 서버 `?ai-preview` 미리보기 (운영 빌드는 미리보기 코드 · 예시 파일이 빠짐 — 빌드로 확인), 서랍은 열 때마다 새로 시작
 - **테스트:** admin 5 (스위치 꺼짐 · 보기 전용 · 말투 → 요청 · 고르기 · 적용 · 다시 열면 새로 · 사용 횟수 · 숫자 안내 · 한도 초과 안내 · 미리보기 모드). 실제 화면(개발 빌드 `?ai-preview`): SEO · GEO 만들기 → 적용 → 저장 막대, 휴대폰 아래 서랍, 서버 AI 요청 0건
 
-### T-231-B: AI 보조 서버 — 공통 엔드포인트 + seo · geo (A-1) — ⚠️ 머지 전 확인
+### T-231-B: AI 보조 서버 — 공통 엔드포인트 + seo · geo (A-1) ✅ (Claude, 2026-11-24) — ⚠️ 머지 전 확인
 
-- **코드 시작점:** `apps/backend/app/services/ai.py` · `ai_prompts.py`, `apps/backend/app/api/v1/endpoints/ai.py`, `apps/backend/scripts/seed.py`(기능 목록)
-- [ ] `POST /api/v1/ai/assist/{kind}` `{tone}` → `{result, usage}` — kind 별 입력 · 결과 스키마 검증(한 번 재시도 → 502), 글자 수 · 개수 자르기, 문구 추천 월 한도 공유, 분당 제한 · 캐시 · `ai_usage_log.action_type = assist_{kind}`
-- [ ] 기능 플래그 `AI_SITE_ASSIST` · `AI_BOARD_ASSIST` (시드 · 슈퍼 어드민 목록)
-- [ ] `seo` · `geo` kind — 서버가 사이트 기본정보 · 업종 · 지금 SEO/GEO 값 · 섹션 제목을 읽어 만든다
-- **테스트:** backend 스키마 검증 · 재시도 · 한도 · 플래그 403 · 키 없음 502 · 보기 전용 403 (모델은 모킹). 화면은 T-231-A 그대로
+- **코드:** `apps/backend/app/services/ai_assist.py`(공통 흐름 · 결과 검증 · 사이트 정보), `app/schemas/ai_assist.py`, `app/services/ai_prompts.py`(`build_assist_messages`), `app/services/ai.py`(`copy_quota_used`), `app/api/v1/endpoints/ai.py`, `alembic/versions/0061_register_ai_assist_features.py`, `scripts/seed.py`
+- [x] `POST /api/v1/ai/assist/{kind}` `{tone}` → `{result, usage}` — 모델 답을 결과 스키마로 검증(한 번 다시 묻고 → 502), 저장 API 규칙으로 자르기(메타 제목 60 · 설명 160 · 키워드 5개 각 30자, GEO 소개 500 · 주제 10개 각 30자), 모르는 kind 404
+- [x] 한도는 'AI 문구 추천' 월 한도를 함께 씀(`COPY_SUGGEST` + `assist_*` — 문구 추천 · 사용 현황도 합친 수), 분당 제한 · 같은 입력 1시간 캐시(사용량 그대로) · `ai_usage_log.action_type = assist_{kind}`
+- [x] 기능 플래그 `AI_SITE_ASSIST` · `AI_BOARD_ASSIST` — 데이터 마이그레이션 0061(표 구조 그대로, features 에 줄만) · 시드, **처음엔 꺼짐**(슈퍼 어드민이 사업체마다 켬, 슈퍼 어드민 기능 목록에 자동으로 보임). 꺼졌으면 403, 보기 전용 403
+- [x] `seo` · `geo` — 서버가 사이트명 · 회사명 · 업태 · 종목 · 지역(시 · 구까지) · 운영시간 요약 · 주차 · 공개 섹션 제목 · 지금 SEO/GEO 값을 읽어 만든다. 연락처 · 상세 주소는 보내지 않음. 키워드를 못 쓰는 요금제는 키워드 빈 목록
+- **테스트:** backend 21 (자르기 · 키워드 요금제 · 틀린 모양 · 지역 · 운영시간, 로그인 · 스위치 꺼짐 403 · 모르는 kind 404 · 보기 전용 403 · 사이트 정보 프롬프트 · 공유 한도 · 캐시 · 재시도 · 502 두 가지 · 한도 초과 422 · 말투 검증). 마이그레이션 0061 올림 · 내림 · 올림(테스트 DB)
+- **결정:** 기본 꺼짐 — 켜는 순간 고객 화면에 AI 버튼이 생기고 AI 호출이 늘어서. 모두 켤지는 사용자 결정
 
 ### T-232-A: AI 게시판 구성 추천 화면 (A-2) ✅ (Claude, 2026-11-24)
 
