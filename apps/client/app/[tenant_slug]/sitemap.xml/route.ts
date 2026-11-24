@@ -61,8 +61,8 @@ function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
   }
   const pages = [
     ...(manifest?.pages ?? []).map((page) => page.key),
-    // 직접 만든 공개 페이지 — 테마형 서브 페이지는 T-240 부터
-    ...(manifest ? customPages(site).map((page) => page.page_key) : []),
+    // 직접 만든 공개 페이지 — 코드형 · 테마형 모두 (T-239 · T-240)
+    ...customPages(site).map((page) => page.page_key),
   ]
     .filter((key) => key !== 'home' && !hidden.has(key) && !unlisted(key))
     .map((key) => ({ path: `/${key}`, lastmod: now }))

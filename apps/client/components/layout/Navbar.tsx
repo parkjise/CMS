@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import type { PublicBoard, PublicMenuNode } from '@cms/types'
-import type { PublicSection } from '@/lib/publicSite.types'
+import type { PublicPage, PublicSection } from '@/lib/publicSite.types'
 import MemberAccountLinks from '@/components/member/MemberAccountLinks'
 import { isMobileHidden } from '@/lib/mobileSettings'
 import { applyMenu, type MenuOverride } from '@/lib/menuSettings'
@@ -28,6 +28,8 @@ interface NavbarProps {
     boards?: PublicBoard[]
     /** 메인이 아닌 화면 — 섹션이 없으므로 섹션 메뉴는 메인으로 이동 */
     subPage?: boolean
+    /** 직접 만든 공개 페이지 (T-240) — 메뉴에서 /{slug}/{주소} 로 */
+    pages?: PublicPage[]
   }
 }
 
@@ -82,7 +84,9 @@ export function Navbar({ tenantName, logoUrl, menuItems, menuTree, sections, ten
       menuLinks(menuTree, {
         page: (id) => {
           const section = sections.find((s) => s.id === id && s.is_active)
-          return section ? { href: sectionHref(id), sectionId: id, mobileHidden: isMobileHidden(section) } : null
+          if (section) return { href: sectionHref(id), sectionId: id, mobileHidden: isMobileHidden(section) }
+          // 직접 만든 페이지 (T-240) — 섹션 id 가 아니라 페이지 주소
+          return site?.pages?.some((p) => p.page_key === id) ? { href: `${base}/${id}` } : null
         },
         board: (slug) => `${base}/${boardPageKey(slug)}`,
       })
@@ -97,6 +101,16 @@ export function Navbar({ tenantName, logoUrl, menuItems, menuTree, sections, ten
               href: sectionHref(s.id),
               sectionId: s.id,
               mobileHidden: isMobileHidden(s),
+            })),
+          // 직접 만든 페이지 (T-240) — 맨 위 · 메뉴 표시만, 하위 페이지는 메뉴 트리에서
+          ...(site?.pages ?? [])
+            .filter((p) => !p.parent_key && p.show_in_menu)
+            .map((p) => ({
+              key: p.page_key,
+              label: p.title,
+              href: `${base}/${p.page_key}` as string | undefined,
+              sectionId: undefined as string | undefined,
+              mobileHidden: false,
             })),
           ...(site?.boards ?? []).map((b) => ({
             key: `board:${b.id}`,
