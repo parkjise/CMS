@@ -10,7 +10,7 @@
  */
 import { headers } from 'next/headers'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
-import { boardSeoMeta, canonicalMeta } from '@/lib/seoMeta'
+import { boardSeoMeta, canonicalMeta, pageSeoMeta } from '@/lib/seoMeta'
 import type { PublicBoard } from '@cms/types'
 import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
@@ -22,7 +22,13 @@ import { BOARD_PATH, NOTICE_BOARD, boardPageKey, fetchPublicPost } from '@/lib/p
 import { fetchSitePolicy } from '@/lib/fetchSitePolicy'
 import { type PolicyKind, type SitePolicy, isPolicyKind, policyVersionParam } from '@/lib/sitePolicy'
 import { fetchPublicSite } from '@/lib/publicSite'
-import { memberEnabled, type PublicSite } from '@/lib/publicSite.types'
+import {
+  customPages,
+  memberEnabled,
+  pageHidden,
+  pageOf,
+  type PublicSite,
+} from '@/lib/publicSite.types'
 import { countSampleSettings } from '@/lib/sampleCount'
 import { CodeTemplateRenderer } from './CodeTemplateRenderer'
 import { MEMBER_PAGES, MEMBER_SCREEN_TEMPLATES, isMemberPage, type MemberPageKey } from './memberPages'
@@ -110,13 +116,20 @@ async function resolve(entry: CodeTemplateEntry, params: CodeRouteParams): Promi
   const [pageKey = 'home', detailId, ...extra] = params.path ?? []
   if (extra.length > 0 || pageKey === 'home' && params.path?.length) return null
   const page = entry.manifest.pages.find((p) => p.key === pageKey)
-  if (!page) return null
-  if (detailId && !page.default_sections.includes('BOARD')) return null
+  if (page && detailId && !page.default_sections.includes('BOARD')) return null
+  // 매니페스트에 없는 주소는 직접 만든 페이지만 (T-239) — 상세 주소는 없다
+  if (!page && detailId) return null
 
   const site = await fetchPublicSite(params.tenant_slug)
   if (!site) return null
+  // 없는 주소는 템플릿 전환 안내가 아니라 404 — 직접 만든 페이지인지 먼저 본다
+  const custom = page ? null : customPages(site).find((p) => p.page_key === pageKey)
+  if (!page && !custom) return null
   if (!usesTemplate(entry, site)) return SWITCHING
 
+  if (!page) return custom ? { site, pageKey, pageTitle: custom.title } : null
+  // 숨긴 템플릿 기본 페이지 (T-239)
+  if (pageHidden(site, pageKey)) return null
   return {
     site,
     pageKey,
@@ -140,8 +153,14 @@ export async function codeRouteMetadata(
     resolved.pageKey === NOTICE_BOARD && resolved.detailId
       ? await fetchPublicPost(params.tenant_slug, NOTICE_BOARD, resolved.detailId)
       : null
+  const title = `${resolved.postTitle ?? post?.title ?? resolved.pageTitle} | ${resolved.site.tenant.name}`
+  // 페이지별 검색 설정 (T-239) — 목록 화면에만, 글 · 상세 화면은 글 제목 그대로
+  const pageMeta =
+    !resolved.detailId && !resolved.board && !resolved.policy && !resolved.memberPage
+      ? pageSeoMeta(pageOf(resolved.site, resolved.pageKey), title)
+      : { title }
   return {
-    title: `${resolved.postTitle ?? post?.title ?? resolved.pageTitle} | ${resolved.site.tenant.name}`,
+    ...pageMeta,
     ...(resolved.memberPage ? {} : canonicalMeta(resolved.site, `/${path}`)),
     // 상담 상세(개인 문의) · 회원 화면은 검색엔진 색인 제외. 그 밖에는 키를 넣지 않는다 —
     // undefined 도 레이아웃의 검색 노출 설정(T-129)을 덮어써 서브 페이지가 숨겨지지 않는다

@@ -1,7 +1,7 @@
 import type { PublicSitemapPost } from '@cms/types'
 import { NOTICE_BOARD, boardPageKey, fetchSitemapPosts } from '@/lib/publicPosts'
 import { fetchPublicSite } from '@/lib/publicSite'
-import type { PublicSite } from '@/lib/publicSite.types'
+import { customPages, pageOf, type PublicSite } from '@/lib/publicSite.types'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
 import { CODE_TEMPLATE_MANIFESTS, codeTemplateKey } from '@/templates/manifests'
 
@@ -54,9 +54,18 @@ function sitePaths(site: PublicSite, posts: PublicSitemapPost[]): SitemapUrl[] {
     ...(site.site_settings?.menu_hidden ?? []),
   ])
   const now = new Date().toISOString()
-  const pages = (manifest?.pages ?? [])
-    .filter((page) => page.key !== 'home' && !hidden.has(page.key))
-    .map((page) => ({ path: `/${page.key}`, lastmod: now }))
+  // 숨긴 페이지 · 검색 결과 제외 페이지는 뺀다 (T-239)
+  const unlisted = (key: string) => {
+    const page = pageOf(site, key)
+    return page?.is_public === false || page?.noindex === true
+  }
+  const pages = [
+    ...(manifest?.pages ?? []).map((page) => page.key),
+    // 직접 만든 공개 페이지 — 테마형 서브 페이지는 T-240 부터
+    ...(manifest ? customPages(site).map((page) => page.page_key) : []),
+  ]
+    .filter((key) => key !== 'home' && !hidden.has(key) && !unlisted(key))
+    .map((key) => ({ path: `/${key}`, lastmod: now }))
   // 검색 노출을 끈 게시판은 글까지 뺀다 (T-146)
   const boards = (site.boards ?? []).filter(
     (board) => !hidden.has(`board:${board.id}`) && board.seo_index !== false && board.read_access !== 'MEMBER',

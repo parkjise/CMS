@@ -91,6 +91,28 @@ class PublicSeoResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class PublicPageResponse(BaseModel):
+    """홈페이지가 그릴 페이지 (T-239, 페이지 관리 기획서).
+
+    템플릿 기본 페이지는 숨김 여부 · SEO 만 덮어쓰고(행이 없으면 공개),
+    직접 만든 페이지는 공개된 것만 온다.
+    """
+
+    page_key: str
+    title: str
+    # TEMPLATE | CUSTOM
+    origin: str
+    parent_key: str | None = None
+    show_in_menu: bool = True
+    is_public: bool = True
+    seo_title: str | None = None
+    seo_description: str | None = None
+    og_image_url: str | None = None
+    noindex: bool = False
+
+    model_config = {"from_attributes": True}
+
+
 class PublicTemplateResponse(BaseModel):
     template_type: str
     name: str
@@ -126,3 +148,5 @@ class PublicSiteResponse(BaseModel):
     boards: list[PublicBoardResponse] = []
     # 코드형 공지 페이지가 따를 공지 게시판 (T-220) — 테마형은 boards 안에 있다
     notice_board: PublicBoardResponse | None = None
+    # 페이지 (T-239) — 직접 만든 공개 페이지 · 템플릿 페이지 숨김 · 페이지별 SEO
+    pages: list[PublicPageResponse] = []

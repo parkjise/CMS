@@ -42,8 +42,8 @@ import { NoticeBoard } from './components/board/NoticeBoard'
 import { NoticeBoardLive } from './components/board/NoticeBoardLive'
 import { ReserveForm } from './components/board/ReserveForm'
 import type { SearchTarget } from './components/board/BoardToolbar'
-import { memberEnabled } from '@/lib/publicSite.types'
-import type { PublicBoard } from '@cms/types'
+import { customPages, memberEnabled, pageHidden } from '@/lib/publicSite.types'
+import type { PublicBoard, TemplatePage } from '@cms/types'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { MEMBER_PAGES } from '../memberPages'
 import { MemberScreen } from './components/member/MemberScreen'
@@ -131,7 +131,25 @@ export default function HospitalATemplate({
       }
     : { action: `${siteBase}/${pageKey}`, hidden: [] }
   const listPage = Math.max(1, Number(query?.p) || 1)
-  const pages = hospitalAManifest.pages
+  // 숨긴 기본 페이지는 빼고, 직접 만든 공개 페이지를 더한다 (T-239) — 맨 위는 상단 메뉴 후보,
+  // 상위가 있으면 그 묶음의 하위 탭
+  const pages: TemplatePage[] = [
+    ...hospitalAManifest.pages.filter((p) => !pageHidden(site, p.key)),
+    ...customPages(site).map(
+      (p): TemplatePage => ({
+        key: p.page_key,
+        title: p.title,
+        menu: p.parent_key ? 'sub' : p.show_in_menu ? 'gnb' : 'none',
+        parent: p.parent_key ?? undefined,
+        default_sections: [],
+      }),
+    ),
+  ]
+  const customPage = customPages(site).find((p) => p.page_key === pageKey)
+  // 상단 경로의 가운데 칸 — 묶음 페이지 이름 (없으면 '페이지')
+  const groupTitle = customPage?.parent_key
+    ? pages.find((p) => p.key === customPage.parent_key)?.title
+    : undefined
   const gnbKeys = new Set(pages.filter((p) => p.menu === 'gnb').map((p) => p.key))
   // 페이지 묶음 아래에 넣은 게시판은 상단 메뉴 대신 그 묶음의 하위 탭 (T-216)
   const parentOf = (b: PublicBoard) =>
@@ -374,13 +392,28 @@ export default function HospitalATemplate({
             />
           </>
         ) : (
-          sections.map(({ section, editable }) => (
+          <>
+            {/* 직접 만든 페이지에 상단 비주얼이 없으면 이름만 있는 상단 (T-239) — 빈 화면 대신 */}
+            {customPage && !sections.some(({ section }) => section.section_type === 'SUB_HERO') && (
+              <>
+                <SubHero
+                  section={plainHero('Page', customPage.title, groupTitle ?? '페이지', pageKey)}
+                  editable={false}
+                  tenantSlug={tenantSlug}
+                  homeHref={hrefFor('home')}
+                  scrollIconUrl={`${IMG_BASE}/scroll-down.svg`}
+                />
+                {tabs.length > 1 && <SubNav tabs={tabs} current={pageKey} />}
+              </>
+            )}
+            {sections.map(({ section, editable }) => (
             <Fragment key={section.id}>
               {/* 휴대폰에서 숨기기 (T-037-D) — 감싸지 않고 앞에 표식만 (globals.css) */}
               {isMobileHidden(section) && <MobileHideMarker />}
               {renderSection({ section, editable, tenantSlug })}
             </Fragment>
-          ))
+            ))}
+          </>
         )}
       </main>
 

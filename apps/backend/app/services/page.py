@@ -57,6 +57,9 @@ RESERVED_KEY_REASONS: dict[str, str] = {
     "paused": _ROUTE_CLASH,
     "b": _ROUTE_CLASH,
     "notice": "공지사항 게시판이 쓰는 주소예요.",
+    # 이용약관 · 개인정보처리방침 (T-200)
+    "terms": "이용약관 화면이 쓰는 주소예요.",
+    "privacy": "개인정보처리방침 화면이 쓰는 주소예요.",
 }
 
 MSG_KEY_FORMAT = (
@@ -626,3 +629,25 @@ async def restore_page(db: AsyncSession, tenant_id: UUID, page_id: UUID) -> dict
     await db.commit()
     await site_cache.purge_site(db, tenant_id)
     return await get_page_view(db, tenant_id, page.id)
+
+
+# ── 홈페이지 (T-239) ─────────────────────────────────────────────────────
+
+
+async def public_pages(db: AsyncSession, tenant_id: UUID) -> list[Page]:
+    """홈페이지가 쓰는 페이지 — 템플릿 기본 페이지(숨김 · SEO) + 직접 만든 공개 페이지.
+
+    직접 만든 페이지는 스위치가 켜진 사업체만.
+    숨긴 직접 페이지는 이름도 내보내지 않는다.
+    """
+    custom_on = await feature_service.is_enabled(db, tenant_id, FEATURE_KEY)
+    rows = await _all_rows(db, tenant_id)
+    return [
+        row
+        for row in rows
+        if row.deleted_at is None
+        and (
+            row.origin == ORIGIN_TEMPLATE
+            or (custom_on and row.origin == ORIGIN_CUSTOM and row.is_public)
+        )
+    ]

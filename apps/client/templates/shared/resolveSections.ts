@@ -1,4 +1,4 @@
-import type { TemplateManifest } from '@cms/types'
+import type { SectionType, TemplateManifest } from '@cms/types'
 import type {
   PublicSection,
   PublicSettingItem,
@@ -36,6 +36,26 @@ function hasValue(item: PublicSettingItem): boolean {
  * - 테넌트에 없으면 샘플만으로 그리고 편집 불가로 표시한다
  *   (샘플은 템플릿 적용 시 테넌트 데이터로 복사되는 것이 원칙 — T-120)
  */
+/**
+ * 직접 만든 페이지 (T-239) — 매니페스트 자리가 없으니 테넌트 섹션을 순서대로.
+ * 이 템플릿이 그릴 수 있는 종류 · 켜진 섹션만, 샘플은 없다
+ */
+function customPageSections(
+  manifest: TemplateManifest,
+  tenantSections: PublicSection[],
+  pageKey: string,
+): ResolvedSection[] {
+  return tenantSections
+    .filter(
+      (s) =>
+        (s.page_key ?? 'home') === pageKey &&
+        s.is_active &&
+        manifest.sections.includes(s.section_type as SectionType),
+    )
+    .sort((a, b) => a.display_order - b.display_order)
+    .map((section) => ({ section, editable: true, sampleKeys: [] }))
+}
+
 export function resolvePageSections(
   manifest: TemplateManifest,
   sample: SampleContent,
@@ -43,7 +63,7 @@ export function resolvePageSections(
   pageKey: string,
 ): ResolvedSection[] {
   const page = manifest.pages.find((p) => p.key === pageKey)
-  if (!page) return []
+  if (!page) return customPageSections(manifest, tenantSections, pageKey)
 
   const samples = sample.pages[pageKey] ?? []
   const result: ResolvedSection[] = []
