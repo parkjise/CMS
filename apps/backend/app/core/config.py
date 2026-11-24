@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -108,6 +110,9 @@ class Settings(BaseSettings):
 
     # 쿠키 & URL
     cookie_domain: str = ""  # 로컬: "" → None, 프로덕션: ".mysite.com"
+    # 관리자 로그인 유지 쿠키(refresh_token)의 SameSite — 운영 · 로컬은 lax.
+    # 화면과 API 가 다른 사이트인 개발 배포(GitHub Pages → 터널)만 none (T-235)
+    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     admin_base_url: str = "http://localhost:3001"
     client_base_url: str = "http://localhost:3000"
     # 저장 후 홈페이지(Next.js) 캐시를 바로 비우는 내부 호출 (T-066-A)
@@ -171,6 +176,10 @@ class Settings(BaseSettings):
             problems["cookie_domain"] = (
                 "홈페이지 ↔ 관리자 로그인 공유용 상위 도메인이 없습니다"
             )
+        if self.cookie_samesite == "none":
+            problems["cookie_samesite"] = (
+                "none 은 개발 배포용 — 다른 사이트에서도 로그인 쿠키가 실립니다 (lax)"
+            )
         if not self.revalidate_secret:
             problems["revalidate_secret"] = (
                 "비어 있으면 저장한 내용이 홈페이지에 최대 1분 늦게 반영됩니다"
@@ -226,6 +235,11 @@ class Settings(BaseSettings):
     @property
     def cookie_domain_value(self) -> str | None:
         return self.cookie_domain or None
+
+    @property
+    def cookie_secure(self) -> bool:
+        # SameSite=None 은 Secure 쿠키만 브라우저가 받는다
+        return self.app_env != "development" or self.cookie_samesite == "none"
 
 
 settings = Settings()
