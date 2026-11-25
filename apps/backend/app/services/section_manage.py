@@ -179,6 +179,30 @@ def _sample_value(value: object) -> tuple[str, str]:
     return json.dumps(value, ensure_ascii=False), "JSON"
 
 
+def _code_kind(sample: dict) -> dict | None:
+    """샘플 섹션 하나 → 직접 페이지에 넣을 종류 (메인 전용 · 게시판이면 None)"""
+    stype = sample.get("section_type")
+    settings = sample.get("settings") or {}
+    if stype in CODE_PAGE_EXCLUDED or not isinstance(settings, dict):
+        return None
+    variant = settings.get("layout") if stype == "CONTENT_BLOCK" else None
+    return {
+        "section_type": stype,
+        "variant": variant,
+        "label": LAYOUT_LABELS.get(variant or "") or sample.get("label") or stype,
+        "settings": settings,
+    }
+
+
+def _code_sample_pages(code: str) -> list[tuple[str, list[dict]]]:
+    """샘플 서브 페이지마다 넣을 수 있는 종류 [(page_key, [kind])] — 홈 제외"""
+    return [
+        (page_key, [k for k in map(_code_kind, sections) if k is not None])
+        for page_key, sections in (load_sample(code).get("pages") or {}).items()
+        if page_key != HOME_PAGE
+    ]
+
+
 def code_page_kinds(code: str) -> list[dict]:
     """코드형 직접 페이지에 넣을 수 있는 섹션 — 샘플 서브 페이지 섹션, 배치마다 하나.
 
@@ -187,29 +211,74 @@ def code_page_kinds(code: str) -> list[dict]:
     """
     kinds: list[dict] = []
     seen: set[tuple[str, str | None]] = set()
-    for page_key, sections in (load_sample(code).get("pages") or {}).items():
-        if page_key == HOME_PAGE:
-            continue
-        for sample in sections:
-            stype = sample.get("section_type")
-            settings = sample.get("settings") or {}
-            if stype in CODE_PAGE_EXCLUDED or not isinstance(settings, dict):
+    for _, page_kinds in _code_sample_pages(code):
+        for kind in page_kinds:
+            if (kind["section_type"], kind["variant"]) in seen:
                 continue
-            variant = settings.get("layout") if stype == "CONTENT_BLOCK" else None
-            if (stype, variant) in seen:
-                continue
-            seen.add((stype, variant))
-            kinds.append(
-                {
-                    "section_type": stype,
-                    "variant": variant,
-                    "label": LAYOUT_LABELS.get(variant or "")
-                    or sample.get("label")
-                    or stype,
-                    "settings": settings,
-                }
-            )
+            seen.add((kind["section_type"], kind["variant"]))
+            kinds.append(kind)
     return kinds
+
+
+# 테마형 추천 구성 (T-247) — 직접 페이지는 위에 페이지 이름이 이미 나와 메인 배너는 뺀다
+THEME_RECIPES: list[tuple[str, str, list[str]]] = [
+    ("intro", "소개 페이지", ["INTRO", "GALLERY", "CONTACT"]),
+    ("services", "서비스 안내", ["INTRO", "SERVICES", "CONTACT"]),
+    ("location", "오시는 길", ["INTRO", "MAP", "CONTACT"]),
+]
+
+
+async def page_recipes(
+    db: AsyncSession, tenant_id: UUID, titles: dict[str, str]
+) -> list[dict]:
+    """페이지 추가의 '추천 구성' (기획서 PM-02, T-247) — [{key, label, sections}].
+
+    코드형은 템플릿 샘플의 서브 페이지 구성(넣을 수 있는 섹션 2개 이상) 그대로 ·
+    샘플 값, 테마형은 THEME_RECIPES(갤러리는 스위치가 켜졌을 때만) · 시작 문구.
+    titles 는 페이지 주소 → 이름 (코드형 구성 이름).
+    """
+    code = await _code_template(db, tenant_id)
+    if code is not None:
+        return [
+            {"key": key, "label": titles.get(key, key), "sections": kinds}
+            for key, kinds in _code_sample_pages(code)
+            if len(kinds) >= 2
+        ]
+    gallery_on = await feature_service.is_enabled(db, tenant_id, "GALLERY_SECTION")
+    return [
+        {
+            "key": key,
+            "label": label,
+            "sections": [
+                {
+                    "section_type": t,
+                    "variant": None,
+                    "label": THEME_SECTION_TYPES[t],
+                    "settings": None,
+                }
+                for t in types
+                if t != "GALLERY" or gallery_on
+            ],
+        }
+        for key, label, types in THEME_RECIPES
+    ]
+
+
+async def add_recipe_sections(
+    db: AsyncSession, tenant_id: UUID, page_key: str, sections: list[dict]
+) -> None:
+    """추천 구성 섹션을 새 페이지에 — 페이지 섹션 한도까지, commit 은 호출한 쪽에서"""
+    limit = SECTION_LIMITS.get(await _plan_type(db, tenant_id), SECTION_LIMITS["BASIC"])
+    for order, kind in enumerate(sections[:limit] if limit is not None else sections):
+        await add_starter_section(
+            db,
+            tenant_id,
+            kind["section_type"],
+            kind["label"],
+            order,
+            page_key=page_key,
+            settings=kind["settings"],
+        )
 
 
 async def get_limits(

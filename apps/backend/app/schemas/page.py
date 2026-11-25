@@ -71,6 +71,8 @@ class _PageFields(BaseModel):
 class PageCreate(_PageFields):
     title: str = Field(..., max_length=TITLE_MAX)
     page_key: str = Field(..., max_length=50)
+    # 추천 구성 (T-247) — GET /pages/recipes 의 key, 없으면 빈 페이지
+    recipe: str | None = Field(default=None, max_length=50)
 
     @field_validator("title")
     @classmethod
@@ -128,6 +130,15 @@ class PageDuplicate(BaseModel):
 
 class PageOrderUpdate(BaseModel):
     ids: list[uuid.UUID] = Field(..., min_length=1, max_length=200)
+
+
+class PageRecipe(BaseModel):
+    """페이지 추가의 추천 구성 (T-247)"""
+
+    key: str
+    label: str
+    # 넣을 섹션 이름 — 순서대로
+    sections: list[str]
 
 
 class PageKeyCheckResponse(BaseModel):

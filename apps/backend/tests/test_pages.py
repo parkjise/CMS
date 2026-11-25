@@ -853,6 +853,101 @@ class TestPageSections:
         assert (await self._limits(client, auth_headers, "home")).status_code == 200
 
 
+class TestPageRecipes:
+    """페이지 추가의 '추천 구성' (기획서 PM-02, T-247)"""
+
+    async def _recipes(self, client: AsyncClient, headers: dict) -> list[dict]:
+        resp = await client.get(f"{_URL}/recipes", headers=headers)
+        assert resp.status_code == 200, resp.text
+        return resp.json()["data"]
+
+    async def _sections(self, tenant_id: str, page_key: str) -> list:
+        return await _sql(
+            "SELECT s.section_type, s.label, s.display_order,"
+            " bool_and(ss.is_sample) AS sample"
+            " FROM sections s JOIN section_settings ss ON ss.section_id = s.id"
+            " WHERE s.tenant_id = :t AND s.page_key = :p AND s.deleted_at IS NULL"
+            " GROUP BY s.id ORDER BY s.display_order",
+            {"t": tenant_id, "p": page_key},
+        )
+
+    async def test_theme_recipes(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict, monkeypatch
+    ):
+        recipes = await self._recipes(client, auth_headers)
+        assert [r["key"] for r in recipes] == ["intro", "services", "location"]
+        assert recipes[0]["sections"] == ["소개", "갤러리", "문의하기"]
+        # 갤러리는 스위치가 꺼져 있으면 빠진다
+        enabled = feature_service.is_enabled
+
+        async def no_gallery(db, tenant_id, key):
+            return key != "GALLERY_SECTION" and await enabled(db, tenant_id, key)
+
+        monkeypatch.setattr(feature_service, "is_enabled", no_gallery)
+        recipes = await self._recipes(client, auth_headers)
+        assert recipes[0]["sections"] == ["소개", "문의하기"]
+        resp = await _create(client, auth_headers, "svc", recipe="services")
+        assert resp.status_code == 201, resp.text
+        page = resp.json()["data"]
+        assert (page["is_public"], page["section_count"]) == (True, 3)
+        rows = await self._sections(pages_on["id"], "svc")
+        assert [(r.section_type, r.label, r.display_order) for r in rows] == [
+            ("INTRO", "소개", 0),
+            ("SERVICES", "서비스", 1),
+            ("CONTACT", "문의하기", 2),
+        ]
+        assert all(r.sample for r in rows)
+
+    async def test_code_recipes_use_sample_pages(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        pages_on: dict,
+        code_template: str,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(
+            section_manage, "load_sample", lambda code: TestPageSections._SAMPLE
+        )
+        # 게시판 페이지(notice)는 넣을 섹션이 없어 빠진다
+        assert await self._recipes(client, auth_headers) == [
+            {"key": "about", "label": "회사소개", "sections": ["상단", "사진 + 글"]}
+        ]
+        resp = await _create(client, auth_headers, "story", recipe="about")
+        assert resp.status_code == 201, resp.text
+        rows = await _sql(
+            "SELECT ss.field_key, ss.field_value FROM sections s"
+            " JOIN section_settings ss ON ss.section_id = s.id"
+            " WHERE s.tenant_id = :t AND s.page_key = 'story'"
+            " AND s.section_type = 'CONTENT_BLOCK'",
+            {"t": pages_on["id"]},
+        )
+        values = {r.field_key: r.field_value for r in rows}
+        assert values["layout"] == "media-row"
+        assert json.loads(values["items"]) == [{"title": "하나"}]
+
+    async def test_unknown_recipe_and_section_limit(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict, monkeypatch
+    ):
+        resp = await _create(client, auth_headers, "bad", recipe="nope")
+        assert resp.status_code == 400
+        assert _error(resp)["field"] == "recipe"
+        assert all(
+            p["page_key"] != "bad" for p in (await _list(client, auth_headers))["pages"]
+        )
+        # 페이지 섹션 한도까지만 넣는다
+        monkeypatch.setitem(section_manage.SECTION_LIMITS, "STANDARD", 2)
+        resp = await _create(client, auth_headers, "loc", recipe="location")
+        assert resp.json()["data"]["section_count"] == 2
+
+    async def test_switch_off_and_login(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        assert (await client.get(f"{_URL}/recipes")).status_code == 401
+        resp = await client.get(f"{_URL}/recipes", headers=auth_headers)
+        assert resp.status_code == 403
+
+
 class TestSafety:
     """변경 안전장치 — 주소 이동 · 휴지통 비우기 · 영향 안내 · 템플릿 충돌 (T-242)"""
 

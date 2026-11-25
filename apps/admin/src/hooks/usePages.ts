@@ -41,6 +41,8 @@ export interface PageList {
 export interface PageInput {
   title?: string
   page_key?: string
+  /** 추천 구성으로 만들기 (T-247) — usePageRecipes 의 key */
+  recipe?: string
   /** "" = 맨 위로 */
   parent_key?: string
   show_in_menu?: boolean
@@ -64,6 +66,27 @@ export function usePages() {
       return data.data
     },
     staleTime: 30 * 1000,
+  })
+}
+
+/** 페이지 추가의 '추천 구성' — 지금 템플릿 기준 (T-247, 기획서 PM-02) */
+export interface PageRecipe {
+  key: string
+  label: string
+  /** 넣을 섹션 이름 — 순서대로 */
+  sections: string[]
+}
+
+export function usePageRecipes(enabled: boolean) {
+  return useQuery({
+    queryKey: [...PAGES_KEY, 'recipes'],
+    enabled,
+    queryFn: async (): Promise<PageRecipe[]> => {
+      const { data } = await api.get('/v1/pages/recipes')
+      return data.data
+    },
+    staleTime: 5 * 60 * 1000,
+    meta: { suppressGlobalError: true },
   })
 }
 

@@ -48,6 +48,7 @@ const HOME = page('home', { origin: 'TEMPLATE', section_count: 3 })
 let list: PageList
 let requests: { method: string; url: string; body: unknown }[]
 let keyCheck: (key: string) => { available: boolean; reason: string | null }
+let recipes: { key: string; label: string; sections: string[] }[]
 
 const listOf = (over: Partial<PageList> = {}): PageList => ({
   enabled: true,
@@ -73,7 +74,12 @@ beforeEach(() => {
   list = listOf()
   requests = []
   keyCheck = () => ({ available: true, reason: null })
+  recipes = [
+    { key: 'intro', label: '소개 페이지', sections: ['소개', '갤러리', '문의하기'] },
+    { key: 'location', label: '오시는 길', sections: ['소개', '지도', '문의하기'] },
+  ]
   server.use(
+    http.get(`${BASE}/v1/pages/recipes`, () => HttpResponse.json({ success: true, data: recipes })),
     http.get(`${BASE}/v1/pages`, () => HttpResponse.json({ success: true, data: list })),
     http.get(`${BASE}/v1/pages/check-key`, ({ request }) => {
       const key = new URL(request.url).searchParams.get('key') ?? ''
@@ -174,7 +180,11 @@ describe('미리보기 · 화면에서 편집 (T-244, PM-06)', () => {
         await record(request)
         return HttpResponse.json({
           success: true,
-          data: { token: 'tok', page_key: params.id === 'id-event' ? 'event' : 'home', expires_in: 600 },
+          data: {
+            token: 'tok',
+            page_key: params.id === 'id-event' ? 'event' : 'home',
+            expires_in: 600,
+          },
         })
       })
     )
@@ -194,7 +204,11 @@ describe('미리보기 · 화면에서 편집 (T-244, PM-06)', () => {
     )
     expect(open).toHaveBeenCalledWith('', '_blank')
     expect(win.opener).toBeNull()
-    expect(requests).toContainEqual({ method: 'POST', url: '/api/v1/pages/id-event/preview', body: null })
+    expect(requests).toContainEqual({
+      method: 'POST',
+      url: '/api/v1/pages/id-event/preview',
+      body: null,
+    })
     open.mockRestore()
   })
 
@@ -292,6 +306,42 @@ describe('페이지 추가 (PM-02)', () => {
         body: { title: '의료진 소개', page_key: 'doctors', parent_key: 'event', is_public: false },
       },
     ])
+  })
+
+  it('추천 구성을 고르면 섹션 목록을 보여 주고 그 구성으로 만든다 (T-247)', async () => {
+    const user = userEvent.setup()
+    renderAt('/admin/pages')
+    await user.click(await screen.findByRole('button', { name: /페이지 추가/ }))
+    const dialog = screen.getByRole('dialog')
+    await user.type(within(dialog).getByLabelText(/페이지 이름/), '찾아오시는 길')
+    await user.type(within(dialog).getByLabelText(/주소/), 'map')
+    await user.click(await within(dialog).findByRole('radio', { name: '추천 구성' }))
+    expect(within(dialog).getByTestId('recipe-sections')).toHaveTextContent(
+      '섹션 3개: 소개 · 갤러리 · 문의하기'
+    )
+    await user.selectOptions(within(dialog).getByLabelText('구성 고르기'), 'location')
+    expect(within(dialog).getByTestId('recipe-sections')).toHaveTextContent(
+      '소개 · 지도 · 문의하기'
+    )
+    await within(dialog).findByText('사용할 수 있는 주소예요.')
+    await user.click(within(dialog).getByRole('button', { name: '만들기' }))
+    await waitFor(() => expect(requests).toHaveLength(1))
+    expect(requests[0].body).toEqual({
+      title: '찾아오시는 길',
+      page_key: 'map',
+      is_public: false,
+      recipe: 'location',
+    })
+  })
+
+  it('지금 템플릿에 추천 구성이 없으면 고를 수 없다', async () => {
+    recipes = []
+    const user = userEvent.setup()
+    renderAt('/admin/pages')
+    await user.click(await screen.findByRole('button', { name: /페이지 추가/ }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).getByRole('radio', { name: '빈 페이지' })).toBeChecked()
+    expect(within(dialog).queryByRole('radio', { name: '추천 구성' })).not.toBeInTheDocument()
   })
 
   it('형식 · 사용 중인 주소는 칸에 이유를 보여 주고 만들지 않는다', async () => {

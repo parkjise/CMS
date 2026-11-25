@@ -17,6 +17,7 @@ from app.schemas.page import (
     PageKeyCheckResponse,
     PageListResponse,
     PageOrderUpdate,
+    PageRecipe,
     PageResponse,
     PageUpdate,
     PageUsageResponse,
@@ -56,6 +57,20 @@ async def check_key(
     return ApiResponse.ok(PageKeyCheckResponse(available=available, reason=reason))
 
 
+@router.get(
+    "/recipes",
+    response_model=ApiResponse[list[PageRecipe]],
+    dependencies=_feature,
+)
+async def page_recipes(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """페이지 추가의 '추천 구성' — 지금 템플릿 기준 (T-247)."""
+    recipes = await page_service.recipe_options(db, tenant_id)
+    return ApiResponse.ok([PageRecipe.model_validate(r) for r in recipes])
+
+
 @router.post(
     "",
     response_model=ApiResponse[PageResponse],
@@ -67,7 +82,7 @@ async def create_page(
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    """빈 페이지 추가 — 한도 초과 422 PLAN_LIMIT_EXCEEDED, 주소 충돌 409."""
+    """페이지 추가(빈 · 추천 구성) — 한도 초과 422, 주소 충돌 409."""
     page = await page_service.create_page(db, tenant_id, body)
     return ApiResponse.ok(PageResponse.model_validate(page))
 
