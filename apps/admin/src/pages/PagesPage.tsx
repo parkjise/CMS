@@ -16,10 +16,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useMemo, useState } from 'react'
+import dayjs from 'dayjs'
 import { Link, useNavigate } from 'react-router'
 import { Copy, FileText, GripVertical, Lock, Plus, RotateCcw, Trash2 } from 'lucide-react'
 import { Button, Modal, toast } from '@cms/ui'
 import { AddPageModal } from '@/components/pages/AddPageModal'
+import { PageViewButtons } from '@/components/pages/PageViewButtons'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type Page,
@@ -346,7 +348,8 @@ function PageRow({ page, sortable, onOpen, onCopy, onDelete }: PageRowProps) {
           )}
         </div>
         <p className="mt-0.5 text-xs text-slate-500">
-          {pagePath(page.page_key)} · 섹션 {page.section_count}개
+          {pagePath(page.page_key)} · 섹션 {page.section_count}개 · 수정{' '}
+          {dayjs(page.updated_at).format('YYYY.MM.DD')}
           {page.origin === 'CUSTOM' && (page.show_in_menu ? ' · 메뉴 표시' : ' · 메뉴에 없음')}
         </p>
       </div>
@@ -354,6 +357,7 @@ function PageRow({ page, sortable, onOpen, onCopy, onDelete }: PageRowProps) {
         <Button type="button" size="sm" variant="secondary" onClick={() => onOpen(page)}>
           편집
         </Button>
+        <PageViewButtons page={page} compact />
         {onCopy && (
           <button
             type="button"

@@ -645,11 +645,14 @@ async def restore_page(db: AsyncSession, tenant_id: UUID, page_id: UUID) -> dict
 # ── 홈페이지 (T-239) ─────────────────────────────────────────────────────
 
 
-async def public_pages(db: AsyncSession, tenant_id: UUID) -> list[Page]:
+async def public_pages(
+    db: AsyncSession, tenant_id: UUID, *, preview_key: str | None = None
+) -> list[Page]:
     """홈페이지가 쓰는 페이지 — 템플릿 기본 페이지(숨김 · SEO) + 직접 만든 공개 페이지.
 
     직접 만든 페이지는 스위치가 켜진 사업체만.
-    숨긴 직접 페이지는 이름도 내보내지 않는다.
+    숨긴 직접 페이지는 이름도 내보내지 않는다 — 관리자 미리보기(preview_key)의
+    그 페이지만 숨김 표시(is_public=False) 그대로 함께 (T-244).
     """
     custom_on = await feature_service.is_enabled(db, tenant_id, FEATURE_KEY)
     rows = await _all_rows(db, tenant_id)
@@ -659,9 +662,18 @@ async def public_pages(db: AsyncSession, tenant_id: UUID) -> list[Page]:
         if row.deleted_at is None
         and (
             row.origin == ORIGIN_TEMPLATE
-            or (custom_on and row.origin == ORIGIN_CUSTOM and row.is_public)
+            or (
+                custom_on
+                and row.origin == ORIGIN_CUSTOM
+                and (row.is_public or row.page_key == preview_key)
+            )
         )
     ]
+
+
+async def preview_key(db: AsyncSession, tenant_id: UUID, page_id: UUID) -> str:
+    """미리볼 페이지 주소 (T-244) — 휴지통 페이지는 404."""
+    return (await _get(db, tenant_id, page_id)).page_key
 
 
 async def public_redirects(db: AsyncSession, tenant_id: UUID) -> dict[str, str]:

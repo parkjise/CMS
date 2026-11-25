@@ -669,6 +669,71 @@ class TestPublicSite:
         assert "event" not in pages
 
 
+class TestPagePreview:
+    """페이지 미리보기 (T-244, PM-06) — 숨김 페이지도 관리자 미리보기 주소로만"""
+
+    async def _draft_pages(self, client: AsyncClient, slug: str, token: str) -> dict:
+        resp = await client.get(f"/api/public/site/{slug}/draft/{token}")
+        assert resp.status_code == 200, resp.text
+        return {p["page_key"]: p for p in resp.json()["data"]["pages"]}
+
+    async def test_hidden_page_only_in_its_preview(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        hidden = (
+            await _create(client, auth_headers, "secret", is_public=False)
+        ).json()["data"]
+        await _create(client, auth_headers, "draft2", is_public=False)
+        resp = await client.post(f"{_URL}/{hidden['id']}/preview", headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert (data["page_key"], data["expires_in"]) == ("secret", 600)
+
+        pages = await self._draft_pages(client, pages_on["slug"], data["token"])
+        # 미리보는 페이지만 숨김 표시 그대로 — 다른 숨김 페이지는 없다
+        assert pages["secret"]["is_public"] is False
+        assert "draft2" not in pages
+        # 실제 홈페이지에는 없다
+        public = (await client.get(f"/api/public/site/{pages_on['slug']}")).json()
+        assert "secret" not in {p["page_key"] for p in public["data"]["pages"]}
+
+    async def test_section_preview_includes_hidden_page(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        """숨김 페이지 섹션의 [미리보기]도 그 페이지를 함께 보낸다"""
+        await _create(client, auth_headers, "secret", is_public=False)
+        sid = await _add_section(pages_on["id"], "secret")
+        resp = await client.post(
+            f"/api/v1/sections/{sid}/preview",
+            headers=auth_headers,
+            json={"settings": [{"field_key": "main_title", "field_value": "새"}]},
+        )
+        assert resp.status_code == 200, resp.text
+        token = resp.json()["data"]["token"]
+        pages = await self._draft_pages(client, pages_on["slug"], token)
+        assert "secret" in pages
+
+    async def test_trashed_and_other_tenant_404(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        pages_on: dict,
+        tenant_b_headers: dict,  # noqa: F811
+    ):
+        page = (await _create(client, auth_headers, "gone")).json()["data"]
+        resp = await client.post(
+            f"{_URL}/{page['id']}/preview", headers=tenant_b_headers
+        )
+        assert resp.status_code == 404
+        await client.delete(f"{_URL}/{page['id']}", headers=auth_headers)
+        resp = await client.post(f"{_URL}/{page['id']}/preview", headers=auth_headers)
+        assert resp.status_code == 404
+
+    async def test_requires_login(self, client: AsyncClient):
+        resp = await client.post(f"{_URL}/{uuid.uuid4()}/preview")
+        assert resp.status_code == 401
+
+
 class TestPageSections:
     """직접 만든 페이지에 섹션 추가 (T-241)"""
 

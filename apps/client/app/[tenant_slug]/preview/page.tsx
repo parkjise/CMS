@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react'
 import { notFound } from 'next/navigation'
 import { fetchPublicSite, fetchSectionDraft, fetchTemplatePreview } from '@/lib/publicSite'
-import type { PublicSite } from '@/lib/publicSite.types'
+import { customPages, type PublicPage, type PublicSite, withPreviewPage } from '@/lib/publicSite.types'
 import { boardPageKey } from '@/lib/publicPosts'
 import { buildCssVarBody } from '@/lib/theme'
-import { hiddenInThemeCount, themeHomeSections } from '@/lib/themeSections'
+import { hiddenInThemeCount, themeHomeSections, themePageSections } from '@/lib/themeSections'
 import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
@@ -99,8 +99,8 @@ interface DraftProps {
 
 /** 저장하지 않은 섹션 설정을 덮어 지금 템플릿으로 그린다 (T-206). 토큰은 10분 */
 async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query }: DraftProps) {
-  const site = await fetchSectionDraft(tenantSlug, token)
-  if (!site) {
+  const draftSite = await fetchSectionDraft(tenantSlug, token)
+  if (!draftSite) {
     return (
       <>
         <PreviewBanner draft />
@@ -112,11 +112,14 @@ async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query
       </>
     )
   }
+  const key = pageKey ?? 'home'
+  // 미리보는 페이지는 숨김이어도 보인다 (T-244) — 직접 만든 페이지도 함께
+  const site = withPreviewPage(draftSite, key)
+  const custom = customPages(site).find((pg) => pg.page_key === key)
   const codeTemplate = site.template?.code ? findCodeTemplate(site.template.code) : undefined
   if (codeTemplate) {
-    const key = pageKey ?? 'home'
     const board = site.boards?.find((b) => boardPageKey(b.slug) === key)
-    if (!board && !codeTemplate.manifest.pages.some((pg) => pg.key === key)) {
+    if (!board && !custom && !codeTemplate.manifest.pages.some((pg) => pg.key === key)) {
       notFound()
     }
     return (
@@ -137,8 +140,11 @@ async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query
       </>
     )
   }
-  // 테마형은 지금 템플릿 CSS 가 레이아웃에 이미 있다
-  return <ThemePreview site={site} tenantSlug={tenantSlug} banner={<PreviewBanner draft />} />
+  // 테마형은 지금 템플릿 CSS 가 레이아웃에 이미 있다. 직접 만든 페이지면 그 페이지를 (T-240 화면)
+  if (key !== 'home' && !custom) notFound()
+  return (
+    <ThemePreview site={site} tenantSlug={tenantSlug} banner={<PreviewBanner draft />} page={custom} />
+  )
 }
 
 interface ThemePreviewProps {
@@ -147,11 +153,14 @@ interface ThemePreviewProps {
   banner: ReactNode
   /** 미리보는 템플릿 CSS — 부모 레이아웃의 현재 템플릿 위에 덮어쓴다 */
   cssVarBody?: string
+  /** 직접 만든 페이지 미리보기 (T-244) — 없으면 홈 */
+  page?: PublicPage
 }
 
-function ThemePreview({ site, tenantSlug, banner, cssVarBody }: ThemePreviewProps) {
+function ThemePreview({ site, tenantSlug, banner, cssVarBody, page }: ThemePreviewProps) {
   // 홈 페이지의 그릴 수 있는 섹션만 — 메뉴가 넘치거나 하위 페이지 섹션이 섞이지 않게 (T-057-A)
-  const activeSections = themeHomeSections(site.sections, site.boards)
+  const homeSections = themeHomeSections(site.sections, site.boards)
+  const activeSections = page ? themePageSections(site.sections, page.page_key) : homeSections
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">
@@ -164,9 +173,16 @@ function ThemePreview({ site, tenantSlug, banner, cssVarBody }: ThemePreviewProp
       {banner}
 
       {/* 편집 UI(EditToolbar·FloatingButtons) 없이 순수 미리보기만 렌더링 */}
-      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} menuTree={site.site_settings?.menu_tree} sections={activeSections} />
+      <Navbar tenantName={site.tenant.name} logoUrl={site.site_settings?.logo_url} menuItems={site.site_settings?.menu_items} menuTree={site.site_settings?.menu_tree} sections={homeSections} />
 
       <main className="flex-1">
+        {page && (
+          <header className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-6 py-14 text-center md:py-20">
+            <h1 className="text-2xl font-bold text-[color:var(--color-text-primary)] md:text-4xl">
+              {page.title}
+            </h1>
+          </header>
+        )}
         {activeSections.length === 0 ? (
           <section className="px-6 py-24 text-center">
             <p className="text-base text-[color:var(--color-text-muted)]">

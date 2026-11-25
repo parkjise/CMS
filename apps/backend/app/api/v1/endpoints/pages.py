@@ -21,7 +21,9 @@ from app.schemas.page import (
     PageUpdate,
     PageUsageResponse,
 )
+from app.schemas.section import SectionPreviewResponse
 from app.services import page as page_service
+from app.services import section_draft
 
 router = APIRouter(prefix="/pages", tags=["pages"])
 
@@ -124,6 +126,28 @@ async def page_usage(
     """이 페이지를 가리키는 메뉴 · 섹션 링크 (T-242) — 지우기 · 주소 변경 전 안내."""
     found = await page_service.usage(db, tenant_id, page_id)
     return ApiResponse.ok(PageUsageResponse.model_validate(found))
+
+
+@router.post("/{page_id}/preview", response_model=ApiResponse[SectionPreviewResponse])
+async def preview_page(
+    page_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """페이지 미리보기 (T-244, PM-06) — 숨김 페이지도 10분 동안 관리자만 보는 주소로.
+
+    스위치와 상관없이 기본 페이지도 미리볼 수 있다. 직접 만든 페이지는 스위치가 꺼지면
+    홈페이지가 그리지 않는다.
+    """
+    page_key = await page_service.preview_key(db, tenant_id, page_id)
+    token = await section_draft.create_page_preview(tenant_id, page_key)
+    return ApiResponse.ok(
+        SectionPreviewResponse(
+            token=token,
+            page_key=page_key,
+            expires_in=section_draft.DRAFT_TTL_SECONDS,
+        )
+    )
 
 
 @router.delete("/{page_id}", response_model=ApiResponse[None], dependencies=_feature)

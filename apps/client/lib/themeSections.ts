@@ -81,6 +81,12 @@ export const themeHomeSections = (
       !lacksBoard(s, boards),
   )
 
+/** 테마형 서브 페이지 (T-240) — 그 페이지의 켜진 · 그릴 수 있는 섹션을 순서대로 */
+export const themePageSections = (sections: PublicSection[], pageKey: string): PublicSection[] =>
+  sections
+    .filter((s) => s.page_key === pageKey && s.is_active && isThemeRenderable(s))
+    .sort((a, b) => a.display_order - b.display_order)
+
 /** 노출 중이지만 이 템플릿에서는 보이지 않는 섹션 수 — 미리보기 안내용 */
 export const hiddenInThemeCount = (sections: PublicSection[]): number =>
   sections.filter((s) => s.is_active).length - themeHomeSections(sections).length

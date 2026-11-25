@@ -48,15 +48,31 @@ async def create_draft(
             current=current,
         )
 
-    token = secrets.token_urlsafe(24)
     payload = {
         "tenant_id": str(tenant_id),
         "section_id": str(section_id),
         "settings": [s.model_dump() for s in settings],
+        "page_key": section.page_key,
     }
+    return await _store(payload), section.page_key
+
+
+async def create_page_preview(tenant_id: UUID, page_key: str) -> str:
+    """페이지 미리보기 (T-244) — 바꾼 설정 없이 그 페이지를 숨김이어도 보여 준다."""
+    payload: dict = {
+        "tenant_id": str(tenant_id),
+        "section_id": None,
+        "settings": [],
+        "page_key": page_key,
+    }
+    return await _store(payload)
+
+
+async def _store(payload: dict) -> str:
+    token = secrets.token_urlsafe(24)
     redis = await get_redis()
     await redis.setex(_key(token), DRAFT_TTL_SECONDS, json.dumps(payload))
-    return token, section.page_key
+    return token
 
 
 async def load_draft(token: str) -> dict | None:

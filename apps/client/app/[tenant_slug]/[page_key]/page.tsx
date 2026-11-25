@@ -11,7 +11,7 @@ import { customPages, memberEnabled, type PublicSite } from '@/lib/publicSite.ty
 import { countSampleSettings } from '@/lib/sampleCount'
 import { canonicalMeta, pageSeoMeta } from '@/lib/seoMeta'
 import { CUSTOM_HOST_HEADER } from '@/lib/siteHost'
-import { isThemeRenderable, themeHomeSections } from '@/lib/themeSections'
+import { themeHomeSections, themePageSections } from '@/lib/themeSections'
 import { usesCodeTemplate } from '@/templates/manifests'
 import { TemplateSwitching } from '@/templates/shared/TemplateSwitching'
 
@@ -51,10 +51,7 @@ export default async function ThemeCustomPage({ params }: Props) {
   if (usesCodeTemplate(site)) return <TemplateSwitching />
   const noSlug = Boolean((await headers()).get(CUSTOM_HOST_HEADER))
 
-  // 이 페이지의 켜진 · 테마형이 그릴 수 있는 섹션을 순서대로
-  const sections = site.sections
-    .filter((s) => s.page_key === page_key && s.is_active && isThemeRenderable(s))
-    .sort((a, b) => a.display_order - b.display_order)
+  const sections = themePageSections(site.sections, page_key)
 
   return (
     <div className="flex min-h-screen flex-col bg-[var(--color-background)]">

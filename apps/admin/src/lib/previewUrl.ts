@@ -34,6 +34,13 @@ export function buildSectionDraftUrl(
   return `${base}/${encodeURIComponent(tenantSlug)}/preview?draft=${encodeURIComponent(token)}${page}`
 }
 
+/** 공개 홈페이지의 페이지 주소 (T-244) — 로그인돼 있으면 거기서 편집 모드 */
+export function buildSitePageUrl(tenantSlug: string, pageKey: string): string {
+  const base = CLIENT_BASE_URL.replace(/\/$/, '')
+  const page = pageKey && pageKey !== 'home' ? `/${encodeURIComponent(pageKey)}` : ''
+  return `${base}/${encodeURIComponent(tenantSlug)}${page}`
+}
+
 /** 미리보기 URL을 새 탭에서 연다 (noopener). */
 export function openTemplatePreview(
   tenantSlug: string,
