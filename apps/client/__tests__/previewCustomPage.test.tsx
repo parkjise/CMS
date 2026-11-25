@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import type { PublicPage, PublicSection, PublicSite } from '@/lib/publicSite.types'
 
 // 관리자 미리보기 — 직접 만든 페이지 · 숨김 페이지 (T-244, 페이지 관리 기획서 PM-06)
@@ -33,6 +33,7 @@ vi.mock('@/components/sections/SectionRenderer', () => ({
 }))
 
 import TemplatePreviewPage from '@/app/[tenant_slug]/preview/page'
+import { previewDevice, previewDeviceHref } from '@/lib/previewDevice'
 
 const page = (key: string, over: Partial<PublicPage> = {}): PublicPage => ({
   page_key: key,
@@ -72,14 +73,21 @@ const site = (template: 'code' | 'theme', pages: PublicPage[], sections: PublicS
     pages,
   }) as unknown as PublicSite
 
-// 미리보기 화면은 비동기 SectionDraftPreview 요소를 돌려준다 — 한 번 더 풀어 그린다
+// 미리보기 화면은 [비동기 SectionDraftPreview 요소, 기기 폭 버튼] 을 돌려준다 — 앞쪽을 한 번 더 풀어 그린다
 type AsyncElement = { type: (props: unknown) => Promise<React.ReactElement>; props: unknown }
-const open = async (page?: string) => {
+type Wrapped = { props: { children: [AsyncElement, React.ReactElement] } }
+const open = async (page?: string, device?: string) => {
   const el = (await TemplatePreviewPage({
     params: Promise.resolve({ tenant_slug: 'demo' }),
-    searchParams: Promise.resolve({ draft: 'tok', page }),
-  })) as unknown as AsyncElement
-  return el.type(el.props)
+    searchParams: Promise.resolve({ draft: 'tok', page, device }),
+  })) as unknown as Wrapped
+  const [draft, devices] = el.props.children
+  return (
+    <>
+      {await draft.type(draft.props)}
+      {devices}
+    </>
+  )
 }
 
 beforeEach(() => vi.clearAllMocks())
@@ -124,5 +132,42 @@ describe('관리자 미리보기 — 직접 만든 페이지 (T-244)', () => {
     render(await open())
     expect(screen.queryByRole('heading', { level: 1 })).toBeNull()
     expect(screen.getAllByTestId('section').map((el) => el.textContent)).toEqual(['home-intro'])
+  })
+})
+
+describe('미리보기 기기 폭 (T-246, PM-03)', () => {
+  it('PC 미리보기 아래에 PC · 태블릿 · 휴대폰 — 지금 주소 그대로 device 만 바꾼다', async () => {
+    fetchSectionDraft.mockResolvedValue(site('code', [page('event')]))
+    render(await open('event'))
+    const nav = screen.getByRole('navigation', { name: '미리보기 기기 폭' })
+    expect(within(nav).getByRole('link', { name: 'PC' })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('link', { name: '휴대폰' })).toHaveAttribute(
+      'href',
+      '?draft=tok&page=event&device=mobile',
+    )
+  })
+
+  it('휴대폰 · 태블릿은 그 폭 틀 안에 같은 미리보기(device 없이), 내용은 틀 안에서 읽는다', async () => {
+    const el = await TemplatePreviewPage({
+      params: Promise.resolve({ tenant_slug: 'demo' }),
+      searchParams: Promise.resolve({ draft: 'tok', page: 'event', device: 'mobile' }),
+    })
+    render(el)
+    const frame = screen.getByTitle('휴대폰 폭 미리보기')
+    expect(frame).toHaveAttribute('src', '?draft=tok&page=event')
+    expect(frame.className).toContain('w-[390px]')
+    expect(screen.getByRole('link', { name: '휴대폰' })).toHaveAttribute('aria-current', 'page')
+    expect(screen.getByRole('link', { name: '태블릿' })).toHaveAttribute(
+      'href',
+      '?draft=tok&page=event&device=tablet',
+    )
+    expect(fetchSectionDraft).not.toHaveBeenCalled()
+  })
+
+  it('모르는 device 값은 PC', () => {
+    expect(previewDevice('watch')).toBe('pc')
+    expect(previewDevice(undefined)).toBe('pc')
+    expect(previewDevice('tablet')).toBe('tablet')
+    expect(previewDeviceHref({ tpl: 'A', device: 'tablet', x: ['a', 'b'] }, 'pc')).toBe('?tpl=A')
   })
 })
