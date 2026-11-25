@@ -7,7 +7,7 @@ import { SectionList } from '@/components/content/SectionList'
 import { type SectionLimits, useSectionLimits, useSections } from '@/hooks/useSections'
 
 interface PageSectionsProps {
-  /** 이 페이지의 섹션만 (T-238) — 섹션 추가는 아직 홈만 (직접 만든 페이지는 T-241) */
+  /** 이 페이지의 섹션만 (T-238) — 섹션 추가 · 삭제 한도도 이 페이지 것 (T-241) */
   pageKey: string
 }
 
@@ -18,12 +18,7 @@ export function PageSections({ pageKey }: PageSectionsProps) {
 
   return (
     <ReadOnlyFieldset>
-      <SectionsTab
-        sections={sections}
-        isLoading={isLoading}
-        isError={isError}
-        canAdd={pageKey === 'home'}
-      />
+      <SectionsTab sections={sections} isLoading={isLoading} isError={isError} pageKey={pageKey} />
     </ReadOnlyFieldset>
   )
 }
@@ -31,23 +26,18 @@ export function PageSections({ pageKey }: PageSectionsProps) {
 // ── 섹션 관리 탭 ─────────────────────────────────────────────────────────
 
 interface SectionsTabProps {
-  sections: ReturnType<typeof useSections>['data'] extends infer T
-    ? NonNullable<T>
-    : never
+  sections: ReturnType<typeof useSections>['data'] extends infer T ? NonNullable<T> : never
   isLoading: boolean
   isError: boolean
-  canAdd: boolean
+  pageKey: string
 }
 
-function SectionsTab({ sections, isLoading, isError, canAdd }: SectionsTabProps) {
+function SectionsTab({ sections, isLoading, isError, pageKey }: SectionsTabProps) {
   if (isLoading) {
     return (
       <ul className="space-y-2">
         {[0, 1, 2, 3, 4].map((i) => (
-          <li
-            key={i}
-            className="h-16 animate-pulse rounded-lg border border-slate-200 bg-white"
-          />
+          <li key={i} className="h-16 animate-pulse rounded-lg border border-slate-200 bg-white" />
         ))}
       </ul>
     )
@@ -61,19 +51,20 @@ function SectionsTab({ sections, isLoading, isError, canAdd }: SectionsTabProps)
     )
   }
 
-  return <SectionsWithLimits sections={sections} canAdd={canAdd} />
+  return <SectionsWithLimits sections={sections} pageKey={pageKey} />
 }
 
 // ── 섹션 추가 · 삭제 (기획서 AD-02 · 3.2, T-037-A) ─────────────────────────
 
 function SectionsWithLimits({
   sections,
-  canAdd,
+  pageKey,
 }: {
   sections: SectionsTabProps['sections']
-  canAdd: boolean
+  pageKey: string
 }) {
-  const { data: limits } = useSectionLimits()
+  // 스위치가 꺼진 직접 페이지는 한도가 404 — 추가 막대 없이 목록만
+  const { data: limits } = useSectionLimits(pageKey)
   const [adding, setAdding] = useState(false)
 
   return (
@@ -82,14 +73,19 @@ function SectionsWithLimits({
         sections={sections}
         canDelete={limits?.can_delete ?? false}
         emptyText={
-          canAdd
+          pageKey === 'home'
             ? undefined
-            : '이 페이지에는 아직 섹션이 없어요. 직접 만든 페이지에 섹션을 넣는 기능은 준비 중이에요.'
+            : '이 페이지에는 아직 섹션이 없어요. 아래에서 추가해 주세요.'
         }
       />
-      {limits && canAdd && <AddSectionBar limits={limits} onAdd={() => setAdding(true)} />}
-      {limits && canAdd && (
-        <AddSectionModal open={adding} limits={limits} onClose={() => setAdding(false)} />
+      {limits && <AddSectionBar limits={limits} onAdd={() => setAdding(true)} />}
+      {limits && (
+        <AddSectionModal
+          open={adding}
+          limits={limits}
+          pageKey={pageKey}
+          onClose={() => setAdding(false)}
+        />
       )}
     </div>
   )

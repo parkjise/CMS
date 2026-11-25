@@ -115,9 +115,11 @@ async def other_board(client) -> AsyncIterator[dict]:
 class TestAddSection:
     async def test_addable_and_starts_without_board(self, client, auth_headers, tenant):
         limits = (await client.get(f"{SECTIONS}/limits", headers=auth_headers)).json()
-        assert {"section_type": "BOARD_LATEST", "label": "최신 글"} in limits["data"][
-            "addable_types"
-        ]
+        assert {
+            "section_type": "BOARD_LATEST",
+            "label": "최신 글",
+            "variant": None,
+        } in limits["data"]["addable_types"]
         resp = await client.post(
             SECTIONS, json={"section_type": "BOARD_LATEST"}, headers=auth_headers
         )

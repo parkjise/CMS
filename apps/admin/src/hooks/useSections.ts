@@ -101,9 +101,7 @@ export function useToggleSection() {
       if (previous) {
         queryClient.setQueryData<Section[]>(
           SECTIONS_QUERY_KEY,
-          previous.map((s) =>
-            s.id === sectionId ? { ...s, is_active: !s.is_active } : s
-          )
+          previous.map((s) => (s.id === sectionId ? { ...s, is_active: !s.is_active } : s))
         )
       }
       return { previous }
@@ -130,27 +128,35 @@ export interface SectionLimits {
   can_delete: boolean
   /** 추가 · 삭제를 못 하는 이유 (요금제 고정 · 한도 · 코드형 템플릿) */
   reason: string | null
-  addable_types: Array<{ section_type: string; label: string }>
+  /** variant — 코드형 직접 페이지의 사진+글 배치 (T-241), 추가할 때 그대로 보낸다 */
+  addable_types: Array<{ section_type: string; label: string; variant?: string | null }>
 }
 
-const LIMITS_QUERY_KEY = ['sections', 'limits'] as const
-
-/** 요금제 판단은 서버가 한다 — 화면은 can_add · can_delete · reason 만 따른다 */
-export function useSectionLimits() {
+/** 요금제 판단은 서버가 한다 — 화면은 can_add · can_delete · reason 만 따른다. 페이지마다 (T-241) */
+export function useSectionLimits(pageKey = 'home') {
   return useQuery({
-    queryKey: LIMITS_QUERY_KEY,
+    queryKey: ['sections', 'limits', pageKey],
     queryFn: async (): Promise<SectionLimits> => {
-      const { data } = await api.get('/v1/sections/limits')
+      const { data } = await api.get('/v1/sections/limits', { params: { page_key: pageKey } })
       return data.data
     },
     staleTime: 60 * 1000,
+    // 스위치가 꺼진 직접 페이지는 404 — 추가 막대만 숨긴다
+    meta: { suppressGlobalError: true },
+    retry: false,
   })
 }
 
 export function useCreateSection() {
   const queryClient = useQueryClient()
   return useMutation({
-    mutationFn: async (body: { section_type: string; label?: string }) => {
+    mutationFn: async (body: {
+      section_type: string
+      label?: string
+      /** 넣을 페이지 (T-241) — 없으면 홈 */
+      page_key?: string
+      variant?: string | null
+    }) => {
       const { data } = await api.post('/v1/sections', body)
       return data.data as Section
     },

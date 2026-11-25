@@ -4,8 +4,12 @@
 - STANDARD: 홈 섹션 10개까지 / PREMIUM: 무제한
 - 한도는 서버에서 강제한다 (오픈 이슈 #6 — 화면 제한만으로는 API 직접 호출을 못 막음)
 - 코드형 템플릿은 매니페스트의 정해진 구성으로 그려져 추가 · 삭제가 의미 없다 → 숨기기만
+- 직접 만든 페이지(T-241)는 코드형 · 테마형 모두 추가 · 삭제 — 한도는 페이지마다
+  같은 값. 코드형은 템플릿 샘플의 서브 페이지 섹션(상단 비주얼 · 사진+글 배치 ·
+  연혁 · 오시는 길)을 샘플 값 그대로 넣는다
 """
 
+import json
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -14,6 +18,8 @@ from uuid import UUID
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.template_samples import load_sample
+from app.models.page import Page
 from app.models.section import Section, SectionSetting
 from app.models.template import Template, TenantTemplateOverride
 from app.models.tenant import Tenant
@@ -78,6 +84,17 @@ class SectionTypeError(ValueError):
     """지원하지 않는 섹션 종류 · 템플릿 — 400."""
 
 
+class PageNotFoundError(LookupError):
+    """섹션을 넣을 페이지가 없다 (지운 · 없는 · 스위치 꺼짐) — 404."""
+
+
+PAGES_FEATURE = "CUSTOM_PAGES"
+# 코드형 직접 페이지에 넣지 않는 섹션 — 메인 전용 · 게시판(공지 · 상담 · 예약 화면 전용)
+CODE_PAGE_EXCLUDED = frozenset(
+    {"HERO_SLIDER", "INTRO", "SERVICES", "VIDEO_PLAYLIST", "NOTICE_LATEST", "BOARD"}
+)
+
+
 @dataclass
 class SectionLimits:
     plan_type: str
@@ -86,7 +103,7 @@ class SectionLimits:
     can_add: bool
     can_delete: bool
     reason: str | None
-    addable_types: list[dict[str, str]] = field(default_factory=list)
+    addable_types: list[dict] = field(default_factory=list)
 
 
 async def _plan_type(db: AsyncSession, tenant_id: UUID) -> str:
@@ -94,40 +111,137 @@ async def _plan_type(db: AsyncSession, tenant_id: UUID) -> str:
     return tenant.plan_type if tenant else "BASIC"
 
 
-async def _uses_code_template(db: AsyncSession, tenant_id: UUID) -> bool:
+async def _code_template(db: AsyncSession, tenant_id: UUID) -> str | None:
+    """코드형 템플릿이면 그 코드(없으면 ''), 테마형이면 None"""
     row = await db.execute(
-        select(Template.renderer)
+        select(Template.renderer, Template.code)
         .join(TenantTemplateOverride, TenantTemplateOverride.template_id == Template.id)
         .where(TenantTemplateOverride.tenant_id == tenant_id)
     )
-    return row.scalar_one_or_none() == "code"
+    found = row.first()
+    if found is None or found.renderer != "code":
+        return None
+    return found.code or ""
 
 
-async def _home_count(db: AsyncSession, tenant_id: UUID) -> int:
+async def _uses_code_template(db: AsyncSession, tenant_id: UUID) -> bool:
+    return await _code_template(db, tenant_id) is not None
+
+
+async def _page_count(db: AsyncSession, tenant_id: UUID, page_key: str) -> int:
     result = await db.execute(
         select(func.count())
         .select_from(Section)
         .where(
             Section.tenant_id == tenant_id,
-            Section.page_key == HOME_PAGE,
+            Section.page_key == page_key,
             Section.deleted_at.is_(None),
         )
     )
     return int(result.scalar_one())
 
 
-async def get_limits(db: AsyncSession, tenant_id: UUID) -> SectionLimits:
+async def _is_custom_page(db: AsyncSession, tenant_id: UUID, page_key: str) -> bool:
+    """섹션을 넣을 수 있는 직접 만든 페이지 — 스위치가 꺼졌으면 없다 (T-241)"""
+    if not await feature_service.is_enabled(db, tenant_id, PAGES_FEATURE):
+        return False
+    found = await db.execute(
+        select(Page.id).where(
+            Page.tenant_id == tenant_id,
+            Page.page_key == page_key,
+            Page.origin == "CUSTOM",
+            Page.deleted_at.is_(None),
+        )
+    )
+    return found.scalar() is not None
+
+
+# 사진+글 배치 이름 — 샘플 섹션 이름(브랜드 이야기 · 약속 …)은 내용이라 겹치고 낯설다
+LAYOUT_LABELS: dict[str, str] = {
+    "page-intro": "소개 문구",
+    "media-row": "사진 + 글",
+    "strength-list": "강점 목록",
+    "area-rows": "영역 소개",
+    "photo-gallery": "사진 모음",
+    "consult-links": "상담 안내",
+    "split-story": "좌우 이야기",
+    "split-story-reverse": "좌우 이야기 (반대)",
+    "milestone-split": "주요 이력",
+    "banner-split": "배너 + 글",
+    "criteria-cards": "기준 카드",
+    "value-circles": "가치 소개",
+}
+
+
+def _sample_value(value: object) -> tuple[str, str]:
+    if isinstance(value, str):
+        return value, "STRING"
+    return json.dumps(value, ensure_ascii=False), "JSON"
+
+
+def code_page_kinds(code: str) -> list[dict]:
+    """코드형 직접 페이지에 넣을 수 있는 섹션 — 샘플 서브 페이지 섹션, 배치마다 하나.
+
+    [{section_type, variant, label, settings}] — variant 는 사진+글 배치(layout),
+    없으면 None.
+    """
+    kinds: list[dict] = []
+    seen: set[tuple[str, str | None]] = set()
+    for page_key, sections in (load_sample(code).get("pages") or {}).items():
+        if page_key == HOME_PAGE:
+            continue
+        for sample in sections:
+            stype = sample.get("section_type")
+            settings = sample.get("settings") or {}
+            if stype in CODE_PAGE_EXCLUDED or not isinstance(settings, dict):
+                continue
+            variant = settings.get("layout") if stype == "CONTENT_BLOCK" else None
+            if (stype, variant) in seen:
+                continue
+            seen.add((stype, variant))
+            kinds.append(
+                {
+                    "section_type": stype,
+                    "variant": variant,
+                    "label": LAYOUT_LABELS.get(variant or "")
+                    or sample.get("label")
+                    or stype,
+                    "settings": settings,
+                }
+            )
+    return kinds
+
+
+async def get_limits(
+    db: AsyncSession, tenant_id: UUID, page_key: str = HOME_PAGE
+) -> SectionLimits:
+    """page_key 페이지의 섹션 한도 · 넣을 수 있는 종류 (없으면 PageNotFoundError)"""
     plan = await _plan_type(db, tenant_id)
-    count = await _home_count(db, tenant_id)
+    code = await _code_template(db, tenant_id)
+    custom = page_key != HOME_PAGE and await _is_custom_page(db, tenant_id, page_key)
+    if page_key != HOME_PAGE and not custom and code is None:
+        raise PageNotFoundError(page_key)
+    count = await _page_count(db, tenant_id, page_key)
     limit = SECTION_LIMITS.get(plan, SECTION_LIMITS["BASIC"])
     gallery_on = await feature_service.is_enabled(db, tenant_id, "GALLERY_SECTION")
-    types = [
-        {"section_type": t, "label": label}
-        for t, label in THEME_SECTION_TYPES.items()
-        if t != "GALLERY" or gallery_on
-    ]
+    if custom and code is not None:
+        types = [
+            {
+                "section_type": k["section_type"],
+                "label": k["label"],
+                "variant": k["variant"],
+            }
+            for k in code_page_kinds(code)
+        ]
+    else:
+        types = [
+            {"section_type": t, "label": label}
+            for t, label in THEME_SECTION_TYPES.items()
+            if t != "GALLERY" or gallery_on
+        ]
 
-    if await _uses_code_template(db, tenant_id):
+    # 코드형 템플릿 기본 페이지는 정해진 구성 — 직접 만든 페이지만 추가 · 삭제
+    if code is not None and not custom:
         return SectionLimits(plan, count, limit, False, False, CODE_TEMPLATE_MESSAGE)
     if plan in FIXED_PLANS or plan not in SECTION_LIMITS:
         return SectionLimits(plan, count, limit, False, False, PLAN_FIXED_MESSAGE)
@@ -140,12 +254,14 @@ async def get_limits(db: AsyncSession, tenant_id: UUID) -> SectionLimits:
     return SectionLimits(plan, count, limit, True, True, None, types)
 
 
-async def next_home_order(db: AsyncSession, tenant_id: UUID) -> int:
-    """홈 맨 아래 순서"""
+async def next_home_order(
+    db: AsyncSession, tenant_id: UUID, page_key: str = HOME_PAGE
+) -> int:
+    """그 페이지(기본 홈) 맨 아래 순서"""
     last = await db.execute(
         select(func.max(Section.display_order)).where(
             Section.tenant_id == tenant_id,
-            Section.page_key == HOME_PAGE,
+            Section.page_key == page_key,
             Section.deleted_at.is_(None),
         )
     )
@@ -159,8 +275,13 @@ async def add_starter_section(
     section_type: str,
     label: str,
     display_order: int,
+    page_key: str = HOME_PAGE,
+    settings: dict | None = None,
 ) -> UUID:
-    """시작 문구(샘플 표시)가 든 홈 섹션 하나 — commit 은 호출한 쪽에서."""
+    """시작 문구(샘플 표시)가 든 섹션 하나 — commit 은 호출한 쪽에서.
+
+    settings 를 주면(코드형 샘플 값) 테마형 시작 문구 대신 그 값을 넣는다.
+    """
     now = datetime.now(UTC)
     section_id = uuid.uuid4()
     db.add(
@@ -171,12 +292,20 @@ async def add_starter_section(
             label=label,
             display_order=display_order,
             is_active=True,
-            page_key=HOME_PAGE,
+            page_key=page_key,
             created_at=now,
             updated_at=now,
         )
     )
-    for key, value in STARTER_SETTINGS.get(section_type, {}).items():
+    starter: dict[str, tuple[str, str]] = (
+        {key: _sample_value(value) for key, value in settings.items()}
+        if settings is not None
+        else {
+            key: (value, "JSON" if value.startswith("[") else "STRING")
+            for key, value in STARTER_SETTINGS.get(section_type, {}).items()
+        }
+    )
+    for key, (value, value_type) in starter.items():
         db.add(
             SectionSetting(
                 id=uuid.uuid4(),
@@ -184,7 +313,7 @@ async def add_starter_section(
                 section_id=section_id,
                 field_key=key,
                 field_value=value,
-                value_type="JSON" if value.startswith("[") else "STRING",
+                value_type=value_type,
                 is_sample=True,
                 created_at=now,
                 updated_at=now,
@@ -198,19 +327,43 @@ async def add_section(
     tenant_id: UUID,
     section_type: str,
     label: str | None,
+    page_key: str = HOME_PAGE,
+    variant: str | None = None,
 ) -> UUID:
-    limits = await get_limits(db, tenant_id)
+    limits = await get_limits(db, tenant_id, page_key)
     if not limits.can_add:
         raise SectionLimitError(limits.reason or "PLAN_LIMIT_EXCEEDED")
-    if section_type not in THEME_SECTION_TYPES:
+    kind = next(
+        (
+            t
+            for t in limits.addable_types
+            if t["section_type"] == section_type and t.get("variant") == variant
+        ),
+        None,
+    )
+    if kind is None:
         raise SectionTypeError("이 템플릿에서 쓸 수 없는 섹션 종류입니다.")
 
-    name = (label or "").strip() or THEME_SECTION_TYPES[section_type]
+    name = (label or "").strip() or kind["label"]
     if len(name) > LABEL_MAX_LEN:
         raise SectionTypeError(f"섹션 이름은 {LABEL_MAX_LEN}자 이하여야 합니다.")
 
+    code = await _code_template(db, tenant_id)
+    settings = None
+    if code is not None:
+        settings = next(
+            k["settings"]
+            for k in code_page_kinds(code)
+            if k["section_type"] == section_type and k["variant"] == variant
+        )
     section_id = await add_starter_section(
-        db, tenant_id, section_type, name, await next_home_order(db, tenant_id)
+        db,
+        tenant_id,
+        section_type,
+        name,
+        await next_home_order(db, tenant_id, page_key),
+        page_key=page_key,
+        settings=settings,
     )
     await db.commit()
     await site_cache.purge_site(db, tenant_id)
@@ -230,7 +383,11 @@ async def delete_section(db: AsyncSession, tenant_id: UUID, section_id: UUID) ->
     if section is None:
         return False
 
-    limits = await get_limits(db, tenant_id)
+    try:
+        limits = await get_limits(db, tenant_id, section.page_key)
+    except PageNotFoundError:
+        # 지운 · 스위치 꺼진 직접 페이지의 섹션 — 고칠 곳이 없으니 지우지도 않는다
+        raise SectionLimitError(PLAN_FIXED_MESSAGE) from None
     if not limits.can_delete:
         raise SectionLimitError(limits.reason or "PLAN_LIMIT_EXCEEDED")
 
