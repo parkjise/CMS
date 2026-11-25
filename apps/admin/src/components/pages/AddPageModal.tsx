@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Button, Input, Modal, toast } from '@cms/ui'
-import { type Page, useCreatePage, useDuplicatePage } from '@/hooks/usePages'
+import { type Page, useCreatePage, useDuplicatePage, usePageRecipes } from '@/hooks/usePages'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { pageKeyError, parentOptions } from '@/lib/pageKey'
 import { usePageKeyProblem } from '@/hooks/usePageKeyProblem'
@@ -15,13 +15,13 @@ interface AddPageModalProps {
   onCreated: (page: Page) => void
 }
 
-type Start = 'blank' | 'copy'
+type Start = 'blank' | 'recipe' | 'copy'
 
 /** 서버 오류가 어느 칸 것인지 — field 가 page_key 면 주소 칸에 */
 const fieldOf = (err: unknown): string | undefined =>
   (err as { response?: { data?: { error?: { field?: string } } } })?.response?.data?.error?.field
 
-/** 페이지 추가 (PM-02) — 빈 페이지 또는 기존 페이지 복제. 자세한 설정은 만든 뒤 설정 탭에서 */
+/** 페이지 추가 (PM-02) — 빈 페이지 · 추천 구성(T-247) · 기존 페이지 복제. 자세한 설정은 만든 뒤 설정 탭에서 */
 export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddPageModalProps) {
   const create = useCreatePage()
   const duplicate = useDuplicatePage()
@@ -30,6 +30,9 @@ export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddP
   const [parent, setParent] = useState('')
   const [start, setStart] = useState<Start>('blank')
   const [sourceId, setSourceId] = useState('')
+  const [recipeKey, setRecipeKey] = useState('')
+  const recipes = usePageRecipes(open).data ?? []
+  const recipe = recipes.find((r) => r.key === recipeKey) ?? recipes[0]
   const [errors, setErrors] = useState<{ title?: string; key?: string }>({})
   const keyProblem = usePageKeyProblem(key)
 
@@ -40,6 +43,7 @@ export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddP
     setParent('')
     setStart(copyFrom ? 'copy' : 'blank')
     setSourceId(copyFrom?.id ?? pages[0]?.id ?? '')
+    setRecipeKey('')
     setErrors({})
   }, [open, copyFrom, pages])
 
@@ -68,7 +72,13 @@ export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddP
     } else {
       create.mutate(
         // 숨김으로 만들어 내용을 채운 뒤 공개로 바꾼다 (기획서 PART C 4번 #5)
-        { title: title.trim(), page_key: key, parent_key: parent || undefined, is_public: false },
+        {
+          title: title.trim(),
+          page_key: key,
+          parent_key: parent || undefined,
+          is_public: false,
+          recipe: start === 'recipe' ? recipe?.key : undefined,
+        },
         done
       )
     }
@@ -106,10 +116,12 @@ export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddP
 
         <fieldset className="space-y-2">
           <legend className="mb-1 text-sm font-medium text-slate-700">시작 방식</legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {(
               [
                 ['blank', '빈 페이지'],
+                // 지금 템플릿에 추천 구성이 없으면 고를 수 없다
+                ...(recipes.length > 0 ? [['recipe', '추천 구성'] as const] : []),
                 ['copy', '기존 페이지 복제'],
               ] as const
             ).map(([value, label]) => (
@@ -153,6 +165,29 @@ export function AddPageModal({ open, pages, copyFrom, onClose, onCreated }: AddP
           </div>
         ) : (
           <div className="space-y-1.5">
+            {start === 'recipe' && recipe && (
+              <div className="mb-3 space-y-1.5">
+                <label htmlFor="page-recipe" className="text-sm font-medium text-slate-700">
+                  구성 고르기
+                </label>
+                <select
+                  id="page-recipe"
+                  value={recipe.key}
+                  onChange={(e) => setRecipeKey(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-sm"
+                >
+                  {recipes.map((r) => (
+                    <option key={r.key} value={r.key}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-slate-500" data-testid="recipe-sections">
+                  섹션 {recipe.sections.length}개: {recipe.sections.join(' · ')} — 예시 문구로
+                  채워져요.
+                </p>
+              </div>
+            )}
             <label htmlFor="page-parent" className="text-sm font-medium text-slate-700">
               상위 페이지 (메뉴 묶음)
             </label>
