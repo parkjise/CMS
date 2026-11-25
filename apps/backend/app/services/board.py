@@ -1499,6 +1499,49 @@ async def list_public_posts(
     return list(result.scalars().all()), total, has_posts
 
 
+async def list_section_posts(
+    db: AsyncSession,
+    board: Board,
+    *,
+    size: int,
+    sort: str = "latest",
+    category_id: UUID | None = None,
+) -> list[BoardPost]:
+    """게시판 연결 섹션의 글 (T-243) — 공개 글 중 비밀글은 빼고.
+
+    sort: latest 최신순 · oldest 오래된 순 · board 게시판 목록 순서(상단 고정 먼저)
+    """
+    conditions = [*_public_conditions(board), BoardPost.is_secret.is_(False)]
+    if category_id:
+        conditions.append(category_service.post_in_category(category_id))
+    orders: dict[str, list[UnaryExpression]] = {
+        "oldest": [BoardPost.published_at.asc(), BoardPost.id.asc()],
+        "board": _list_order(board),
+    }
+    order = orders.get(sort, _public_order(latest=True))
+    result = await db.execute(
+        select(BoardPost).where(*conditions).order_by(*order).limit(size)
+    )
+    return list(result.scalars().all())
+
+
+def section_post_item(
+    post: BoardPost, list_fields: list[BoardField], *, with_body: bool
+) -> dict:
+    """연결 섹션의 글 한 줄 — 제목 · 본문 요약 · 첫 사진 · 공개일 (고정 매핑)."""
+    blocks = post.body or []
+    return {
+        "id": post.id,
+        "title": post.title,
+        "published_at": post.published_at,
+        "category_id": post.category_id,
+        "summary": body_summary(blocks, CARD_SUMMARY_LIMIT),
+        "thumbnail": first_image(blocks),
+        "body": blocks if with_body else None,
+        "fields": field_service.field_values(list_fields, post.custom_data or {}),
+    }
+
+
 async def get_public_post(
     db: AsyncSession, board: Board, post_id: UUID
 ) -> tuple[BoardPost, UUID | None, UUID | None] | None:

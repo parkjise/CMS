@@ -31,6 +31,7 @@ from app.core.deps import (
 from app.models.board import Board, BoardCategory, BoardField, BoardPost
 from app.models.user import User
 from app.schemas.board import (
+    BoardContentPreset,
     BoardCreate,
     BoardLimitsResponse,
     BoardPresetField,
@@ -38,6 +39,7 @@ from app.schemas.board import (
     BoardResponse,
     BoardRestoreResponse,
     BoardUpdate,
+    BoardUsageSection,
     CategoryCreate,
     CategoryMergeRequest,
     CategoryMergeResponse,
@@ -88,6 +90,7 @@ from app.schemas.board import (
     PublicPostItem,
     PublicPostListResponse,
     PublicPostLocation,
+    PublicSectionPost,
     PublicSitemapPost,
     RatingSummary,
     ReportCreate,
@@ -98,7 +101,7 @@ from app.schemas.board import (
 )
 from app.schemas.common import ApiResponse
 from app.services import board as board_service
-from app.services import board_access, board_menu, board_presets
+from app.services import board_access, board_latest, board_menu, board_presets
 from app.services import board_attachment as attachment_service
 from app.services import board_category as category_service
 from app.services import board_field as field_service
@@ -319,6 +322,17 @@ async def list_board_presets():
     )
 
 
+@router.get("/content-presets", response_model=ApiResponse[list[BoardContentPreset]])
+async def list_content_presets():
+    """콘텐츠형 게시판 프리셋 (T-243) — 서비스 소개 · FAQ · 연혁 · 팀 · 후기."""
+    return ApiResponse.ok(
+        [
+            BoardContentPreset.model_validate(p)
+            for p in board_presets.content_presets_response()
+        ]
+    )
+
+
 @router.post("/clear-samples", response_model=ApiResponse[dict])
 async def clear_samples(
     db: AsyncSession = Depends(get_db_with_rls),
@@ -334,6 +348,16 @@ async def get_board(
     db: AsyncSession = Depends(get_db_with_rls),
 ):
     return ApiResponse.ok(await board_service.board_response(db, board))
+
+
+@router.get("/{board_id}/usage", response_model=ApiResponse[list[BoardUsageSection]])
+async def get_board_usage(
+    board: Board = Depends(_board_or_404),
+    db: AsyncSession = Depends(get_db_with_rls),
+):
+    """이 게시판을 보여 주는 섹션 (T-243 사용 위치)."""
+    sections = await board_latest.board_usage(db, board.tenant_id, board.id)
+    return ApiResponse.ok([BoardUsageSection(**s) for s in sections])
 
 
 @router.patch("/{board_id}", response_model=ApiResponse[BoardResponse])
@@ -1316,6 +1340,37 @@ async def list_public_posts(
                 for p in posts
             ],
         )
+    )
+
+
+@public_router.get(
+    "/site/{tenant_slug}/boards/{board_slug}/section-posts",
+    response_model=ApiResponse[list[PublicSectionPost]],
+)
+async def list_section_posts(
+    tenant_slug: str,
+    board_slug: str,
+    size: int = Query(default=5, ge=1, le=board_latest.CONNECT_COUNT_MAX),
+    sort: Literal["latest", "oldest", "board"] = "latest",
+    category: UUID | None = None,
+    body: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """게시판 연결 섹션 (T-243) — 회원만 읽는 게시판은 없는 것처럼, 비밀글은 빼고."""
+    board = await board_service.open_public_board(db, tenant_slug, board_slug)
+    if board is None or board_service.is_member_only(board):
+        raise _not_found(MSG_BOARD_NOT_FOUND)
+    posts = await board_service.list_section_posts(
+        db, board, size=size, sort=sort, category_id=category
+    )
+    list_fields = await field_service.list_display_fields(db, board)
+    return ApiResponse.ok(
+        [
+            PublicSectionPost(
+                **board_service.section_post_item(p, list_fields, with_body=body)
+            )
+            for p in posts
+        ]
     )
 
 

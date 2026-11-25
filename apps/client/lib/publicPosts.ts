@@ -2,7 +2,13 @@
  * 게시판 글 공개 API (T-139) — /api/public/site/{slug}/boards/{board}/posts
  * 서버 컴포넌트에서 읽는다. 사이트와 같은 캐시 태그라 글을 저장하면 바로 비워진다.
  */
-import type { PublicFieldValue, PublicPost, PublicPostList, PublicSitemapPost } from '@cms/types'
+import type {
+  PublicFieldValue,
+  PublicPost,
+  PublicPostList,
+  PublicSectionPost,
+  PublicSitemapPost,
+} from '@cms/types'
 import { serverApiBase } from './apiBase'
 
 const REVALIDATE_SECONDS = 60
@@ -51,6 +57,26 @@ export function fetchPublicPosts(
   if (category) params.set('category', category)
   return getJson<PublicPostList>(tenantSlug, `${postsPath(tenantSlug, board)}?${params.toString()}`)
 }
+
+/** 게시판 연결 섹션의 글 (T-243) — 비밀글은 서버가 뺀다, 회원 전용 게시판은 null */
+export function fetchSectionPosts(
+  tenantSlug: string,
+  board: string,
+  {
+    size,
+    sort,
+    category,
+    body,
+  }: { size: number; sort: SectionSort; category?: string; body?: boolean },
+): Promise<PublicSectionPost[] | null> {
+  const params = new URLSearchParams({ size: String(size), sort })
+  if (category) params.set('category', category)
+  if (body) params.set('body', 'true')
+  const path = `/public/site/${encodeURIComponent(tenantSlug)}/boards/${encodeURIComponent(board)}/section-posts`
+  return getJson<PublicSectionPost[]>(tenantSlug, `${path}?${params.toString()}`)
+}
+
+export type SectionSort = 'latest' | 'oldest' | 'board'
 
 export function fetchPublicPost(
   tenantSlug: string,

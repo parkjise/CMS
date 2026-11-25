@@ -8,10 +8,12 @@ import type {
   BoardSortOrder,
   Board,
   BoardLimits,
+  BoardContentPreset,
   BoardPresetField,
   BoardPurgePreview,
   BoardStatus,
   BoardType,
+  BoardUsageSection,
   BodyNode,
   Post,
   PostBulkAction,
@@ -207,6 +209,31 @@ export function useBoardPresets() {
     },
     staleTime: Infinity,
   })
+}
+
+/** 콘텐츠형 게시판 프리셋 (T-243) — 서비스 소개 · FAQ · 연혁 · 팀 · 후기 */
+export function useBoardContentPresets() {
+  return useQuery({
+    queryKey: [...BOARDS_KEY, 'content-presets'],
+    queryFn: async (): Promise<BoardContentPreset[]> => {
+      const { data } = await api.get('/v1/boards/content-presets')
+      return data.data
+    },
+    staleTime: Infinity,
+  })
+}
+
+/** 이 게시판을 보여 주는 섹션 (T-243 사용 위치) — 지우기 확인에도 쓴다 */
+export const boardUsageQuery = (boardId: string) => ({
+  queryKey: [...BOARDS_KEY, boardId, 'usage'],
+  queryFn: async (): Promise<BoardUsageSection[]> => {
+    const { data } = await api.get(`/v1/boards/${boardId}/usage`)
+    return data.data
+  },
+})
+
+export function useBoardUsage(boardId: string, { enabled = true } = {}) {
+  return useQuery({ ...boardUsageQuery(boardId), enabled })
 }
 
 /** 주소 이름 미리 확인 (T-210) — 형식이 맞을 때만 서버에 묻는다 (쓸 수 없는 이름 · 사용 중) */

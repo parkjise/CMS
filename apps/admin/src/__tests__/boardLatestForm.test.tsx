@@ -8,6 +8,7 @@ import { getFormForType } from '@/components/content/forms'
 import type { Section } from '@/hooks/useSections'
 
 // 메인 화면 최신 글 — 게시판 · 개수 고르기 (T-185)
+// 테마형 게시판 연결 (T-243) — 보여 주는 방식 · 분류 · 정렬 · 빈 결과 문구
 
 const { get } = vi.hoisted(() => ({ get: vi.fn() }))
 vi.mock('@/lib/api', () => ({ api: { get } }))
@@ -41,9 +42,16 @@ const setting = (field_key: string, field_value: string, value_type = 'STRING') 
 const section = (section_type: string, settings: ReturnType<typeof setting>[]) =>
   ({ id: 's1', section_type, label: '최신', settings }) as unknown as Section
 
+const CATEGORIES = [
+  { id: 'c1', board_id: 'b1', name: '진료', is_active: true, display_order: 0, post_count: 2 },
+  { id: 'c2', board_id: 'b1', name: '임플란트', is_active: true, display_order: 1, post_count: 1, parent_id: 'c1' },
+]
+
 beforeEach(() => {
   get.mockReset()
-  get.mockResolvedValue({ data: { data: BOARDS } })
+  get.mockImplementation((url: string) =>
+    Promise.resolve({ data: { data: url.endsWith('/categories') ? CATEGORIES : BOARDS } }),
+  )
 })
 
 describe('BoardLatestForm', () => {
@@ -78,7 +86,79 @@ describe('BoardLatestForm', () => {
       { field_key: 'section_title', field_value: '병원 소식', value_type: 'STRING' },
       { field_key: 'latest_board', field_value: 'b1', value_type: 'STRING' },
       { field_key: 'post_count', field_value: '3', value_type: 'STRING' },
+      { field_key: 'display_mode', field_value: 'LIST', value_type: 'STRING' },
+      { field_key: 'sort', field_value: 'latest', value_type: 'STRING' },
+      { field_key: 'category_id', field_value: '', value_type: 'STRING' },
+      { field_key: 'empty_text', field_value: '', value_type: 'STRING' },
     ])
+  })
+
+  it('보여 주는 방식 · 분류 · 정렬 · 12개 · 빈 결과 문구를 함께 저장한다', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    renderWithQuery(
+      <BoardLatestForm
+        section={section('BOARD_LATEST', [setting('latest_board', 'b1')])}
+        isSaving={false}
+        onSubmit={onSubmit}
+      />,
+    )
+    const category = await screen.findByLabelText('분류')
+    await waitFor(() => expect(category).toBeEnabled())
+    expect(Array.from((category as HTMLSelectElement).options).map((o) => o.text)).toEqual([
+      '전체',
+      '진료',
+      '└ 임플란트',
+    ])
+    await user.selectOptions(screen.getByLabelText('보여 주는 방식'), 'CARD')
+    expect(screen.getByText(/대표 사진 · 제목 · 요약/)).toBeInTheDocument()
+    await user.selectOptions(category, 'c2')
+    await user.selectOptions(screen.getByLabelText('정렬'), 'board')
+    await user.selectOptions(screen.getByLabelText('글 개수'), '12')
+    await user.type(screen.getByLabelText('글이 없을 때 문구'), '준비 중이에요')
+    await user.click(screen.getByRole('button', { name: /저장/ }))
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        { field_key: 'post_count', field_value: '12', value_type: 'STRING' },
+        { field_key: 'display_mode', field_value: 'CARD', value_type: 'STRING' },
+        { field_key: 'sort', field_value: 'board', value_type: 'STRING' },
+        { field_key: 'category_id', field_value: 'c2', value_type: 'STRING' },
+        { field_key: 'empty_text', field_value: '준비 중이에요', value_type: 'STRING' },
+      ]),
+    )
+  })
+
+  it('게시판을 바꾸면 고른 분류를 비운다', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn().mockResolvedValue(undefined)
+    renderWithQuery(
+      <BoardLatestForm
+        section={section('BOARD_LATEST', [
+          setting('latest_board', 'b1'),
+          setting('category_id', 'c1'),
+        ])}
+        isSaving={false}
+        onSubmit={onSubmit}
+      />,
+    )
+    await waitFor(() => expect(screen.getByLabelText('분류')).toHaveValue('c1'))
+    await user.selectOptions(screen.getByLabelText('보여 줄 게시판'), 'n1')
+    await user.click(screen.getByRole('button', { name: /저장/ }))
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.arrayContaining([{ field_key: 'category_id', field_value: '', value_type: 'STRING' }]),
+    )
+  })
+
+  it('빈 결과 문구가 100자를 넘으면 저장을 막는다', async () => {
+    const user = userEvent.setup()
+    renderWithQuery(
+      <BoardLatestForm section={section('BOARD_LATEST', [])} isSaving={false} onSubmit={vi.fn()} />,
+    )
+    await user.click(screen.getByLabelText('글이 없을 때 문구'))
+    await user.paste('가'.repeat(101))
+    expect(screen.getByText('100자 이하로 적어 주세요.')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /저장/ })).toBeDisabled()
   })
 
   it('지웠거나 회원 전용이 된 게시판이면 다시 고르라고 알린다', async () => {

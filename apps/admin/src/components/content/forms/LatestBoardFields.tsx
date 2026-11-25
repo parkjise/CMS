@@ -10,6 +10,8 @@ interface LatestBoardFieldsProps {
   defaultCount: number
   /** 글이 없을 때 홈페이지에 무엇이 보이는지 */
   hint: string
+  /** 고를 수 있는 개수 — 기본 3~8 */
+  counts?: number[]
 }
 
 export function LatestBoardFields({
@@ -18,6 +20,7 @@ export function LatestBoardFields({
   emptyLabel,
   defaultCount,
   hint,
+  counts = COUNTS,
 }: LatestBoardFieldsProps) {
   const { data: boards = [], isPending } = useBoards()
   const options = boards.filter(pickableBoard)
@@ -45,7 +48,8 @@ export function LatestBoardFields({
       </label>
       {missing && (
         <p className="rounded bg-amber-50 px-2 py-1 text-xs text-amber-800" role="alert">
-          고른 게시판을 찾을 수 없습니다. 게시판을 다시 골라 주세요.
+          연결된 게시판이 없어요. 지웠거나 회원만 읽게 바뀐 게시판이에요. 게시판을 다시 골라
+          주세요.
         </p>
       )}
       <label className="block text-sm">
@@ -55,7 +59,7 @@ export function LatestBoardFields({
           value={value.count || String(defaultCount)}
           onChange={(e) => onChange({ ...value, count: e.target.value })}
         >
-          {COUNTS.map((n) => (
+          {counts.map((n) => (
             <option key={n} value={String(n)}>
               {n}개
             </option>

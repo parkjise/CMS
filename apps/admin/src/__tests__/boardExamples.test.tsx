@@ -22,9 +22,29 @@ const notice: Partial<Board> = {
   updated_at: '2026-11-07T00:00:00Z',
 }
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
-const mockApi = ({ boards = [notice], canCreate = true } = {}) => {
+const CONTENT_PRESETS = [
+  {
+    key: 'history',
+    name: '연혁',
+    description: '걸어온 길을 연도별로 정리합니다.',
+    board_type: 'LIST',
+    fields: [
+      { key: 'year', label: '연도', field_type: 'TEXT', choices: [], show_in_list: true, always: false },
+    ],
+  },
+  {
+    key: 'reviews',
+    name: '후기',
+    description: '고객 후기를 모아 보여 줍니다.',
+    board_type: 'REVIEW',
+    fields: [],
+  },
+]
+const mockApi = ({ boards = [notice], canCreate = true, content = false, blocked = {} } = {}) => {
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok(boards)
+    if (url === '/v1/boards/content-presets') return ok(content ? CONTENT_PRESETS : [])
+    if (url === '/v1/boards/type-options') return ok({ blocked })
     if (url === '/v1/boards/limits')
       return ok({ can_create: canCreate, reason: canCreate ? null : '게시판 한도입니다.' })
     if (url === '/v1/site-settings/menu') return ok({ mode: 'code', items: [] })
@@ -161,6 +181,55 @@ describe('게시판 예시 안내 (T-157)', () => {
     expect(post).toHaveBeenCalledWith(
       '/v1/boards',
       expect.objectContaining({ name: '우리 소식', board_type: 'LIST', slug: undefined })
+    )
+  })
+})
+
+describe('콘텐츠형 게시판 프리셋 (T-243)', () => {
+  it('목록에서 콘텐츠형 프리셋을 보여 주고, 막힌 유형은 이유만 보인다', async () => {
+    mockApi({ content: true, blocked: { REVIEW: '병원 업종은 리뷰형을 쓸 수 없습니다.' } })
+    renderPage()
+    await screen.findByRole('heading', { name: '콘텐츠형 게시판' })
+    expect(screen.getByRole('link', { name: '연혁 콘텐츠형으로 시작' })).toHaveAttribute(
+      'href',
+      '/admin/boards/new?content=history'
+    )
+    expect(screen.queryByRole('link', { name: '후기 콘텐츠형으로 시작' })).toBeNull()
+    expect(screen.getByText('병원 업종은 리뷰형을 쓸 수 없습니다.')).toBeInTheDocument()
+  })
+
+  it('프리셋으로 시작하면 이름 · 유형 · 칸을 채우고 상단 메뉴 · 방문자 글쓰기 없이 만든다', async () => {
+    mockApi({ content: true })
+    post.mockResolvedValue({
+      data: { data: { id: 'created', name: '연혁', slug: 'board-1', status: 'ACTIVE' } },
+    })
+    renderPage('/admin/boards/new?content=history')
+    await waitFor(() => expect(screen.getByLabelText(/게시판 이름/)).toHaveValue('연혁'))
+    expect(screen.getByText(/콘텐츠형 게시판으로 시작합니다/)).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: '홈페이지 상단 메뉴에 추가' })).not.toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+    expect(screen.getByRole('radio', { name: /목록형/ })).toBeChecked()
+    await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+    expect(screen.getByRole('checkbox', { name: /연도/ })).toBeChecked()
+    for (let i = 0; i < 2; i += 1) {
+      await userEvent.click(screen.getByRole('button', { name: /다음 단계/ }))
+    }
+    await userEvent.click(screen.getByRole('button', { name: '게시판 만들기' }))
+    await screen.findByRole('heading', { name: '게시판을 만들었습니다' })
+    expect(post).toHaveBeenCalledWith(
+      '/v1/boards',
+      expect.objectContaining({
+        name: '연혁',
+        board_type: 'LIST',
+        in_menu: false,
+        preset_fields: ['year'],
+        permissions: { read: 'PUBLIC', write: 'ADMIN' },
+        operation: expect.objectContaining({ allow_guest: false }),
+      })
+    )
+    expect(screen.getByRole('link', { name: '페이지에 연결하기' })).toHaveAttribute(
+      'href',
+      '/admin/pages'
     )
   })
 })

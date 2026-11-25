@@ -49,7 +49,7 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   PORTFOLIO: '포트폴리오',
   TEAM: '팀 소개',
   FAQ: 'FAQ',
-  BOARD_LATEST: '최신 글',
+  BOARD_LATEST: '게시판 연결',
 }
 
 interface SectionListItemProps {

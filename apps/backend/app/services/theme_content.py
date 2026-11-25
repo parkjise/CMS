@@ -36,7 +36,18 @@ THEME_FIELDS: dict[str, frozenset[str]] = {
     ),
     "MAP": frozenset({"address", "address_detail", "latitude", "longitude"}),
     # 템플릿 기본 섹션(section_layouts)에 없어 전환 때 만들어지지 않는다 (T-185)
-    "BOARD_LATEST": frozenset({"section_title", "latest_board", "post_count"}),
+    # 게시판 연결 칸 (T-243) — 보여 주는 방식 · 분류 · 정렬 · 빈 결과 문구
+    "BOARD_LATEST": frozenset(
+        {
+            "section_title",
+            "latest_board",
+            "post_count",
+            "display_mode",
+            "category_id",
+            "sort",
+            "empty_text",
+        }
+    ),
 }
 
 # 값이 없어도 화면이 그려지는 섹션 — 문의 폼은 제목이 없으면 기본 제목으로 나온다

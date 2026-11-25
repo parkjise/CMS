@@ -34,7 +34,15 @@ const THEME_FIELDS: Record<string, readonly string[]> = {
   GALLERY: ['section_title', 'gallery_items'],
   CONTACT: ['section_title', 'description', 'require_phone', 'require_email'],
   MAP: ['address', 'address_detail', 'latitude', 'longitude'],
-  BOARD_LATEST: ['section_title', 'latest_board', 'post_count'],
+  BOARD_LATEST: [
+    'section_title',
+    'latest_board',
+    'post_count',
+    'display_mode',
+    'category_id',
+    'sort',
+    'empty_text',
+  ],
 }
 
 const filledKeys = (section: PublicSection): string[] =>
