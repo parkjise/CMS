@@ -461,3 +461,32 @@ describe('닫힌 사이트 — 404 대신 안내 화면 (T-201)', () => {
     expect((await run('/clinic/paused')).status).toBe(404)
   })
 })
+
+describe('middleware — 바꾸기 전 페이지 주소 (T-242)', () => {
+  const withRedirects = (code: string | null) =>
+    new Response(
+      JSON.stringify({
+        success: true,
+        data: {
+          code,
+          renderer: code ? 'code' : 'theme',
+          member_enabled: false,
+          page_redirects: { event: 'sale' },
+        },
+      }),
+      { status: 200 },
+    )
+
+  it.each([null, 'TPL_HOSPITAL_A'])('이전 주소는 지금 주소로 301 (쿼리 유지) — 템플릿 %s', async (code) => {
+    fetchMock.mockResolvedValue(withRedirects(code))
+    const res = await run('/clinic/event?from=ad')
+    expect(res.status).toBe(301)
+    expect(res.headers.get('location')).toBe('http://localhost:3000/clinic/sale?from=ad')
+  })
+
+  it('다른 주소 · 더 깊은 주소는 그대로', async () => {
+    fetchMock.mockResolvedValue(withRedirects('TPL_HOSPITAL_A'))
+    expect((await run('/clinic/sale')).status).not.toBe(301)
+    expect((await run('/clinic/event/1')).status).not.toBe(301)
+  })
+})

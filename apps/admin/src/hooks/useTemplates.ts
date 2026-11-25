@@ -90,6 +90,8 @@ export function useApplyTemplate() {
       invalidate()
       // 빠진 섹션을 샘플로 채우거나(유지 — 코드형 · 테마형 모두, T-055-A) 교체하므로 섹션 목록도 갱신
       queryClient.invalidateQueries({ queryKey: ['sections'] })
+      // 템플릿 기본 페이지가 바뀐다 (T-237)
+      queryClient.invalidateQueries({ queryKey: ['pages'] })
     },
   })
 }

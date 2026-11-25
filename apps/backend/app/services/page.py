@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from uuid import UUID
 
 from fastapi import HTTPException, status
-from sqlalchemy import func, select, update
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -416,9 +416,19 @@ async def create_page(db: AsyncSession, tenant_id: UUID, data: PageCreate) -> di
     )
     _apply_common(page, data)
     db.add(page)
+    await _drop_redirect_from(db, tenant_id, data.page_key)
     await _commit(db)
     await site_cache.purge_site(db, tenant_id)
     return await get_page_view(db, tenant_id, page.id)
+
+
+async def _drop_redirect_from(db: AsyncSession, tenant_id: UUID, key: str) -> None:
+    """새 페이지가 예전 주소를 다시 쓰면 그 주소의 이동 기록은 지운다 (T-242)"""
+    await db.execute(
+        delete(PageRedirect).where(
+            PageRedirect.tenant_id == tenant_id, PageRedirect.from_key == key
+        )
+    )
 
 
 async def _move_key(db: AsyncSession, page: Page, new_key: str) -> None:
@@ -511,6 +521,7 @@ async def duplicate_page(
         noindex=source.noindex,
     )
     db.add(page)
+    await _drop_redirect_from(db, tenant_id, data.page_key)
     sections = (
         await db.execute(
             select(Section)
@@ -651,3 +662,131 @@ async def public_pages(db: AsyncSession, tenant_id: UUID) -> list[Page]:
             or (custom_on and row.origin == ORIGIN_CUSTOM and row.is_public)
         )
     ]
+
+
+async def public_redirects(db: AsyncSession, tenant_id: UUID) -> dict[str, str]:
+    """이전 주소 → 지금 주소 (T-242) — 지금 홈페이지에 보이는 페이지로 가는 것만.
+
+    이전 주소를 지금 다른 페이지가 쓰면 그 페이지가 먼저다.
+    """
+    live = {p.page_key for p in await public_pages(db, tenant_id) if p.is_public}
+    rows = await db.execute(
+        select(PageRedirect.from_key, PageRedirect.to_key).where(
+            PageRedirect.tenant_id == tenant_id
+        )
+    )
+    return {
+        from_key: to_key
+        for from_key, to_key in rows.all()
+        if to_key in live and from_key not in live
+    }
+
+
+# ── 휴지통 비우기 · 영향 안내 (T-242) ─────────────────────────────────────
+
+TRASH_DAYS = 30
+
+
+async def purge_expired(db: AsyncSession) -> int:
+    """휴지통에 30일 넘게 있던 직접 만든 페이지와 그 섹션을 지운다 (모든 사업체).
+
+    데이터 실제 삭제 예외 — 게시판 휴지통과 같은 30일. 지운 페이지 수 반환.
+    부르는 쪽이 슈퍼 어드민 컨텍스트를 잡는다.
+    """
+    from datetime import timedelta
+
+    from app.models.gallery import GalleryItem
+
+    cutoff = _now() - timedelta(days=TRASH_DAYS)
+    expired = list(
+        (
+            await db.execute(
+                select(Page).where(
+                    Page.origin == ORIGIN_CUSTOM,
+                    Page.deleted_at.is_not(None),
+                    Page.deleted_at < cutoff,
+                )
+            )
+        ).scalars()
+    )
+    for page in expired:
+        # 페이지와 함께 숨긴 섹션만 (복구 때 함께 살리는 그 섹션)
+        section_ids = list(
+            (
+                await db.execute(
+                    select(Section.id).where(
+                        Section.tenant_id == page.tenant_id,
+                        Section.page_key == page.page_key,
+                        Section.deleted_at.is_not(None),
+                    )
+                )
+            ).scalars()
+        )
+        if section_ids:
+            await db.execute(
+                delete(GalleryItem).where(GalleryItem.section_id.in_(section_ids))
+            )
+            await db.execute(
+                delete(SectionSetting).where(SectionSetting.section_id.in_(section_ids))
+            )
+            await db.execute(delete(Section).where(Section.id.in_(section_ids)))
+        await db.execute(
+            delete(PageRedirect).where(
+                PageRedirect.tenant_id == page.tenant_id,
+                PageRedirect.to_key == page.page_key,
+            )
+        )
+        await db.delete(page)
+    await db.commit()
+    return len(expired)
+
+
+def _links_to(value: str | None, key: str) -> bool:
+    """섹션 값에 /{key} 주소가 있는지 — 버튼 · 본문 링크 (뒤가 주소 글자가 아닐 때)"""
+    if not value:
+        return False
+    return re.search(rf"/{re.escape(key)}(?![a-z0-9-])", value) is not None
+
+
+async def usage(db: AsyncSession, tenant_id: UUID, page_id: UUID) -> dict:
+    """이 페이지를 가리키는 곳 — 지우거나 주소를 바꾸기 전에 보여 준다.
+
+    - menu: 저장한 메뉴 트리에서 이 페이지로 가는 메뉴 이름
+    - sections: 값에 이 페이지 주소가 든 섹션 (다른 페이지 포함)
+    """
+    page = await _get(db, tenant_id, page_id)
+    rows = await db.execute(
+        select(Section.id, Section.label, Section.page_key, SectionSetting.field_value)
+        .join(SectionSetting, SectionSetting.section_id == Section.id)
+        .where(
+            Section.tenant_id == tenant_id,
+            Section.deleted_at.is_(None),
+            Section.page_key != page.page_key,
+        )
+    )
+    sections: dict[UUID, dict] = {}
+    for section_id, label, page_key, value in rows.all():
+        if section_id not in sections and _links_to(value, page.page_key):
+            sections[section_id] = {
+                "id": section_id,
+                "label": label,
+                "page_key": page_key,
+            }
+    menu = await site_settings_service.menu_labels_for_page(db, page.page_key)
+    return {"menu": menu, "sections": list(sections.values())}
+
+
+async def template_conflicts(
+    db: AsyncSession, tenant_id: UUID, page_keys: set[str]
+) -> list[Page]:
+    """새 템플릿 기본 페이지와 주소가 같은 직접 만든 페이지 (휴지통 포함)"""
+    if not page_keys:
+        return []
+    rows = await db.execute(
+        select(Page).where(
+            Page.tenant_id == tenant_id,
+            Page.origin == ORIGIN_CUSTOM,
+            Page.page_key.in_(page_keys),
+        )
+    )
+    return list(rows.scalars())

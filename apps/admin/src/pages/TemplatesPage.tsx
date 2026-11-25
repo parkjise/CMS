@@ -20,6 +20,7 @@ import { openTemplatePreview, previewTemplateRef } from '@/lib/previewUrl'
 import { useAuthStore } from '@/stores/authStore'
 import { useFeatureStore } from '@/stores/featureStore'
 import { applyResultMessage } from '@/lib/templateApply'
+import { pickErrorMessage } from '@/lib/errorMessages'
 
 export function TemplatesPage() {
   const canEdit = useCanEdit()
@@ -66,6 +67,8 @@ export function TemplatesPage() {
         toast.success(applyResultMessage(name, contentMode, result.added_section_count))
         setPendingApply(null)
       },
+      // 직접 만든 페이지 주소가 새 템플릿 페이지와 같으면 409 — 어느 페이지인지 알려 준다 (T-242)
+      onError: (err) => toast.error(pickErrorMessage(err, '템플릿을 적용하지 못했어요.')),
     })
   }
 

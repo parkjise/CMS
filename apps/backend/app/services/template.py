@@ -234,6 +234,36 @@ async def _set_deleted(
         section.updated_at = now
 
 
+async def _ensure_no_page_conflicts(
+    db: AsyncSession, tenant_id: uuid.UUID, template: Template
+) -> None:
+    """새 템플릿 기본 페이지와 주소가 같은 직접 만든 페이지가 있으면 409 (T-242).
+
+    적용하면 그 주소를 템플릿 페이지가 차지해 직접 만든 페이지가 가려진다 —
+    페이지 관리에서 주소를 먼저 바꾸게 한다.
+    """
+    if template.renderer != "code" or not template.code:
+        return
+    from app.data.template_samples import template_pages
+    from app.services import page as page_service
+
+    keys = {p["key"] for p in template_pages(template.code)}
+    clash = await page_service.template_conflicts(db, tenant_id, keys)
+    if clash:
+        names = ", ".join(f"'{p.title}'(/{p.page_key})" for p in clash)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "CONFLICT",
+                "message": (
+                    f"직접 만든 페이지 {names} 의 주소가 "
+                    "이 템플릿의 기본 페이지와 같아요. "
+                    "페이지 관리에서 주소를 바꾼 뒤 적용해 주세요."
+                ),
+            },
+        )
+
+
 async def apply_template(
     db: AsyncSession,
     tenant_id: uuid.UUID,
@@ -257,6 +287,7 @@ async def apply_template(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="현재 플랜에서는 사용할 수 없는 템플릿입니다.",
         )
+    await _ensure_no_page_conflicts(db, tenant_id, template)
     replace = content_mode == CONTENT_REPLACE
     if replace and not _sample_pages(template):
         raise HTTPException(

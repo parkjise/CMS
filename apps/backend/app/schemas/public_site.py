@@ -150,3 +150,5 @@ class PublicSiteResponse(BaseModel):
     notice_board: PublicBoardResponse | None = None
     # 페이지 (T-239) — 직접 만든 공개 페이지 · 템플릿 페이지 숨김 · 페이지별 SEO
     pages: list[PublicPageResponse] = []
+    # 이전 주소 → 지금 주소 (T-242) — 홈페이지가 301 로 보낸다
+    page_redirects: dict[str, str] = {}

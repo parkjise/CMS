@@ -181,6 +181,7 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
             PublicPageResponse.model_validate(p)
             for p in await page_service.public_pages(db, tid)
         ],
+        page_redirects=await page_service.public_redirects(db, tid),
     )
 
 
@@ -272,6 +273,8 @@ class PublicTemplateRef(BaseModel):
     renderer: str
     # 회원 기능(SITE_MEMBER) — 꺼져 있으면 미들웨어가 /{slug}/member/* 를 404 로
     member_enabled: bool = False
+    # 페이지 주소 이동 (T-242) — 미들웨어가 이전 주소를 301 로
+    page_redirects: dict[str, str] = {}
 
 
 @router.get(
@@ -295,6 +298,7 @@ async def get_site_template(
                 code=template.get("code"),
                 renderer=template.get("renderer", "theme"),
                 member_enabled=bool((data.get("member") or {}).get("enabled")),
+                page_redirects=data.get("page_redirects") or {},
             )
         )
 
@@ -304,8 +308,10 @@ async def get_site_template(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     template, _ = await _resolve_template(db, tenant)
     flags = await member_features.flags_for(db, tenant)
+    await set_rls_context(db, tenant.id)
     return ApiResponse.ok(
         PublicTemplateRef(
+            page_redirects=await page_service.public_redirects(db, tenant.id),
             member_enabled=flags.enabled,
             code=template.code if template else None,
             renderer=template.renderer if template else "theme",

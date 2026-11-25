@@ -618,3 +618,20 @@ async def rename_page_target(
         items.append(item)
     setting.menu_items = items
     setting.updated_at = datetime.now(UTC)
+
+
+async def menu_labels_for_page(db: AsyncSession, page_key: str) -> list[str]:
+    """저장한 메뉴(모든 템플릿 트리)에서 이 페이지로 가는 메뉴 이름 (T-242)"""
+    setting = await get_site_settings(db)
+    labels: list[str] = []
+
+    def visit(nodes: list[dict]) -> None:
+        for node in nodes:
+            if node.get("type") == "page" and node.get("target") == page_key:
+                labels.append(str(node.get("label") or page_key))
+            visit(node.get("children") or [])
+
+    for item in (setting.menu_items or []) if setting else []:
+        if "scope" in item:
+            visit(item.get("nodes") or [])
+    return list(dict.fromkeys(labels))
