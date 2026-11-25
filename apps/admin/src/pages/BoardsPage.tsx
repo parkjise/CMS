@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import dayjs from 'dayjs'
 import {
   CircleCheck,
@@ -39,9 +40,16 @@ import {
   TH,
 } from '@/components/boards/boardStyles'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useBoardLimits, useBoards, useDeleteBoard, useDuplicateBoard } from '@/hooks/useBoards'
+import {
+  boardUsageQuery,
+  useBoardLimits,
+  useBoards,
+  useDeleteBoard,
+  useDuplicateBoard,
+} from '@/hooks/useBoards'
 import { useSiteMenu } from '@/hooks/useSiteSettings'
 import { BOARD_TYPES, boardTypeLabel } from '@/lib/boardLabels'
+import { usageWarning } from '@/lib/boardUsage'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 
@@ -100,6 +108,7 @@ export function BoardsPage() {
   const limits = limitsQuery.data
   const duplicateBoard = useDuplicateBoard()
   const deleteBoard = useDeleteBoard()
+  const queryClient = useQueryClient()
   const [bulkPending, setBulkPending] = useState(false)
   const actionPending = duplicateBoard.isPending || deleteBoard.isPending || bulkPending
   const canDuplicate = Boolean(limits?.can_create) && !limitsQuery.isError
@@ -123,9 +132,11 @@ export function BoardsPage() {
       board.post_count > 0
         ? `글 ${board.post_count.toLocaleString()}개도 함께 보이지 않게 되고, `
         : ''
+    // 게시판 연결 섹션 (T-243) — 못 불러와도 지우기는 막지 않는다
+    const usage = await queryClient.fetchQuery(boardUsageQuery(board.id)).catch(() => undefined)
     if (
       !window.confirm(
-        `'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.`
+        `'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.${usageWarning(usage)}`
       )
     )
       return

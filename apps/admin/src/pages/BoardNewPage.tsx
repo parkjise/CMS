@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router'
 import type { Board, BoardOperation, BoardPermissions, BoardType } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import {
+  useBoardContentPresets,
   useBoardLimits,
   useBoardPresets,
   useBoardTypeOptions,
@@ -181,6 +182,12 @@ export function BoardNewPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const example = BOARD_EXAMPLES.find((item) => item.id === searchParams.get('example'))
+  // 콘텐츠형 프리셋 (T-243) — 섹션으로만 보여 주는 게시판, 불러오면 한 번 채운다
+  const contentKey = searchParams.get('content')
+  const contentPresetsQuery = useBoardContentPresets()
+  const contentPreset = contentKey
+    ? contentPresetsQuery.data?.find((p) => p.key === contentKey)
+    : undefined
   const [step, setStep] = useState(0)
   // 가 본 단계까지는 위 단계 표시에서 바로 이동 (T-210)
   const [reached, setReached] = useState(0)
@@ -226,12 +233,14 @@ export function BoardNewPage() {
   const presetsQuery = useBoardPresets()
   const [presetPicks, setPresetPicks] = useState<Partial<Record<BoardType, string[]>>>({})
   const [createdPresets, setCreatedPresets] = useState(0)
-  const presets = presetsQuery.data?.[boardType] ?? []
+  // 콘텐츠형으로 시작했고 유형을 그대로 두면 그 프리셋의 칸을 추천한다
+  const contentFields = contentPreset?.board_type === boardType ? contentPreset.fields : null
+  const presets = contentFields ?? presetsQuery.data?.[boardType] ?? []
   const blockedTypes = useBoardTypeOptions().data?.blocked ?? {}
   const pickedPresets = presetPicks[boardType] ?? presets.map((p) => p.key)
   // 추천 칸을 못 불러왔으면 보내지 않는다 — 칸은 만든 뒤 필드 관리에서
   // 늘 만드는 칸(리뷰형 별점)은 체크와 상관없이 보낸다 — 서버도 넣는다
-  const sendPresets = presetsQuery.isSuccess
+  const sendPresets = contentFields !== null || presetsQuery.isSuccess
     ? presets.filter((p) => p.always || pickedPresets.includes(p.key)).map((p) => p.key)
     : []
   const togglePreset = (key: string, checked: boolean) =>
@@ -250,6 +259,17 @@ export function BoardNewPage() {
 
   const limits = limitsQuery.data
   const last = STEPS.length - 1
+
+  const contentApplied = useRef(false)
+  useEffect(() => {
+    if (!contentPreset || contentApplied.current) return
+    contentApplied.current = true
+    setName(contentPreset.name)
+    setDescription(contentPreset.description)
+    setBoardType(contentPreset.board_type)
+    // 섹션으로만 보여 준다 — 상단 메뉴에는 넣지 않는다. 방문자 글쓰기는 처음 값(관리자만)
+    setInMenu(false)
+  }, [contentPreset])
 
   const goTo = (target: number) => {
     setStep(target)
@@ -363,6 +383,12 @@ export function BoardNewPage() {
                 : '상단 메뉴에는 넣지 않았습니다.'}{' '}
             메뉴 이름과 보이기는 공통 설정의 상단 메뉴에서 바꿀 수 있습니다.
           </p>
+          {contentPreset && (
+            <p className="text-sm text-slate-600">
+              페이지 관리에서 섹션을 추가할 때 ‘게시판 연결’을 고르고 이 게시판을 선택하면 홈페이지에
+              보입니다.
+            </p>
+          )}
           {addedStructure && (addedStructure.fields > 0 || addedStructure.categories > 0) && (
             <p className="text-sm text-slate-600">
               AI 추천 필드 {addedStructure.fields}개 · 카테고리 {addedStructure.categories}개를
@@ -388,6 +414,11 @@ export function BoardNewPage() {
             <Link to={`/admin/boards/${created.id}/fields`} className={LINK_SECONDARY}>
               칸 설정
             </Link>
+            {contentPreset && (
+              <Link to="/admin/pages" className={LINK_SECONDARY}>
+                페이지에 연결하기
+              </Link>
+            )}
             <Link to={`/admin/boards/${created.id}/settings`} className={LINK_SECONDARY}>
               게시판 설정
             </Link>
@@ -443,6 +474,12 @@ export function BoardNewPage() {
           {example && (
             <p className={HINT}>
               ‘{example.name}’ 예시에서 시작합니다. 이름, 설명, 모양을 바꿀 수 있습니다.
+            </p>
+          )}
+          {contentPreset && (
+            <p className={HINT}>
+              ‘{contentPreset.name}’ 콘텐츠형 게시판으로 시작합니다. 방문자 글쓰기 없이 페이지의
+              ‘게시판 연결’ 섹션으로 보여 주도록 상단 메뉴에는 넣지 않아요. 모두 바꿀 수 있습니다.
             </p>
           )}
           <ol

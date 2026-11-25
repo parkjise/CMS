@@ -74,7 +74,7 @@ const mockApi = (routes: Record<string, unknown>) =>
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok([board])
     for (const [suffix, data] of Object.entries(routes)) if (url.endsWith(suffix)) return ok(data)
-    if (url.endsWith('/categories') || url.endsWith('/fields') || url.endsWith('/menu-parents'))
+    if (url.endsWith('/categories') || url.endsWith('/fields') || url.endsWith('/menu-parents') || url.endsWith('/usage'))
       return ok([])
     return ok(null)
   })

@@ -40,7 +40,13 @@ async def create_draft(
     current = {s.field_key: s.field_value for s in section.settings}
     section_service.validate_settings(settings, current)
     if section.section_type in board_latest.LATEST_SECTION_TYPES:
-        await board_latest.validate_settings(db, tenant_id, settings)
+        await board_latest.validate_settings(
+            db,
+            tenant_id,
+            settings,
+            section_type=section.section_type,
+            current=current,
+        )
 
     token = secrets.token_urlsafe(24)
     payload = {

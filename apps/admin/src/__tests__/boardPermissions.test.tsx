@@ -60,7 +60,7 @@ const renderPage = (boards: Board[] = [board], options: PermissionOptions = OPEN
   get.mockImplementation((url: string) => {
     if (url === '/v1/boards') return ok(boards)
     if (url.endsWith('/permission-options')) return ok(options)
-    if (url.endsWith('/menu-parents')) return ok([])
+    if (url.endsWith('/menu-parents') || url.endsWith('/usage')) return ok([])
     return ok(null)
   })
   // 권한은 게시판 설정 한 화면의 구역 — 저장은 아래 저장 막대 (T-228)
@@ -184,7 +184,7 @@ describe('글 관리 — 회원 작성 표시 (T-150-B)', () => {
     get.mockImplementation((url: string) => {
       if (url === '/v1/boards') return ok([board])
       if (url.endsWith('/posts')) return ok({ total: 1, page: 1, size: 20, items: [memberPost] })
-      if (url.endsWith('/categories') || url.endsWith('/fields')) return ok([])
+      if (url.endsWith('/categories') || url.endsWith('/fields') || url.endsWith('/usage')) return ok([])
       return ok(null)
     })
     renderWithQuery(

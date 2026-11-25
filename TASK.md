@@ -38,8 +38,8 @@
 | **Phase 19: 운영 안정화** | **2** | **2** | **100%** |
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **14** | **14** | **100%** |
-| **Phase 22: 페이지 관리 · 콘텐츠 연결** | **7** | **6** | **86%** |
-| **합계** | **288** | **287** | **99%** |
+| **Phase 22: 페이지 관리 · 콘텐츠 연결** | **7** | **7** | **100%** |
+| **합계** | **288** | **288** | **100%** |
 
 ---
 
@@ -4596,14 +4596,17 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 지우기 전 안내: `GET /pages/{id}/usage` — 저장한 메뉴에서 이 페이지로 가는 메뉴 이름 · 값에 이 주소(`/{주소}`)가 든 다른 페이지 섹션, 휴지통 확인 창에 표시. 주소 변경은 이동 기록으로 링크가 그대로 열려 따로 안내하지 않음
 - **테스트:** backend 4 (공개 이동 · 숨긴 대상 제외 · 예전 주소 재사용, 30일 비우기 · 최근 것 유지, 메뉴 · 섹션 링크 찾기(`/events` 는 아님), 템플릿 적용 409), client 미들웨어 3 (테마형 · 코드형 301 · 다른 · 깊은 주소 그대로), admin 휴지통 확인 창 안내. 관련 backend 143, admin 933 · client 928 (Node 25 · 22 — admin `siteSettingsForm` 1건은 전체 실행 때만 가끔 실패, 단독 3회 통과). 실제(이 브랜치 백엔드 + 홈페이지): `/test-tenant/qa-old?utm=x` → 301 `/test-tenant/qa-new?utm=x` — 확인용 값은 지움
 
-### T-243: 콘텐츠형 게시판 · 게시판 연결 섹션 (C1)
+### T-243: 콘텐츠형 게시판 · 게시판 연결 섹션 (C1) ✅ (Claude, 2026-11-25)
 
 - **선행:** T-241
-- **코드 시작점:** `apps/admin/src/pages/BoardNewPage.tsx`, `apps/backend/app/services/board.py`
-- [ ] 게시판 만들기 "콘텐츠형" 프리셋(서비스 소개 · FAQ · 연혁 · 의료진/팀 · 후기) — 필드 · 방문자 글쓰기 꺼짐 · 목록 화면 숨김
-- [ ] "게시판 연결" 섹션 — 게시판 · 분류 · 정렬 · 개수 · 보여 주는 방식(카드 · 목록 · FAQ · 연혁) · 필드 매핑 (PM-05)
-- [ ] 비밀글 · 회원 전용 글 노출 금지, 삭제된 게시판은 빈 상태 + 관리자 안내, 게시판 화면에 사용 위치
-- **테스트:** backend 공개 데이터 범위, admin 연결 설정, client 그리기
+- **결정 (2026-11-25 사용자 — 추천안):** 테마형 템플릿만(코드형 최신 공지는 그대로), 칸 매핑은 고정 — 제목 · 본문 요약 · 본문 첫 사진 · 공개일 + 글 목록에 표시로 고른 칸. 연혁은 `year` 칸, 없으면 공개일의 해
+- **코드:** backend `app/services/board_latest.py`(연결 칸 검사 · `board_usage`) · `app/services/board.py`(`list_section_posts` · `section_post_item`) · `app/services/board_presets.py`(`CONTENT_PRESETS`) · `app/api/v1/endpoints/boards.py` · `app/schemas/board.py` · `section.py` · `section_draft.py` · `section_manage.py`(이름 '게시판 연결') · `theme_content.py`, client `components/sections/BoardLatest.tsx` · `lib/latestBoard.ts`(`connectOptions`) · `lib/publicPosts.ts`(`fetchSectionPosts`) · `lib/themeSections.ts`, admin `components/content/forms/BoardLatestForm.tsx` · `LatestBoardFields.tsx` · `components/boards/BoardExamples.tsx` · `BoardUsageCard.tsx` · `lib/boardUsage.ts` · `pages/BoardNewPage.tsx` · `BoardSettingsPage.tsx` · `BoardsPage.tsx` · `hooks/useBoards.ts`, types `board.ts`
+- [x] 게시판 만들기 "콘텐츠형" 프리셋(서비스 소개 · FAQ · 연혁 · 의료진/팀 · 후기, `GET /boards/content-presets`) — 게시판 목록 예시 아래에서 고르면 `?content=` 로 이름 · 설명 · 유형 · 칸(연도 · 직책 · 전문 분야)을 채우고 방문자 글쓰기 꺼짐(처음 값) · 상단 메뉴 빼기. 병원 업종은 후기(리뷰형) 막힘 이유만. 완료 화면에 '페이지에 연결하기'
+- [x] "게시판 연결" 섹션(예전 최신 글 `BOARD_LATEST` 를 넓힘) — 게시판 · 분류(하위 포함) · 정렬(최신순 · 오래된 순 · 게시판 순서) · 개수(3~12, 코드형 최신 공지는 3~8 그대로) · 보여 주는 방식(목록 · 카드 · FAQ · 연혁) · 빈 결과 문구(100자, 비우면 숨김). 분류는 고른 게시판 것만(분류만 바꿔도 저장된 게시판으로 검사), 게시판을 바꾸면 분류 비움 (PM-05)
+- [x] 공개 API `GET /public/site/{slug}/boards/{board}/section-posts` — 비밀글은 빼고, 회원만 읽는 · 지운 · 비활성 게시판은 404. 지운 게시판을 고른 섹션은 홈페이지에서 숨기고 관리자 폼에만 "연결된 게시판이 없어요"
+- [x] 사용 위치 `GET /boards/{id}/usage` — 게시판 설정에 '사용 위치'(페이지 › 섹션 제목, 숨김 표시, 섹션 편집 링크), 휴지통으로 옮길 때 "섹션 N개(페이지)도 보이지 않게" 안내 (목록 · 설정 화면)
+- **테스트:** backend 새 19 (연결 칸 저장 · 분류 검사 2 · 잘못된 값 4 · 코드형 무시, 섹션 글 고정 매핑 · 비밀글 빠짐 · 정렬/개수/분류/본문 · 회원 전용 404 · 지운 게시판 404 · 개수 한도, 사용 위치 · 로그인 · 다른 사업체, 프리셋 목록 · 칸과 함께 만들기 · 다른 유형 칸 400) + 개수 범위 고침, client 새 7 (방식 4 · 빈 결과 문구 · 옵션 기본값 · 12개), admin 새 11 (연결 폼 3 · 프리셋 2 · 사용 위치 5 · 기본 저장값) + 기존 목업에 `/usage`. 전체 backend · admin 943 · client 933 (Node 25 · 22). 실제 화면(이 브랜치 백엔드 8010 + 홈페이지 3030 + 관리자 빌드본, 개발 DB `other-tenant` 테마형): 프리셋으로 '연혁' 만들기 → 글 3개(비밀글 1) → 홈에 게시판 연결 섹션 · 연혁 · 오래된 순 → 홈페이지 2015 · 2020 만(비밀글 빠짐), 휴대폰 폭 가로 넘침 0, 사용 위치 · 지우기 안내 — 확인 뒤 게시판 · 글 · 섹션 모두 지움
+- **범위 밖:** 코드형 템플릿 연결 섹션, 사용자 칸 매핑, 글 통합 목록의 "콘텐츠형만 보기" 필터(CM-01 — 콘텐츠형 표시를 저장하지 않음), 관리자 폼 안 미리보기(기존 [미리보기] 사용)
 
 ---
 
@@ -4617,5 +4620,5 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 기존 구독 배지·권한·기능 플래그 유지 및 동작 테스트
 - [x] 최신 main 과 합치며 게시판 상세 탭(홈페이지 연결 · 필드 관리) 브레드크럼 추가
 
-*최종 업데이트: 2026-11-20*
+*최종 업데이트: 2026-11-25*
 *총 221개 태스크 | 예상 총 개발 기간: 약 12~14주 (1~2인 팀 기준)*

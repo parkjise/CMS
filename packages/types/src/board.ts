@@ -408,6 +408,41 @@ export interface PublicPostList {
   items: PublicPostItem[]
 }
 
+/** 게시판 연결 섹션의 글 (T-243) — 비밀글은 오지 않는다. 칸 매핑은 고정 */
+export interface PublicSectionPost {
+  id: string
+  title: string
+  published_at: string
+  category_id: string | null
+  /** 본문 앞부분 글자 */
+  summary: string
+  /** 본문 첫 사진 */
+  thumbnail: string | null
+  /** FAQ 로 보여 줄 때만 */
+  body: BodyNode[] | null
+  /** 글 목록에 표시로 고른 칸 — 직책 · 연도 같은 짧은 값 */
+  fields: PublicFieldValue[]
+}
+
+/** 이 게시판을 보여 주는 섹션 (T-243 사용 위치) */
+export interface BoardUsageSection {
+  section_id: string
+  section_type: string
+  label: string
+  page_key: string
+  page_title: string
+  is_active: boolean
+}
+
+/** 콘텐츠형 게시판 프리셋 (T-243) — 섹션으로만 보여 주는 게시판 */
+export interface BoardContentPreset {
+  key: string
+  name: string
+  description: string
+  board_type: BoardType
+  fields: BoardPresetField[]
+}
+
 /** 사이트맵 한 줄 (T-140-C) */
 export interface PublicSitemapPost {
   board_slug: string

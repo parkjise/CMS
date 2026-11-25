@@ -780,6 +780,42 @@ class PublicPostListResponse(BaseModel):
     items: list[PublicPostItem]
 
 
+class PublicSectionPost(BaseModel):
+    """게시판 연결 섹션의 글 (T-243) — 비밀글은 나가지 않는다. 칸 매핑은 고정."""
+
+    id: UUID
+    title: str
+    published_at: datetime
+    category_id: UUID | None = None
+    summary: str
+    thumbnail: str | None = None
+    # FAQ 로 보여 줄 때만 — 답변을 펼친다
+    body: list[BodyNode] | None = None
+    # 글 목록에 표시로 고른 칸 — 직책 · 연도 같은 짧은 값
+    fields: list[PublicFieldValue] = []
+
+
+class BoardUsageSection(BaseModel):
+    """이 게시판을 보여 주는 섹션 (T-243 사용 위치)."""
+
+    section_id: UUID
+    section_type: str
+    label: str
+    page_key: str
+    page_title: str
+    is_active: bool
+
+
+class BoardContentPreset(BaseModel):
+    """콘텐츠형 게시판 프리셋 (T-243) — 섹션으로만 보여 주는 게시판."""
+
+    key: str
+    name: str
+    description: str
+    board_type: str
+    fields: list[BoardPresetField]
+
+
 class PublicPostDetail(PublicPostItem):
     body: list[BodyNode]
     # 비밀글인데 작성 회원이 아니면 True — 본문 · 칸 없이 제목만 (T-151-A)

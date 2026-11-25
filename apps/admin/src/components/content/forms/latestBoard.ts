@@ -7,6 +7,8 @@ export const LATEST_BOARD_KEY = 'latest_board'
 export const POST_COUNT_KEY = 'post_count'
 export const LATEST_KEYS = [LATEST_BOARD_KEY, POST_COUNT_KEY]
 export const COUNTS = [3, 4, 5, 6, 7, 8]
+/** 테마형 게시판 연결은 12개까지 (T-243) */
+export const CONNECT_COUNTS = [...COUNTS, 9, 10, 11, 12]
 
 export interface LatestValue {
   board: string

@@ -94,7 +94,13 @@ async def update_section_settings(
         validate_settings(data.settings, current)
         if section.section_type in board_latest.LATEST_SECTION_TYPES:
             # 최신 글 섹션의 게시판 · 개수 (T-185)
-            await board_latest.validate_settings(db, tenant_id, data.settings)
+            await board_latest.validate_settings(
+                db,
+                tenant_id,
+                data.settings,
+                section_type=section.section_type,
+                current=current,
+            )
         for s in data.settings:
             existing_result = await db.execute(
                 select(SectionSetting).where(

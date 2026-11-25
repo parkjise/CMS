@@ -3,8 +3,10 @@ import type { Board } from '@cms/types'
 import { Button, Input, Textarea, Toggle, toast } from '@cms/ui'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { useCanEdit } from '@/hooks/useCanEdit'
-import { useDeleteBoard, useDuplicateBoard } from '@/hooks/useBoards'
+import { BoardUsageCard } from '@/components/boards/BoardUsageCard'
+import { useBoardUsage, useDeleteBoard, useDuplicateBoard } from '@/hooks/useBoards'
 import type { SetupDraft } from '@/lib/boardSetup'
+import { usageWarning } from '@/lib/boardUsage'
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 type Basic = SetupDraft['basic']
@@ -28,6 +30,9 @@ export function BoardBasicFields({ board, value, onChange, nameError, onRemoved 
   const duplicateBoard = useDuplicateBoard()
   const deleteBoard = useDeleteBoard()
   const isSystem = board.system_key !== null
+  // 게시판 연결 섹션에 고를 수 있는 게시판 — 새 게시판 · 공지 (T-243)
+  const connectable = board.system_key === null || board.system_key === 'notice'
+  const usage = useBoardUsage(board.id, { enabled: connectable }).data
 
   const duplicate = async () => {
     try {
@@ -41,7 +46,8 @@ export function BoardBasicFields({ board, value, onChange, nameError, onRemoved 
 
   const remove = async () => {
     const posts = board.post_count > 0 ? `글 ${board.post_count.toLocaleString()}개도 함께 보이지 않게 되고, ` : ''
-    if (!window.confirm(`'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.`)) return
+    const message = `'${board.name}' 을(를) 휴지통으로 옮길까요? ${posts}홈페이지 메뉴와 주소에서 빠집니다.${usageWarning(usage)}`
+    if (!window.confirm(message)) return
     try {
       await deleteBoard.mutateAsync(board.id)
       toast.success('휴지통으로 옮겼습니다.')
@@ -99,6 +105,8 @@ export function BoardBasicFields({ board, value, onChange, nameError, onRemoved 
           </div>
         )}
       </ReadOnlyFieldset>
+
+      {connectable && <BoardUsageCard boardId={board.id} />}
 
       {canEdit && (
         <div className="flex flex-wrap gap-2 border-t border-slate-200 pt-4">
