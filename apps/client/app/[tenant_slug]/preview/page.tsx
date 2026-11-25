@@ -9,12 +9,27 @@ import { SectionRenderer } from '@/components/sections/SectionRenderer'
 import { Navbar } from '@/components/layout/Navbar'
 import { Footer } from '@/components/layout/Footer'
 import { PreviewBanner } from '@/components/preview/PreviewBanner'
+import { PreviewDeviceFrame, PreviewDeviceSwitch } from '@/components/preview/PreviewDevices'
+import { previewDevice } from '@/lib/previewDevice'
 import { CodeTemplateRenderer } from '@/templates/CodeTemplateRenderer'
 import { findCodeTemplate } from '@/templates/registry'
 
 interface Props {
   params: Promise<{ tenant_slug: string }>
-  searchParams: Promise<{ tpl?: string; draft?: string; content?: string; page?: string; id?: string; q?: string; p?: string; c?: string }>
+  searchParams: Promise<PreviewQuery>
+}
+
+type PreviewQuery = {
+  tpl?: string
+  draft?: string
+  content?: string
+  page?: string
+  id?: string
+  q?: string
+  p?: string
+  c?: string
+  /** 기기 폭 (T-246) — tablet · mobile 이면 그 폭의 틀 안에 같은 미리보기 */
+  device?: string
 }
 
 // 미리보기는 검색엔진 색인 대상이 아니다.
@@ -23,12 +38,23 @@ export const metadata = {
   robots: { index: false, follow: false },
 }
 
-export default async function TemplatePreviewPage({
-  params,
-  searchParams,
-}: Props) {
+export default async function TemplatePreviewPage({ params, searchParams }: Props) {
   const { tenant_slug } = await params
-  const { tpl, draft, content, page, id, q, p, c } = await searchParams
+  const query = await searchParams
+  const device = previewDevice(query.device)
+  if (device !== 'pc') {
+    return <PreviewDeviceFrame device={device} query={query} />
+  }
+  return (
+    <>
+      {await previewContent(tenant_slug, query)}
+      <PreviewDeviceSwitch current="pc" query={query} floating />
+    </>
+  )
+}
+
+async function previewContent(tenant_slug: string, query: PreviewQuery) {
+  const { tpl, draft, content, page, id, q, p, c } = query
 
   // 저장 전 미리보기 (T-206) — 관리자 섹션 편집의 [미리보기]
   if (draft) {
