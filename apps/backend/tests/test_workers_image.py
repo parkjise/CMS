@@ -490,10 +490,13 @@ class TestCleanupOrphanFiles:
 
 class TestCleanupKeepsSeoImage:
     async def test_og_image_not_deleted(self, test_tenant, fake_s3):
-        """T-037-C: SEO 공유 이미지(seo_settings.og_image_url)는 사용 중으로 본다."""
+        """T-037-C: SEO 공유 이미지(seo_settings.og_image_url)는 사용 중으로 본다.
+
+        T-245: 페이지 공유 이미지(pages.og_image_url)도 — 휴지통 페이지 포함.
+        """
         tenant_id = test_tenant["id"]
         base = settings.cdn_base_url.rstrip("/")
-        og_file, orphan = uuid.uuid4(), uuid.uuid4()
+        og_file, page_file, orphan = uuid.uuid4(), uuid.uuid4(), uuid.uuid4()
 
         def _key(fid):
             return f"{tenant_id}/seo/{fid}.webp"
@@ -501,7 +504,7 @@ class TestCleanupKeepsSeoImage:
         def _url(fid):
             return f"{base}/{_key(fid)}"
 
-        for fid in (og_file, orphan):
+        for fid in (og_file, page_file, orphan):
             fake_s3[(settings.minio_bucket_name, _key(fid))] = {
                 "body": b"x",
                 "content_type": "image/webp",
@@ -510,7 +513,7 @@ class TestCleanupKeepsSeoImage:
             await session.execute(
                 text("SELECT set_config('app.is_super_admin', 'true', true)")
             )
-            for fid in (og_file, orphan):
+            for fid in (og_file, page_file, orphan):
                 await session.execute(
                     text(
                         "INSERT INTO uploaded_files (id, tenant_id, file_name,"
@@ -527,6 +530,16 @@ class TestCleanupKeepsSeoImage:
                 ),
                 {"id": str(uuid.uuid4()), "tid": tenant_id, "url": _url(og_file)},
             )
+            await session.execute(
+                text(
+                    "INSERT INTO pages (id, tenant_id, page_key, title, origin,"
+                    " show_in_menu, is_public, display_order, og_image_url, noindex,"
+                    " deleted_at, created_at, updated_at) VALUES (:id, :tid,"
+                    " 'qa-og', 'QA', 'CUSTOM', false, false, 0, :url, false,"
+                    " NOW(), NOW(), NOW())"
+                ),
+                {"id": str(uuid.uuid4()), "tid": tenant_id, "url": _url(page_file)},
+            )
             await session.commit()
 
         try:
@@ -537,10 +550,11 @@ class TestCleanupKeepsSeoImage:
                 )
                 rows = await session.execute(
                     text("SELECT id FROM uploaded_files WHERE id = ANY(:ids)"),
-                    {"ids": [str(og_file), str(orphan)]},
+                    {"ids": [str(og_file), str(page_file), str(orphan)]},
                 )
                 remaining = {str(r.id) for r in rows.all()}
             assert str(og_file) in remaining
+            assert str(page_file) in remaining
             assert str(orphan) not in remaining
             assert (settings.minio_bucket_name, _key(og_file)) in fake_s3
         finally:
@@ -550,6 +564,10 @@ class TestCleanupKeepsSeoImage:
                 )
                 await session.execute(
                     text("DELETE FROM seo_settings WHERE tenant_id = :tid"),
+                    {"tid": tenant_id},
+                )
+                await session.execute(
+                    text("DELETE FROM pages WHERE tenant_id = :tid"),
                     {"tid": tenant_id},
                 )
                 await session.execute(
