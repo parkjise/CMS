@@ -48,6 +48,8 @@ export interface PageInput {
   /** "" = 지우기 */
   seo_title?: string
   seo_description?: string
+  /** null = 지우기 (사이트 공유 이미지 사용) */
+  og_image_url?: string | null
   noindex?: boolean
 }
 

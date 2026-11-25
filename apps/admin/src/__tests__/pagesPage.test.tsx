@@ -373,6 +373,22 @@ describe('페이지 설정 (PM-02)', () => {
     ])
   })
 
+  it('공유 이미지를 넣어 저장하고, 지우면 null 로 보낸다 (T-245)', async () => {
+    const user = userEvent.setup()
+    renderAt('/admin/pages/event?tab=settings')
+    await user.click(await screen.findByRole('button', { name: '공유 이미지 주소로 넣기' }))
+    await user.type(screen.getByLabelText('공유 이미지 주소'), 'https://cdn.test/og.webp')
+    expect(screen.getByAltText('현재 이미지')).toHaveAttribute('src', 'https://cdn.test/og.webp')
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    await waitFor(() => expect(toastSuccess).toHaveBeenCalledWith('페이지 설정을 저장했어요.'))
+    expect(requests.at(-1)?.body).toEqual({ og_image_url: 'https://cdn.test/og.webp' })
+
+    await user.click(screen.getByRole('button', { name: '공유 이미지 삭제' }))
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    await waitFor(() => expect(requests).toHaveLength(2))
+    expect(requests.at(-1)?.body).toEqual({ og_image_url: null })
+  })
+
   it('템플릿 기본 페이지(홈)는 주소 · 상위 · 공개 · 메뉴 칸이 없다', async () => {
     renderAt('/admin/pages/home?tab=settings')
     expect(await screen.findByText(/템플릿 기본 페이지라 주소/)).toBeInTheDocument()
@@ -380,6 +396,13 @@ describe('페이지 설정 (PM-02)', () => {
     expect(screen.queryByLabelText(/상위 페이지/)).not.toBeInTheDocument()
     expect(screen.queryByLabelText('홈페이지에 공개')).not.toBeInTheDocument()
     expect(screen.queryByLabelText('메뉴에 표시')).not.toBeInTheDocument()
+    // 홈은 사이트 SEO 설정을 쓴다 — 페이지 SEO 칸 대신 그 화면으로 (T-245)
+    expect(screen.queryByLabelText('검색 제목')).not.toBeInTheDocument()
+    expect(screen.queryByText('공유 이미지')).not.toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /SEO 설정/ })).toHaveAttribute(
+      'href',
+      '/admin/site/seo'
+    )
   })
 
   it('스위치가 꺼져 있으면 설정 탭 없이 섹션만', async () => {

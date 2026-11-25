@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Link } from 'react-router'
 import { Input, Textarea, Toggle, toast } from '@cms/ui'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
 import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD } from '@/components/site/SitePage'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
+import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
 import { HOME_PAGE, type Page, type PageInput, useUpdatePage } from '@/hooks/usePages'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { pageKeyError, parentOptions } from '@/lib/pageKey'
@@ -18,6 +20,7 @@ interface FormValues {
   is_public: boolean
   seo_title: string
   seo_description: string
+  og_image_url: string
   noindex: boolean
 }
 
@@ -29,6 +32,7 @@ const valuesOf = (page: Page): FormValues => ({
   is_public: page.is_public,
   seo_title: page.seo_title ?? '',
   seo_description: page.seo_description ?? '',
+  og_image_url: page.og_image_url ?? '',
   noindex: page.noindex,
 })
 
@@ -40,6 +44,8 @@ const changedInput = (page: Page, values: FormValues): PageInput => {
     if (values[key] !== before[key]) Object.assign(input, { [key]: values[key] })
   }
   if (input.title !== undefined) input.title = input.title.trim()
+  // 비우면 지우기 — 사이트 SEO 공유 이미지로 돌아간다
+  if (input.og_image_url !== undefined) input.og_image_url = input.og_image_url || null
   return input
 }
 
@@ -185,32 +191,53 @@ export function PageSettingsForm({ page, pages }: PageSettingsFormProps) {
             검색 노출 (SEO)
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            비워 두면 사이트 관리 &gt; SEO 설정 값을 써요.
+            {isHome ? (
+              <>
+                홈은{' '}
+                <Link to="/admin/site/seo" className="font-medium text-blue-600 hover:underline">
+                  사이트 관리 &gt; SEO 설정
+                </Link>
+                의 제목 · 설명 · 공유 이미지를 써요.
+              </>
+            ) : (
+              '비워 두면 사이트 관리 > SEO 설정 값을 써요.'
+            )}
           </p>
         </div>
-        <Input
-          label="검색 제목"
-          value={values.seo_title}
-          maxLength={60}
-          onChange={(e) => set('seo_title', e.target.value)}
-          helperText={`${values.seo_title.length} / 60`}
-        />
-        <Textarea
-          label="검색 설명"
-          value={values.seo_description}
-          maxLength={160}
-          rows={3}
-          onChange={(e) => set('seo_description', e.target.value)}
-          helperText={`${values.seo_description.length} / 160`}
-        />
-        <div>
-          <Toggle
-            label="검색 결과에서 제외"
-            description="검색엔진이 이 페이지를 싣지 않도록 알려요."
-            checked={values.noindex}
-            onChange={(e) => set('noindex', e.target.checked)}
-          />
-        </div>
+        {!isHome && (
+          <>
+            <Input
+              label="검색 제목"
+              value={values.seo_title}
+              maxLength={60}
+              onChange={(e) => set('seo_title', e.target.value)}
+              helperText={`${values.seo_title.length} / 60`}
+            />
+            <Textarea
+              label="검색 설명"
+              value={values.seo_description}
+              maxLength={160}
+              rows={3}
+              onChange={(e) => set('seo_description', e.target.value)}
+              helperText={`${values.seo_description.length} / 160`}
+            />
+            <ImageUploadField
+              label="공유 이미지"
+              value={values.og_image_url}
+              onChange={(url) => set('og_image_url', url)}
+              context="seo"
+              hint="카카오톡 · 페이스북에 이 페이지 링크를 공유할 때 보이는 그림이에요. 1200×630 권장, 비워 두면 사이트 공유 이미지를 써요."
+            />
+            <div>
+              <Toggle
+                label="검색 결과에서 제외"
+                description="검색엔진이 이 페이지를 싣지 않도록 알려요."
+                checked={values.noindex}
+                onChange={(e) => set('noindex', e.target.checked)}
+              />
+            </div>
+          </>
+        )}
       </section>
 
       <SaveBar
