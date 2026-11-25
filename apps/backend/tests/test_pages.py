@@ -10,6 +10,7 @@ from sqlalchemy import text
 from app.core.security import create_access_token
 from app.services import feature as feature_service
 from app.services import page as page_service
+from app.services import section_manage
 from tests.conftest import _TestSession  # type: ignore
 from tests.test_rls import tenant_b, tenant_b_headers  # noqa: F401 (픽스처)
 
@@ -666,3 +667,122 @@ class TestPublicSite:
         await site_cache.purge_slugs([pages_on["slug"]], [uuid.UUID(pages_on["id"])])
         pages = await self._pages(client, pages_on["slug"])
         assert "event" not in pages
+
+
+class TestPageSections:
+    """직접 만든 페이지에 섹션 추가 (T-241)"""
+
+    _SAMPLE = {
+        "pages": {
+            "home": [{"section_type": "HERO_SLIDER", "label": "메인", "settings": {}}],
+            "about": [
+                {
+                    "section_type": "SUB_HERO",
+                    "label": "상단",
+                    "settings": {"title": "소개"},
+                },
+                {
+                    "section_type": "CONTENT_BLOCK",
+                    "label": "브랜드 이야기",
+                    "settings": {"layout": "media-row", "items": [{"title": "하나"}]},
+                },
+            ],
+            "notice": [{"section_type": "BOARD", "label": "공지", "settings": {}}],
+        }
+    }
+
+    async def _limits(self, client: AsyncClient, headers: dict, page_key: str):
+        return await client.get(
+            "/api/v1/sections/limits", params={"page_key": page_key}, headers=headers
+        )
+
+    async def _add(self, client: AsyncClient, headers: dict, **body):
+        return await client.post("/api/v1/sections", json=body, headers=headers)
+
+    async def test_theme_custom_page(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict, monkeypatch
+    ):
+        await _create(client, auth_headers, "event")
+        limits = (await self._limits(client, auth_headers, "event")).json()["data"]
+        assert (limits["can_add"], limits["count"]) == (True, 0)
+        assert "INTRO" in [t["section_type"] for t in limits["addable_types"]]
+        resp = await self._add(
+            client, auth_headers, section_type="INTRO", page_key="event"
+        )
+        assert resp.status_code == 201, resp.text
+        section = resp.json()["data"]
+        assert (section["page_key"], section["label"]) == ("event", "소개")
+        assert section["settings"][0]["is_sample"] is True
+        # 페이지마다 한도
+        monkeypatch.setitem(section_manage.SECTION_LIMITS, "STANDARD", 1)
+        resp = await self._add(
+            client, auth_headers, section_type="INTRO", page_key="event"
+        )
+        assert resp.status_code == 422
+        # 직접 페이지 섹션은 지울 수 있다
+        resp = await client.delete(
+            f"/api/v1/sections/{section['id']}", headers=auth_headers
+        )
+        assert resp.status_code == 200
+
+    async def test_code_custom_page_uses_sample_kinds(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        pages_on: dict,
+        code_template: str,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(section_manage, "load_sample", lambda code: self._SAMPLE)
+        await _create(client, auth_headers, "event")
+        limits = (await self._limits(client, auth_headers, "event")).json()["data"]
+        assert [
+            (t["section_type"], t["variant"], t["label"])
+            for t in limits["addable_types"]
+        ] == [("SUB_HERO", None, "상단"), ("CONTENT_BLOCK", "media-row", "사진 + 글")]
+        resp = await self._add(
+            client,
+            auth_headers,
+            section_type="CONTENT_BLOCK",
+            variant="media-row",
+            page_key="event",
+            label="우리 이야기",
+        )
+        assert resp.status_code == 201, resp.text
+        settings = {s["field_key"]: s for s in resp.json()["data"]["settings"]}
+        assert settings["layout"]["field_value"] == "media-row"
+        assert json.loads(settings["items"]["field_value"]) == [{"title": "하나"}]
+        assert settings["items"]["value_type"] == "JSON"
+        assert all(s["is_sample"] for s in settings.values())
+        # 없는 배치 · 메인 전용 종류는 400
+        for body in (
+            {"section_type": "CONTENT_BLOCK", "variant": "nope"},
+            {"section_type": "HERO_SLIDER"},
+            {"section_type": "INTRO"},
+        ):
+            resp = await self._add(client, auth_headers, page_key="event", **body)
+            assert resp.status_code == 400, body
+        # 템플릿 기본 페이지는 지금처럼 정해진 구성
+        about = (await self._limits(client, auth_headers, "about")).json()["data"]
+        assert about["can_add"] is False
+        resp = await self._add(
+            client, auth_headers, section_type="SUB_HERO", page_key="about"
+        )
+        assert resp.status_code == 422
+
+    async def test_missing_page_or_switch_off_is_404(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        assert (await self._limits(client, auth_headers, "nope")).status_code == 404
+        resp = await self._add(
+            client, auth_headers, section_type="INTRO", page_key="nope"
+        )
+        assert resp.status_code == 404
+        await _create(client, auth_headers, "event")
+        await _sql(
+            "DELETE FROM tenant_features WHERE tenant_id = :t", {"t": pages_on["id"]}
+        )
+        await feature_service.invalidate_cache(pages_on["id"])
+        assert (await self._limits(client, auth_headers, "event")).status_code == 404
+        # 홈은 그대로
+        assert (await self._limits(client, auth_headers, "home")).status_code == 200

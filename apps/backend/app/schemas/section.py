@@ -60,11 +60,17 @@ class SectionCreate(BaseModel):
 
     section_type: str = Field(..., min_length=1, max_length=50)
     label: str | None = Field(None, max_length=100)
+    # 넣을 페이지 (T-241) — 기본 홈, 직접 만든 페이지 주소
+    page_key: str = Field("home", min_length=1, max_length=50)
+    # 코드형 사진+글 배치 (layout) — GET /sections/limits 의 addable_types 그대로
+    variant: str | None = Field(None, max_length=50)
 
 
 class AddableSectionType(BaseModel):
     section_type: str
     label: str
+    # 코드형 사진+글 배치 이름 (T-241) — 추가할 때 그대로 보낸다
+    variant: str | None = None
 
 
 class SectionLimitsResponse(BaseModel):

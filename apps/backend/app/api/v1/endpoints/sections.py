@@ -1,7 +1,7 @@
 import json
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
@@ -58,12 +58,16 @@ async def list_sections(
 
 @router.get("/limits", response_model=ApiResponse[SectionLimitsResponse])
 async def get_section_limits(
+    page_key: str = Query("home", max_length=50),
     db: AsyncSession = Depends(get_db_with_rls),
     current_user: User = Depends(get_current_user),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
-    """요금제 섹션 수 한도 · 추가할 수 있는 종류 (T-037-A)"""
-    limits = await section_manage.get_limits(db, tenant_id)
+    """요금제 섹션 수 한도 · 추가할 수 있는 종류 (T-037-A) — 페이지마다 (T-241)"""
+    try:
+        limits = await section_manage.get_limits(db, tenant_id, page_key)
+    except section_manage.PageNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     return ApiResponse.ok(SectionLimitsResponse.model_validate(limits.__dict__))
 
 
@@ -88,8 +92,10 @@ async def create_section(
         )
     try:
         section_id = await section_manage.add_section(
-            db, tenant_id, body.section_type, body.label
+            db, tenant_id, body.section_type, body.label, body.page_key, body.variant
         )
+    except section_manage.PageNotFoundError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
     except section_manage.SectionLimitError as e:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e)

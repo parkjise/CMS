@@ -66,12 +66,15 @@ beforeEach(() => {
   server.use(
     http.get(`${BASE}/v1/sections`, () => HttpResponse.json({ success: true, data: sections })),
     http.get(`${BASE}/v1/sections/limits`, () =>
-      HttpResponse.json({ success: true, data: currentLimits }),
+      HttpResponse.json({ success: true, data: currentLimits })
     ),
     http.post(`${BASE}/v1/sections`, async ({ request }) => {
       created = await request.json()
       const body = created as { section_type: string; label?: string }
-      const added = { ...section('s-new', body.label ?? '갤러리', 2), section_type: body.section_type }
+      const added = {
+        ...section('s-new', body.label ?? '갤러리', 2),
+        section_type: body.section_type,
+      }
       sections = [...sections, added]
       currentLimits = limits({ count: 3 })
       return HttpResponse.json({ success: true, data: added }, { status: 201 })
@@ -80,17 +83,19 @@ beforeEach(() => {
       deletedId = params.id as string
       sections = sections.filter((s) => s.id !== params.id)
       return HttpResponse.json({ success: true, data: null })
-    }),
+    })
   )
 })
 
 const renderPage = (pageKey = 'home') =>
   render(
-    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
       <MemoryRouter initialEntries={[`/admin/pages/${pageKey}`]}>
         <PageSections pageKey={pageKey} />
       </MemoryRouter>
-    </QueryClientProvider>,
+    </QueryClientProvider>
   )
 
 describe('섹션 추가', () => {
@@ -106,7 +111,9 @@ describe('섹션 추가', () => {
     expect(within(dialog).getByText(/8개 더 추가할 수 있어요/)).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: '추가' }))
 
-    await waitFor(() => expect(created).toEqual({ section_type: 'GALLERY', label: '시설 사진' }))
+    await waitFor(() =>
+      expect(created).toEqual({ section_type: 'GALLERY', label: '시설 사진', page_key: 'home' })
+    )
     expect(await screen.findByText('시설 사진')).toBeInTheDocument()
     expect(await screen.findByText('섹션 3 / 10개')).toBeInTheDocument()
     expect(toastSuccess).toHaveBeenCalled()
@@ -139,18 +146,23 @@ describe('섹션 추가', () => {
         HttpResponse.json(
           {
             success: false,
-            error: { code: 'PLAN_LIMIT_EXCEEDED', message: '현재 요금제는 섹션을 10개까지 쓸 수 있습니다.' },
+            error: {
+              code: 'PLAN_LIMIT_EXCEEDED',
+              message: '현재 요금제는 섹션을 10개까지 쓸 수 있습니다.',
+            },
           },
-          { status: 422 },
-        ),
-      ),
+          { status: 422 }
+        )
+      )
     )
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByRole('button', { name: '섹션 추가' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '추가' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: '추가' })
+    )
     await waitFor(() =>
-      expect(toastError).toHaveBeenCalledWith('현재 요금제는 섹션을 10개까지 쓸 수 있습니다.'),
+      expect(toastError).toHaveBeenCalledWith('현재 요금제는 섹션을 10개까지 쓸 수 있습니다.')
     )
   })
 })
@@ -173,7 +185,9 @@ describe('섹션 삭제', () => {
     const user = userEvent.setup()
     renderPage()
     await user.click(await screen.findByRole('button', { name: '소개 삭제' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '취소' }))
+    await user.click(
+      within(await screen.findByRole('dialog')).getByRole('button', { name: '취소' })
+    )
     expect(deletedId).toBeNull()
     expect(screen.getByRole('button', { name: '소개 삭제' })).toBeInTheDocument()
   })
@@ -182,14 +196,16 @@ describe('섹션 삭제', () => {
 describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {
   it('?tab=settings 로 들어오면 사이트 기본정보로 넘긴다 — 예전 홈페이지 편집 모드 안내 링크', () => {
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
         <MemoryRouter initialEntries={['/admin/content?tab=settings']}>
           <Routes>
             <Route path="/admin/content" element={<ContentRedirect />} />
             <Route path="/admin/site/info" element={<p>사이트 기본정보 화면</p>} />
           </Routes>
         </MemoryRouter>
-      </QueryClientProvider>,
+      </QueryClientProvider>
     )
     expect(screen.getByText('사이트 기본정보 화면')).toBeInTheDocument()
   })
@@ -197,5 +213,56 @@ describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {
   it('콘텐츠 편집에는 섹션 목록만 — 공통 설정 탭이 없다', () => {
     renderPage()
     expect(screen.queryByRole('button', { name: '공통 설정' })).not.toBeInTheDocument()
+  })
+})
+
+describe('직접 만든 페이지에 섹션 추가 (T-241)', () => {
+  it('그 페이지 한도로 묻고, 코드형 배치(variant)를 골라 그 페이지에 넣는다', async () => {
+    const user = userEvent.setup()
+    let askedPage: string | null = null
+    sections = []
+    currentLimits = limits({
+      count: 0,
+      addable_types: [
+        { section_type: 'SUB_HERO', label: '상단 비주얼', variant: null },
+        { section_type: 'CONTENT_BLOCK', label: '사진 + 글', variant: 'media-row' },
+        { section_type: 'CONTENT_BLOCK', label: '좌우 이야기', variant: 'split-story' },
+      ],
+    })
+    server.use(
+      http.get(`${BASE}/v1/sections/limits`, ({ request }) => {
+        askedPage = new URL(request.url).searchParams.get('page_key')
+        return HttpResponse.json({ success: true, data: currentLimits })
+      })
+    )
+    renderPage('event')
+    expect(await screen.findByText(/아직 섹션이 없어요/)).toBeInTheDocument()
+    await waitFor(() => expect(askedPage).toBe('event'))
+    await user.click(await screen.findByRole('button', { name: '섹션 추가' }))
+    const dialog = await screen.findByRole('dialog')
+    await user.click(within(dialog).getByLabelText('좌우 이야기'))
+    await user.click(within(dialog).getByRole('button', { name: '추가' }))
+    await waitFor(() =>
+      expect(created).toEqual({
+        section_type: 'CONTENT_BLOCK',
+        variant: 'split-story',
+        page_key: 'event',
+      })
+    )
+  })
+
+  it('스위치가 꺼져 한도가 404 면 추가 막대 없이 목록만', async () => {
+    server.use(
+      http.get(`${BASE}/v1/sections/limits`, () =>
+        HttpResponse.json(
+          { success: false, error: { code: 'NOT_FOUND', message: '없음' } },
+          { status: 404 }
+        )
+      )
+    )
+    renderPage('event')
+    expect(await screen.findByText(/아직 섹션이 없어요/)).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 50))
+    expect(screen.queryByRole('button', { name: '섹션 추가' })).not.toBeInTheDocument()
   })
 })
