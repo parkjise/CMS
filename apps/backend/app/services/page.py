@@ -24,7 +24,7 @@ from app.models.template import Template
 from app.models.tenant import Tenant
 from app.schemas.page import PageCreate, PageDuplicate, PageUpdate
 from app.services import feature as feature_service
-from app.services import site_cache
+from app.services import section_manage, site_cache
 from app.services import site_settings as site_settings_service
 from app.services import template as template_service
 
@@ -399,13 +399,33 @@ async def _next_order(db: AsyncSession, tenant_id: UUID) -> int:
 # ── 만들기 · 고치기 ───────────────────────────────────────────────────────
 
 
+async def _recipes(db: AsyncSession, tenant_id: UUID) -> list[dict]:
+    titles = {p["key"]: p["title"] for p in await current_template_pages(db, tenant_id)}
+    return await section_manage.page_recipes(db, tenant_id, titles)
+
+
+async def recipe_options(db: AsyncSession, tenant_id: UUID) -> list[dict]:
+    """페이지 추가의 '추천 구성' 목록 [{key, label, sections: [섹션 이름]}] (T-247)"""
+    return [
+        {**r, "sections": [s["label"] for s in r["sections"]]}
+        for r in await _recipes(db, tenant_id)
+    ]
+
+
 async def create_page(db: AsyncSession, tenant_id: UUID, data: PageCreate) -> dict:
-    """빈 페이지 — 섹션은 T-241 섹션 라이브러리에서 넣는다."""
+    """빈 페이지, 또는 추천 구성(recipe) 섹션과 함께 — 그 밖은 T-241 섹션 라이브러리."""
     await sync_template_pages(db, tenant_id)
     await _ensure_can_create(db, tenant_id)
     await _ensure_key(db, tenant_id, data.page_key)
     if data.parent_key:
         await _check_parent(db, tenant_id, data.parent_key, None)
+    recipe = None
+    if data.recipe:
+        recipe = next(
+            (r for r in await _recipes(db, tenant_id) if r["key"] == data.recipe), None
+        )
+        if recipe is None:
+            raise _invalid("지금 템플릿에 없는 추천 구성이에요.", "recipe")
     page = Page(
         tenant_id=tenant_id,
         page_key=data.page_key,
@@ -416,6 +436,10 @@ async def create_page(db: AsyncSession, tenant_id: UUID, data: PageCreate) -> di
     )
     _apply_common(page, data)
     db.add(page)
+    if recipe is not None:
+        await section_manage.add_recipe_sections(
+            db, tenant_id, data.page_key, recipe["sections"]
+        )
     await _drop_redirect_from(db, tenant_id, data.page_key)
     await _commit(db)
     await site_cache.purge_site(db, tenant_id)
