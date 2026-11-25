@@ -114,7 +114,9 @@ def _public_tenant(tenant: Tenant, setting: SiteSetting | None) -> PublicTenantR
     return public
 
 
-async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteResponse:
+async def _build_site_data(
+    db: AsyncSession, tenant: Tenant, *, preview_key: str | None = None
+) -> PublicSiteResponse:
     tid = tenant.id
 
     await set_rls_context(db, tid)
@@ -179,7 +181,7 @@ async def _build_site_data(db: AsyncSession, tenant: Tenant) -> PublicSiteRespon
         notice_board=PublicBoardResponse(**notice) if notice else None,
         pages=[
             PublicPageResponse.model_validate(p)
-            for p in await page_service.public_pages(db, tid)
+            for p in await page_service.public_pages(db, tid, preview_key=preview_key)
         ],
         page_redirects=await page_service.public_redirects(db, tid),
     )
@@ -238,7 +240,8 @@ async def get_site_draft(
     tenant = await _get_tenant(db, tenant_slug)
     if not tenant or not tenant.is_active or str(tenant.id) != draft["tenant_id"]:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
-    data = await _build_site_data(db, tenant)
+    # 미리보는 페이지는 숨김이어도 함께 (T-244) — 홈페이지가 숨김 표시를 무시하고 그린다
+    data = await _build_site_data(db, tenant, preview_key=draft.get("page_key"))
     return ApiResponse.ok(section_draft.apply_draft(data, draft))
 
 

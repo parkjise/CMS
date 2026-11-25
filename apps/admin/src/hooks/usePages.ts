@@ -186,6 +186,16 @@ export interface PageUsage {
   sections: { id: string; label: string; page_key: string }[]
 }
 
+/** 페이지 미리보기 주소 (T-244, PM-06) — 숨김 페이지도 10분 동안 관리자만 */
+export function usePreviewPage() {
+  return useMutation({
+    mutationFn: async (id: string): Promise<{ token: string; page_key: string }> => {
+      const { data } = await api.post(`/v1/pages/${id}/preview`)
+      return data.data
+    },
+  })
+}
+
 export function usePageUsage(id: string | null) {
   return useQuery({
     queryKey: [...PAGES_KEY, 'usage', id],

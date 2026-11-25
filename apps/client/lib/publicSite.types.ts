@@ -159,6 +159,15 @@ export const pageOf = (site: PublicSite, key: string): PublicPage | null =>
 export const pageHidden = (site: PublicSite, key: string): boolean =>
   key !== 'home' && pageOf(site, key)?.is_public === false
 
+/**
+ * 관리자 미리보기 (T-244) — 미리보는 페이지는 숨김이어도 공개처럼 그린다.
+ * 서버는 미리보기 주소에서만 그 숨김 페이지를 함께 보낸다.
+ */
+export const withPreviewPage = (site: PublicSite, key: string): PublicSite => ({
+  ...site,
+  pages: site.pages?.map((p) => (p.page_key === key ? { ...p, is_public: true } : p)),
+})
+
 /** 직접 만든 공개 페이지 (T-239) */
 export const customPages = (site: PublicSite): PublicPage[] =>
   (site.pages ?? []).filter((p) => p.origin === 'CUSTOM' && p.is_public)

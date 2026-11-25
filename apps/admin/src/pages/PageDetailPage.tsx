@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-r
 import { ArrowLeft } from 'lucide-react'
 import { PageSections } from '@/components/content/PageSections'
 import { PageSettingsForm } from '@/components/pages/PageSettingsForm'
+import { PageViewButtons } from '@/components/pages/PageViewButtons'
 import { HOME_PAGE, usePages } from '@/hooks/usePages'
 import { pagePath } from '@/lib/pageKey'
 
@@ -46,6 +47,11 @@ export function PageDetailPage() {
           <span className="text-sm text-slate-500">{pagePath(pageKey)}</span>
           {page && !page.is_public && (
             <span className="rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">숨김</span>
+          )}
+          {page && (
+            <div className="ml-auto flex gap-2">
+              <PageViewButtons page={page} />
+            </div>
           )}
         </div>
         <p className="mt-1 text-sm text-slate-500">

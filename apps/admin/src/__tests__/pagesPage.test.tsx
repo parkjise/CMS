@@ -165,6 +165,47 @@ const renderAt = (url: string) => {
   return router
 }
 
+describe('미리보기 · 화면에서 편집 (T-244, PM-06)', () => {
+  it('숨김 페이지는 미리보기만 — 누르면 미리보기 주소를 새 탭으로 연다', async () => {
+    const win = { opener: {}, location: { href: '' }, close: vi.fn() }
+    const open = vi.spyOn(window, 'open').mockReturnValue(win as unknown as Window)
+    server.use(
+      http.post(`${BASE}/v1/pages/:id/preview`, async ({ request, params }) => {
+        await record(request)
+        return HttpResponse.json({
+          success: true,
+          data: { token: 'tok', page_key: params.id === 'id-event' ? 'event' : 'home', expires_in: 600 },
+        })
+      })
+    )
+    renderAt('/admin/pages')
+    const rows = within(await screen.findByRole('list', { name: '페이지 목록' })).getAllByRole(
+      'listitem'
+    )
+    // 공개된 홈은 홈페이지로 바로, 숨긴 페이지는 미리보기에서만
+    expect(within(rows[0]).getByRole('link', { name: '홈 화면에서 편집' })).toHaveAttribute(
+      'href',
+      'http://localhost:3000/hana'
+    )
+    expect(within(rows[1]).queryByRole('link', { name: /화면에서 편집/ })).toBeNull()
+    await userEvent.click(within(rows[1]).getByRole('button', { name: '이벤트 미리보기' }))
+    await waitFor(() =>
+      expect(win.location.href).toBe('http://localhost:3000/hana/preview?draft=tok&page=event')
+    )
+    expect(open).toHaveBeenCalledWith('', '_blank')
+    expect(win.opener).toBeNull()
+    expect(requests).toContainEqual({ method: 'POST', url: '/api/v1/pages/id-event/preview', body: null })
+    open.mockRestore()
+  })
+
+  it('페이지 편집 화면에도 같은 버튼, 보기 전용은 미리보기 없이', async () => {
+    useAuthStore.setState({ user: { role: 'TENANT_VIEWER' } } as never)
+    renderAt('/admin/pages/home')
+    expect(await screen.findByRole('link', { name: /화면에서 편집/ })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /미리보기/ })).toBeNull()
+  })
+})
+
 describe('페이지 목록 (PM-01)', () => {
   it('기본 · 직접 · 숨김 · 섹션 수와 한도를 보여 준다', async () => {
     renderAt('/admin/pages')
@@ -173,7 +214,7 @@ describe('페이지 목록 (PM-01)', () => {
     )
     expect(rows).toHaveLength(2)
     expect(within(rows[0]).getByText('기본')).toBeInTheDocument()
-    expect(within(rows[0]).getByText('/ · 섹션 3개')).toBeInTheDocument()
+    expect(within(rows[0]).getByText('/ · 섹션 3개 · 수정 2026.11.24')).toBeInTheDocument()
     expect(within(rows[1]).getByText('직접')).toBeInTheDocument()
     expect(within(rows[1]).getByText('숨김')).toBeInTheDocument()
     expect(screen.getByText('직접 만든 페이지 1 / 10')).toBeInTheDocument()
