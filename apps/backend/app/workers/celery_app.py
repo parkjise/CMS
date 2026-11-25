@@ -66,6 +66,12 @@ celery_app.conf.update(
             "task": "app.workers.announcement.publish_scheduled_announcements",
             "schedule": crontab(minute="*/5"),  # 5분마다 예약 공지 발행
         },
+        "purge-page-trash-daily-0440": {
+            "task": "app.workers.scheduled.purge_page_trash",
+            "schedule": crontab(
+                hour=4, minute=40
+            ),  # 매일 04:40 페이지 휴지통 30일 (T-242)
+        },
         "purge-board-trash-daily-0430": {
             "task": "app.workers.scheduled.purge_board_trash",
             "schedule": crontab(hour=4, minute=30),  # 매일 04:30 휴지통 30일 지난 것

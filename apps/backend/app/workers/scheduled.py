@@ -281,6 +281,30 @@ async def _purge_board_trash() -> dict:
         return await trash_service.purge_expired(db)
 
 
+# ── purge_page_trash (T-242) ───────────────────────────────────────────
+
+
+@celery_app.task(
+    name="app.workers.scheduled.purge_page_trash",
+    bind=True,
+    max_retries=3,
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+)
+def purge_page_trash(self) -> int:
+    return run_async(_purge_page_trash())
+
+
+async def _purge_page_trash() -> int:
+    """휴지통에 30일 넘게 있던 직접 만든 페이지 · 섹션을 지운다. 지운 수 반환."""
+    from app.db.session import AsyncSessionLocal
+    from app.services import page as page_service
+
+    async with AsyncSessionLocal() as db:
+        await set_super_admin_context(db)
+        return await page_service.purge_expired(db)
+
+
 # ── release_due_policies (T-224) ──────────────────────────────────────────
 
 

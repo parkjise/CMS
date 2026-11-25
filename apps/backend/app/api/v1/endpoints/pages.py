@@ -19,6 +19,7 @@ from app.schemas.page import (
     PageOrderUpdate,
     PageResponse,
     PageUpdate,
+    PageUsageResponse,
 )
 from app.services import page as page_service
 
@@ -108,6 +109,21 @@ async def duplicate_page(
     """섹션까지 복사한 숨김 페이지."""
     page = await page_service.duplicate_page(db, tenant_id, page_id, body)
     return ApiResponse.ok(PageResponse.model_validate(page))
+
+
+@router.get(
+    "/{page_id}/usage",
+    response_model=ApiResponse[PageUsageResponse],
+    dependencies=_feature,
+)
+async def page_usage(
+    page_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """이 페이지를 가리키는 메뉴 · 섹션 링크 (T-242) — 지우기 · 주소 변경 전 안내."""
+    found = await page_service.usage(db, tenant_id, page_id)
+    return ApiResponse.ok(PageUsageResponse.model_validate(found))
 
 
 @router.delete("/{page_id}", response_model=ApiResponse[None], dependencies=_feature)

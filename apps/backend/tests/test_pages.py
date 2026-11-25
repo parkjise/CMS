@@ -786,3 +786,167 @@ class TestPageSections:
         assert (await self._limits(client, auth_headers, "event")).status_code == 404
         # 홈은 그대로
         assert (await self._limits(client, auth_headers, "home")).status_code == 200
+
+
+class TestSafety:
+    """변경 안전장치 — 주소 이동 · 휴지통 비우기 · 영향 안내 · 템플릿 충돌 (T-242)"""
+
+    async def _site(self, client: AsyncClient, slug: str) -> dict:
+        resp = await client.get(f"/api/public/site/{slug}")
+        assert resp.status_code == 200, resp.text
+        return resp.json()["data"]
+
+    async def _purge_cache(self, tenant: dict) -> None:
+        from app.services import site_cache
+
+        await site_cache.purge_slugs([tenant["slug"]], [uuid.UUID(tenant["id"])])
+
+    async def test_public_redirects(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        page = (await _create(client, auth_headers, "event")).json()["data"]
+        url = f"{_URL}/{page['id']}"
+        await client.patch(url, headers=auth_headers, json={"page_key": "sale"})
+        # 숨긴 페이지로 가는 이동은 내보내지 않는다 (새로 만든 페이지는 숨김이 아님)
+        assert (await self._site(client, pages_on["slug"]))["page_redirects"] == {
+            "event": "sale"
+        }
+        await self._purge_cache(pages_on)
+        resp = await client.get(f"/api/public/site/{pages_on['slug']}/template")
+        assert resp.json()["data"]["page_redirects"] == {"event": "sale"}
+        await client.patch(url, headers=auth_headers, json={"is_public": False})
+        assert (await self._site(client, pages_on["slug"]))["page_redirects"] == {}
+        # 예전 주소로 새 페이지를 만들면 그 이동 기록은 지운다
+        await client.patch(url, headers=auth_headers, json={"is_public": True})
+        await _create(client, auth_headers, "event")
+        rows = await _sql(
+            "SELECT from_key FROM page_redirects WHERE tenant_id = :t",
+            {"t": pages_on["id"]},
+        )
+        assert rows == []
+
+    async def test_purge_expired_trash(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        tid = pages_on["id"]
+        old = (await _create(client, auth_headers, "old")).json()["data"]
+        recent = (await _create(client, auth_headers, "recent")).json()["data"]
+        await _add_section(tid, "old")
+        await _add_section(tid, "recent")
+        for p in (old, recent):
+            await client.delete(f"{_URL}/{p['id']}", headers=auth_headers)
+        await _sql(
+            "UPDATE pages SET deleted_at = deleted_at - interval '31 days'"
+            " WHERE id = :i",
+            {"i": old["id"]},
+        )
+        await _sql(
+            "UPDATE sections SET deleted_at = deleted_at - interval '31 days'"
+            " WHERE tenant_id = :t AND page_key = 'old'",
+            {"t": tid},
+        )
+        async with _TestSession() as session:
+            await session.execute(
+                text("SELECT set_config('app.is_super_admin', 'true', true)")
+            )
+            assert await page_service.purge_expired(session) >= 1
+        keys = await _sql(
+            "SELECT page_key FROM pages WHERE tenant_id = :t AND origin = 'CUSTOM'",
+            {"t": tid},
+        )
+        assert [r[0] for r in keys] == ["recent"]
+        sections = await _sql(
+            "SELECT page_key FROM sections WHERE tenant_id = :t", {"t": tid}
+        )
+        assert [r[0] for r in sections] == ["recent"]
+
+    async def test_usage_lists_menu_and_links(
+        self, client: AsyncClient, auth_headers: dict, pages_on: dict
+    ):
+        tid = pages_on["id"]
+        page = (await _create(client, auth_headers, "event")).json()["data"]
+        linking = await _add_section(tid, "home", "배너")
+        await _sql(
+            "UPDATE section_settings SET field_value = :v WHERE section_id = :s",
+            {"v": f"/{pages_on['slug']}/event?from=banner", "s": linking},
+        )
+        other = await _add_section(tid, "home", "다른 링크")
+        await _sql(
+            "UPDATE section_settings SET field_value = '/events' WHERE section_id = :s",
+            {"s": other},
+        )
+        await _sql(
+            "INSERT INTO site_settings (id, tenant_id, menu_items, created_at,"
+            " updated_at) VALUES (gen_random_uuid(), :t, CAST(:m AS jsonb), now(),"
+            " now())",
+            {
+                "t": tid,
+                "m": json.dumps(
+                    [
+                        {
+                            "scope": "theme",
+                            "nodes": [
+                                {
+                                    "id": "g",
+                                    "label": "소식",
+                                    "type": "group",
+                                    "children": [
+                                        {
+                                            "id": "p-event",
+                                            "label": "이벤트",
+                                            "type": "page",
+                                            "target": "event",
+                                        }
+                                    ],
+                                }
+                            ],
+                        }
+                    ]
+                ),
+            },
+        )
+        resp = await client.get(f"{_URL}/{page['id']}/usage", headers=auth_headers)
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["menu"] == ["이벤트"]
+        assert [(s["label"], s["page_key"]) for s in data["sections"]] == [
+            ("배너", "home")
+        ]
+
+    async def test_template_apply_blocked_by_page_key(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        pages_on: dict,
+        monkeypatch,
+    ):
+        from app.data import template_samples
+
+        await _create(client, auth_headers, "contact", title="문의 안내")
+        template_id = str(uuid.uuid4())
+        await _sql(
+            "INSERT INTO templates (id, template_type, name, css_variables,"
+            " section_layouts, is_active, min_plan, renderer, code, created_at,"
+            " updated_at) VALUES (:id, 'HOSPITAL', '충돌 테스트', '{}'::jsonb,"
+            " '[]'::jsonb, true, 'BASIC', 'code', :code, now(), now())",
+            {"id": template_id, "code": f"TPL_CLASH_{template_id[:8]}"},
+        )
+        monkeypatch.setattr(
+            template_samples,
+            "template_pages",
+            lambda code: [
+                {"key": "home", "title": "홈"},
+                {"key": "contact", "title": "문의"},
+            ],
+        )
+        try:
+            resp = await client.post(
+                "/api/v1/templates/apply",
+                json={"template_id": template_id},
+                headers=auth_headers,
+            )
+            assert resp.status_code == 409, resp.text
+            message = resp.json()["error"]["message"]
+            assert "'문의 안내'(/contact)" in message
+        finally:
+            await _sql("DELETE FROM templates WHERE id = :t", {"t": template_id})

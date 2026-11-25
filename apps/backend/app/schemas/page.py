@@ -134,3 +134,18 @@ class PageKeyCheckResponse(BaseModel):
     available: bool
     # 쓸 수 없는 이유 — 화면에 그대로 보인다
     reason: str | None = None
+
+
+class PageUsageSection(BaseModel):
+    id: uuid.UUID
+    label: str
+    page_key: str
+
+
+class PageUsageResponse(BaseModel):
+    """이 페이지를 가리키는 곳 (T-242) — 지우기 · 주소 변경 전 안내"""
+
+    # 저장한 메뉴에서 이 페이지로 가는 메뉴 이름
+    menu: list[str]
+    # 값에 이 페이지 주소가 든 섹션 (다른 페이지)
+    sections: list[PageUsageSection]

@@ -120,6 +120,12 @@ beforeEach(() => {
       list = { ...list, pages: [...list.pages, { ...back, deleted_at: null }], trash: [] }
       return HttpResponse.json({ success: true, data: back })
     }),
+    http.get(`${BASE}/v1/pages/:id/usage`, () =>
+      HttpResponse.json({
+        success: true,
+        data: { menu: ['이벤트'], sections: [{ id: 's1', label: '배너', page_key: 'home' }] },
+      })
+    ),
     http.get(`${BASE}/v1/sections`, () => HttpResponse.json({ success: true, data: [] })),
     http.get(`${BASE}/v1/sections/limits`, () =>
       HttpResponse.json({
@@ -287,6 +293,10 @@ describe('휴지통', () => {
     await user.click(await screen.findByRole('button', { name: '이벤트 휴지통으로' }))
     const dialog = screen.getByRole('dialog')
     expect(dialog).toHaveTextContent('섹션 2개')
+    // 이 페이지로 연결된 메뉴 · 섹션 링크 (T-242)
+    const note = await within(dialog).findByRole('note')
+    expect(note).toHaveTextContent("메뉴 '이벤트'")
+    expect(note).toHaveTextContent("홈 페이지의 '배너' 섹션 링크")
     await user.click(within(dialog).getByRole('button', { name: '휴지통으로' }))
     await waitFor(() => expect(screen.getByRole('tab', { name: '휴지통 1' })).toBeInTheDocument())
     await user.click(screen.getByRole('tab', { name: '휴지통 1' }))

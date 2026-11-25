@@ -33,6 +33,8 @@ interface SiteRoute {
   memberEnabled: boolean
   /** 구독이 끝나 닫힌 사이트 (T-201) — 모든 주소를 안내 화면으로 */
   paused?: boolean
+  /** 페이지 주소 이동 (T-242) — 이전 주소 → 지금 주소 */
+  pageRedirects?: Record<string, string>
 }
 
 const cache = new Map<string, SiteRoute & { expires: number }>()
@@ -57,11 +59,17 @@ async function siteRouteOf(slug: string): Promise<SiteRoute | null> {
     }
     if (!res.ok) return null
     const body = (await res.json()) as {
-      data?: { code?: string | null; renderer?: string; member_enabled?: boolean }
+      data?: {
+        code?: string | null
+        renderer?: string
+        member_enabled?: boolean
+        page_redirects?: Record<string, string>
+      }
     }
     route = {
       code: body.data?.renderer === 'code' ? (body.data.code ?? null) : null,
       memberEnabled: Boolean(body.data?.member_enabled),
+      pageRedirects: body.data?.page_redirects ?? {},
     }
   } catch {
     return null // 장애 시 캐시하지 않고 그대로 통과 (회원 화면은 레이아웃에서 한 번 더 확인)
@@ -229,7 +237,14 @@ async function routeTenant(request: NextRequest, pathname: string, headers: Head
     return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, publicOrigin(request)), 301)
   }
 
-  const key = codeTemplateKey((await siteRouteOf(slug))?.code ?? null)
+  const route = await siteRouteOf(slug)
+  // 바꾸기 전 페이지 주소 (T-242) — 지금 주소로 영구 이동. 페이지 주소는 한 단계뿐
+  const movedTo = segments.length === 2 && page ? route?.pageRedirects?.[page] : undefined
+  if (movedTo) {
+    const path = headers.has(CUSTOM_HOST_HEADER) ? `/${movedTo}` : `/${slug}/${movedTo}`
+    return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, publicOrigin(request)), 301)
+  }
+  const key = codeTemplateKey(route?.code ?? null)
   if (!key) {
     // /{slug}/b 는 받는 화면이 없어 공통 404 화면 + 404 상태로 끝난다
     const missing =

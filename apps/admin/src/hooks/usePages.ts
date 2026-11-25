@@ -179,3 +179,22 @@ export function useRestorePage() {
     onSuccess: invalidate,
   })
 }
+
+/** 이 페이지를 가리키는 메뉴 · 섹션 링크 (T-242) — 지우기 전 안내 */
+export interface PageUsage {
+  menu: string[]
+  sections: { id: string; label: string; page_key: string }[]
+}
+
+export function usePageUsage(id: string | null) {
+  return useQuery({
+    queryKey: [...PAGES_KEY, 'usage', id],
+    enabled: Boolean(id),
+    queryFn: async (): Promise<PageUsage> => {
+      const { data } = await api.get(`/v1/pages/${id}/usage`)
+      return data.data
+    },
+    staleTime: 0,
+    meta: { suppressGlobalError: true },
+  })
+}

@@ -25,6 +25,7 @@ import {
   type Page,
   type PageLimits,
   useDeletePage,
+  usePageUsage,
   usePages,
   useReorderPages,
   useRestorePage,
@@ -426,6 +427,7 @@ function TrashList({ pages, canRestore }: { pages: Page[]; canRestore: boolean }
 
 function DeletePageDialog({ page, onClose }: { page: Page | null; onClose: () => void }) {
   const remove = useDeletePage()
+  const usage = usePageUsage(page?.id ?? null).data
   return (
     <Modal open={page !== null} onClose={onClose} title="페이지를 휴지통으로 옮길까요?" size="sm">
       {page && (
@@ -433,8 +435,24 @@ function DeletePageDialog({ page, onClose }: { page: Page | null; onClose: () =>
           <p className="text-sm text-slate-600">
             <strong className="text-slate-900">{page.title}</strong> 페이지와 섹션{' '}
             {page.section_count}개가 휴지통으로 옮겨지고, 홈페이지 메뉴와 주소(
-            {pagePath(page.page_key)})에서 바로 사라져요. 휴지통에서 되살릴 수 있어요.
+            {pagePath(page.page_key)})에서 바로 사라져요. 30일 동안 휴지통에서 되살릴 수 있어요.
           </p>
+          {usage && (usage.menu.length > 0 || usage.sections.length > 0) && (
+            <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="note">
+              <p className="font-medium">이 페이지로 연결된 곳이 있어요</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                {usage.menu.map((label) => (
+                  <li key={`m-${label}`}>메뉴 '{label}' — 홈페이지 메뉴에서 빠져요</li>
+                ))}
+                {usage.sections.map((s) => (
+                  <li key={s.id}>
+                    {s.page_key === 'home' ? '홈' : s.page_key} 페이지의 '{s.label}' 섹션 링크 —
+                    눌러도 열리지 않아요
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>
               취소
