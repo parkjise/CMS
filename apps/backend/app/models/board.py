@@ -38,6 +38,10 @@ class Board(Base, TimestampMixin, SoftDeleteMixin):
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ACTIVE")
     # 템플릿 기본 게시판('notice') — 삭제 보호
     system_key: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    # 콘텐츠형 게시판 (CM-01, T-249) — 글 통합 목록의 '콘텐츠형 게시판만' 필터
+    is_content: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False, server_default=text("false")
+    )
     settings: Mapped[dict[str, Any]] = mapped_column(
         JSONB, nullable=False, default=dict
     )

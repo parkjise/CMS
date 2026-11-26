@@ -145,6 +145,7 @@ def _board_audit(board: Board) -> dict:
         "slug": board.slug,
         "board_type": board.board_type,
         "status": board.status,
+        "is_content": board.is_content,
         "sort_order": options["sort_order"],
         "page_size": options["page_size"],
         "seo_index": options["seo_index"],
@@ -1111,6 +1112,7 @@ async def list_all_posts(
     updated_before: AwareDatetime | None = None,
     published_from: AwareDatetime | None = None,
     published_before: AwareDatetime | None = None,
+    content: bool = False,
     db: AsyncSession = Depends(get_db_with_rls),
     tenant_id: UUID = Depends(get_tenant_id),
 ):
@@ -1132,6 +1134,7 @@ async def list_all_posts(
         updated_before=updated_before,
         published_from=published_from,
         published_before=published_before,
+        content_only=content,
     )
     return ApiResponse.ok(
         PostOverviewListResponse(

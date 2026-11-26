@@ -229,6 +229,64 @@ class TestOverview:
         assert (await client.get(POSTS, headers=auth_headers)).status_code == 403
 
 
+class TestContentBoards:
+    """콘텐츠형 게시판 표시 · '콘텐츠형 게시판만' 필터 (CM-01, T-249)."""
+
+    async def test_mark_on_create_update_and_duplicate(
+        self, client, auth_headers, tenant
+    ):
+        plain = await _board(client, auth_headers, "news")
+        content = await _board(client, auth_headers, "history", is_content=True)
+        assert plain["is_content"] is False
+        assert content["is_content"] is True
+
+        resp = await client.patch(
+            f"{BOARDS}/{plain['id']}", json={"is_content": True}, headers=auth_headers
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["is_content"] is True
+        logs = await _logs(tenant["id"])
+        assert logs[-1][0] == "BOARD_UPDATED"
+        assert logs[-1][3]["is_content"] is False
+        assert logs[-1][4]["is_content"] is True
+        # 다른 값만 바꾸면 그대로
+        resp = await client.patch(
+            f"{BOARDS}/{plain['id']}", json={"name": "소식"}, headers=auth_headers
+        )
+        assert resp.json()["data"]["is_content"] is True
+
+        copy = await client.post(
+            f"{BOARDS}/{content['id']}/duplicate", headers=auth_headers
+        )
+        assert copy.status_code == 201, copy.text
+        assert copy.json()["data"]["is_content"] is True
+
+        listed = (await client.get(BOARDS, headers=auth_headers)).json()["data"]
+        assert [b["is_content"] for b in listed] == [True, True, True]
+
+    async def test_content_only_filter(self, client, auth_headers, tenant, other):
+        news = await _board(client, auth_headers, "news")
+        faq = await _board(
+            client, auth_headers, "faq-box", board_type="FAQ", is_content=True
+        )
+        await _post(client, auth_headers, news["id"], "소식 글")
+        await _post(client, auth_headers, faq["id"], "주차되나요?")
+        await _post(client, auth_headers, faq["id"], "임시 질문", status="DRAFT")
+        await _sql(
+            "UPDATE boards SET is_content = true WHERE tenant_id = :t", t=other["id"]
+        )
+
+        async def titles(**params) -> set[str]:
+            resp = await client.get(POSTS, params=params, headers=auth_headers)
+            assert resp.status_code == 200, resp.text
+            return {p["title"] for p in resp.json()["data"]["items"]}
+
+        assert await titles(content=True) == {"주차되나요?", "임시 질문"}
+        assert await titles(content=True, status="DRAFT") == {"임시 질문"}
+        assert await titles(content=True, board_id=news["id"]) == set()
+        assert await titles() == {"소식 글", "주차되나요?", "임시 질문"}
+
+
 class TestOverviewCategories:
     async def category(self, client, headers, board_id, name="행사", **extra):
         response = await client.post(

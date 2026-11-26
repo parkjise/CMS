@@ -322,6 +322,7 @@ def _board_response(board: Board, post_count: int, has_samples: bool) -> dict:
         "board_type": board.board_type,
         "status": board.status,
         "system_key": board.system_key,
+        "is_content": board.is_content,
         "post_count": post_count,
         "has_samples": has_samples and board.system_key == NOTICE_KEY,
         "deleted_at": board.deleted_at,
@@ -556,6 +557,7 @@ async def create_board(db: AsyncSession, tenant_id: UUID, data: BoardCreate) -> 
         slug=data.slug or await _next_auto_slug(db, tenant_id),
         board_type=data.board_type,
         status=data.status,
+        is_content=data.is_content,
         settings={DESCRIPTION_KEY: data.description},
     )
     keys = board_presets.check_keys(data.board_type, data.preset_fields)
@@ -709,6 +711,8 @@ async def update_board(db: AsyncSession, board: Board, data: BoardUpdate) -> Boa
         board.slug = data.slug
     if data.name is not None:
         board.name = data.name
+    if data.is_content is not None:
+        board.is_content = data.is_content
     if data.board_type is not None:
         if data.board_type == REVIEW_TYPE and board.board_type != REVIEW_TYPE:
             board.board_type = data.board_type
@@ -740,6 +744,7 @@ async def duplicate_board(db: AsyncSession, board: Board) -> Board:
         slug=await _next_auto_slug(db, board.tenant_id),
         board_type=board.board_type,
         status=board.status,
+        is_content=board.is_content,
         settings=dict(board.settings or {}),
     )
     db.add(copy)
@@ -1032,8 +1037,12 @@ async def list_all_posts(
     updated_before: datetime | None = None,
     published_from: datetime | None = None,
     published_before: datetime | None = None,
+    content_only: bool = False,
 ) -> tuple[list[tuple[BoardPost, str]], int]:
-    """여러 게시판의 글. 날짜 범위는 시작 포함 · 끝 제외다."""
+    """여러 게시판의 글. 날짜 범위는 시작 포함 · 끝 제외다.
+
+    content_only — 콘텐츠형 게시판의 글만 (CM-01, T-249).
+    """
     _check_created_range(created_from, created_before)
     if updated_from and updated_before and updated_from >= updated_before:
         raise HTTPException(status_code=400, detail=MSG_UPDATED_DATE_RANGE)
@@ -1046,6 +1055,8 @@ async def list_all_posts(
     ]
     if board_id:
         conditions.append(BoardPost.board_id == board_id)
+    if content_only:
+        conditions.append(Board.is_content.is_(True))
     if category_id:
         conditions.append(category_service.post_in_category(category_id))
     if status:
