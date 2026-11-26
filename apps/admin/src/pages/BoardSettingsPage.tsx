@@ -77,6 +77,12 @@ export function BoardBasicFields({ board, value, onChange, nameError, onRemoved 
             value={value.description}
             onChange={(e) => onChange({ description: e.target.value })}
           />
+          <Toggle
+            label="콘텐츠형 게시판"
+            description="서비스 소개 · FAQ · 연혁처럼 페이지 섹션에 보여 줄 글을 담는 게시판이에요. 게시글 관리에서 '콘텐츠형 게시판만'으로 모아 볼 수 있어요."
+            checked={value.is_content}
+            onChange={(e) => onChange({ is_content: e.target.checked })}
+          />
         </div>
 
         {!isSystem && (

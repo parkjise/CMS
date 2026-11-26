@@ -223,6 +223,7 @@ describe('콘텐츠형 게시판 프리셋 (T-243)', () => {
         board_type: 'LIST',
         in_menu: false,
         preset_fields: ['year'],
+        is_content: true,
         permissions: { read: 'PUBLIC', write: 'ADMIN' },
         operation: expect.objectContaining({ allow_guest: false }),
       })

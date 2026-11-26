@@ -43,7 +43,7 @@ const USAGE = [
 ]
 
 const ok = (data: unknown) => Promise.resolve({ data: { data } })
-const value = { name: '의료진', description: '', seo_title: '', seo_description: '', seo_index: true }
+const value = { name: '의료진', description: '', seo_title: '', seo_description: '', seo_index: true, is_content: false }
 
 const renderFields = (b: Board) =>
   renderWithQuery(
@@ -68,6 +68,18 @@ describe('사용 위치', () => {
     )
     expect(screen.getByText('병원 소개')).toBeInTheDocument()
     expect(screen.getByText('숨김')).toBeInTheDocument()
+  })
+
+  it('기본 정보에 콘텐츠형 게시판 켜기 (T-249)', async () => {
+    get.mockImplementation(() => ok([]))
+    const onChange = vi.fn()
+    renderWithQuery(
+      <MemoryRouter>
+        <BoardBasicFields board={board()} value={value} onChange={onChange} onRemoved={vi.fn()} />
+      </MemoryRouter>,
+    )
+    await userEvent.click(screen.getByRole('checkbox', { name: /콘텐츠형 게시판/ }))
+    expect(onChange).toHaveBeenCalledWith({ is_content: true })
   })
 
   it('없으면 게시판 연결 섹션을 추가하라고 안내한다', async () => {

@@ -264,6 +264,7 @@ describe('게시판 추가 마법사', () => {
         // 4단계 기본값 그대로 (T-211)
         permissions: { read: 'PUBLIC', write: 'ADMIN' },
         operation: { allow_secret: false, notify_new_post: false, allow_guest: false },
+        is_content: false,
       }),
     )
     expect(await screen.findByRole('link', { name: '첫 글 쓰기' })).toHaveAttribute(
@@ -476,6 +477,7 @@ describe('기본 정보 탭', () => {
         seo_title: '',
         seo_description: '',
         seo_index: true,
+        is_content: false,
       }),
     )
   })
@@ -495,6 +497,7 @@ describe('기본 정보 탭', () => {
         seo_title: '소식 모음',
         seo_description: '병원 소식',
         seo_index: false,
+        is_content: false,
       }),
     )
   })
