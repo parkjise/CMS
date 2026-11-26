@@ -13,7 +13,7 @@ import {
 import { pickErrorMessage } from '@/lib/errorMessages'
 
 type Value = string | string[]
-type FillKind = 'seo' | 'geo'
+type FillKind = 'seo' | 'geo' | 'page_seo'
 
 export interface FillField<K extends FillKind> {
   key: keyof AssistResults[K] & string
@@ -28,6 +28,10 @@ interface AiFillAssistProps<K extends FillKind> {
   buttonLabel: string
   title: string
   fields: FillField<K>[]
+  /** 말투 말고 함께 보낼 값 — 페이지 검색 문구는 page_id */
+  input?: Omit<AssistInputs[K], 'tone'>
+  /** 서랍 안내 — 비우면 사이트 기본정보 기준 문구 */
+  note?: string
   /** 고른 칸만 넘긴다 — 폼에 채우면 저장 막대가 켜지고, 저장은 관리자가 */
   onApply: (values: Partial<AssistResults[K]>) => void
 }
@@ -42,6 +46,8 @@ export function AiFillAssist<K extends FillKind>({
   buttonLabel,
   title,
   fields,
+  input,
+  note = '사이트 기본정보와 지금 설정을 바탕으로 만들어요.',
   onApply,
 }: AiFillAssistProps<K>) {
   const enabled = useAiAssistEnabled(flag)
@@ -54,7 +60,7 @@ export function AiFillAssist<K extends FillKind>({
   const result = assist.data?.result as Record<string, Value> | undefined
 
   const generate = () =>
-    assist.mutate({ tone } as AssistInputs[K], {
+    assist.mutate({ ...input, tone } as AssistInputs[K], {
       // 지금 값이 있는 칸은 덮어쓰지 않게 처음엔 고르지 않는다
       onSuccess: () =>
         setPicked(fields.filter((field) => isEmpty(field.current)).map((field) => field.key)),
@@ -141,8 +147,7 @@ export function AiFillAssist<K extends FillKind>({
           </div>
         </fieldset>
         <p className="text-xs text-slate-500">
-          사이트 기본정보와 지금 설정을 바탕으로 만들어요. 사이트 정보에 없는 수치 · 수상 · 자격은
-          넣지 않아요.
+          {note} 사이트 정보에 없는 수치 · 수상 · 자격은 넣지 않아요.
         </p>
 
         {assist.isPending && <div className="h-40 animate-pulse rounded-lg bg-slate-100" />}

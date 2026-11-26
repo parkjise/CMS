@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 
-AssistKind = Literal["seo", "geo", "board", "post", "policy_summary"]
+AssistKind = Literal["seo", "geo", "board", "post", "policy_summary", "page_seo"]
 AssistTone = Literal["trust", "friendly", "expert"]
 
 PURPOSE_MAX = 200
@@ -23,6 +23,7 @@ class AssistRequest(BaseModel):
     """kind 마다 쓰는 칸만 — 나머지(사이트 정보 · 업종 · 지금 값)는 서버가 직접 읽는다.
 
     - seo · geo: tone
+    - page_seo: tone, page_id (필수 — 그 페이지 이름 · 섹션 제목으로 만든다)
     - board: purpose (필수), board_id (있으면 그 게시판에 더할 필드 · 카테고리만)
     - post: memo (필수), board_id (필수 — 게시판 유형으로 FAQ 를 가린다)
     - policy_summary: kind (terms · privacy), body (편집 중인 본문, 저장 전이어도) —
@@ -35,6 +36,7 @@ class AssistRequest(BaseModel):
     board_id: uuid.UUID | None = None
     kind: Literal["terms", "privacy"] | None = None
     body: str = Field(default="", max_length=POLICY_BODY_MAX)
+    page_id: uuid.UUID | None = None
 
 
 class SeoAssistResult(BaseModel):
@@ -42,6 +44,13 @@ class SeoAssistResult(BaseModel):
     meta_description: str
     # 키워드를 못 쓰는 요금제면 빈 목록
     keywords: list[str] = []
+
+
+class PageSeoAssistResult(BaseModel):
+    """페이지 검색 제목 · 설명 (PM-02) — 페이지 설정의 칸 이름 그대로."""
+
+    seo_title: str
+    seo_description: str
 
 
 class GeoAssistResult(BaseModel):
@@ -100,6 +109,7 @@ class PolicySummaryResult(BaseModel):
 
 AssistResult = (
     SeoAssistResult
+    | PageSeoAssistResult
     | GeoAssistResult
     | BoardAssistResult
     | PostAssistResult

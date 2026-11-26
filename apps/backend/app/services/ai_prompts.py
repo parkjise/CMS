@@ -113,6 +113,7 @@ def build_copy_messages(
 # - assist-v1 board (2026-11): 게시판 구성 추천 (T-232-B) — 다른 kind 프롬프트는 그대로
 # - assist-v1 post (2026-11): 공지 · FAQ 글 초안 (T-233-B)
 # - assist-v1 policy_summary (2026-11): 약관 변경 요약 (T-234-B)
+# - assist-v1 page_seo (2026-11): 페이지 하나의 검색 제목 · 설명 (T-248)
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -190,6 +191,15 @@ _ASSIST_FORMATS["policy_summary"] = (
     "- 버전 이력에 남는 문장이라 '~을(를) 고쳤습니다'처럼 담담하게 쓴다"
 )
 
+_ASSIST_FORMATS["page_seo"] = (
+    '{{"seo_title": "이 페이지의 검색 결과 제목, {title_max}자 이내, '
+    '페이지 주제와 사이트명 포함",'
+    ' "seo_description": "이 페이지가 다루는 내용의 검색 결과 설명, '
+    '{desc_max}자 이내"}}\n'
+    "- 사이트 전체 소개가 아니라 '페이지 이름' · '페이지 섹션 제목'의 주제에 맞춘다\n"
+    "- '사이트 검색 제목'과 같은 문장을 그대로 쓰지 않는다"
+)
+
 _ASSIST_TARGETS = {
     "seo": "검색엔진 노출 문구(SEO)",
     "geo": "AI 답변용 기업 소개(GEO)",
@@ -197,6 +207,7 @@ _ASSIST_TARGETS = {
     "post": "공지 · 소식 글 초안",
     "post_faq": "자주 묻는 질문(FAQ)의 질문 · 답변 초안",
     "policy_summary": "이용약관 · 개인정보처리방침의 변경 내용 요약",
+    "page_seo": "홈페이지 한 페이지의 검색엔진 노출 문구(SEO)",
 }
 
 
