@@ -1900,6 +1900,8 @@ KAKAO_TEMPLATE_CODE_INQUIRY=INQUIRY_ALERT_V1
 
 # AI Manager 연동
 OPENAI_API_KEY=sk-xxx
+AI_BASE_URL=                               # OpenAI 호환 주소, 비우면 OpenAI (T-251 — 개발 시험만 Gemini)
+AI_MODEL=gpt-4o-mini                       # 모델 이름
 AI_MANAGER_BASE_URL=http://localhost:9000  # AI Manager 서비스 URL
 AI_AUTO_CLASSIFY=true                      # 문의 자동 분류 활성화
 

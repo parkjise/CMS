@@ -37,9 +37,9 @@
 | **Phase 18: 게시판 관리 모듈** | **84** | **84** | **100%** |
 | **Phase 19: 운영 안정화** | **2** | **2** | **100%** |
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
-| **Phase 21: 관리자 화면 개선 · AI 보조** | **14** | **14** | **100%** |
+| **Phase 21: 관리자 화면 개선 · AI 보조** | **15** | **15** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **합계** | **294** | **294** | **100%** |
+| **합계** | **295** | **295** | **100%** |
 
 ---
 
@@ -4519,6 +4519,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **배경:** 개발 배포 화면(GitHub Pages `/CMS/admin/`)을 최신 main 으로 다시 빌드하니 모든 화면이 404 — 예전 빌드는 라우터 `basename` 을 빌드 때만 임시로 넣었던 것. 배포는 바로 예전 빌드로 되돌림
 - [x] `lib/appPath.ts` — `vite --base` 값(`BASE_URL`)으로 라우터 `basename`, 라우터 밖 이동(로그아웃 · 오류 · 구독 만료 8곳)은 `appPath()` 로 하위 경로를 붙임, 첫 화면 미리 불러오기는 `routePath()` 로 뗌. 보통 빌드(`/`)는 그대로
 - **테스트:** admin 2 (하위 경로 없음 · /CMS/admin 붙이고 떼기). 하위 경로 빌드를 로컬에서 띄워 로그인 화면 확인
+
+### T-251: AI 접속 주소 · 모델 설정 — 개발에서 Gemini 로 시험 ✅ (Claude, 2026-11-26 — 사용자 결정)
+
+- **배경:** AI 호출이 OpenAI · `gpt-4o-mini` 로 고정. 사용자 결정 — 개발 시험만 Gemini 키, 운영은 OpenAI 그대로
+- [x] `AI_BASE_URL`(비우면 OpenAI) · `AI_MODEL`(기본 `gpt-4o-mini`) — `app/services/ai.py` `_llm_options()` 가 문구 추천 · AI 보조 · 채팅 편집 모두에 같은 값. 키는 `OPENAI_API_KEY` 그대로 (Gemini 의 OpenAI 호환 주소 `https://generativelanguage.googleapis.com/v1beta/openai/`)
+- [x] `.env.example` 에 키 · Gemini 예시. 운영 `docker-compose.prod.yml` 은 바꾸지 않음 — 두 값이 안 들어가 기본(OpenAI)
+- **테스트:** backend 2 (기본은 주소 없이 gpt-4o-mini · 주소와 모델을 바꾸면 그대로), `ChatOpenAI` 에 넣어 주소 · 모델 확인
+- **알아 둘 점:** AI 사용 비용 표시는 OpenAI 단가 기준이라 Gemini 로 시험한 비용은 실제와 다름. 오픈 전 OpenAI 키로 한 번 더 확인
 
 ## Phase 22: 페이지 관리 · 콘텐츠 연결 (`docs/CMS_Page_Content_Plan_v1.0.md` — 2026-11-24 결정)
 

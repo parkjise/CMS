@@ -50,6 +50,10 @@ class Settings(BaseSettings):
 
     # OpenAI
     openai_api_key: str = ""
+    # OpenAI 호환 주소 · 모델 (T-251). 비우면 OpenAI · gpt-4o-mini.
+    # 개발에서만 Gemini 등 다른 회사 키로 시험할 때 바꾼다 (키는 OPENAI_API_KEY)
+    ai_base_url: str = ""
+    ai_model: str = "gpt-4o-mini"
     # AI 비용 최적화 (T-073)
     ai_cache_ttl_seconds: int = 3600  # 동일 입력 문구 추천 캐시 (1시간)
     ai_rate_limit_per_minute: int = 10  # 테넌트당 분당 AI 호출 한도 (비정상 사용 차단)
