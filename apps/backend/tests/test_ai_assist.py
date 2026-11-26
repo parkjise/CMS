@@ -754,3 +754,149 @@ class TestPolicySummaryEndpoint:
         first = next(line for line in published.splitlines() if line.strip())
         assert first not in prompt
         assert resp.json()["data"]["usage"]["used"] == 1
+
+
+# ═════════════════════ T-248 페이지 검색 문구 (page_seo) ═════════════════════
+
+_PAGE_SEO = "/api/v1/ai/assist/page_seo"
+
+PAGE_SEO_ANSWER = json.dumps(
+    {
+        "seo_title": "임플란트 안내 | 바른치과의원",
+        "seo_description": "바른치과의원의 임플란트 진료 과정을 안내합니다.",
+    },
+    ensure_ascii=False,
+)
+
+
+class TestPageSeoResult:
+    def test_cuts_to_page_field_limits(self):
+        content = json.dumps(
+            {"seo_title": "가" * 80, "seo_description": "나" * 200}, ensure_ascii=False
+        )
+        result = ai_assist.parse_assist_result("page_seo", content)
+        assert len(result.seo_title) == 60
+        assert len(result.seo_description) == 160
+
+    def test_empty_text_is_wrong_answer(self):
+        with pytest.raises(ValueError):
+            ai_assist.parse_assist_result(
+                "page_seo", '{"seo_title": "제목", "seo_description": " "}'
+            )
+
+
+async def _page(tenant_id: str, key: str, title: str, **seo: str) -> str:
+    page_id = str(uuid.uuid4())
+    await _sql(
+        "INSERT INTO pages (id, tenant_id, page_key, title, origin, show_in_menu,"
+        " is_public, display_order, seo_title, seo_description, noindex,"
+        " created_at, updated_at) VALUES (:id, :t, :k, :title, 'CUSTOM', true,"
+        " true, 0, :st, :sd, false, now(), now())",
+        {
+            "id": page_id,
+            "t": tenant_id,
+            "k": key,
+            "title": title,
+            "st": seo.get("seo_title"),
+            "sd": seo.get("seo_description"),
+        },
+    )
+    return page_id
+
+
+async def _section(tenant_id: str, page_key: str, label: str) -> None:
+    await _sql(
+        "INSERT INTO sections (id, tenant_id, section_type, label, display_order,"
+        " page_key, is_active, created_at, updated_at) VALUES (gen_random_uuid(),"
+        " :t, 'INTRO', :label, 0, :k, true, now(), now())",
+        {"t": tenant_id, "label": label, "k": page_key},
+    )
+
+
+@pytest.fixture
+async def page_tenant(assist_tenant: dict):
+    yield assist_tenant
+    await _sql("DELETE FROM pages WHERE tenant_id = :t", {"t": assist_tenant["id"]})
+
+
+class TestPageSeoEndpoint:
+    async def test_needs_a_live_page_other_than_home(
+        self, client: AsyncClient, auth_headers: dict, page_tenant: dict
+    ):
+        no_page = await client.post(_PAGE_SEO, headers=auth_headers, json={})
+        assert no_page.status_code == 400
+        assert no_page.json()["error"]["field"] == "page_id"
+
+        unknown = await client.post(
+            _PAGE_SEO, headers=auth_headers, json={"page_id": str(uuid.uuid4())}
+        )
+        assert unknown.status_code == 404
+
+        # 홈은 사이트 SEO 설정 값을 쓴다
+        home = await _page(page_tenant["id"], "home", "홈")
+        resp = await client.post(
+            _PAGE_SEO, headers=auth_headers, json={"page_id": home}
+        )
+        assert resp.status_code == 400
+        assert "SEO 설정" in resp.json()["error"]["message"]
+
+    async def test_other_tenant_page_is_404(
+        self, client: AsyncClient, auth_headers: dict, page_tenant: dict
+    ):
+        other = str(uuid.uuid4())
+        await _sql(
+            "INSERT INTO tenants (id, name, slug, plan_type, is_active,"
+            " created_at, updated_at) VALUES (:id, '다른 곳', :slug, 'FREE', true,"
+            " now(), now())",
+            {"id": other, "slug": f"other-{other[:8]}"},
+        )
+        try:
+            page_id = await _page(other, "about", "소개")
+            resp = await client.post(
+                _PAGE_SEO, headers=auth_headers, json={"page_id": page_id}
+            )
+            assert resp.status_code == 404
+        finally:
+            await _sql("DELETE FROM pages WHERE tenant_id = :t", {"t": other})
+            await _sql("DELETE FROM tenants WHERE id = :t", {"t": other})
+
+    async def test_uses_only_that_pages_sections_and_counts_limit(
+        self, client: AsyncClient, auth_headers: dict, page_tenant: dict, monkeypatch
+    ):
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return PAGE_SEO_ANSWER, 90
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        tenant_id = page_tenant["id"]
+        page_id = await _page(
+            tenant_id, "implant", "임플란트", seo_title="옛 임플란트 제목"
+        )
+        await _section(tenant_id, "implant", "임플란트 치료 과정")
+        await _section(tenant_id, "home", "메인 배너 문구")
+
+        resp = await client.post(
+            _PAGE_SEO,
+            headers=auth_headers,
+            json={"page_id": page_id, "tone": "expert"},
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["result"] == {
+            "seo_title": "임플란트 안내 | 바른치과의원",
+            "seo_description": "바른치과의원의 임플란트 진료 과정을 안내합니다.",
+        }
+        assert data["usage"]["used"] == 1
+
+        prompt = seen[0]
+        assert "임플란트 치료 과정" in prompt
+        assert "옛 임플란트 제목" in prompt
+        assert "바른치과의원" in prompt
+        assert "메인 배너 문구" not in prompt  # 다른 페이지 섹션은 보내지 않는다
+        assert "02-123-4567" not in prompt
+        assert "전문적으로" in prompt
+
+        logged = await client.get("/api/v1/ai/usage", headers=auth_headers)
+        assert logged.json()["data"]["copy_suggest"]["used"] == 1

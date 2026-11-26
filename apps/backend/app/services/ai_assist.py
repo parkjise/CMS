@@ -4,6 +4,7 @@
 모델 답을 결과 스키마로 검증(한 번 다시 묻고 그래도 안 되면 502)한 뒤 저장 API 와 같은
 규칙으로 잘라서 돌려준다. 저장은 하지 않는다 — 화면이 폼에 채우고 관리자가 저장한다.
 
+- page_seo: 페이지 하나의 검색 제목 · 설명 (페이지 관리 PM-02, T-248)
 - 한도: 'AI 문구 추천' 월 한도를 함께 쓴다 (ai.copy_quota_used)
 - 분당 제한 · 같은 입력 1시간 캐시 · ai_usage_log(action_type = assist_{kind})
 """
@@ -18,7 +19,7 @@ from typing import Any, get_args
 
 from fastapi import HTTPException, status
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import ColumnElement, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -26,6 +27,7 @@ from app.core.config import settings
 from app.core.redis import get_redis
 from app.models.ai import AiUsageLog
 from app.models.board import Board, BoardCategory
+from app.models.page import Page
 from app.models.section import Section
 from app.models.site import SiteSetting
 from app.models.tenant import Tenant
@@ -38,6 +40,7 @@ from app.schemas.ai_assist import (
     AssistUsage,
     BoardAssistResult,
     GeoAssistResult,
+    PageSeoAssistResult,
     PolicySummaryResult,
     PostAssistResult,
     SeoAssistResult,
@@ -71,6 +74,7 @@ ASSIST_FLAGS: dict[str, str] = {
     "board": AI_BOARD_ASSIST,
     "post": AI_BOARD_ASSIST,
     "policy_summary": AI_SITE_ASSIST,
+    "page_seo": AI_SITE_ASSIST,
 }
 RESULT_MODELS: dict[str, type[AssistResult]] = {
     "seo": SeoAssistResult,
@@ -78,6 +82,7 @@ RESULT_MODELS: dict[str, type[AssistResult]] = {
     "board": BoardAssistResult,
     "post": PostAssistResult,
     "policy_summary": PolicySummaryResult,
+    "page_seo": PageSeoAssistResult,
 }
 
 META_TITLE_MAX = 60
@@ -140,6 +145,11 @@ MEMO_REQUIRED_MESSAGE = "어떤 글을 쓸지 메모를 적어 주세요."
 BOARD_REQUIRED_MESSAGE = "글을 쓸 게시판을 알려 주세요."
 POLICY_KIND_MESSAGE = "요약할 문서(이용약관 · 개인정보처리방침)를 알려 주세요."
 POLICY_UNCHANGED_MESSAGE = "공개본과 바뀐 곳이 없어요."
+PAGE_REQUIRED_MESSAGE = "검색 문구를 만들 페이지를 알려 주세요."
+PAGE_NOT_FOUND_MESSAGE = "페이지를 찾을 수 없습니다."
+PAGE_HOME_MESSAGE = "홈은 사이트 관리 > SEO 설정에서 만들어 주세요."
+# 홈 페이지 키 — services.page.HOME_PAGE 와 같다 (page 서비스를 끌어오지 않게)
+_HOME_PAGE = "home"
 BOARD_NOT_FOUND_MESSAGE = "게시판을 찾을 수 없습니다."
 NOTE_GUEST_REVIEW = "후기는 비회원 글쓰기를 꺼서 광고 · 도배 글을 막았어요."
 NOTE_GUEST_MEMBER_ONLY = "비회원 글쓰기는 회원 글쓰기 게시판에서만 켤 수 있어 껐어요."
@@ -423,6 +433,14 @@ def parse_assist_result(
             return _post_result(parsed, ctx)
         if kind == "policy_summary":
             return _summary_result(parsed)
+        if kind == "page_seo":
+            page_seo = PageSeoAssistResult(
+                seo_title=_text(parsed.get("seo_title"), META_TITLE_MAX),
+                seo_description=_text(parsed.get("seo_description"), META_DESC_MAX),
+            )
+            if not page_seo.seo_title or not page_seo.seo_description:
+                raise ValueError("검색 제목 · 설명이 비어 있습니다.")
+            return page_seo
         if kind == "seo":
             seo = SeoAssistResult(
                 meta_title=_text(parsed.get("meta_title"), META_TITLE_MAX),
@@ -492,11 +510,45 @@ async def build_assist_facts(db: AsyncSession, tenant: Tenant, kind: str) -> dic
     """사업체가 직접 입력한 정보만 — 방문자 글 · 이름 · 연락처는 넣지 않는다 (2.0)."""
     site = (await db.execute(select(SiteSetting))).scalar_one_or_none()
     seo = await get_seo_settings(db)
+    facts: dict[str, Any] = {
+        "업종": tenant.template_type,
+        "사이트명": (site.site_name if site else None) or tenant.name,
+        "회사명": site.company_name if site else None,
+        "업태": site.business_type if site else None,
+        "종목": site.business_item if site else None,
+        "지역": _area(site.address) if site else None,
+        "운영시간": _hours_summary(site) if site else None,
+        "주차": site.parking if site else None,
+        "섹션 제목": await _section_titles(db),
+    }
+    if kind == "seo":
+        facts["지금 SEO"] = {
+            "메타 제목": seo.meta_title if seo else None,
+            "메타 설명": seo.meta_description if seo else None,
+            "키워드": list(seo.keywords or []) if seo else [],
+        }
+    else:
+        geo = (seo.geo if seo else None) or {}
+        facts["지금 GEO"] = {
+            "기업 소개": geo.get("description") or None,
+            "주제": geo.get("topics") or [],
+        }
+    return {k: v for k, v in facts.items() if v not in (None, "", [], {})}
+
+
+async def _section_titles(db: AsyncSession, page_key: str | None = None) -> list[str]:
+    """보이는 섹션의 큰 제목 (없으면 섹션 이름) — page_key 가 있으면 그 페이지만."""
+    conditions: list[ColumnElement[bool]] = [
+        Section.deleted_at.is_(None),
+        Section.is_active.is_(True),
+    ]
+    if page_key is not None:
+        conditions.append(Section.page_key == page_key)
     sections = (
         (
             await db.execute(
                 select(Section)
-                .where(Section.deleted_at.is_(None), Section.is_active.is_(True))
+                .where(*conditions)
                 .options(selectinload(Section.settings))
                 .order_by(Section.display_order)
             )
@@ -519,31 +571,7 @@ async def build_assist_facts(db: AsyncSession, tenant: Tenant, kind: str) -> dic
         title = " ".join(str(main or section.label or "").split())
         if title and title not in titles:
             titles.append(title[:80])
-
-    facts: dict[str, Any] = {
-        "업종": tenant.template_type,
-        "사이트명": (site.site_name if site else None) or tenant.name,
-        "회사명": site.company_name if site else None,
-        "업태": site.business_type if site else None,
-        "종목": site.business_item if site else None,
-        "지역": _area(site.address) if site else None,
-        "운영시간": _hours_summary(site) if site else None,
-        "주차": site.parking if site else None,
-        "섹션 제목": titles,
-    }
-    if kind == "seo":
-        facts["지금 SEO"] = {
-            "메타 제목": seo.meta_title if seo else None,
-            "메타 설명": seo.meta_description if seo else None,
-            "키워드": list(seo.keywords or []) if seo else [],
-        }
-    else:
-        geo = (seo.geo if seo else None) or {}
-        facts["지금 GEO"] = {
-            "기업 소개": geo.get("description") or None,
-            "주제": geo.get("topics") or [],
-        }
-    return {k: v for k, v in facts.items() if v not in (None, "", [], {})}
+    return titles
 
 
 # ───────────────────────── 캐시 ─────────────────────────
@@ -744,6 +772,52 @@ async def build_policy_context(
     return facts, AssistContext()
 
 
+async def build_page_seo_context(
+    db: AsyncSession, tenant: Tenant, body: AssistRequest
+) -> tuple[dict, AssistContext]:
+    """페이지 검색 문구 — 사업체 정보 + 그 페이지 이름 · 섹션 제목 · 지금 검색 문구.
+
+    홈은 사이트 SEO 설정 값을 쓰므로 받지 않는다 (공개 화면도 홈엔 페이지 값을 안 씀).
+    """
+    if body.page_id is None:
+        raise _validation_error(PAGE_REQUIRED_MESSAGE, "page_id")
+    page = (
+        await db.execute(
+            select(Page).where(
+                Page.tenant_id == tenant.id,
+                Page.id == body.page_id,
+                Page.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if page is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=PAGE_NOT_FOUND_MESSAGE
+        )
+    if page.page_key == _HOME_PAGE:
+        raise _validation_error(PAGE_HOME_MESSAGE, "page_id")
+    site = (await db.execute(select(SiteSetting))).scalar_one_or_none()
+    seo = await get_seo_settings(db)
+    facts: dict[str, Any] = {
+        "업종": tenant.template_type,
+        "사이트명": (site.site_name if site else None) or tenant.name,
+        "업태": site.business_type if site else None,
+        "종목": site.business_item if site else None,
+        "지역": _area(site.address) if site else None,
+        "사이트 검색 제목": seo.meta_title if seo else None,
+        "페이지 이름": page.title,
+        "페이지 섹션 제목": await _section_titles(db, page.page_key),
+        "지금 페이지 검색 문구": {
+            "제목": page.seo_title,
+            "설명": page.seo_description,
+        },
+    }
+    if not (page.seo_title or page.seo_description):
+        del facts["지금 페이지 검색 문구"]
+    facts = {k: v for k, v in facts.items() if v not in (None, "", [], {})}
+    return facts, AssistContext()
+
+
 async def _prepare(
     db: AsyncSession, tenant: Tenant, kind: str, body: AssistRequest
 ) -> tuple[dict, AssistContext, dict[str, Any]]:
@@ -769,6 +843,9 @@ async def _prepare(
                 "blocks_max": DRAFT_BLOCKS_MAX,
             },
         )
+    if kind == "page_seo":
+        facts, ctx = await build_page_seo_context(db, tenant, body)
+        return facts, ctx, {"title_max": META_TITLE_MAX, "desc_max": META_DESC_MAX}
     if kind == "board":
         facts, ctx = await build_board_context(db, tenant, body)
         return (
@@ -832,7 +909,7 @@ async def assist(
 
     facts, ctx, limits = await _prepare(db, tenant, kind, body)
     # 게시판 추천은 말투를 받지 않는다
-    tone = body.tone if kind in ("seo", "geo") else "trust"
+    tone = body.tone if kind in ("seo", "geo", "page_seo") else "trust"
     cache_key = _cache_key(tenant_id, kind, tone, {**facts, "kw": ctx.allow_keywords})
     cached = await _get_cached(cache_key)
     if cached is not None:
