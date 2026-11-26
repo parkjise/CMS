@@ -11,6 +11,8 @@ export interface SetupDraft {
     seo_title: string
     seo_description: string
     seo_index: boolean
+    /** 콘텐츠형 게시판 (CM-01, T-249) */
+    is_content: boolean
   }
   permissions: BoardPermissions
   operation: BoardOperation
@@ -30,6 +32,7 @@ export function toSetupDraft(board: Board): SetupDraft {
       seo_title: board.seo_title,
       seo_description: board.seo_description,
       seo_index: board.seo_index,
+      is_content: board.is_content ?? false,
     },
     permissions: { ...board.permissions },
     operation: {
@@ -56,10 +59,11 @@ export function setupPayload(draft: SetupDraft, saved: SetupDraft, isSystem: boo
   const changed = changedSections(draft, saved)
   const payload: BoardInput = {}
   if (changed.includes('basic')) {
-    const { name, description, seo_title, seo_description, seo_index } = draft.basic
+    const { name, description, seo_title, seo_description, seo_index, is_content } = draft.basic
     Object.assign(payload, {
       name: name.trim(),
       description: description.trim(),
+      is_content,
       // 기본 게시판은 화면이 템플릿 페이지라 검색 설정을 쓰지 않는다
       ...(isSystem
         ? {}
@@ -81,7 +85,11 @@ export function setupPayload(draft: SetupDraft, saved: SetupDraft, isSystem: boo
 export function sectionOfField(field: string | undefined): SetupSection | null {
   if (!field) return null
   const head = field.split('.')[0]
-  if (['name', 'description', 'seo_title', 'seo_description', 'seo_index'].includes(head))
+  if (
+    ['name', 'description', 'seo_title', 'seo_description', 'seo_index', 'is_content'].includes(
+      head
+    )
+  )
     return 'basic'
   if (head === 'permissions') return 'permissions'
   if (head === 'operation') return 'operation'

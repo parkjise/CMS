@@ -137,6 +137,8 @@ class BoardCreate(BaseModel):
     in_menu: bool = True
     # 함께 만들 추천 칸 키 — 유형마다 정해진 것만 (T-183, GET /boards/presets)
     preset_fields: list[str] = Field(default_factory=list, max_length=20)
+    # 콘텐츠형 게시판 (CM-01, T-249) — 콘텐츠형 프리셋으로 만들면 켠다
+    is_content: bool = False
     # 만들 때 고르는 권한 · 운영 (T-211) — 없으면 누구나 읽기 · 관리자 글쓰기.
     # 권한 · 운영 탭과 같은 검사(회원 기능 · 병원 업종 · 필수 칸)를 거친다
     permissions: BoardPermissions | None = None
@@ -172,6 +174,7 @@ class BoardUpdate(BaseModel):
     operation: BoardOperation | None = None
     # 2단계 메뉴 (T-216) — 페이지 묶음 키, "" 이면 상단 메뉴
     menu_parent: MenuParent | None = None
+    is_content: bool | None = None
 
 
 class BoardResponse(BaseModel):
@@ -183,6 +186,8 @@ class BoardResponse(BaseModel):
     board_type: str
     status: str
     system_key: str | None
+    # 콘텐츠형 게시판 (CM-01, T-249)
+    is_content: bool = False
     post_count: int
     # 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지
     has_samples: bool

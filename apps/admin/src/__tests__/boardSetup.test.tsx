@@ -97,7 +97,19 @@ describe('게시판 설정 값 다루기 (T-228)', () => {
 
   it('기본 게시판은 검색 칸을 보내지 않고, 이름은 앞뒤 공백을 지운다', () => {
     const draft = { ...saved, basic: { ...saved.basic, name: ' 공지 ', seo_title: '무시' } }
-    expect(setupPayload(draft, saved, true)).toEqual({ name: '공지', description: '' })
+    expect(setupPayload(draft, saved, true)).toEqual({
+      name: '공지',
+      description: '',
+      is_content: false,
+    })
+  })
+
+  it('콘텐츠형 표시는 기본 정보 구역으로 함께 보낸다 (T-249)', () => {
+    expect(saved.basic.is_content).toBe(false)
+    const draft = { ...saved, basic: { ...saved.basic, is_content: true } }
+    expect(changedSections(draft, saved)).toEqual(['basic'])
+    expect(setupPayload(draft, saved, true)).toMatchObject({ is_content: true })
+    expect(sectionOfField('is_content')).toBe('basic')
   })
 
   it('저장하지 않은 신고 기준(5)은 바뀐 것으로 보지 않는다', () => {
@@ -168,6 +180,7 @@ describe('게시판 설정 한 번에 저장 (T-228)', () => {
       seo_title: '',
       seo_description: '',
       seo_index: true,
+      is_content: false,
       permissions: { read: 'MEMBER', write: 'ADMIN' },
       operation: {
         allow_secret: false,

@@ -65,6 +65,8 @@ export interface PostInput {
 
 export interface PostOverviewFilters extends PostFilters {
   board_id?: string
+  /** 콘텐츠형 게시판의 글만 (CM-01, T-249) */
+  content?: boolean
   updated_from?: string
   updated_before?: string
   published_from?: string
@@ -105,6 +107,8 @@ export interface BoardInput {
   in_menu?: boolean
   /** 새 게시판과 함께 만들 추천 칸 키 (T-183) */
   preset_fields?: string[]
+  /** 콘텐츠형 게시판 (CM-01, T-249) */
+  is_content?: boolean
 }
 
 /** 권한 탭 — 회원 읽기 · 글쓰기를 고를 수 없는 이유 (T-150-B) */

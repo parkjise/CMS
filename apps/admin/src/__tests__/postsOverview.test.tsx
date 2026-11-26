@@ -39,7 +39,7 @@ const mockApi = (items = [row('p1', '첫 글'), row('p2', '둘째 글')], total 
     if (url === '/v1/boards')
       return ok([
         { id: 'b1', name: '병원 소식', system_key: null },
-        { id: 'b2', name: '다른 게시판', system_key: null },
+        { id: 'b2', name: '다른 게시판', system_key: null, is_content: true },
         { id: 'notice', name: '공지사항', system_key: 'notice' },
       ])
     if (url === '/v1/boards/b1/categories')
@@ -93,6 +93,24 @@ describe('전체 글 (BM-05)', () => {
     await userEvent.type(screen.getByLabelText('제목 검색'), ' 소식 ')
     await userEvent.click(screen.getByRole('button', { name: '검색' }))
     await waitFor(() => expect(lastListParams()).toMatchObject({ q: '소식' }))
+  })
+
+  it('콘텐츠형 게시판만 — 게시판 고르기도 콘텐츠형만, 다른 게시판 조건은 푼다 (T-249)', async () => {
+    mockApi()
+    renderPage()
+    await screen.findByRole('link', { name: '첫 글' })
+    await userEvent.selectOptions(screen.getByLabelText('게시판'), 'b1')
+    await waitFor(() => expect(lastListParams()).toMatchObject({ board_id: 'b1' }))
+    await userEvent.selectOptions(screen.getByLabelText('게시판 종류'), 'content')
+    await waitFor(() => expect(lastListParams()).toMatchObject({ content: true, page: 1 }))
+    expect(lastListParams().board_id).toBeUndefined()
+    const options = within(screen.getByLabelText('게시판')).getAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual(['전체', '다른 게시판'])
+    await userEvent.selectOptions(screen.getByLabelText('게시판'), 'b2')
+    await waitFor(() => expect(lastListParams()).toMatchObject({ content: true, board_id: 'b2' }))
+    await userEvent.selectOptions(screen.getByLabelText('게시판 종류'), '')
+    await waitFor(() => expect(lastListParams().content).toBeUndefined())
+    expect(lastListParams().board_id).toBe('b2')
   })
 
   it('게시판 선택 전에는 카테고리를 읽지 않고 기본 게시판에서도 끈다', async () => {

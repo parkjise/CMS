@@ -334,6 +334,8 @@ export function BoardNewPage() {
         preset_fields: sendPresets,
         permissions,
         operation,
+        // 콘텐츠형 프리셋으로 시작하면 게시글 관리의 '콘텐츠형 게시판만'에 모인다 (T-249)
+        is_content: Boolean(contentPreset),
       })
       setCreatedPresets(sendPresets.length)
       if (extraFields.length || aiCategories.length) {

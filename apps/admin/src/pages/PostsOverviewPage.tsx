@@ -47,6 +47,10 @@ export function PostsOverviewPage() {
   const [moving, setMoving] = useState(false)
 
   const boardsQuery = useBoards()
+  // '콘텐츠형 게시판만'이면 게시판 고르기도 콘텐츠형만 (CM-01, T-249)
+  const boardOptions = (boardsQuery.data ?? []).filter(
+    (board) => !filters.content || board.is_content
+  )
   const selectedBoard = boardsQuery.data?.find((board) => board.id === filters.board_id)
   const canFilterCategory = Boolean(selectedBoard && !selectedBoard.system_key)
   const categoriesQuery = useBoardCategories(filters.board_id ?? '', { enabled: canFilterCategory })
@@ -151,11 +155,33 @@ export function PostsOverviewPage() {
             }
           >
             <option value="">전체</option>
-            {boardsQuery.data?.map((board) => (
+            {boardOptions.map((board) => (
               <option key={board.id} value={board.id}>
                 {board.name}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label htmlFor="posts-kind" className="mb-1.5 block text-sm font-medium text-slate-700">
+            게시판 종류
+          </label>
+          <select
+            id="posts-kind"
+            className="h-10 rounded-lg border border-slate-300 bg-white px-3 text-sm"
+            value={filters.content ? 'content' : ''}
+            onChange={(e) => {
+              const content = e.target.value === 'content' || undefined
+              // 콘텐츠형이 아닌 게시판을 골라 둔 채면 게시판 · 카테고리 조건을 푼다
+              const keepBoard = !content || Boolean(selectedBoard?.is_content)
+              changeFilters({
+                content,
+                ...(keepBoard ? {} : { board_id: undefined, category_id: undefined }),
+              })
+            }}
+          >
+            <option value="">모든 게시판</option>
+            <option value="content">콘텐츠형 게시판만</option>
           </select>
         </div>
         <div>

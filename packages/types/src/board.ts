@@ -164,6 +164,8 @@ export interface Board {
   board_type: BoardType
   status: BoardStatus
   system_key: string | null
+  /** 콘텐츠형 게시판 (CM-01, T-249) — 게시글 관리의 '콘텐츠형 게시판만' */
+  is_content?: boolean
   post_count: number
   /** 공지 · 메인 최신 공지에 아직 샘플 글이 보이는지 */
   has_samples: boolean
