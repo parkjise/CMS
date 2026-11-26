@@ -49,6 +49,13 @@ const GEO: Record<AssistTone, AssistResponse<'geo'>['result']> = {
   },
 }
 
+/** 페이지 검색 문구 — 서버는 그 페이지 이름 · 섹션 제목으로 만든다. 미리보기는 늘 같은 예시 */
+const PAGE_SEO: AssistResults['page_seo'] = {
+  seo_title: '임플란트 안내 | 바른치과의원',
+  seo_description:
+    '바른치과의원의 임플란트 진료 과정을 안내합니다. 상담부터 식립, 사후 관리까지 단계별로 확인하세요.',
+}
+
 /** 게시판 구성 — 목적 문장의 낱말로 예시 하나를 고른다 (서버는 목적 · 업종 · 있는 게시판을 함께 본다) */
 const BOARDS: { words: string[]; result: AssistResults['board'] }[] = [
   {
@@ -169,7 +176,9 @@ export async function previewAssist<K extends AssistKind>(
         ? draftPost((input as AssistInputs['post']).memo)
         : kind === 'policy_summary'
           ? POLICY_SUMMARY
-          : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
+          : kind === 'page_seo'
+            ? PAGE_SEO
+            : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
   ) as AssistResponse<K>['result']
   return { result, usage: { used, limit: 20, remaining: Math.max(20 - used, 0) } }
 }

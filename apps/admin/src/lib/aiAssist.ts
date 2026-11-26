@@ -10,7 +10,7 @@ import type { BoardOperation, BoardPermissions, BoardType, FieldType } from '@cm
 export const AI_SITE_ASSIST = 'AI_SITE_ASSIST'
 export const AI_BOARD_ASSIST = 'AI_BOARD_ASSIST'
 
-export type AssistKind = 'seo' | 'geo' | 'board' | 'post' | 'policy_summary'
+export type AssistKind = 'seo' | 'geo' | 'board' | 'post' | 'policy_summary' | 'page_seo'
 
 export type AssistTone = 'trust' | 'friendly' | 'expert'
 
@@ -59,6 +59,8 @@ export interface AssistResults {
   post: PostDraftSuggestion
   /** 1 ~ 3줄, 500자 안 (A-4) */
   policy_summary: { summary: string }
+  /** 페이지 검색 문구 — 페이지 설정 칸 이름 그대로 (PM-02, T-248) */
+  page_seo: { seo_title: string; seo_description: string }
 }
 
 /** kind 마다 화면이 보내는 값 — 나머지(사이트 정보 · 업종 · 있는 게시판)는 서버가 직접 읽는다 */
@@ -71,6 +73,8 @@ export interface AssistInputs {
   post: { memo: string; board_id: string }
   /** 편집 중인 본문 — 서버가 공개본(없으면 기본 문안)과 줄 단위로 비교해 바뀐 줄만 모델에 보낸다 */
   policy_summary: { kind: 'terms' | 'privacy'; body: string }
+  /** 페이지 이름 · 그 페이지 섹션 제목은 서버가 page_id 로 읽는다 (홈은 사이트 SEO) */
+  page_seo: { tone: AssistTone; page_id: string }
 }
 
 export const PURPOSE_MAX = 200

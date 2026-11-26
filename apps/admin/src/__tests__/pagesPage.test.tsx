@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -10,6 +10,8 @@ import type { Page, PageList } from '@/hooks/usePages'
 import { PageDetailPage } from '@/pages/PageDetailPage'
 import { PagesPage } from '@/pages/PagesPage'
 import { useAuthStore } from '@/stores/authStore'
+import { useFeatureStore } from '@/stores/featureStore'
+import { AI_SITE_ASSIST } from '@/lib/aiAssist'
 
 // 페이지 관리 화면 (T-238, 기획서 PM-01 · PM-02) — 실제 훅 · API 호출을 MSW 로 확인
 
@@ -149,6 +151,8 @@ beforeEach(() => {
     )
   )
 })
+
+afterEach(() => useFeatureStore.getState().reset())
 
 const renderAt = (url: string) => {
   const router = createMemoryRouter(
@@ -439,7 +443,47 @@ describe('페이지 설정 (PM-02)', () => {
     expect(requests.at(-1)?.body).toEqual({ og_image_url: null })
   })
 
+  it('AI 로 검색 제목 · 설명을 만들어 고른 칸만 채우고, 저장은 관리자가 (T-248)', async () => {
+    useFeatureStore.setState({ loaded: true, flags: { [AI_SITE_ASSIST]: true } })
+    list = listOf({
+      pages: [HOME, page('event', { title: '이벤트', seo_title: '지금 제목' })],
+    })
+    let assistBody: unknown
+    server.use(
+      http.post(`${BASE}/v1/ai/assist/page_seo`, async ({ request }) => {
+        assistBody = await request.json()
+        return HttpResponse.json({
+          success: true,
+          data: {
+            result: { seo_title: '겨울 이벤트 안내 | 하나', seo_description: '겨울 행사 안내.' },
+            usage: { used: 1, limit: 20, remaining: 19 },
+          },
+        })
+      })
+    )
+    const user = userEvent.setup()
+    renderAt('/admin/pages/event?tab=settings')
+    await user.click(await screen.findByRole('button', { name: '페이지 내용으로 채우기' }))
+    await user.click(screen.getByRole('button', { name: '만들기' }))
+    const results = await screen.findByRole('list', { name: 'AI 결과' })
+    expect(assistBody).toEqual({ page_id: 'id-event', tone: 'trust' })
+    // 지금 값이 있는 제목은 처음에 고르지 않는다
+    const [title, description] = within(results).getAllByRole('checkbox')
+    expect(title).not.toBeChecked()
+    expect(description).toBeChecked()
+    expect(within(results).getByText('지금: 지금 제목')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: '고른 1개 적용' }))
+
+    expect(screen.getByLabelText('검색 제목')).toHaveValue('지금 제목')
+    expect(screen.getByLabelText('검색 설명')).toHaveValue('겨울 행사 안내.')
+    expect(requests).toEqual([])
+    await user.click(screen.getByRole('button', { name: '변경사항 저장' }))
+    await waitFor(() => expect(requests).toHaveLength(1))
+    expect(requests[0].body).toEqual({ seo_description: '겨울 행사 안내.' })
+  })
+
   it('템플릿 기본 페이지(홈)는 주소 · 상위 · 공개 · 메뉴 칸이 없다', async () => {
+    useFeatureStore.setState({ loaded: true, flags: { [AI_SITE_ASSIST]: true } })
     renderAt('/admin/pages/home?tab=settings')
     expect(await screen.findByText(/템플릿 기본 페이지라 주소/)).toBeInTheDocument()
     expect(screen.queryByLabelText(/^주소/)).not.toBeInTheDocument()
@@ -449,6 +493,7 @@ describe('페이지 설정 (PM-02)', () => {
     // 홈은 사이트 SEO 설정을 쓴다 — 페이지 SEO 칸 대신 그 화면으로 (T-245)
     expect(screen.queryByLabelText('검색 제목')).not.toBeInTheDocument()
     expect(screen.queryByText('공유 이미지')).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '페이지 내용으로 채우기' })).not.toBeInTheDocument()
     expect(screen.getByRole('link', { name: /SEO 설정/ })).toHaveAttribute(
       'href',
       '/admin/site/seo'

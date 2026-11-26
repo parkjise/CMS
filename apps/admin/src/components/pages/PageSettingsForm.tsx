@@ -6,7 +6,9 @@ import { SaveBar } from '@/components/site/SaveBar'
 import { SITE_CARD } from '@/components/site/SitePage'
 import { ReadOnlyFieldset } from '@/components/layout/ReadOnlyFieldset'
 import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
+import { AiFillAssist } from '@/components/ai/AiFillAssist'
 import { HOME_PAGE, type Page, type PageInput, useUpdatePage } from '@/hooks/usePages'
+import { AI_SITE_ASSIST } from '@/lib/aiAssist'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { pageKeyError, parentOptions } from '@/lib/pageKey'
 import { usePageKeyProblem } from '@/hooks/usePageKeyProblem'
@@ -187,9 +189,30 @@ export function PageSettingsForm({ page, pages }: PageSettingsFormProps) {
 
       <section className={SITE_CARD} aria-labelledby="page-seo">
         <div>
-          <h2 id="page-seo" className="font-semibold text-slate-900">
-            검색 노출 (SEO)
-          </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 id="page-seo" className="font-semibold text-slate-900">
+              검색 노출 (SEO)
+            </h2>
+            {!isHome && (
+              <AiFillAssist
+                kind="page_seo"
+                flag={AI_SITE_ASSIST}
+                buttonLabel="페이지 내용으로 채우기"
+                title="페이지 검색 문구 추천"
+                input={{ page_id: page.id }}
+                note="이 페이지 이름 · 섹션 제목과 사이트 기본정보로 만들어요. 저장한 섹션 기준이에요."
+                fields={[
+                  { key: 'seo_title', label: '검색 제목', current: values.seo_title },
+                  {
+                    key: 'seo_description',
+                    label: '검색 설명',
+                    current: values.seo_description,
+                  },
+                ]}
+                onApply={(picked) => setValues((v) => ({ ...v, ...picked }))}
+              />
+            )}
+          </div>
           <p className="mt-1 text-sm text-slate-500">
             {isHome ? (
               <>
