@@ -44,7 +44,6 @@ from app.services.rich_text import RICH_TEXT_VALUE_TYPE, to_plain_text
 
 logger = logging.getLogger("app.ai")
 
-MODEL_NAME = "gpt-4o-mini"
 ACTION_COPY_SUGGEST = "COPY_SUGGEST"
 ACTION_CHAT_EDIT = "CHAT_EDIT"
 # AI 보조 (ai_assist) 는 action_type = assist_{kind} — 문구 추천 월 한도를 함께 쓴다
@@ -105,14 +104,21 @@ def parse_suggestions(content: str, count: int) -> list[str]:
     return suggestions[:count]
 
 
+def _llm_options() -> dict[str, str]:
+    """ChatOpenAI 공통 값 — 모델 · 키, 다른 주소를 정했으면 그 주소 (T-251)."""
+    options = {
+        "model": settings.ai_model,
+        "api_key": settings.openai_api_key or "test-key",
+    }
+    if settings.ai_base_url:
+        options["base_url"] = settings.ai_base_url
+    return options
+
+
 def _get_llm():  # pragma: no cover - 외부 의존성(네트워크)이라 단위 테스트에서 모킹
     from langchain_openai import ChatOpenAI
 
-    return ChatOpenAI(
-        model=MODEL_NAME,
-        temperature=0.8,
-        api_key=settings.openai_api_key or "test-key",
-    )
+    return ChatOpenAI(temperature=0.8, **_llm_options())
 
 
 async def _call_model(messages: list) -> tuple[str, int]:  # pragma: no cover
@@ -519,12 +525,7 @@ def _sse(payload: dict) -> str:
 def _get_chat_llm():  # pragma: no cover - 외부 의존성(네트워크)
     from langchain_openai import ChatOpenAI
 
-    return ChatOpenAI(
-        model=MODEL_NAME,
-        temperature=0.7,
-        streaming=True,
-        api_key=settings.openai_api_key or "test-key",
-    )
+    return ChatOpenAI(temperature=0.7, streaming=True, **_llm_options())
 
 
 async def _stream_model(messages: list) -> AsyncIterator[str]:  # pragma: no cover

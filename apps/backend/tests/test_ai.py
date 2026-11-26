@@ -53,6 +53,30 @@ class TestParseSuggestions:
             ai_service.parse_suggestions("[]", count=3)
 
 
+class TestLlmOptions:
+    """T-251 — OpenAI 호환 주소 · 모델 설정."""
+
+    def test_default_is_openai(self, monkeypatch):
+        monkeypatch.setattr(settings, "ai_base_url", "")
+        monkeypatch.setattr(settings, "ai_model", "gpt-4o-mini")
+        monkeypatch.setattr(settings, "openai_api_key", "sk-test")
+        assert ai_service._llm_options() == {
+            "model": "gpt-4o-mini",
+            "api_key": "sk-test",
+        }
+
+    def test_other_base_url_and_model(self, monkeypatch):
+        url = "https://generativelanguage.googleapis.com/v1beta/openai/"
+        monkeypatch.setattr(settings, "ai_base_url", url)
+        monkeypatch.setattr(settings, "ai_model", "gemini-2.5-flash")
+        monkeypatch.setattr(settings, "openai_api_key", "")
+        assert ai_service._llm_options() == {
+            "model": "gemini-2.5-flash",
+            "api_key": "test-key",
+            "base_url": url,
+        }
+
+
 class TestMonthlyLimit:
     def test_known_plans(self):
         assert ai_service.monthly_limit("FREE") == 5
