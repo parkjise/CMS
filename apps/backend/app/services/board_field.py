@@ -118,7 +118,7 @@ def _value_error(key: str, message: str) -> HTTPException:
 # ── 값 검사 ───────────────────────────────────────────────────────────────
 
 
-def _is_empty(value: Any) -> bool:
+def is_empty(value: Any) -> bool:
     return value is None or value == "" or value == []
 
 
@@ -250,12 +250,12 @@ def _merge_values(
         if field is None:
             raise _value_error(key, MSG_UNKNOWN_FIELD)
         cleaned = None
-        if not _is_empty(value):
+        if not is_empty(value):
             try:
                 cleaned = clean_value(field.field_type, field.field_options, value)
             except ValueError as e:
                 raise _value_error(key, str(e)) from e
-        if _is_empty(cleaned):
+        if is_empty(cleaned):
             merged.pop(key, None)
         else:
             merged[key] = cleaned
@@ -317,7 +317,7 @@ async def resolve_custom_data(
         board = await db.get(Board, board_id)
         rating = review_rating_field(fields)
         if board is not None and board.board_type == REVIEW and rating is not None:
-            if _is_empty(merged.get(rating.field_key)):
+            if is_empty(merged.get(rating.field_key)):
                 raise _value_error(rating.field_key, MSG_RATING_REQUIRED)
     return merged
 
@@ -342,7 +342,7 @@ def field_values(fields: list[BoardField], values: dict[str, Any]) -> list[dict]
         if not field.is_visible or field.field_key not in values:
             continue
         value = _public_value(field, values[field.field_key])
-        if _is_empty(value):
+        if is_empty(value):
             continue
         shown.append(
             {
@@ -427,7 +427,7 @@ def _next_auto_key(used: set[str]) -> str:
     return f"{AUTO_KEY_PREFIX}{number}"
 
 
-def _build_options(
+def build_options(
     field_type: str,
     choices: list[FieldOption] | list[dict[str, str]] | None,
     low: float | None,
@@ -450,8 +450,8 @@ def _build_options(
     return {}
 
 
-def _clean_default(field_type: str, options: dict[str, Any], value: Any) -> Any:
-    if _is_empty(value):
+def clean_default(field_type: str, options: dict[str, Any], value: Any) -> Any:
+    if is_empty(value):
         return None
     try:
         return clean_value(field_type, options, value)
@@ -652,7 +652,7 @@ async def create_field(db: AsyncSession, board: Board, data: FieldCreate) -> Boa
         raise _invalid(MSG_KEY_RESERVED, "field_key")
     if data.field_key in used:
         raise _conflict(MSG_KEY_TAKEN, "field_key")
-    options = _build_options(data.field_type, data.options, data.min, data.max)
+    options = build_options(data.field_type, data.options, data.min, data.max)
     if data.show_in_list:
         options[SHOW_IN_LIST_KEY] = True
     last_order = await db.execute(
@@ -670,7 +670,7 @@ async def create_field(db: AsyncSession, board: Board, data: FieldCreate) -> Boa
         is_visible=data.is_visible,
         help_text=data.help_text,
         placeholder=data.placeholder,
-        default_value=_clean_default(data.field_type, options, data.default_value),
+        default_value=clean_default(data.field_type, options, data.default_value),
         field_options=options,
         display_order=int(last_order.scalar_one()) + 1,
     )
@@ -701,7 +701,7 @@ async def update_field(
     ):
         raise _conflict(MSG_TYPE_IN_USE, "field_type")
     current = field.field_options or {}
-    options = _build_options(
+    options = build_options(
         field_type,
         data.options if "options" in sent else current.get("choices"),
         data.min if "min" in sent else current.get("min"),
@@ -717,7 +717,7 @@ async def update_field(
     if show_in_list:
         options[SHOW_IN_LIST_KEY] = True
     default = data.default_value if "default_value" in sent else field.default_value
-    field.default_value = _clean_default(field_type, options, default)
+    field.default_value = clean_default(field_type, options, default)
     field.field_type = field_type
     field.field_options = options
     for name in ("label", "is_required", "is_visible", "help_text", "placeholder"):
