@@ -241,3 +241,102 @@ export function flattenCategories(nodes: ContentCategoryNode[]): { id: string; l
     ...node.children.map((child) => ({ id: child.id, label: `${node.name} › ${child.name}` })),
   ])
 }
+
+// ── 카테고리 · 태그 관리 (T-257, CM-05) ─────────────────────────────────────
+
+function useInvalidateTaxonomy() {
+  const queryClient = useQueryClient()
+  return () =>
+    Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['content-categories'] }),
+      queryClient.invalidateQueries({ queryKey: CONTENT_TAGS_KEY }),
+      queryClient.invalidateQueries({ queryKey: CONTENT_ITEMS_KEY }),
+    ])
+}
+
+export function useCreateContentCategory(typeId: string) {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async (input: { name: string; parent_id?: string | null }) => {
+      const { data } = await api.post(`/v1/contents/types/${typeId}/categories`, input)
+      return data.data as ContentCategoryNode
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useRenameContentCategory() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await api.patch(`/v1/contents/categories/${id}`, { name })
+    },
+    onSuccess: invalidate,
+  })
+}
+
+/** 트리 전체 — 목록 순서가 순서, parent_id 로 2단계 */
+export function useSaveContentCategoryTree(typeId: string) {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async (nodes: { id: string; parent_id: string | null }[]) => {
+      await api.put(`/v1/contents/types/${typeId}/categories/tree`, { nodes })
+    },
+    onSettled: invalidate,
+  })
+}
+
+export function useDeleteContentCategory() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async ({ id, moveTo }: { id: string; moveTo: string | null }) => {
+      const { data } = await api.delete(`/v1/contents/categories/${id}`, {
+        params: moveTo ? { move_to: moveTo } : undefined,
+      })
+      return data.data as { moved: number }
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useCreateContentTag() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async (name: string) => {
+      const { data } = await api.post('/v1/contents/tags', { name })
+      return data.data as ContentTag
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useRenameContentTag() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      await api.patch(`/v1/contents/tags/${id}`, { name })
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useDeleteContentTag() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.delete(`/v1/contents/tags/${id}`)
+    },
+    onSuccess: invalidate,
+  })
+}
+
+export function useMergeContentTags() {
+  const invalidate = useInvalidateTaxonomy()
+  return useMutation({
+    mutationFn: async (input: { source_ids: string[]; target_id: string }) => {
+      const { data } = await api.post('/v1/contents/tags/merge', input)
+      return data.data as { moved: number }
+    },
+    onSuccess: invalidate,
+  })
+}
