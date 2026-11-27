@@ -90,3 +90,10 @@ export function pickErrorMessage(error: unknown, fallback?: string): string {
 
   return '예상치 못한 오류가 발생했습니다.'
 }
+
+/** 서버가 알려 준 문제 칸 이름 (`error.field`) — 없으면 undefined */
+export function pickErrorField(error: unknown): string | undefined {
+  const field = (error as { response?: { data?: { error?: { field?: unknown } } } })?.response
+    ?.data?.error?.field
+  return typeof field === 'string' ? field : undefined
+}

@@ -20,6 +20,14 @@ const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'), 'Dashboard
 const PagesPage = lazyPage(() => import('@/pages/PagesPage'), 'PagesPage')
 const PageDetailPage = lazyPage(() => import('@/pages/PageDetailPage'), 'PageDetailPage')
 const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
+const ContentTypesPage = lazyPage(
+  () => import('@/pages/ContentTypesPage'),
+  'ContentTypesPage'
+)
+const ContentTypeDetailPage = lazyPage(
+  () => import('@/pages/ContentTypeDetailPage'),
+  'ContentTypeDetailPage'
+)
 const SnsPage = lazyPage(() => import('@/pages/SnsPage'), 'SnsPage')
 const InquiriesPage = lazyPage(() => import('@/pages/InquiriesPage'), 'InquiriesPage')
 const BoardsPage = lazyPage(() => import('@/pages/BoardsPage'), 'BoardsPage')
@@ -58,6 +66,8 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/pages\/[^/]+\/?$/, PageDetailPage],
   [/^\/admin\/content\/?$/, PageDetailPage],
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
+  [/^\/admin\/contents\/types\/?$/, ContentTypesPage],
+  [/^\/admin\/contents\/types\/[^/]+\/?$/, ContentTypeDetailPage],
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
   [/^\/admin\/boards\/?$/, BoardsPage],
@@ -137,6 +147,16 @@ export const router = createBrowserRouter([
           // 예전 콘텐츠 편집 주소 (T-238)
           { path: '/admin/content', element: <ContentRedirect /> },
           { path: '/admin/content/:sectionId', element: <ContentRedirect /> },
+          // 콘텐츠 관리 (T-255) — 목록 화면이 생기기 전까지 유형으로
+          { path: '/admin/contents', element: <Navigate to="/admin/contents/types" replace /> },
+          {
+            path: '/admin/contents/types',
+            element: withFeature('CONTENT_MANAGE', <ContentTypesPage />),
+          },
+          {
+            path: '/admin/contents/types/:typeId',
+            element: withFeature('CONTENT_MANAGE', <ContentTypeDetailPage />),
+          },
           { path: '/admin/sns', element: withSuspense(<SnsPage />) },
           {
             path: '/admin/inquiries',

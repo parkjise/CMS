@@ -6,6 +6,7 @@ import {
   Globe,
   Layers,
   LayoutDashboard,
+  Library,
   MessageSquare,
   Share2,
   Sparkles,
@@ -40,6 +41,13 @@ export const ADMIN_NAVIGATION = [
     ],
   },
   { to: '/admin/pages', icon: FileText, label: '페이지 관리' },
+  {
+    to: '/admin/contents',
+    icon: Library,
+    label: '콘텐츠 관리',
+    // 독립 콘텐츠 관리 (T-255, 콘텐츠 관리 기획서 3장) — 목록 · 작성(T-256) · 카테고리 · 태그(T-257)
+    children: [{ to: '/admin/contents/types', label: '콘텐츠 유형' }],
+  },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
   {
     to: '/admin/boards',
