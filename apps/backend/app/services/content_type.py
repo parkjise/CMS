@@ -201,6 +201,11 @@ async def _get(
     return row
 
 
+async def get_type(db: AsyncSession, tenant_id: UUID, type_id: UUID) -> ContentType:
+    """휴지통 밖 유형 — 없으면 404 (카테고리 · 항목 순서 API 가 쓴다)."""
+    return await _get(db, tenant_id, type_id)
+
+
 async def _live_fields(
     db: AsyncSession, tenant_id: UUID, type_ids: list[UUID]
 ) -> dict[UUID, list[ContentTypeField]]:

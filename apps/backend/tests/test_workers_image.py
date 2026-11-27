@@ -479,6 +479,83 @@ class TestCleanupOrphanFiles:
             await _sql("DELETE FROM site_settings WHERE tenant_id = :t", t=tenant_id)
             await _sql("DELETE FROM uploaded_files WHERE tenant_id = :t", t=tenant_id)
 
+    async def test_keeps_content_item_images(self, test_tenant, fake_s3):
+        """T-254: 콘텐츠 항목의 대표 사진 · 본문 · 칸 값 · 휴지통 항목 사진은 남긴다."""
+        tenant_id = test_tenant["id"]
+        base = settings.cdn_base_url.rstrip("/")
+        names = ("thumb", "body", "field", "trashed", "orphan")
+        ids = {name: uuid.uuid4() for name in names}
+        type_id = uuid.uuid4()
+
+        def _key(name):
+            return f"{tenant_id}/content/{ids[name]}.webp"
+
+        def _url(name):
+            return f"{base}/{_key(name)}"
+
+        async def _sql(sql: str, **params) -> None:
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                await session.execute(text(sql), params)
+                await session.commit()
+
+        for name in names:
+            fake_s3[(settings.minio_bucket_name, _key(name))] = {
+                "body": b"x",
+                "content_type": "image/webp",
+            }
+            await _sql(
+                "INSERT INTO uploaded_files (id, tenant_id, file_name, file_url,"
+                " file_size, mime_type, created_at, updated_at) VALUES (:id, :t,"
+                " 'x.webp', :url, 100, 'image/webp', NOW() - INTERVAL '100 days',"
+                " NOW())",
+                id=str(ids[name]),
+                t=tenant_id,
+                url=_url(name),
+            )
+        await _sql(
+            "INSERT INTO content_types (id, tenant_id, type_key, name)"
+            " VALUES (:id, :t, 'team', '팀')",
+            id=str(type_id),
+            t=tenant_id,
+        )
+        await _sql(
+            "INSERT INTO content_items (tenant_id, type_id, title, thumbnail_url,"
+            " body, data) VALUES (:t, :ty, '항목', :thumb, CAST(:body AS jsonb),"
+            " CAST(:data AS jsonb))",
+            t=tenant_id,
+            ty=str(type_id),
+            thumb=_url("thumb"),
+            body=json.dumps([{"type": "image", "src": _url("body"), "alt": ""}]),
+            data=json.dumps({"photo": _url("field")}),
+        )
+        await _sql(
+            "INSERT INTO content_items (tenant_id, type_id, title, thumbnail_url,"
+            " deleted_at) VALUES (:t, :ty, '지운 항목', :thumb, NOW())",
+            t=tenant_id,
+            ty=str(type_id),
+            thumb=_url("trashed"),
+        )
+
+        try:
+            await image_worker._cleanup_orphan_files(age_days=30)
+            async with _TestSession() as session:
+                await session.execute(
+                    text("SELECT set_config('app.is_super_admin', 'true', true)")
+                )
+                rows = await session.execute(
+                    text("SELECT id FROM uploaded_files WHERE tenant_id = :t"),
+                    {"t": tenant_id},
+                )
+                remaining = {str(r.id) for r in rows.all()}
+            assert remaining == {str(ids[n]) for n in names if n != "orphan"}
+            assert (settings.minio_bucket_name, _key("orphan")) not in fake_s3
+        finally:
+            await _sql("DELETE FROM content_types WHERE tenant_id = :t", t=tenant_id)
+            await _sql("DELETE FROM uploaded_files WHERE tenant_id = :t", t=tenant_id)
+
     async def test_returns_zero_when_no_orphans(self, fake_s3):
         deleted = await image_worker._cleanup_orphan_files(age_days=10000)
         assert deleted == 0

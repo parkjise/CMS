@@ -112,6 +112,8 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 - 입력 검사: 서버 400 `VALIDATION_ERROR` 의 `field` 를 그 칸에 표시
 - AI (T-259): [✨ 문장 다듬기] 요약 · 본문 문단 → 서랍에서 비교 후 고른 것만 채움
 
+**서버 구현 (T-254):** `/contents/items` — 초안은 필수 칸 없이 저장, 공개 · 공개 상태 수정 때 필수 칸 검사. 처음 공개 시각(`published_at`)은 초안으로 되돌려도 남김. 여러 개 공개는 필수 칸이 빈 항목을 건너뛰고 `skipped` 로 알림. 태그는 항목 저장 때 이름 목록으로 받아 없으면 만든다. 콘텐츠 사진(대표 · 본문 · 칸)은 안 쓰는 사진 정리에서 빠진다(휴지통 포함).
+
 ### CM-05. 카테고리 · 태그 (T-257 · T-259)
 - 카테고리: 유형을 고르고 2단계 트리(끌어서 순서 · 하위로), 이름 바꾸기, 지울 때 그 카테고리 항목을 '다른 카테고리로 옮기기 / 카테고리 없음' 고르기
 - 태그: 사업체 공통 목록(쓰는 항목 수), 이름 바꾸기, **합치기**(골라서 하나로 — 항목 연결을 옮기고 나머지는 지움), 같은 이름(띄어쓰기 · 대소문자 무시) 막기
@@ -142,7 +144,7 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 | GET · POST | `/contents/items` | 목록(검색 · 필터 · 상태별 수 · 휴지통) · 만들기 |
 | GET · PATCH · DELETE | `/contents/items/{id}` | 항목 · 휴지통으로 |
 | POST | `/contents/items/{id}/restore` · `/duplicate` · `/contents/items/bulk` · `/contents/items/order` | 복구 · 복제 · 여러 개 상태/휴지통 · 순서 |
-| GET · POST · PATCH · DELETE | `/contents/types/{id}/categories` · `/contents/categories/{id}` | 카테고리 |
+| GET · POST · PUT · PATCH · DELETE | `/contents/types/{id}/categories` · `…/categories/tree`(끌어서 바꾼 트리 전체) · `/contents/categories/{id}`(DELETE `?move_to=`) | 카테고리 |
 | GET · POST · PATCH · DELETE | `/contents/tags` · `/contents/tags/{id}` · POST `/contents/tags/merge` | 태그 |
 | GET | `/contents/types/{id}/usage` · `/contents/items/{id}/usage` | 사용 위치 |
 | (T-260) | `/contents/blocks` … | 공통 블록 |
