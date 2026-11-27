@@ -385,6 +385,13 @@ class TestBoardResult:
         assert [f.label for f in result.fields] == [f"칸 {i}" for i in range(8)]
         assert result.categories == ["예약"] + [f"분류{i}" for i in range(9)]
 
+    def test_all_category_is_dropped(self):
+        """홈페이지가 늘 보여 주는 '전체' 탭과 겹치는 이름은 뺀다 (T-252)."""
+        result = _board(
+            ai_assist.AssistContext(), categories=["전체", "전 체", "ALL", "시공"]
+        )
+        assert result.categories == ["시공"]
+
     def test_adding_to_existing_board_keeps_its_type(self):
         result = _board(ai_assist.AssistContext(fixed_type="FAQ"))
         assert result.board_type == "FAQ"
