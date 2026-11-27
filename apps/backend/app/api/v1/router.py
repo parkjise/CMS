@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     auth,
     billing,
     boards,
+    contents,
     dashboard,
     domain,
     edit,
@@ -44,6 +45,7 @@ api_router.include_router(auth.router)
 api_router.include_router(notifications.router)
 api_router.include_router(sections.router, dependencies=_tenant_only)
 api_router.include_router(pages.router, dependencies=_tenant_only)
+api_router.include_router(contents.router, dependencies=_tenant_only)
 api_router.include_router(inquiries.router, dependencies=_tenant_only)
 api_router.include_router(sns.router, dependencies=_tenant_only)
 api_router.include_router(seo.router, dependencies=_tenant_only)

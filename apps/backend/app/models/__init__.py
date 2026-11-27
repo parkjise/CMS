@@ -12,6 +12,14 @@ from app.models.board import (
     BoardPostReport,
     BoardPostVersion,
 )
+from app.models.content import (
+    ContentCategory,
+    ContentItem,
+    ContentItemTag,
+    ContentTag,
+    ContentType,
+    ContentTypeField,
+)
 from app.models.domain import TenantDomain
 from app.models.feature import Feature, FeatureDeployment, TenantFeature
 from app.models.file import UploadedFile
@@ -36,6 +44,12 @@ from app.models.tenant import Tenant
 from app.models.user import User
 
 __all__ = [
+    "ContentCategory",
+    "ContentItem",
+    "ContentItemTag",
+    "ContentTag",
+    "ContentType",
+    "ContentTypeField",
     "AdminUserPreference",
     "BoardPostAttachment",
     "BoardPostVersion",

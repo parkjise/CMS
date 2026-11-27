@@ -57,6 +57,13 @@ PURGE_TABLES = (
     # 페이지 (T-237)
     "page_redirects",
     "pages",
+    # 콘텐츠 관리 (T-253) — 항목이 사용자를 가리키므로 users 앞
+    "content_item_tags",
+    "content_tags",
+    "content_items",
+    "content_categories",
+    "content_type_fields",
+    "content_types",
     "inquiry_attachments",
     "inquiries",
     "member_password_reset_tokens",

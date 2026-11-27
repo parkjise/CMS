@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **0** | **0%** |
-| **합계** | **304** | **296** | **97%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **1** | **13%** |
+| **합계** | **304** | **297** | **98%** |
 
 ---
 
@@ -4690,12 +4690,17 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 > 순서: T-253 → T-254 → T-255 → T-256 → T-257 → T-258 → T-259 → T-260. 머지 전 확인: T-253 · T-260(DB) · T-255(메뉴).
 > **시작 안내:** 기획서 0 · 2장을 먼저 읽는다. 각 태스크는 PR 하나. 칸 종류 · 값 검사는 게시판 칸(`schemas/board.py` `FieldType`, `services/board_field.py` · `field_convert.py`)을 함께 쓰고 복사하지 않는다. 승인 · 예약 발행 · 다국어 · 별도 AI 센터 · 성과 분석은 만들지 않는다.
 
-### T-253: 콘텐츠 서버 ① — 표 · 유형 · 칸 API · 스위치 · 한도 — ⚠️ 머지 전 확인 (DB)
+### T-253: 콘텐츠 서버 ① — 표 · 유형 · 칸 API · 스위치 · 한도 ✅ (Claude, 2026-11-27) — ⚠️ 머지 전 확인 (DB)
 
 - **코드 시작점:** `app/models/page.py` · `services/page.py`(한도 · 스위치 모양), `models/board.py` `BoardField`, `alembic/versions/0062_pages.py`(스위치 줄 · RLS), `services/tenant_purge.py`(PURGE 목록), `scripts/seed.py`
-- [ ] 마이그레이션 0064: `content_types` · `content_type_fields` · `content_items` · `content_categories` · `content_tags` · `content_item_tags` (RLS, 소프트 삭제, 사업체 지우면 함께, PURGE 목록) + `features` 에 `CONTENT_MANAGE`(꺼짐)
-- [ ] `/contents/types` 목록 · 만들기(시작용 5개 · 빈 유형) · 고치기 · 지우기(항목 있으면 막음) · 칸 저장 · 순서, `type_key` 검사 409, `CONTENT_TYPE_LIMITS` 422, 감사 로그
-- **테스트:** 로그인 · 스위치 · FREE 422 · 보기 전용 · 다른 사업체 404 · 키 규칙 · 칸 검사 · 마이그레이션 올리기 · 내리기 · 올리기
+- [x] 마이그레이션 0064: `content_types` · `content_type_fields` · `content_items` · `content_categories` · `content_tags` · `content_item_tags` (RLS, 소프트 삭제, 사업체 지우면 함께, PURGE 목록) + `features` 에 `CONTENT_MANAGE`(꺼짐)
+- [x] `/contents/types` 목록 · 만들기(시작용 5개 · 빈 유형) · 고치기 · 지우기(항목 있으면 막음) · 칸 저장 · 순서, `type_key` 검사 409, `CONTENT_TYPE_LIMITS` 422, 감사 로그
+- **코드:** `alembic/versions/0064_contents.py`, `app/models/content.py`, `app/schemas/content.py`, `app/services/content_type.py` · `content_presets.py`, `app/api/v1/endpoints/contents.py`, `services/board_field.py`(칸 검사 `build_options` · `clean_default` · `is_empty` 를 공개 이름으로 — 함께 쓰기), `services/tenant_purge.py`, `scripts/seed.py`
+- [x] 칸은 목록 전체를 `PUT /contents/types/{id}/fields` 로 한 번에 저장 — 순서는 목록 순서, 빠진 칸은 휴지통(키는 다시 못 씀), 있던 칸 키 고정, 값이 있는 칸의 종류 바꾸기 · 고른 값이 있는 선택지 빼기 409(휴지통 항목 포함), 기본 칸 이름(`title` · `summary` 등) 400, 20칸까지, 별점(`RATING`)은 게시판 전용이라 뺌
+- [x] 유형 지우기는 휴지통 밖 항목이 있으면 409, 복구 `POST /contents/types/{id}/restore`(한도 422), 감사 로그 `CONTENT_TYPE_CREATED` · `UPDATED`(칸 저장 포함, 칸 목록 이전 · 이후) · `DELETED` · `RESTORED`
+- [x] 시작용 유형: 서비스 소개(가격 안내 · 링크) · 자주 묻는 질문 · 연혁(연도 필수 1900~2100 · 월 1~12) · 팀 · 의료진(직책 필수 · 전문 분야) · 고객사 · 파트너(링크)
+- **테스트:** backend 30 (로그인 · 스위치 꺼짐 목록만 · FREE 422 · 보기 전용 · 다른 사업체 404, 시작용 칸 · 감사 로그 · 빈 유형 이름/키 · 키 형식 7 · 중복/휴지통 409 · 없는 시작용 · 한도(휴지통 빼고 · 복구), 고치기 · 지우기 막힘/휴지통/복구 · 순서, 칸 저장 · 순서 · 빼기 · 키 다시 안 씀 · 잘못된 칸 5 · 예약/중복 키 · 키 고정 · 없는 칸 · 값 있을 때 종류/선택지 409 · 20칸). 테스트 DB 0064 올리기 · 내리기 · 다시 올리기
+- **머지 뒤 할 일:** 개발 · 운영 DB `alembic upgrade head`
 
 ### T-254: 콘텐츠 서버 ② — 항목 · 카테고리 · 태그
 
