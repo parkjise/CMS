@@ -100,6 +100,7 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
       - 글에 붙인 첨부 파일이 아님 (휴지통 글 포함, T-194)
       - 같은 사업체 게시글 본문 · 사진 칸(custom_data) · 이전 버전에 없음 — 휴지통 글
         포함, 되살릴 수 있으므로 (T-193)
+      - 같은 사업체 콘텐츠 항목의 대표 사진 · 본문 · 칸 값에 없음 — 휴지통 포함 (T-254)
 
     MinIO의 원본·썸네일 객체도 함께 삭제. 정리된 파일 개수 반환.
     """
@@ -152,6 +153,13 @@ async def _cleanup_orphan_files(age_days: int = ORPHAN_AGE_DAYS) -> int:
                       WHERE bv.tenant_id = uf.tenant_id
                         AND (strpos(bv.body::text, uf.file_url) > 0
                              OR strpos(bv.custom_data::text, uf.file_url) > 0)
+                  )
+                  AND NOT EXISTS (
+                      SELECT 1 FROM content_items ci
+                      WHERE ci.tenant_id = uf.tenant_id
+                        AND (ci.thumbnail_url = uf.file_url
+                             OR strpos(ci.body::text, uf.file_url) > 0
+                             OR strpos(ci.data::text, uf.file_url) > 0)
                   )
                 """
             )

@@ -100,7 +100,7 @@ class ContentItem(Base, TimestampMixin, SoftDeleteMixin):
     )
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     summary: Mapped[str] = mapped_column(String(300), nullable=False, default="")
-    body: Mapped[dict[str, Any] | None] = mapped_column(
+    body: Mapped[list[dict[str, Any]] | None] = mapped_column(
         JSONB(none_as_null=True), nullable=True
     )
     data: Mapped[dict[str, Any]] = mapped_column(JSONB, nullable=False, default=dict)

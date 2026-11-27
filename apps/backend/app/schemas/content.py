@@ -2,15 +2,22 @@
 
 import uuid
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    StringConstraints,
+    field_validator,
+)
 
 from app.schemas.board import (
     MAX_FIELD_OPTIONS,
     FieldKey,
     FieldLabel,
     FieldOption,
+    PostBody,
     _unique_options,
 )
 
@@ -147,3 +154,179 @@ class ContentFieldsUpdate(BaseModel):
 
 class ContentTypeOrderUpdate(BaseModel):
     ids: list[uuid.UUID] = Field(min_length=1, max_length=500)
+
+
+# ── 항목 (T-254, CM-01 · 02) ──────────────────────────────────────────────
+
+ITEM_TITLE_MAX = 100
+ITEM_SUMMARY_MAX = 300
+TAG_NAME_MAX = 30
+CATEGORY_NAME_MAX = 30
+MAX_ITEM_TAGS = 20
+
+ItemStatus = Literal["DRAFT", "PUBLISHED"]
+ItemTitle = Annotated[
+    str,
+    StringConstraints(strip_whitespace=True, min_length=1, max_length=ITEM_TITLE_MAX),
+]
+TagName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=TAG_NAME_MAX)
+]
+CategoryName = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True, min_length=1, max_length=CATEGORY_NAME_MAX
+    ),
+]
+
+
+class ContentTagRef(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class ContentItemTypeRef(BaseModel):
+    id: uuid.UUID
+    type_key: str
+    name: str
+
+
+class ContentItemResponse(BaseModel):
+    id: uuid.UUID
+    type: ContentItemTypeRef
+    category_id: uuid.UUID | None
+    category_name: str | None
+    title: str
+    summary: str
+    body: list[dict[str, Any]]
+    data: dict[str, Any]
+    thumbnail_url: str | None
+    status: str
+    published_at: datetime | None
+    display_order: int
+    tags: list[ContentTagRef]
+    created_at: datetime
+    updated_at: datetime
+    deleted_at: datetime | None = None
+
+
+class ContentItemCounts(BaseModel):
+    all: int
+    published: int
+    draft: int
+    trash: int
+
+
+class ContentItemListResponse(BaseModel):
+    items: list[ContentItemResponse]
+    total: int
+    page: int
+    size: int
+    counts: ContentItemCounts
+
+
+class ContentItemCreate(BaseModel):
+    """초안은 필수 칸이 비어도 저장, 공개는 필수 칸까지 검사."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    type_id: uuid.UUID
+    title: ItemTitle
+    summary: str = Field(default="", max_length=ITEM_SUMMARY_MAX)
+    body: PostBody = []
+    data: dict[str, Any] = {}
+    thumbnail_url: str | None = Field(default=None, max_length=500)
+    category_id: uuid.UUID | None = None
+    # 태그 이름 — 없는 이름은 새로 만든다 (같은 이름은 띄어쓰기 · 대소문자 무시)
+    tags: list[TagName] = Field(default=[], max_length=MAX_ITEM_TAGS)
+    status: ItemStatus = "DRAFT"
+
+
+class ContentItemUpdate(BaseModel):
+    """보낸 값만 바뀐다. data 는 보낸 칸만, 빈 값은 그 칸을 비운다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    title: ItemTitle | None = None
+    summary: str | None = Field(default=None, max_length=ITEM_SUMMARY_MAX)
+    body: PostBody | None = None
+    data: dict[str, Any] | None = None
+    thumbnail_url: str | None = Field(default=None, max_length=500)
+    category_id: uuid.UUID | None = None
+    tags: list[TagName] | None = Field(default=None, max_length=MAX_ITEM_TAGS)
+    status: ItemStatus | None = None
+
+
+class ContentItemBulk(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=200)
+    action: Literal["publish", "draft", "trash", "restore"]
+
+
+class ContentItemBulkResult(BaseModel):
+    changed: int
+    # 공개하려 했지만 필수 칸이 비어 그대로 둔 항목
+    skipped: list[uuid.UUID] = []
+
+
+class ContentItemOrderUpdate(BaseModel):
+    type_id: uuid.UUID
+    ids: list[uuid.UUID] = Field(min_length=1, max_length=1000)
+
+
+# ── 카테고리 · 태그 (T-254, CM-05) ────────────────────────────────────────
+
+
+class ContentCategoryResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    parent_id: uuid.UUID | None
+    display_order: int
+    item_count: int = 0
+    children: list["ContentCategoryResponse"] = []
+
+
+class ContentCategoryCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: CategoryName
+    parent_id: uuid.UUID | None = None
+
+
+class ContentCategoryUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: CategoryName | None = None
+
+
+class ContentCategoryTreeNode(BaseModel):
+    id: uuid.UUID
+    parent_id: uuid.UUID | None = None
+
+
+class ContentCategoryTreeUpdate(BaseModel):
+    """트리 전체 — 목록 순서가 순서, parent_id 로 2단계."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    nodes: list[ContentCategoryTreeNode] = Field(max_length=500)
+
+
+class ContentTagResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    item_count: int = 0
+
+
+class ContentTagInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: TagName
+
+
+class ContentTagMerge(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    source_ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
+    target_id: uuid.UUID
