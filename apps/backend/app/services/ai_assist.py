@@ -209,6 +209,10 @@ def same_name(name: str) -> str:
     return "".join(name.split()).lower()
 
 
+# 홈페이지 분류 탭이 늘 앞에 붙이는 이름 — 추천에 오면 빼서 겹치지 않게 (T-252)
+ALL_CATEGORY_NAMES = frozenset({"전체", "all"})
+
+
 def _board_fields(raw: Any, taken: set[str]) -> list[SuggestedField]:
     """기존 칸 유형만, 고르기 칸은 선택지가 있을 때만 — 있는 이름 · 별점은 건너뜀."""
     if not isinstance(raw, list):
@@ -275,6 +279,7 @@ def _board_result(parsed: dict, ctx: AssistContext) -> BoardAssistResult:
             max_length=CATEGORY_NAME_MAX,
         )
         if same_name(c) not in ctx.taken_categories
+        and same_name(c) not in ALL_CATEGORY_NAMES
     ]
     deduped: list[str] = []
     for c in categories:

@@ -114,6 +114,7 @@ def build_copy_messages(
 # - assist-v1 post (2026-11): 공지 · FAQ 글 초안 (T-233-B)
 # - assist-v1 policy_summary (2026-11): 약관 변경 요약 (T-234-B)
 # - assist-v1 page_seo (2026-11): 페이지 하나의 검색 제목 · 설명 (T-248)
+# - assist-v1 board (2026-11): 카테고리에 '전체' 넣지 않기 (T-252)
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -158,7 +159,8 @@ _ASSIST_FORMATS["board"] = (
     ' "allow_guest": false}},'
     ' "reason": "권한 · 운영을 이렇게 정한 까닭 한 줄"}}\n'
     "- fields 는 최대 {fields_max}개, 제목 · 본문 · 작성일은 이미 있으니 넣지 않는다\n"
-    "- categories 는 최대 {categories_max}개\n"
+    "- categories 는 최대 {categories_max}개, '전체'는 홈페이지가 늘 보여 주니 넣지 "
+    "않는다\n"
     "- '지금 게시판'이 있으면 그 게시판에 더할 필드 · 카테고리만 추천하고, 이미 있는 "
     "이름은 넣지 않는다\n"
     "- 후기 · 리뷰는 회원만 쓰게(비회원 글쓰기 끔), 공지 · 소식 · FAQ 는 관리자 글쓰기"
