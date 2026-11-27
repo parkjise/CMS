@@ -8,6 +8,7 @@ import { useFeatureStore } from '@/stores/featureStore'
  */
 export const NAV_FEATURE_MAP: Record<string, string> = {
   '/admin/pages': 'SECTION_EDITOR',
+  '/admin/contents': 'CONTENT_MANAGE',
   '/admin/boards': 'BOARD_MANAGER',
   '/admin/site/seo': 'SEO_WIZARD',
   '/admin/site/aeo': 'SEO_WIZARD',
