@@ -3,6 +3,7 @@
 **버전:** v1.0 (2026-11-27 사용자 결정)
 **태스크:** TASK.md Phase 23 (T-253 ~ T-260)
 **와이어프레임:** `docs/mockups/page-content/wireframes.html` CM-01 ~ CM-09 (처음 의도 — 각 화면 설명의 "v3.1:" 앞부분)
+**점검 · 보고서:** `docs/03-analysis/content-management.analysis.md` · `docs/04-report/content-management.report.md` (2026-11-28, 일치율 약 93%)
 **관계 문서:** `docs/CMS_Page_Content_Plan_v1.0.md` — 페이지 관리(PART A)는 그대로, PART B(콘텐츠 관리 = 게시판 재사용)를 이 문서가 대신한다
 
 ## 0. 왜 다시 쓰나
