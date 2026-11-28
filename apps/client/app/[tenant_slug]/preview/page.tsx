@@ -169,7 +169,13 @@ async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query
   // 테마형은 지금 템플릿 CSS 가 레이아웃에 이미 있다. 직접 만든 페이지면 그 페이지를 (T-240 화면)
   if (key !== 'home' && !custom) notFound()
   return (
-    <ThemePreview site={site} tenantSlug={tenantSlug} banner={<PreviewBanner draft />} page={custom} />
+    <ThemePreview
+      site={site}
+      tenantSlug={tenantSlug}
+      banner={<PreviewBanner draft />}
+      page={custom}
+      draftToken={token}
+    />
   )
 }
 
@@ -181,9 +187,11 @@ interface ThemePreviewProps {
   cssVarBody?: string
   /** 직접 만든 페이지 미리보기 (T-244) — 없으면 홈 */
   page?: PublicPage
+  /** 저장 전 미리보기 토큰 — 콘텐츠 연결 섹션에 초안도 함께 (T-261) */
+  draftToken?: string
 }
 
-function ThemePreview({ site, tenantSlug, banner, cssVarBody, page }: ThemePreviewProps) {
+function ThemePreview({ site, tenantSlug, banner, cssVarBody, page, draftToken }: ThemePreviewProps) {
   // 홈 페이지의 그릴 수 있는 섹션만 — 메뉴가 넘치거나 하위 페이지 섹션이 섞이지 않게 (T-057-A)
   const homeSections = themeHomeSections(site.sections, site.boards)
   const activeSections = page ? themePageSections(site.sections, page.page_key) : homeSections
@@ -222,6 +230,7 @@ function ThemePreview({ site, tenantSlug, banner, cssVarBody, page }: ThemePrevi
               section={section}
               tenantSlug={tenantSlug}
               boards={site.boards}
+              draftToken={draftToken}
             />
           ))
         )}

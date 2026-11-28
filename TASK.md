@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **8** | **100%** |
-| **합계** | **304** | **304** | **100%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **9** | **9** | **100%** |
+| **합계** | **305** | **305** | **100%** |
 
 ---
 
@@ -4687,7 +4687,7 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 ## Phase 23: 콘텐츠 관리 — 독립 (`docs/CMS_Content_Management_Plan_v1.0.md` — 2026-11-27 결정)
 
 > 결정: 와이어프레임 CM-01 ~ CM-09 의 처음 의도대로 **게시판과 다른 콘텐츠 관리**(유형 · 칸 · 항목 · 카테고리 · 태그 · 공통 블록). 이미 만든 콘텐츠형 게시판 · 게시판 연결 섹션 · 게시글 관리 필터는 그대로. 스위치 `CONTENT_MANAGE`(기본 꺼짐), 유형 수 FREE 0 · BASIC 0 · STANDARD 10 · PREMIUM 무제한, 항목은 초안 · 공개 2단계.
-> 순서: T-253 → T-254 → T-255 → T-256 → T-257 → T-258 → T-259 → T-260. 머지 전 확인: T-253 · T-260(DB) · T-255(메뉴).
+> 순서: T-253 → T-254 → T-255 → T-256 → T-257 → T-258 → T-259 → T-260 → T-261(남은 차이). 머지 전 확인: T-253 · T-260(DB) · T-255(메뉴).
 > **완료 보고서 (2026-11-28):** `docs/04-report/content-management.report.md` — 수용 기준 11개 중 10 완전 · 1 부분(스위치 끈 뒤 관리자 안내), 남은 차이: 미리보기 초안 콘텐츠 · 관리자 안내 · 실제 AI 답 확인. 운영 배포 때 0064 · 0065 마이그레이션.
 > **시작 안내:** 기획서 0 · 2장을 먼저 읽는다. 각 태스크는 PR 하나. 칸 종류 · 값 검사는 게시판 칸(`schemas/board.py` `FieldType`, `services/board_field.py` · `field_convert.py`)을 함께 쓰고 복사하지 않는다. 승인 · 예약 발행 · 다국어 · 별도 AI 센터 · 성과 분석은 만들지 않는다.
 
@@ -4768,6 +4768,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **코드:** backend `alembic/versions/0065_content_blocks.py` · `models/content.py`(`ContentBlock`) · `models/section.py`(`block_id`) · `schemas/section.py` · `schemas/content.py` · `services/content_block.py` · `api/v1/endpoints/contents.py` · `sections.py` · `edit.py` · `services/tenant_purge.py`, admin `hooks/useContentBlocks.ts` · `components/contents/SectionBlockBar.tsx` · `components/content/AddSectionModal.tsx` · `pages/ContentBlocksPage.tsx` · `pages/SectionEditorPage.tsx` · `navigation.ts` · `router.tsx`
 - **테스트:** backend 7 (스위치 · 만들기 · 이어짐 · 다시 만들기 409, 참조형은 관리자 저장 · 인라인 편집 모두 따라가고 복사형은 그대로 · 블록 값, 연결 끊기 뒤 따로 · 두 번 끊기 409, 쓰는 블록 지우기 409, 이름 · 그릴 수 없는 종류 400 · 없는 블록 404 · FREE 422, 다른 사업체 404) + 해지 파기 표 목록, admin 6 (이어진 안내 · 끊기, 블록으로 저장, 스위치 꺼짐, 추가 창 종류 거르기 · 복사형, 목록 쓰는 곳 · 지우기 막힘/지우기). 테스트 DB 0065 올리기 · 내리기 · 다시 올리기. 전체 admin 996 (Node 25 · 22)
 - **머지 뒤 할 일:** 개발 · 운영 DB `alembic upgrade head`
+
+### T-261: 남은 차이 — 미리보기 초안 콘텐츠 · 스위치 꺼짐 관리자 안내 ✅ (Claude, 2026-11-28)
+
+- [x] 섹션 [미리보기] · 페이지 미리보기(`?draft=` 토큰)에서 '콘텐츠 연결' 섹션이 초안도 함께 — 공개 API `?draft=` 가 그 사업체 토큰일 때만(다른 사업체 · 지난 토큰은 공개만), 항목 `is_draft` · 화면 '초안' 표시, 초안이 섞인 응답은 캐시 안 함. 최근 공개순에서 초안은 만든 시각으로 (점검 3-1)
+- [x] 공개 API 404 코드 구분: 사업체 없음 `NOT_FOUND` · 스위치 꺼짐 `CONTENT_FEATURE_OFF` · 유형 없음(지움 포함) `CONTENT_TYPE_MISSING` → 홈페이지는 고칠 수 있는 관리자에게만 '관리자에게만 보이는 안내'(보기 전용 · 다른 사업체 계정 · 방문자는 그대로 안 보임) (점검 3-2, 기획서 7장 8번)
+- **코드:** backend `services/content_section.py`(`public_items` 이유 · `include_drafts`) · `services/section_draft.py`(`draft_tenant_id`) · `api/v1/endpoints/contents.py` · `schemas/content.py`, client `lib/publicContents.ts` · `components/sections/ContentList.tsx` · `ContentListNotice.tsx` · `SectionRenderer.tsx` · `app/[tenant_slug]/preview/page.tsx`, types `content.ts`
+- **테스트:** backend 2 (404 코드 4가지 · 미리보기 토큰 — 초안 포함 · 최근순 · 다른 사업체/없는/긴 토큰), client 6 (방문자 안내 없음 · 관리자 이유 2 · 보기 전용/다른 사업체 · 토큰 보내기 · 초안 표시 · 미리보기 아니면 토큰 없음). 전체 client 955 (Node 25), ContentList Node 22
+- 남은 것: 실제 AI 답 확인(점검 3-3, 키 필요) · 코드형 템플릿 콘텐츠 연결(3-4, 후속)
 
 ---
 

@@ -87,6 +87,12 @@ async def load_draft(token: str) -> dict | None:
     return json.loads(raw) if raw else None
 
 
+async def draft_tenant_id(token: str | None) -> str | None:
+    """미리보기 토큰의 사업체 — 없거나 지났으면 None (T-261 초안 콘텐츠)."""
+    draft = await load_draft(token) if token else None
+    return draft["tenant_id"] if draft else None
+
+
 def apply_draft(site: PublicSiteResponse, draft: dict) -> PublicSiteResponse:
     """사이트 응답의 그 섹션 설정을 미리볼 값으로 덮는다.
 

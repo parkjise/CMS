@@ -134,7 +134,9 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 - 사용 위치 `GET /contents/types/{id}/usage` · `GET /contents/items/{id}/usage` — 유형 · 카테고리 · 태그로 걸리는 섹션
 - 미리보기: 섹션 [미리보기]는 초안 항목도 보여 줌(관리자만, T-244 미리보기 토큰)
 
-**구현 (T-258):** 공개 API 는 `GET /api/public/site/{slug}/content-types/{type_id}/items` — 섹션이 유형 id 를 저장하므로 키 대신 id. 칸 값은 게시판 공개 칸과 같은 모양(`field_type`, 고르기 칸은 이름). 사용 위치는 콘텐츠 목록 칸 대신 휴지통 확인 창 · 편집 화면 아래에. 섹션이 쓰는 유형은 지울 수 없다(409). 미리보기의 초안 콘텐츠는 아직 — 미리보기도 공개 콘텐츠만.
+**구현 (T-258):** 공개 API 는 `GET /api/public/site/{slug}/content-types/{type_id}/items` — 섹션이 유형 id 를 저장하므로 키 대신 id. 칸 값은 게시판 공개 칸과 같은 모양(`field_type`, 고르기 칸은 이름). 사용 위치는 콘텐츠 목록 칸 대신 휴지통 확인 창 · 편집 화면 아래에. 섹션이 쓰는 유형은 지울 수 없다(409).
+
+**구현 (T-261):** 미리보기는 공개 API 에 미리보기 토큰(`?draft=`)을 함께 보내고, 그 사업체 토큰일 때만 초안도 돌려준다(항목 `is_draft`, 화면에 '초안' 표시, 캐시 안 함). 못 보여 줄 때 404 코드로 이유를 나눈다 — 사업체 없음 `NOT_FOUND` · 스위치 꺼짐 `CONTENT_FEATURE_OFF` · 유형 없음 `CONTENT_TYPE_MISSING`. 뒤의 둘은 홈페이지가 그 사이트를 고칠 수 있는 관리자에게만 '관리자에게만 보이는 안내'로 보여 주고, 방문자 · 보기 전용 · 다른 사업체 계정에게는 아무것도 그리지 않는다.
 
 **AI 구현 (T-259):** `content_polish` 는 요약 + 본문(문단 · 목록)을 돌려주고 화면이 고른 것만 채운다. `content_tags` 는 있는 태그를 먼저, 지금 붙인 태그는 빼고 8개까지. 두 기능 모두 `AI_SITE_ASSIST` 와 `CONTENT_MANAGE` 가 켜져야 하고 문구 추천 한도를 함께 쓴다.
 
@@ -161,6 +163,8 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 | GET · POST · PATCH · DELETE | `/contents/tags` · `/contents/tags/{id}` · POST `/contents/tags/merge` | 태그 |
 | GET | `/contents/types/{id}/usage` · `/contents/items/{id}/usage` | 사용 위치 |
 | (T-260) | `/contents/blocks` … | 공통 블록 |
+
+**공개 API (T-258 · T-261):** `GET /api/public/site/{slug}/content-types/{type_id}/items?limit=&sort=&category=&tag=&body=&draft=` — 404 코드 `NOT_FOUND` · `CONTENT_FEATURE_OFF` · `CONTENT_TYPE_MISSING`.
 
 **에러:** 스위치 꺼짐 · 보기 전용 쓰기 403, 한도 422 `PLAN_LIMIT_EXCEEDED`(유형 만들기 · 복구), 키 중복 409 (`field: type_key`), 다른 사업체 404, 칸 값 400 (`field: data.{칸}`).
 
@@ -190,5 +194,6 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 | T-258 | 홈페이지 · 백엔드: '콘텐츠 연결' 섹션(테마형) · 공개 API · 사용 위치 · 미리보기 | |
 | T-259 | AI: 문장 다듬기 · 태그 추천 (`/ai/assist/content_polish` · `content_tags`) | |
 | T-260 | 공통 블록 (CM-04) — 0065 `content_blocks` · `sections.block_id` | **DB 변경** |
+| T-261 | 남은 차이: 미리보기 초안 콘텐츠 · 스위치 꺼짐 관리자 안내 | |
 
 끝나면 이 문서 기준으로 점검(`docs/03-analysis/content-management.analysis.md`) → 완료 보고서.

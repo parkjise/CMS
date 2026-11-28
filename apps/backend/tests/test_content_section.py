@@ -6,7 +6,8 @@ from collections.abc import AsyncIterator
 import pytest
 from httpx import AsyncClient
 
-from app.services import content_section, site_cache
+from app.core.redis import get_redis
+from app.services import content_section, section_draft, site_cache
 from app.services import content_type as type_service
 from tests.test_content_types import _disable, _enable, _sql
 
@@ -241,10 +242,59 @@ class TestPublic:
     ):
         t = await _type(client, auth_headers, "faq")
         slug = contents_on["slug"]
-        assert (await client.get(_public(slug, str(uuid.uuid4())))).status_code == 404
-        assert (await client.get(_public("no-such-site", t["id"]))).status_code == 404
+
+        async def code(path: str) -> str:
+            resp = await client.get(path)
+            assert resp.status_code == 404
+            return resp.json()["error"]["code"]
+
+        # 홈페이지가 관리자에게만 이유를 안내하도록 코드로 구분한다 (T-261)
+        assert await code(_public(slug, str(uuid.uuid4()))) == "CONTENT_TYPE_MISSING"
+        assert await code(_public("no-such-site", t["id"])) == "NOT_FOUND"
+        await client.delete(f"{CONTENTS}/types/{t['id']}", headers=auth_headers)
+        assert await code(_public(slug, t["id"])) == "CONTENT_TYPE_MISSING"
         await _disable(contents_on["id"])
-        assert (await client.get(_public(slug, t["id"]))).status_code == 404
+        assert await code(_public(slug, t["id"])) == "CONTENT_FEATURE_OFF"
+
+    async def test_preview_token_includes_drafts(
+        self, client: AsyncClient, auth_headers: dict, contents_on: dict
+    ):
+        """저장 전 미리보기 토큰이 그 사업체 것일 때만 초안도 함께 (T-261)."""
+        t = await _type(client, auth_headers, "faq")
+        await _item(
+            client, auth_headers, type_id=t["id"], title="공개", status="PUBLISHED"
+        )
+        await _item(client, auth_headers, type_id=t["id"], title="초안")
+        slug = contents_on["slug"]
+
+        async def titles(query: str = "") -> list[tuple[str, bool]]:
+            resp = await client.get(_public(slug, t["id"], query))
+            assert resp.status_code == 200, resp.text
+            return [(i["title"], i["is_draft"]) for i in resp.json()["data"]]
+
+        assert await titles() == [("공개", False)]
+        token = await section_draft.create_page_preview(
+            uuid.UUID(contents_on["id"]), "home"
+        )
+        other = await section_draft.create_page_preview(uuid.uuid4(), "home")
+        try:
+            assert sorted(await titles(f"?draft={token}")) == [
+                ("공개", False),
+                ("초안", True),
+            ]
+            # 최근 공개순 — 초안(공개 시각 없음)은 만든 시각으로 섞인다
+            assert await titles(f"?draft={token}&sort=latest") == [
+                ("초안", True),
+                ("공개", False),
+            ]
+            # 다른 사업체 토큰 · 없는 토큰 · 너무 긴 토큰은 공개만 · 400
+            assert await titles(f"?draft={other}") == [("공개", False)]
+            assert await titles("?draft=nope") == [("공개", False)]
+            resp = await client.get(_public(slug, t["id"], "?draft=" + "x" * 65))
+            assert resp.status_code == 400
+        finally:
+            redis = await get_redis()
+            await redis.delete(f"section-draft:{token}", f"section-draft:{other}")
 
     async def test_item_changes_purge_site_cache(
         self, client: AsyncClient, auth_headers: dict, contents_on: dict, purged: list

@@ -5,6 +5,7 @@ import { contentOptions, fetchContentItems } from '@/lib/publicContents'
 import { fieldValueHref, fieldValueText } from '@/lib/publicPosts'
 import { getString, getValueType } from '@/lib/sectionSettings'
 import { RichBody } from '@/templates/shared/RichBody'
+import { ContentListNotice } from './ContentListNotice'
 import type { SectionProps } from './types'
 
 /** 연혁의 연도 · 로고 줄의 링크 — 시작용 유형(연혁 · 고객사)이 만드는 칸 */
@@ -26,6 +27,14 @@ const linkOf = (item: PublicContentItem): string | null => {
   return link ? fieldValueHref(link) : null
 }
 
+/** 저장 전 미리보기에서만 — 아직 공개하지 않은 콘텐츠 (T-261) */
+const DraftMark = ({ item }: { item: PublicContentItem }) =>
+  item.is_draft ? (
+    <span className="ml-2 inline-block rounded bg-amber-100 px-1.5 py-0.5 align-middle text-xs font-medium text-amber-800">
+      초안
+    </span>
+  ) : null
+
 const FieldLine = ({ item }: { item: PublicContentItem }) => {
   const fields = textFields(item)
   if (!fields.length) return null
@@ -43,8 +52,13 @@ const whenOf = (item: PublicContentItem): string => {
  * 테마형 콘텐츠 연결 섹션 (T-258, 콘텐츠 관리 기획서 5장) — 고른 유형의 공개 콘텐츠를
  * 카드 · 목록 · FAQ · 연혁 · 로고 줄로. 칸 매핑: 제목 · 요약 · 대표 사진 + 유형 칸.
  * 유형이 없거나(스위치 꺼짐 포함) 콘텐츠가 없으면 그리지 않는다 — 빈 결과 문구가 있으면 그 문구만.
+ * 스위치 꺼짐 · 유형 없음은 관리자에게만 안내 (T-261). draftToken 이 있으면 초안도 함께 (저장 전 미리보기).
  */
-export async function ContentList({ section, tenantSlug }: SectionProps) {
+interface ContentListProps extends SectionProps {
+  draftToken?: string
+}
+
+export async function ContentList({ section, tenantSlug, draftToken }: ContentListProps) {
   const { typeId, mode, sort, category, tag, count, emptyText } = contentOptions(section)
   if (!typeId) return null
   const items = await fetchContentItems(tenantSlug, typeId, {
@@ -53,8 +67,11 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
     category,
     tag,
     body: mode === 'FAQ',
+    ...(draftToken ? { draft: draftToken } : {}),
   })
-  if (!items || (!items.length && !emptyText)) return null
+  if (items === 'ERROR') return null
+  if (typeof items === 'string') return <ContentListNotice sectionId={section.id} reason={items} />
+  if (!items.length && !emptyText) return null
   const title = getString(section.settings, 'section_title')
 
   return (
@@ -96,7 +113,10 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
                     />
                   )}
                   <div className="p-5">
-                    <h3 className={`font-semibold ${primary}`}>{item.title}</h3>
+                    <h3 className={`font-semibold ${primary}`}>
+                      {item.title}
+                      <DraftMark item={item} />
+                    </h3>
                     <FieldLine item={item} />
                     {item.summary && (
                       <p className={`mt-2 line-clamp-3 text-sm leading-relaxed ${muted}`}>
@@ -127,7 +147,10 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
                 <summary
                   className={`flex cursor-pointer list-none items-center justify-between gap-4 py-5 font-medium ${primary} [&::-webkit-details-marker]:hidden`}
                 >
-                  {item.title}
+                  <span>
+                    {item.title}
+                    <DraftMark item={item} />
+                  </span>
                   <ChevronDown
                     className={`h-5 w-5 shrink-0 transition group-open:rotate-180 ${muted}`}
                     aria-hidden
@@ -152,7 +175,10 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
                   className="absolute -left-[31px] top-1.5 h-3 w-3 rounded-full bg-[var(--color-primary)]"
                 />
                 <p className="text-sm font-semibold text-[color:var(--color-primary)]">{whenOf(item)}</p>
-                <h3 className={`mt-1 font-semibold ${primary}`}>{item.title}</h3>
+                <h3 className={`mt-1 font-semibold ${primary}`}>
+                  {item.title}
+                  <DraftMark item={item} />
+                </h3>
                 <FieldLine item={item} />
                 {item.summary && (
                   <p className={`mt-1 text-sm leading-relaxed ${muted}`}>{item.summary}</p>
@@ -184,6 +210,7 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
                   ) : (
                     mark
                   )}
+                  <DraftMark item={item} />
                 </li>
               )
             })}
@@ -192,7 +219,10 @@ export async function ContentList({ section, tenantSlug }: SectionProps) {
           <ul className={`mt-8 divide-y divide-[color:var(--color-border)] border-y ${line}`}>
             {items.map((item) => (
               <li key={item.id} className="py-4">
-                <p className={`font-medium ${primary}`}>{item.title}</p>
+                <p className={`font-medium ${primary}`}>
+                  {item.title}
+                  <DraftMark item={item} />
+                </p>
                 <FieldLine item={item} />
                 {item.summary && <p className={`mt-1 text-sm ${muted}`}>{item.summary}</p>}
               </li>

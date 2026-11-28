@@ -51,7 +51,7 @@ from app.schemas.content import (
 from app.services import board as board_service
 from app.services import content_block as block_service
 from app.services import content_item as item_service
-from app.services import content_section, section_manage
+from app.services import content_section, section_draft, section_manage
 from app.services import content_taxonomy as taxonomy
 from app.services import content_type as type_service
 
@@ -568,27 +568,36 @@ async def list_public_items(
     category: UUID | None = None,
     tag: UUID | None = None,
     body: bool = False,
+    draft: str | None = Query(default=None, max_length=64),
     db: AsyncSession = Depends(get_db),
 ):
-    """콘텐츠 연결 섹션 (T-258) — 공개 콘텐츠만, 스위치가 꺼졌거나 유형이 없으면 404."""
+    """콘텐츠 연결 섹션 (T-258) — 공개 콘텐츠만.
+
+    - `draft`: 저장 전 미리보기 토큰 — 그 사업체 것이면 초안도 함께 (T-261)
+    - 404 코드: 사업체 없음 `NOT_FOUND` · 스위치 꺼짐 `CONTENT_FEATURE_OFF` ·
+      유형 없음 `CONTENT_TYPE_MISSING` — 홈페이지가 관리자에게만 안내 (T-261)
+    """
     tenant = await board_service.open_public_tenant(db, tenant_slug)
-    items = (
-        await content_section.public_items(
-            db,
-            tenant,
-            type_id,
-            limit=limit,
-            sort=sort,
-            category_id=category,
-            tag_id=tag,
-            with_body=body,
-        )
-        if tenant is not None
-        else None
-    )
-    if items is None:
+    if tenant is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail=MSG_PUBLIC_NOT_FOUND
+        )
+    include_drafts = await section_draft.draft_tenant_id(draft) == str(tenant.id)
+    items = await content_section.public_items(
+        db,
+        tenant,
+        type_id,
+        limit=limit,
+        sort=sort,
+        category_id=category,
+        tag_id=tag,
+        with_body=body,
+        include_drafts=include_drafts,
+    )
+    if isinstance(items, str):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": items, "message": MSG_PUBLIC_NOT_FOUND},
         )
     return ApiResponse.ok([PublicContentItem.model_validate(i) for i in items])
 
