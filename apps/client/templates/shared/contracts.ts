@@ -62,6 +62,8 @@ export interface CodeTemplateProps {
   member?: MemberRoute
   /** 이용약관 · 개인정보처리방침 (/{slug}/terms · /privacy, T-200) — 있으면 섹션 대신 문서 */
   policy?: SitePolicy
+  /** 저장 전 미리보기 토큰 — 콘텐츠 연결 섹션이 초안도 함께 (T-261 · T-263) */
+  draftToken?: string
 }
 
 export interface MemberRoute {

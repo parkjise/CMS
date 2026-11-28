@@ -24,6 +24,7 @@ import { VideoPlaylist } from './components/sections/VideoPlaylist'
 import { AreaRows } from './components/sub/AreaRows'
 import { BannerSplit } from './components/sub/BannerSplit'
 import { ConsultLinks } from './components/sub/ConsultLinks'
+import { ContentList } from './components/sub/ContentList'
 import { CriteriaCards } from './components/sub/CriteriaCards'
 import { HistoryTimeline } from './components/sub/HistoryTimeline'
 import { Location } from './components/sub/Location'
@@ -117,6 +118,7 @@ export default function HospitalATemplate({
   latestFrom,
   boards,
   board,
+  draftToken,
 }: CodeTemplateProps) {
   const noSlug = Boolean(onCustomDomain) && !previewQuery
   const siteBase = noSlug ? '' : `/${tenantSlug}`
@@ -316,6 +318,8 @@ export default function HospitalATemplate({
         return <Location {...props} business={siteInfo} />
       case 'BOARD':
         return renderBoard(props)
+      case 'CONTENT_LIST':
+        return <ContentList {...props} draftToken={draftToken} />
       default:
         return null
     }

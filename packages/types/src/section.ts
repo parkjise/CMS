@@ -10,6 +10,7 @@ export type SectionType =
   | 'TEAM'
   | 'FAQ'
   | 'BOARD_LATEST' // 메인 화면 게시판 최신 글 (T-185)
+  | 'CONTENT_LIST' // 콘텐츠 연결 (T-258)
   // 코드형 템플릿 섹션 (기획서 11.10) — 백엔드 enum 은 T-117 에서 추가
   | 'HERO_SLIDER'
   | 'VIDEO_PLAYLIST'

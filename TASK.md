@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **12** | **10** | **83%** |
-| **합계** | **308** | **306** | **99%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **12** | **11** | **92%** |
+| **합계** | **308** | **307** | **99%** |
 
 ---
 
@@ -4792,10 +4792,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **테스트:** backend 5 (기본 페이지 종류 · 스위치, BASIC 고정, 테마형 deletable 없음, 템플릿 섹션 추가 400, 연결 섹션 추가 · 맨 뒤 · 기본 섹션 삭제 422 · 연결 섹션 삭제) + 직접 페이지 종류 · 기본 페이지 추가 갱신, admin 1
 - 템플릿을 테마형 → 코드형으로 바꿔도(콘텐츠 유지) 쓰던 연결 섹션은 그대로 남아 코드형에서도 보인다(T-263 · T-264 뒤)
 
-### T-263: 코드형 연결 섹션 ② — hospital-a '콘텐츠 연결'
+### T-263: 코드형 연결 섹션 ② — hospital-a '콘텐츠 연결' ✅ (Claude, 2026-11-28)
 
-- [ ] `resolveSections` 기본 페이지에 연결 섹션을 관리자 순서대로 끼우기 · 매니페스트 `sections` 에 `BOARD_LATEST` · `CONTENT_LIST`
-- [ ] hospital-a `ContentList`(카드 · 목록 · FAQ · 연혁 · 로고 줄) BEM + SCSS, 제목 인라인 편집, 미리보기 초안 표시 · 관리자 안내(T-261)
+- [x] `resolveSections` 기본 페이지에 연결 섹션(`LINKED_SECTION_TYPES`)을 관리자 순서(display_order)대로 끼우기 — 자기보다 순서가 큰 첫 자리 앞, 없으면 맨 뒤. 샘플만 있는 자리는 앞 자리 순서를 따름. 매니페스트 `sections` 에 `CONTENT_LIST`(게시판 연결은 T-264), 공통 타입 `SectionType` 에 `CONTENT_LIST`
+- [x] hospital-a `components/sub/ContentList.tsx` + `styles/sub/_content-list.scss` — 카드 = 게시판 갤러리형(`board-gallery`), 목록 = 웹진형(`board-webzine`), FAQ = FAQ형(`board-faq`) 스타일 그대로, 연혁 · 로고 줄 · 요약 · 초안 표시만 새 BEM. 제목(`section_title`) 인라인 편집, 미리보기 토큰(`draftToken`: 미리보기 → `CodeTemplateRenderer` → 템플릿) · 관리자 안내(T-261)
+- **테스트:** client 9 (hospital-a 7 — 유형 없음 · 카드 클래스 · 조건 · FAQ · 연혁 · 로고 · 목록 · 빈 문구 · 초안 토큰 · 관리자 안내/실패, 자리 끼우기 2). 전체 client 964
 
 ### T-264: 코드형 연결 섹션 ③ — hospital-a '게시판 연결'
 

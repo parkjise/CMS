@@ -1,0 +1,144 @@
+// ── CONTENT LIST — 콘텐츠 연결 섹션 (T-263) ─────────────────────
+// components/sub/ContentList.tsx — 카드(board-gallery) · 목록(board-webzine) · FAQ(board-faq)는
+// 게시판 스타일을 그대로 쓰고, 여기에는 섹션 여백 · 요약 · 초안 표시 · 연혁 · 로고 줄만 둔다
+@use '../mixins' as *;
+
+$muted: #64748b;
+$line: #e2e8f0;
+$draft-bg: #fef3c7;
+$draft-text: #92400e;
+
+.content-list {
+  padding: 64px 0;
+  @include lg {
+    padding: 120px 0;
+  }
+
+  & + & {
+    padding-top: 0;
+  }
+
+  &__empty {
+    padding: 40px 0;
+    color: $muted;
+    text-align: center;
+  }
+
+  &__summary {
+    display: block;
+    margin-top: 8px;
+    color: $muted;
+    font-size: 0.9375rem;
+    line-height: 1.6;
+    word-break: keep-all;
+    @include line-clamp(3);
+  }
+
+  &__fields {
+    display: block;
+    margin-top: 4px;
+    color: $muted;
+    font-size: 0.875rem;
+  }
+
+  // 저장 전 미리보기에서만 (T-261)
+  &__draft {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: $draft-bg;
+    color: $draft-text;
+    font-size: 0.75rem;
+    font-weight: 500;
+    vertical-align: middle;
+  }
+
+  // ── 연혁: 왼쪽 연도 · 오른쪽 내용, 세로 선 ──
+  &__timeline {
+    max-width: 880px;
+    margin: 0 auto;
+    border-left: 2px solid $line;
+  }
+
+  &__event {
+    position: relative;
+    display: grid;
+    gap: 4px;
+    padding: 0 0 36px 28px;
+    @include md {
+      grid-template-columns: 120px 1fr;
+      gap: 24px;
+      padding-left: 40px;
+    }
+
+    // 선 위의 점
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0.45em;
+      left: -7px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--color-primary);
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+
+  &__when {
+    color: var(--color-primary);
+    font-weight: 600;
+    @include fluid-type(1rem, 1.25rem);
+  }
+
+  &__event-title {
+    display: block;
+    font-weight: 600;
+    line-height: 1.5;
+    word-break: keep-all;
+  }
+
+  // ── 로고 줄 ──
+  &__logos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 24px 48px;
+  }
+
+  &__logo {
+    display: flex;
+    align-items: center;
+  }
+
+  &__logo-box {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    @include focus-ring(var(--color-primary), 4px);
+  }
+
+  &__logo-image {
+    width: auto;
+    max-width: 160px;
+    height: 48px;
+    object-fit: contain;
+    opacity: 0.8;
+    @include transition(opacity);
+  }
+
+  &__logo-box:hover &__logo-image {
+    opacity: 1;
+  }
+
+  &__logo-name {
+    color: $muted;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+}
