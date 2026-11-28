@@ -224,6 +224,36 @@ describe('페이지 섹션 합치기 — 샘플 콘텐츠 (T-118)', () => {
     expect(resolvePageSections(manifest, sample, [], 'nope')).toEqual([])
   })
 
+  it('연결 섹션은 관리자 순서대로 자리 사이에 끼운다 (T-263)', () => {
+    const linkedManifest = { ...manifest, sections: [...manifest.sections, 'CONTENT_LIST' as const] }
+    const hero = makeSection({ id: 'hero', section_type: 'HERO_SLIDER', display_order: 0 })
+    const intro = makeSection({ id: 'intro', section_type: 'INTRO', display_order: 2 })
+    const services = makeSection({ id: 'svc', section_type: 'SERVICES', display_order: 3 })
+    const between = makeSection({ id: 'c1', section_type: 'CONTENT_LIST', display_order: 1 })
+    const last = makeSection({ id: 'c2', section_type: 'CONTENT_LIST', display_order: 9 })
+    const hidden = makeSection({ id: 'c3', section_type: 'CONTENT_LIST', display_order: 5, is_active: false })
+    const other = makeSection({ id: 'c4', section_type: 'CONTENT_LIST', display_order: 4, page_key: 'about' })
+    const result = resolvePageSections(
+      linkedManifest,
+      sample,
+      [last, services, between, hero, intro, hidden, other],
+      'home',
+    )
+    expect(result.map((r) => r.section.id)).toEqual(['hero', 'c1', 'intro', 'svc', 'c2'])
+    expect(result[1].editable).toBe(true)
+  })
+
+  it('템플릿이 그리지 못하는 연결 섹션은 빼고, 샘플만 있는 자리는 앞 자리 순서를 따른다', () => {
+    const intro = makeSection({ id: 'intro', section_type: 'INTRO', display_order: 5 })
+    const linked = makeSection({ id: 'c1', section_type: 'CONTENT_LIST', display_order: 1 })
+    // 매니페스트에 CONTENT_LIST 가 없으면 그리지 않는다
+    expect(resolvePageSections(manifest, sample, [intro, linked], 'home').map((r) => r.section.id)).not.toContain('c1')
+    const linkedManifest = { ...manifest, sections: [...manifest.sections, 'CONTENT_LIST' as const] }
+    // HERO_SLIDER 는 샘플만(순서 없음) → 연결 섹션은 INTRO(5) 앞, 샘플 자리 뒤
+    const ids = resolvePageSections(linkedManifest, sample, [intro, linked], 'home').map((r) => r.section.id)
+    expect(ids).toEqual(['sample:home:HERO_SLIDER:0', 'c1', 'intro', 'sample:home:SERVICES:0'])
+  })
+
   it('사이트 정보는 샘플 위에 테넌트 상호·SNS 를 덮어쓴다', () => {
     const site = makeSite({
       sns_settings: {

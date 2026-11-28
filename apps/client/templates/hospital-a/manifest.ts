@@ -94,6 +94,8 @@ export const hospitalAManifest: TemplateManifest = {
     'HISTORY_TIMELINE',
     'MAP',
     'BOARD',
+    // 연결 섹션 (T-262 ~) — 어느 페이지에나 더하고, 기본 페이지는 정해진 구성 사이에 끼운다
+    'CONTENT_LIST',
   ],
   css_variables: {
     primary: '#0ea5a0',

@@ -29,6 +29,8 @@ interface Props {
   board?: PublicBoard
   /** 이용약관 · 개인정보처리방침 (T-200) */
   policy?: SitePolicy
+  /** 저장 전 미리보기 토큰 — 콘텐츠 연결 섹션이 초안도 함께 (T-263) */
+  draftToken?: string
 }
 
 /**
@@ -51,6 +53,7 @@ export async function CodeTemplateRenderer({
   member,
   board,
   policy,
+  draftToken,
 }: Props) {
   const { default: Template } = await entry.load()
   const useSample = contentSource === 'sample'
@@ -103,6 +106,7 @@ export async function CodeTemplateRenderer({
         query={query}
         member={member}
         policy={policy}
+        draftToken={draftToken}
       />
     </div>
   )

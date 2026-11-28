@@ -159,6 +159,7 @@ async function SectionDraftPreview({ tenantSlug, token, pageKey, detailId, query
           preview
           contentSource="tenant"
           previewQuery={`draft=${encodeURIComponent(token)}`}
+          draftToken={token}
           detailId={detailId}
           query={query}
           board={board}

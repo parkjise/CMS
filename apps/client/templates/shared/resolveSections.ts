@@ -56,6 +56,12 @@ function customPageSections(
     .map((section) => ({ section, editable: true, sampleKeys: [] }))
 }
 
+/**
+ * 연결 섹션 (T-262 · T-263) — 코드형 기본 페이지에도 더할 수 있는 섹션.
+ * 매니페스트 자리(default_sections)가 없으니 관리자 순서(display_order)대로 자리 사이에 끼운다.
+ */
+export const LINKED_SECTION_TYPES: readonly SectionType[] = ['BOARD_LATEST', 'CONTENT_LIST']
+
 export function resolvePageSections(
   manifest: TemplateManifest,
   sample: SampleContent,
@@ -71,6 +77,9 @@ export function resolvePageSections(
   const tenantOnPage = tenantSections
     .filter((s) => (s.page_key ?? 'home') === pageKey)
     .sort((a, b) => a.display_order - b.display_order)
+  // 자리마다 관리자 순서 — 샘플만 있는 자리는 바로 앞 자리 순서를 따른다 (연결 섹션 끼우기용)
+  const slotOrders: number[] = []
+  let lastOrder = Number.NEGATIVE_INFINITY
 
   page.default_sections.forEach((type, index) => {
     const nth = seen.get(type) ?? 0
@@ -78,6 +87,7 @@ export function resolvePageSections(
     if (!manifest.sections.includes(type)) return
 
     const tenant = tenantOnPage.filter((s) => s.section_type === type)[nth]
+    if (tenant) lastOrder = tenant.display_order
     if (tenant && !tenant.is_active) return
 
     const sampleSection = samples.filter((s) => s.section_type === type)[nth]
@@ -107,7 +117,22 @@ export function resolvePageSections(
       editable: Boolean(tenant),
       sampleKeys: [...sampleKeys],
     })
+    slotOrders.push(lastOrder)
   })
+
+  // 연결 섹션은 자기보다 순서가 큰 첫 자리 앞에, 없으면 맨 뒤에
+  const linked = tenantOnPage.filter(
+    (s) =>
+      s.is_active &&
+      LINKED_SECTION_TYPES.includes(s.section_type as SectionType) &&
+      manifest.sections.includes(s.section_type as SectionType),
+  )
+  for (const section of linked) {
+    const at = slotOrders.findIndex((order) => order > section.display_order)
+    const index = at === -1 ? result.length : at
+    result.splice(index, 0, { section, editable: true, sampleKeys: [] })
+    slotOrders.splice(index, 0, section.display_order)
+  }
 
   return result
 }
