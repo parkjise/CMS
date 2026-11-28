@@ -11,12 +11,26 @@ from pydantic import BaseModel, Field
 
 from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 
-AssistKind = Literal["seo", "geo", "board", "post", "policy_summary", "page_seo"]
+AssistKind = Literal[
+    "seo",
+    "geo",
+    "board",
+    "post",
+    "policy_summary",
+    "page_seo",
+    "content_polish",
+    "content_tags",
+]
 AssistTone = Literal["trust", "friendly", "expert"]
 
 PURPOSE_MAX = 200
 MEMO_MAX = 500
 POLICY_BODY_MAX = 30000
+# 콘텐츠 (T-259) — 저장 API 와 같은 길이, 본문은 화면이 글자만 뽑아 보낸다
+CONTENT_TITLE_MAX = 100
+CONTENT_SUMMARY_MAX = 300
+CONTENT_TEXT_MAX = 3000
+CONTENT_TAGS_MAX = 20
 
 
 class AssistRequest(BaseModel):
@@ -28,6 +42,8 @@ class AssistRequest(BaseModel):
     - post: memo (필수), board_id (필수 — 게시판 유형으로 FAQ 를 가린다)
     - policy_summary: kind (terms · privacy), body (편집 중인 본문, 저장 전이어도) —
       공개본(없으면 기본 문안)은 서버가 읽어 바뀐 줄만 모델에 보낸다
+    - content_polish: tone, content_type_id (필수), title · summary · text (편집 중)
+    - content_tags: content_type_id (필수), title · summary · text, tags (지금 태그)
     """
 
     tone: AssistTone = "trust"
@@ -37,6 +53,11 @@ class AssistRequest(BaseModel):
     kind: Literal["terms", "privacy"] | None = None
     body: str = Field(default="", max_length=POLICY_BODY_MAX)
     page_id: uuid.UUID | None = None
+    content_type_id: uuid.UUID | None = None
+    title: str = Field(default="", max_length=CONTENT_TITLE_MAX)
+    summary: str = Field(default="", max_length=CONTENT_SUMMARY_MAX)
+    text: str = Field(default="", max_length=CONTENT_TEXT_MAX)
+    tags: list[str] = Field(default=[], max_length=CONTENT_TAGS_MAX)
 
 
 class SeoAssistResult(BaseModel):
@@ -107,6 +128,25 @@ class PolicySummaryResult(BaseModel):
     summary: str
 
 
+class ContentPolishResult(BaseModel):
+    """콘텐츠 문장 다듬기 (T-259, CM-02) — 화면이 고른 것만 요약 · 본문에 채운다."""
+
+    summary: str
+    body: list[DraftBlock]
+
+
+class SuggestedTag(BaseModel):
+    name: str
+    # 이미 있는 태그면 그 이름 그대로 — 새 태그는 저장할 때 만들어진다
+    existing: bool
+
+
+class ContentTagsResult(BaseModel):
+    """콘텐츠 태그 추천 (T-259, CM-05) — 있는 태그를 먼저, 지금 붙인 태그는 뺀다."""
+
+    tags: list[SuggestedTag]
+
+
 AssistResult = (
     SeoAssistResult
     | PageSeoAssistResult
@@ -114,6 +154,8 @@ AssistResult = (
     | BoardAssistResult
     | PostAssistResult
     | PolicySummaryResult
+    | ContentPolishResult
+    | ContentTagsResult
 )
 
 

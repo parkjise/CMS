@@ -27,6 +27,7 @@ from app.core.config import settings
 from app.core.redis import get_redis
 from app.models.ai import AiUsageLog
 from app.models.board import Board, BoardCategory
+from app.models.content import ContentTag, ContentType
 from app.models.page import Page
 from app.models.section import Section
 from app.models.site import SiteSetting
@@ -39,12 +40,15 @@ from app.schemas.ai_assist import (
     AssistResult,
     AssistUsage,
     BoardAssistResult,
+    ContentPolishResult,
+    ContentTagsResult,
     GeoAssistResult,
     PageSeoAssistResult,
     PolicySummaryResult,
     PostAssistResult,
     SeoAssistResult,
     SuggestedField,
+    SuggestedTag,
 )
 from app.schemas.board import BoardOperation, BoardPermissions, BoardType, FieldType
 from app.schemas.seo import GEO_DESCRIPTION_MAX, GEO_TOPIC_LENGTH, GEO_TOPICS_MAX
@@ -75,6 +79,9 @@ ASSIST_FLAGS: dict[str, str] = {
     "post": AI_BOARD_ASSIST,
     "policy_summary": AI_SITE_ASSIST,
     "page_seo": AI_SITE_ASSIST,
+    # 콘텐츠 (T-259) — CONTENT_MANAGE 도 켜져 있어야 한다
+    "content_polish": AI_SITE_ASSIST,
+    "content_tags": AI_SITE_ASSIST,
 }
 RESULT_MODELS: dict[str, type[AssistResult]] = {
     "seo": SeoAssistResult,
@@ -83,6 +90,8 @@ RESULT_MODELS: dict[str, type[AssistResult]] = {
     "post": PostAssistResult,
     "policy_summary": PolicySummaryResult,
     "page_seo": PageSeoAssistResult,
+    "content_polish": ContentPolishResult,
+    "content_tags": ContentTagsResult,
 }
 
 META_TITLE_MAX = 60
@@ -110,6 +119,16 @@ POST_TITLE_MAX = 200
 POST_TITLE_HINT = 40
 POST_TITLES = 3
 DRAFT_BLOCKS_MAX = 12
+
+# 콘텐츠 (T-259) — 저장 API 규칙과 같게
+CONTENT_SUMMARY_MAX = 300
+CONTENT_TAGS_MAX = 8
+CONTENT_TAG_LEN = 30
+CONTENT_FEATURE = "CONTENT_MANAGE"
+CONTENT_TYPE_REQUIRED = "콘텐츠 유형을 알려 주세요."
+CONTENT_TYPE_NOT_FOUND = "콘텐츠 유형을 찾을 수 없습니다."
+CONTENT_EMPTY_MESSAGE = "다듬을 요약이나 본문을 먼저 써 주세요."
+CONTENT_TITLE_REQUIRED = "제목을 먼저 써 주세요."
 DRAFT_TEXT_MAX = 1000
 DRAFT_ITEMS_MAX = 10
 DRAFT_ITEM_MAX = 200
@@ -172,6 +191,9 @@ class AssistContext:
     taken_categories: set[str] = field(default_factory=set)
     # 글 초안 (post) — FAQ 게시판이면 질문 하나 · 답변
     faq: bool = False
+    # 콘텐츠 태그 (content_tags) — 있는 태그 {비교 이름: 표기}, 지금 붙인 태그
+    existing_tags: dict[str, str] = field(default_factory=dict)
+    current_tags: set[str] = field(default_factory=set)
 
 
 FEATURE_OFF_MESSAGE = "이 기능은 현재 비활성화되어 있습니다."
@@ -419,6 +441,37 @@ def _summary_result(parsed: dict) -> PolicySummaryResult:
     return PolicySummaryResult(summary=summary)
 
 
+def _polish_result(parsed: dict) -> ContentPolishResult:
+    result = ContentPolishResult(
+        summary=_text(parsed.get("summary"), CONTENT_SUMMARY_MAX),
+        body=_draft_body(parsed.get("body")),  # type: ignore[arg-type]
+    )
+    if not result.summary and not result.body:
+        raise ValueError("다듬은 요약 · 본문이 비어 있습니다.")
+    return result
+
+
+def _tags_result(parsed: dict, ctx: AssistContext) -> ContentTagsResult:
+    """있는 태그는 그 표기로, 지금 붙인 태그 · 겹치는 이름은 뺀다."""
+    tags: list[SuggestedTag] = []
+    seen = set(ctx.current_tags)
+    for word in _clean_words(
+        parsed.get("tags"), max_count=CONTENT_TAGS_MAX * 2, max_length=CONTENT_TAG_LEN
+    ):
+        name = word.lstrip("#").strip()
+        key = same_name(name)
+        if not name or key in seen:
+            continue
+        seen.add(key)
+        existing = ctx.existing_tags.get(key)
+        tags.append(SuggestedTag(name=existing or name, existing=existing is not None))
+    if not tags:
+        raise ValueError("추천할 태그가 없습니다.")
+    # 있는 태그를 먼저
+    tags.sort(key=lambda t: not t.existing)
+    return ContentTagsResult(tags=tags[:CONTENT_TAGS_MAX])
+
+
 def parse_assist_result(
     kind: str, content: str, ctx: AssistContext | None = None
 ) -> AssistResult:
@@ -438,6 +491,10 @@ def parse_assist_result(
             return _post_result(parsed, ctx)
         if kind == "policy_summary":
             return _summary_result(parsed)
+        if kind == "content_polish":
+            return _polish_result(parsed)
+        if kind == "content_tags":
+            return _tags_result(parsed, ctx)
         if kind == "page_seo":
             page_seo = PageSeoAssistResult(
                 seo_title=_text(parsed.get("seo_title"), META_TITLE_MAX),
@@ -823,6 +880,60 @@ async def build_page_seo_context(
     return facts, AssistContext()
 
 
+async def build_content_context(
+    db: AsyncSession, tenant: Tenant, body: AssistRequest, kind: str
+) -> tuple[dict, AssistContext]:
+    """콘텐츠 다듬기 · 태그 — 사업체 정보 + 유형 · 편집 중인 제목 · 요약 · 본문."""
+    if not await feature_service.is_enabled(db, tenant.id, CONTENT_FEATURE):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail=FEATURE_OFF_MESSAGE
+        )
+    if body.content_type_id is None:
+        raise _validation_error(CONTENT_TYPE_REQUIRED, "content_type_id")
+    content_type = (
+        await db.execute(
+            select(ContentType).where(
+                ContentType.tenant_id == tenant.id,
+                ContentType.id == body.content_type_id,
+                ContentType.deleted_at.is_(None),
+            )
+        )
+    ).scalar_one_or_none()
+    if content_type is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=CONTENT_TYPE_NOT_FOUND
+        )
+    title, summary, text = body.title.strip(), body.summary.strip(), body.text.strip()
+    if not title:
+        raise _validation_error(CONTENT_TITLE_REQUIRED, "title")
+    if kind == "content_polish" and not (summary or text):
+        raise _validation_error(CONTENT_EMPTY_MESSAGE, "summary")
+    site = (await db.execute(select(SiteSetting))).scalar_one_or_none()
+    facts: dict[str, Any] = {
+        "업종": tenant.template_type,
+        "사이트명": (site.site_name if site else None) or tenant.name,
+        "콘텐츠 유형": content_type.name,
+        "제목": title,
+        "요약": summary,
+        "본문": text,
+    }
+    ctx = AssistContext()
+    if kind == "content_tags":
+        tags = (
+            await db.execute(
+                select(ContentTag.name).where(
+                    ContentTag.tenant_id == tenant.id, ContentTag.deleted_at.is_(None)
+                )
+            )
+        ).scalars()
+        ctx.existing_tags = {same_name(t): t for t in tags}
+        ctx.current_tags = {same_name(t) for t in body.tags if t.strip()}
+        facts["있는 태그"] = sorted(ctx.existing_tags.values())[:100]
+        facts["지금 태그"] = sorted(t.strip() for t in body.tags if t.strip())
+    facts = {k: v for k, v in facts.items() if v not in (None, "", [], {})}
+    return facts, ctx
+
+
 async def _prepare(
     db: AsyncSession, tenant: Tenant, kind: str, body: AssistRequest
 ) -> tuple[dict, AssistContext, dict[str, Any]]:
@@ -846,6 +957,18 @@ async def _prepare(
                 "titles_count": POST_TITLES,
                 "title_len": POST_TITLE_HINT,
                 "blocks_max": DRAFT_BLOCKS_MAX,
+            },
+        )
+    if kind in ("content_polish", "content_tags"):
+        facts, ctx = await build_content_context(db, tenant, body, kind)
+        return (
+            facts,
+            ctx,
+            {
+                "summary_max": CONTENT_SUMMARY_MAX,
+                "blocks_max": DRAFT_BLOCKS_MAX,
+                "tags_max": CONTENT_TAGS_MAX,
+                "tag_len": CONTENT_TAG_LEN,
             },
         )
     if kind == "page_seo":
@@ -914,7 +1037,9 @@ async def assist(
 
     facts, ctx, limits = await _prepare(db, tenant, kind, body)
     # 게시판 추천은 말투를 받지 않는다
-    tone = body.tone if kind in ("seo", "geo", "page_seo") else "trust"
+    tone = (
+        body.tone if kind in ("seo", "geo", "page_seo", "content_polish") else "trust"
+    )
     cache_key = _cache_key(tenant_id, kind, tone, {**facts, "kw": ctx.allow_keywords})
     cached = await _get_cached(cache_key)
     if cached is not None:

@@ -67,3 +67,39 @@ export function normalizeLink(input: string): string | null {
   if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return null
   return `https://${href}`
 }
+
+const BLOCK_TYPES = new Set(['paragraph', 'heading', 'listItem', 'blockquote', 'codeBlock', 'p', 'tableCell'])
+
+/** 본문의 글자만 — 문단은 빈 줄로 나눈다 (AI 보조에 보낼 때, T-259) */
+export function bodyToText(body: BodyNode[], limit = 3000): string {
+  const blocks: string[] = []
+  const walk = (node: unknown, into: string[]): void => {
+    if (!node || typeof node !== 'object') return
+    const n = node as { type?: string; text?: unknown; items?: unknown; content?: unknown }
+    if (typeof n.text === 'string' && n.type !== 'p') into.push(n.text)
+    if (n.type === 'hardBreak') into.push('\n')
+    if (n.type === 'p' && typeof n.text === 'string') into.push(n.text.replace(/\*\*/g, ''))
+    if (n.type === 'ul' && Array.isArray(n.items)) into.push(n.items.join('\n'))
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) {
+        const childType = (child as { type?: string })?.type ?? ''
+        if (BLOCK_TYPES.has(childType)) {
+          const parts: string[] = []
+          walk(child, parts)
+          const text = parts.join('').trim()
+          if (text) blocks.push(text)
+        } else {
+          walk(child, into)
+        }
+      }
+    }
+  }
+  for (const node of body) {
+    const parts: string[] = []
+    walk(node, parts)
+    const text = parts.join('').trim()
+    const type = (node as { type?: string }).type ?? ''
+    if (text && (BLOCK_TYPES.has(type) || type === 'ul' || type === 'text')) blocks.push(text)
+  }
+  return blocks.join('\n\n').slice(0, limit)
+}

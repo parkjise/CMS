@@ -907,3 +907,177 @@ class TestPageSeoEndpoint:
 
         logged = await client.get("/api/v1/ai/usage", headers=auth_headers)
         assert logged.json()["data"]["copy_suggest"]["used"] == 1
+
+
+# ═════════════════════ T-259 콘텐츠 문장 다듬기 · 태그 추천 ═════════════════════
+
+_POLISH = "/api/v1/ai/assist/content_polish"
+_TAGS = "/api/v1/ai/assist/content_tags"
+
+
+class TestContentResults:
+    def test_polish_cuts_and_needs_something(self):
+        result = ai_assist.parse_assist_result(
+            "content_polish",
+            json.dumps(
+                {
+                    "summary": "가" * 400,
+                    "body": [
+                        {"type": "p", "text": "문단"},
+                        {"type": "h1", "text": "x"},
+                    ],
+                },
+                ensure_ascii=False,
+            ),
+        )
+        assert len(result.summary) == 300
+        assert [b.model_dump() for b in result.body] == [{"type": "p", "text": "문단"}]
+        with pytest.raises(ValueError):
+            ai_assist.parse_assist_result(
+                "content_polish", '{"summary": " ", "body": []}'
+            )
+
+    def test_tags_prefer_existing_and_skip_current(self):
+        ctx = ai_assist.AssistContext(
+            existing_tags={"주차": "주차", "event": "Event"},
+            current_tags={"예약"},
+        )
+        result = ai_assist.parse_assist_result(
+            "content_tags",
+            json.dumps(
+                {"tags": ["#새 소식", "EVENT", "예 약", "주 차", "새소식"]},
+                ensure_ascii=False,
+            ),
+            ctx,
+        )
+        assert [(t.name, t.existing) for t in result.tags] == [
+            ("Event", True),
+            ("주차", True),
+            ("새 소식", False),
+        ]
+        with pytest.raises(ValueError):
+            ai_assist.parse_assist_result(
+                "content_tags",
+                '{"tags": ["예약"]}',
+                ai_assist.AssistContext(current_tags={"예약"}),
+            )
+
+
+@pytest.fixture
+async def content_tenant(assist_tenant: dict):
+    await _enable(assist_tenant["id"], "CONTENT_MANAGE")
+    type_id = str(uuid.uuid4())
+    await _sql(
+        "INSERT INTO content_types (id, tenant_id, type_key, name)"
+        " VALUES (:id, :t, 'faq', '자주 묻는 질문')",
+        {"id": type_id, "t": assist_tenant["id"]},
+    )
+    await _sql(
+        "INSERT INTO content_tags (tenant_id, name) VALUES (:t, '주차'), (:t, '예약')",
+        {"t": assist_tenant["id"]},
+    )
+    yield {**assist_tenant, "type_id": type_id}
+    for table in ("content_tags", "content_types"):
+        await _sql(
+            f"DELETE FROM {table} WHERE tenant_id = :t", {"t": assist_tenant["id"]}
+        )
+
+
+class TestContentEndpoints:
+    async def test_needs_content_switch(
+        self, client: AsyncClient, auth_headers: dict, assist_tenant: dict
+    ):
+        resp = await client.post(
+            _POLISH,
+            headers=auth_headers,
+            json={"content_type_id": str(uuid.uuid4()), "title": "x", "summary": "y"},
+        )
+        assert resp.status_code == 403
+
+    async def test_input_checks(
+        self, client: AsyncClient, auth_headers: dict, content_tenant: dict
+    ):
+        no_type = await client.post(_POLISH, headers=auth_headers, json={"title": "x"})
+        assert no_type.json()["error"]["field"] == "content_type_id"
+        unknown = await client.post(
+            _POLISH,
+            headers=auth_headers,
+            json={"content_type_id": str(uuid.uuid4()), "title": "x", "summary": "y"},
+        )
+        assert unknown.status_code == 404
+        no_title = await client.post(
+            _POLISH,
+            headers=auth_headers,
+            json={"content_type_id": content_tenant["type_id"], "summary": "y"},
+        )
+        assert no_title.json()["error"]["field"] == "title"
+        empty = await client.post(
+            _POLISH,
+            headers=auth_headers,
+            json={"content_type_id": content_tenant["type_id"], "title": "x"},
+        )
+        assert empty.status_code == 400
+        assert empty.json()["error"]["field"] == "summary"
+
+    async def test_polish_sends_draft_and_counts(
+        self, client: AsyncClient, auth_headers: dict, content_tenant: dict, monkeypatch
+    ):
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return (
+                json.dumps(
+                    {
+                        "summary": "건물 지하 주차장을 2시간 무료로 쓸 수 있어요.",
+                        "body": [],
+                    },
+                    ensure_ascii=False,
+                ),
+                50,
+            )
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _POLISH,
+            headers=auth_headers,
+            json={
+                "content_type_id": content_tenant["type_id"],
+                "title": "주차 되나요?",
+                "summary": "지하 주차장 2시간 무료",
+                "tone": "friendly",
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        data = resp.json()["data"]
+        assert data["result"]["summary"].startswith("건물 지하")
+        assert data["usage"]["used"] == 1
+        assert "자주 묻는 질문" in seen[0] and "지하 주차장 2시간 무료" in seen[0]
+        assert "친근하게" in seen[0]
+
+    async def test_tags_send_existing_tags(
+        self, client: AsyncClient, auth_headers: dict, content_tenant: dict, monkeypatch
+    ):
+        seen: list[str] = []
+
+        async def fake_call(messages):
+            seen.append("\n".join(str(m.content) for m in messages))
+            return json.dumps({"tags": ["주차", "무료"]}, ensure_ascii=False), 20
+
+        monkeypatch.setattr(ai_service, "_call_model", fake_call)
+        resp = await client.post(
+            _TAGS,
+            headers=auth_headers,
+            json={
+                "content_type_id": content_tenant["type_id"],
+                "title": "주차 되나요?",
+                "tags": ["예약"],
+            },
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["data"]["result"]["tags"] == [
+            {"name": "주차", "existing": True},
+            {"name": "무료", "existing": False},
+        ]
+        assert '"있는 태그": ["예약", "주차"]' in seen[0]
+        assert '"지금 태그": ["예약"]' in seen[0]
