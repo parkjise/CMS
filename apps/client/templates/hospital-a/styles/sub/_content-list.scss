@@ -1,6 +1,7 @@
-// ── CONTENT LIST — 콘텐츠 연결 섹션 (T-263) ─────────────────────
-// components/sub/ContentList.tsx — 카드(board-gallery) · 목록(board-webzine) · FAQ(board-faq)는
-// 게시판 스타일을 그대로 쓰고, 여기에는 섹션 여백 · 요약 · 초안 표시 · 연혁 · 로고 줄만 둔다
+// ── CONTENT LIST — 연결 섹션 (콘텐츠 연결 T-263 · 게시판 연결 T-264) ──
+// components/sub/ContentList.tsx · BoardConnect.tsx — 카드(board-gallery) · 목록(board-webzine ·
+// board-list) · FAQ(board-faq)는 게시판 스타일을 그대로 쓰고, 여기에는 섹션 여백 · 요약 · 초안 표시 ·
+// 연혁 · 로고 줄 · 전체 보기만 둔다
 @use '../mixins' as *;
 
 $muted: #64748b;
@@ -39,6 +40,21 @@ $draft-text: #92400e;
     margin-top: 4px;
     color: $muted;
     font-size: 0.875rem;
+  }
+
+  // 게시판 연결 목록의 '전체 보기' (T-264)
+  &__more {
+    margin-top: 24px;
+    text-align: right;
+  }
+
+  &__more-link {
+    color: var(--color-primary);
+    font-weight: 500;
+    @include focus-ring(var(--color-primary), 2px);
+    @include hover {
+      text-decoration: underline;
+    }
   }
 
   // 저장 전 미리보기에서만 (T-261)
