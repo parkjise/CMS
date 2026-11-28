@@ -46,7 +46,11 @@ export const ADMIN_NAVIGATION = [
     icon: Library,
     label: '콘텐츠 관리',
     // 독립 콘텐츠 관리 (T-255, 콘텐츠 관리 기획서 3장) — 목록 · 작성(T-256) · 카테고리 · 태그(T-257)
-    children: [{ to: '/admin/contents/types', label: '콘텐츠 유형' }],
+    children: [
+      { to: '/admin/contents', label: '콘텐츠 목록' },
+      { to: '/admin/contents/new', label: '콘텐츠 작성' },
+      { to: '/admin/contents/types', label: '콘텐츠 유형' },
+    ],
   },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
   {

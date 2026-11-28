@@ -20,6 +20,14 @@ const DashboardPage = lazyPage(() => import('@/pages/DashboardPage'), 'Dashboard
 const PagesPage = lazyPage(() => import('@/pages/PagesPage'), 'PagesPage')
 const PageDetailPage = lazyPage(() => import('@/pages/PageDetailPage'), 'PageDetailPage')
 const SectionEditorPage = lazyPage(() => import('@/pages/SectionEditorPage'), 'SectionEditorPage')
+const ContentItemsPage = lazyPage(
+  () => import('@/pages/ContentItemsPage'),
+  'ContentItemsPage'
+)
+const ContentItemEditPage = lazyPage(
+  () => import('@/pages/ContentItemEditPage'),
+  'ContentItemEditPage'
+)
 const ContentTypesPage = lazyPage(
   () => import('@/pages/ContentTypesPage'),
   'ContentTypesPage'
@@ -68,6 +76,8 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
   [/^\/admin\/contents\/types\/?$/, ContentTypesPage],
   [/^\/admin\/contents\/types\/[^/]+\/?$/, ContentTypeDetailPage],
+  [/^\/admin\/contents\/?$/, ContentItemsPage],
+  [/^\/admin\/contents\/[^/]+\/?$/, ContentItemEditPage],
   [/^\/admin\/sns\/?$/, SnsPage],
   [/^\/admin\/inquiries\/?$/, InquiriesPage],
   [/^\/admin\/boards\/?$/, BoardsPage],
@@ -147,8 +157,19 @@ export const router = createBrowserRouter([
           // 예전 콘텐츠 편집 주소 (T-238)
           { path: '/admin/content', element: <ContentRedirect /> },
           { path: '/admin/content/:sectionId', element: <ContentRedirect /> },
-          // 콘텐츠 관리 (T-255) — 목록 화면이 생기기 전까지 유형으로
-          { path: '/admin/contents', element: <Navigate to="/admin/contents/types" replace /> },
+          // 콘텐츠 관리 (T-255 · T-256)
+          {
+            path: '/admin/contents',
+            element: withFeature('CONTENT_MANAGE', <ContentItemsPage />),
+          },
+          {
+            path: '/admin/contents/new',
+            element: withFeature('CONTENT_MANAGE', <ContentItemEditPage />),
+          },
+          {
+            path: '/admin/contents/:itemId',
+            element: withFeature('CONTENT_MANAGE', <ContentItemEditPage />),
+          },
           {
             path: '/admin/contents/types',
             element: withFeature('CONTENT_MANAGE', <ContentTypesPage />),
