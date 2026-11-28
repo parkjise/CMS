@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **9** | **9** | **100%** |
-| **합계** | **305** | **305** | **100%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **12** | **10** | **83%** |
+| **합계** | **308** | **306** | **99%** |
 
 ---
 
@@ -4775,7 +4775,31 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] 공개 API 404 코드 구분: 사업체 없음 `NOT_FOUND` · 스위치 꺼짐 `CONTENT_FEATURE_OFF` · 유형 없음(지움 포함) `CONTENT_TYPE_MISSING` → 홈페이지는 고칠 수 있는 관리자에게만 '관리자에게만 보이는 안내'(보기 전용 · 다른 사업체 계정 · 방문자는 그대로 안 보임) (점검 3-2, 기획서 7장 8번)
 - **코드:** backend `services/content_section.py`(`public_items` 이유 · `include_drafts`) · `services/section_draft.py`(`draft_tenant_id`) · `api/v1/endpoints/contents.py` · `schemas/content.py`, client `lib/publicContents.ts` · `components/sections/ContentList.tsx` · `ContentListNotice.tsx` · `SectionRenderer.tsx` · `app/[tenant_slug]/preview/page.tsx`, types `content.ts`
 - **테스트:** backend 2 (404 코드 4가지 · 미리보기 토큰 — 초안 포함 · 최근순 · 다른 사업체/없는/긴 토큰), client 6 (방문자 안내 없음 · 관리자 이유 2 · 보기 전용/다른 사업체 · 토큰 보내기 · 초안 표시 · 미리보기 아니면 토큰 없음). 전체 client 955 (Node 25), ContentList Node 22
-- 남은 것: 실제 AI 답 확인(점검 3-3, 키 필요) · 코드형 템플릿 콘텐츠 연결(3-4, 후속)
+- 남은 것: ~~실제 AI 답 확인(점검 3-3)~~ — 2026-11-28 개발 Gemini 키로 확인(다듬기 · 태그 정상) · 코드형 템플릿 콘텐츠 연결(3-4) → T-262 ~ T-264
+
+### 코드형 템플릿 연결 섹션 (점검 3-4 — 2026-11-28 사용자 결정: 기본 페이지까지)
+
+> **결정:** 코드형 템플릿(hospital-a)의 **기본 페이지 · 직접 만든 페이지 모두**에 '게시판 연결'(`BOARD_LATEST`) · '콘텐츠 연결'(`CONTENT_LIST`)을 더할 수 있다. 기본 페이지의 정해진 구성은 그대로(더하기 · 지우기 불가) — 연결 섹션만 더하고 지운다. 요금제 한도 · FREE · BASIC 고정은 그대로.
+> **순서:** T-262(서버 · 관리자) → T-263(hospital-a 콘텐츠 연결) → T-264(hospital-a 게시판 연결). DB 변경 없음.
+> **시작 안내:** 데이터 · API · 관리자 폼은 테마형 것을 그대로 쓴다(`services/content_section.py` · `board_latest.py`, admin `ContentListForm` · `BoardLatestForm`). 화면은 hospital-a 규칙대로 BEM + SCSS(`apps/client/templates/hospital-a/styles/`) — 테마형 Tailwind 컴포넌트를 그대로 넣지 않는다. 기본 페이지 그리기는 `templates/shared/resolveSections.ts`(매니페스트 자리) — 연결 섹션은 관리자 순서(display_order)대로 자리 사이에 끼운다.
+
+### T-262: 코드형 연결 섹션 ① — 서버 · 관리자 (더하기 · 지우기) ✅ (Claude, 2026-11-28)
+
+- [x] `GET /sections/limits`: 코드형 기본 페이지 — 더할 수 있는 종류는 연결 섹션만(콘텐츠 연결은 `CONTENT_MANAGE` 켜졌을 때), `deletable_types`(연결 섹션만), 요금제 고정 · 한도는 그대로. 코드형 직접 페이지 — 샘플 종류 + 연결 섹션
+- [x] 섹션 추가: 연결 섹션은 테마형 시작 문구(코드형 샘플 값 없음), 기본 페이지 템플릿 섹션 400. 삭제: 기본 페이지 템플릿 섹션 422 '템플릿 기본 섹션은 지울 수 없습니다'
+- [x] 관리자: 섹션 목록 삭제 버튼은 `deletable_types` 종류에만
+- **코드:** backend `services/section_manage.py`(`LINKED_SECTION_TYPES` · `get_limits` · `add_section` · `delete_section`) · `schemas/section.py`, admin `hooks/useSections.ts` · `components/content/SectionList.tsx` · `PageSections.tsx`
+- **테스트:** backend 5 (기본 페이지 종류 · 스위치, BASIC 고정, 테마형 deletable 없음, 템플릿 섹션 추가 400, 연결 섹션 추가 · 맨 뒤 · 기본 섹션 삭제 422 · 연결 섹션 삭제) + 직접 페이지 종류 · 기본 페이지 추가 갱신, admin 1
+- 템플릿을 테마형 → 코드형으로 바꿔도(콘텐츠 유지) 쓰던 연결 섹션은 그대로 남아 코드형에서도 보인다(T-263 · T-264 뒤)
+
+### T-263: 코드형 연결 섹션 ② — hospital-a '콘텐츠 연결'
+
+- [ ] `resolveSections` 기본 페이지에 연결 섹션을 관리자 순서대로 끼우기 · 매니페스트 `sections` 에 `BOARD_LATEST` · `CONTENT_LIST`
+- [ ] hospital-a `ContentList`(카드 · 목록 · FAQ · 연혁 · 로고 줄) BEM + SCSS, 제목 인라인 편집, 미리보기 초안 표시 · 관리자 안내(T-261)
+
+### T-264: 코드형 연결 섹션 ③ — hospital-a '게시판 연결'
+
+- [ ] hospital-a `BoardLatest`(카드 · 목록 · 연혁 등 테마형과 같은 보여 주는 방식) BEM + SCSS, 글 링크는 그 게시판 페이지로
 
 ---
 

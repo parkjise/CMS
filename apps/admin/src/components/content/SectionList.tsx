@@ -25,6 +25,8 @@ interface SectionListProps {
   sections: Section[]
   /** 서버 한도 응답의 can_delete — 요금제 · 템플릿이 허용할 때만 삭제 버튼 (T-037-A) */
   canDelete?: boolean
+  /** 지울 수 있는 종류 — 없으면 모두. 코드형 기본 페이지는 연결 섹션만 (T-262) */
+  deletableTypes?: string[] | null
   /** 섹션이 없을 때 문구 — 직접 만든 페이지는 템플릿 적용이 답이 아니다 (T-238) */
   emptyText?: string
 }
@@ -32,6 +34,7 @@ interface SectionListProps {
 export function SectionList({
   sections,
   canDelete = false,
+  deletableTypes = null,
   emptyText = '구성된 섹션이 없습니다. 템플릿을 적용해주세요.',
 }: SectionListProps) {
   const reorder = useReorderSections()
@@ -94,7 +97,11 @@ export function SectionList({
               section={section}
               onToggle={handleToggle}
               isToggling={toggle.isPending}
-              onDelete={canDelete ? setDeleting : undefined}
+              onDelete={
+                canDelete && (!deletableTypes || deletableTypes.includes(section.section_type))
+                  ? setDeleting
+                  : undefined
+              }
             />
           ))}
         </ul>

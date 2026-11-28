@@ -804,7 +804,12 @@ class TestPageSections:
         assert [
             (t["section_type"], t["variant"], t["label"])
             for t in limits["addable_types"]
-        ] == [("SUB_HERO", None, "상단"), ("CONTENT_BLOCK", "media-row", "사진 + 글")]
+        ] == [
+            ("SUB_HERO", None, "상단"),
+            ("CONTENT_BLOCK", "media-row", "사진 + 글"),
+            # 연결 섹션은 어느 페이지에나 (T-262) — 콘텐츠 연결은 스위치가 켜졌을 때만
+            ("BOARD_LATEST", None, "게시판 연결"),
+        ]
         resp = await self._add(
             client,
             auth_headers,
@@ -827,13 +832,17 @@ class TestPageSections:
         ):
             resp = await self._add(client, auth_headers, page_key="event", **body)
             assert resp.status_code == 400, body
-        # 템플릿 기본 페이지는 지금처럼 정해진 구성
+        # 템플릿 기본 페이지는 정해진 구성 — 연결 섹션만 더한다 (T-262)
         about = (await self._limits(client, auth_headers, "about")).json()["data"]
-        assert about["can_add"] is False
+        assert [t["section_type"] for t in about["addable_types"]] == ["BOARD_LATEST"]
         resp = await self._add(
             client, auth_headers, section_type="SUB_HERO", page_key="about"
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
+        resp = await self._add(
+            client, auth_headers, section_type="BOARD_LATEST", page_key="about"
+        )
+        assert resp.status_code == 201, resp.text
 
     async def test_missing_page_or_switch_off_is_404(
         self, client: AsyncClient, auth_headers: dict, pages_on: dict

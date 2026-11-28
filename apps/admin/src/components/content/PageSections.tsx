@@ -72,6 +72,7 @@ function SectionsWithLimits({
       <SectionList
         sections={sections}
         canDelete={limits?.can_delete ?? false}
+        deletableTypes={limits?.deletable_types}
         emptyText={
           pageKey === 'home'
             ? undefined
