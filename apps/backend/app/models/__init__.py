@@ -13,6 +13,7 @@ from app.models.board import (
     BoardPostVersion,
 )
 from app.models.content import (
+    ContentBlock,
     ContentCategory,
     ContentItem,
     ContentItemTag,
@@ -44,6 +45,7 @@ from app.models.tenant import Tenant
 from app.models.user import User
 
 __all__ = [
+    "ContentBlock",
     "ContentCategory",
     "ContentItem",
     "ContentItemTag",

@@ -19,6 +19,8 @@ export interface Section {
   is_active: boolean
   /** 섹션이 속한 페이지 (기본 home) */
   page_key?: string
+  /** 공통 블록(참조형)으로 쓰는 섹션이면 그 블록 (T-260) */
+  block_id?: string | null
   settings: SectionSetting[]
   created_at: string
   updated_at: string

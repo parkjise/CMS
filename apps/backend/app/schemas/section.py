@@ -23,6 +23,8 @@ class SectionResponse(BaseModel):
     display_order: int
     is_active: bool
     page_key: str = "home"
+    # 공통 블록(참조형)이면 그 블록 (T-260)
+    block_id: uuid.UUID | None = None
     settings: list[SectionSettingResponse] = []
     created_at: datetime
     updated_at: datetime

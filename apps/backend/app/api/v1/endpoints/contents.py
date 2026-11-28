@@ -20,6 +20,11 @@ from app.core.deps import (
 from app.models.user import User
 from app.schemas.common import ApiResponse
 from app.schemas.content import (
+    ContentBlockAddSection,
+    ContentBlockCreate,
+    ContentBlockRename,
+    ContentBlockResponse,
+    ContentBlockUnlink,
     ContentCategoryCreate,
     ContentCategoryResponse,
     ContentCategoryTreeUpdate,
@@ -44,8 +49,9 @@ from app.schemas.content import (
     PublicContentItem,
 )
 from app.services import board as board_service
+from app.services import content_block as block_service
 from app.services import content_item as item_service
-from app.services import content_section
+from app.services import content_section, section_manage
 from app.services import content_taxonomy as taxonomy
 from app.services import content_type as type_service
 
@@ -585,3 +591,108 @@ async def list_public_items(
             status_code=status.HTTP_404_NOT_FOUND, detail=MSG_PUBLIC_NOT_FOUND
         )
     return ApiResponse.ok([PublicContentItem.model_validate(i) for i in items])
+
+
+# ── 공통 블록 (T-260, CM-04) ──────────────────────────────────────────────
+
+
+@router.get(
+    "/blocks",
+    response_model=ApiResponse[list[ContentBlockResponse]],
+    dependencies=_feature,
+)
+async def list_blocks(
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """블록 · 쓰는 섹션."""
+    blocks = await block_service.list_blocks(db, tenant_id)
+    return ApiResponse.ok([ContentBlockResponse.model_validate(b) for b in blocks])
+
+
+@router.post(
+    "/blocks",
+    response_model=ApiResponse[ContentBlockResponse],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_feature,
+)
+async def create_block(
+    body: ContentBlockCreate,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """섹션 값으로 블록 만들기 — 그 섹션은 참조형으로 이어진다."""
+    view = await block_service.create_from_section(
+        db, tenant_id, body.section_id, body.name
+    )
+    return ApiResponse.ok(ContentBlockResponse.model_validate(view))
+
+
+@router.post("/blocks/unlink", response_model=ApiResponse[None], dependencies=_feature)
+async def unlink_block(
+    body: ContentBlockUnlink,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """섹션의 연결 끊기 — 값은 그대로, 이후 이 섹션만 따로."""
+    await block_service.unlink(db, tenant_id, body.section_id)
+    return ApiResponse.ok(None)
+
+
+@router.patch(
+    "/blocks/{block_id}",
+    response_model=ApiResponse[ContentBlockResponse],
+    dependencies=_feature,
+)
+async def rename_block(
+    block_id: UUID,
+    body: ContentBlockRename,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    view = await block_service.rename_block(db, tenant_id, block_id, body.name)
+    return ApiResponse.ok(ContentBlockResponse.model_validate(view))
+
+
+@router.delete(
+    "/blocks/{block_id}", response_model=ApiResponse[None], dependencies=_feature
+)
+async def delete_block(
+    block_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """쓰는 섹션이 있으면 409."""
+    await block_service.delete_block(db, tenant_id, block_id)
+    return ApiResponse.ok(None)
+
+
+@router.post(
+    "/blocks/{block_id}/sections",
+    response_model=ApiResponse[dict],
+    status_code=status.HTTP_201_CREATED,
+    dependencies=_feature,
+)
+async def add_block_section(
+    block_id: UUID,
+    body: ContentBlockAddSection,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """블록으로 섹션 더하기 — 한도 · 종류는 섹션 추가와 같다 (422 · 400 · 404)."""
+    try:
+        section_id = await block_service.add_section(
+            db, tenant_id, block_id, body.page_key, body.mode
+        )
+    except section_manage.PageNotFoundError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except section_manage.SectionLimitError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "PLAN_LIMIT_EXCEEDED", "message": str(e)},
+        ) from e
+    except section_manage.SectionTypeError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
+        ) from e
+    return ApiResponse.ok({"section_id": str(section_id)})

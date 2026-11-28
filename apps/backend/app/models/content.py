@@ -143,3 +143,21 @@ class ContentItemTag(Base, TimestampMixin):
     tag_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("content_tags.id"), nullable=False
     )
+
+
+class ContentBlock(Base, TimestampMixin, SoftDeleteMixin):
+    """공통 블록 (T-260, CM-04) — 여러 페이지가 함께 쓰는 섹션 값 한 벌.
+
+    참조형 섹션(sections.block_id)은 블록 값과 같게 유지된다 — 한 곳을 고치면 모두.
+    """
+
+    __tablename__ = "content_blocks"
+
+    id: Mapped[uuid.UUID] = _id()
+    tenant_id: Mapped[uuid.UUID] = _tenant()
+    name: Mapped[str] = mapped_column(String(40), nullable=False)
+    section_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    # [{field_key, field_value, value_type}]
+    settings: Mapped[list[dict[str, Any]]] = mapped_column(
+        JSONB, nullable=False, default=list
+    )

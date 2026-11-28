@@ -51,6 +51,7 @@ export const ADMIN_NAVIGATION = [
       { to: '/admin/contents/new', label: '콘텐츠 작성' },
       { to: '/admin/contents/types', label: '콘텐츠 유형' },
       { to: '/admin/contents/taxonomy', label: '카테고리 · 태그' },
+      { to: '/admin/contents/blocks', label: '공통 블록' },
     ],
   },
   { to: '/admin/sns', icon: Share2, label: 'SNS 설정' },
