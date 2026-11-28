@@ -28,6 +28,10 @@ const ContentItemEditPage = lazyPage(
   () => import('@/pages/ContentItemEditPage'),
   'ContentItemEditPage'
 )
+const ContentTaxonomyPage = lazyPage(
+  () => import('@/pages/ContentTaxonomyPage'),
+  'ContentTaxonomyPage'
+)
 const ContentTypesPage = lazyPage(
   () => import('@/pages/ContentTypesPage'),
   'ContentTypesPage'
@@ -76,6 +80,7 @@ const ROUTE_PAGES: [RegExp, LazyPage][] = [
   [/^\/admin\/content\/[^/]+\/?$/, SectionEditorPage],
   [/^\/admin\/contents\/types\/?$/, ContentTypesPage],
   [/^\/admin\/contents\/types\/[^/]+\/?$/, ContentTypeDetailPage],
+  [/^\/admin\/contents\/taxonomy\/?$/, ContentTaxonomyPage],
   [/^\/admin\/contents\/?$/, ContentItemsPage],
   [/^\/admin\/contents\/[^/]+\/?$/, ContentItemEditPage],
   [/^\/admin\/sns\/?$/, SnsPage],
@@ -161,6 +166,10 @@ export const router = createBrowserRouter([
           {
             path: '/admin/contents',
             element: withFeature('CONTENT_MANAGE', <ContentItemsPage />),
+          },
+          {
+            path: '/admin/contents/taxonomy',
+            element: withFeature('CONTENT_MANAGE', <ContentTaxonomyPage />),
           },
           {
             path: '/admin/contents/new',
