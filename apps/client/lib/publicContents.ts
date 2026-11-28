@@ -34,7 +34,21 @@ export function contentOptions(section: PublicSection) {
   }
 }
 
-/** 공개 콘텐츠 — 스위치가 꺼졌거나 유형이 없으면 null */
+/**
+ * 못 보여 주는 이유 (T-261) — 공개 API 404 의 코드.
+ * FEATURE_OFF · TYPE_MISSING 은 관리자에게만 안내, ERROR(사업체 없음 · 네트워크)는 그리지 않음.
+ */
+export type ContentUnavailable = 'FEATURE_OFF' | 'TYPE_MISSING' | 'ERROR'
+
+const UNAVAILABLE_CODES: Record<string, ContentUnavailable> = {
+  CONTENT_FEATURE_OFF: 'FEATURE_OFF',
+  CONTENT_TYPE_MISSING: 'TYPE_MISSING',
+}
+
+/**
+ * 공개 콘텐츠 — 못 보여 주면 이유.
+ * draft: 저장 전 미리보기 토큰 — 초안도 함께 받고 캐시하지 않는다 (T-261)
+ */
 export async function fetchContentItems(
   tenantSlug: string,
   typeId: string,
@@ -44,23 +58,37 @@ export async function fetchContentItems(
     category,
     tag,
     body,
-  }: { limit: number; sort: ContentSort; category?: string; tag?: string; body?: boolean },
-): Promise<PublicContentItem[] | null> {
+    draft,
+  }: {
+    limit: number
+    sort: ContentSort
+    category?: string
+    tag?: string
+    body?: boolean
+    draft?: string
+  },
+): Promise<PublicContentItem[] | ContentUnavailable> {
   const params = new URLSearchParams({ limit: String(limit), sort })
   if (category) params.set('category', category)
   if (tag) params.set('tag', tag)
   if (body) params.set('body', 'true')
+  if (draft) params.set('draft', draft)
   const path = `/public/site/${encodeURIComponent(tenantSlug)}/content-types/${encodeURIComponent(typeId)}/items`
   try {
     const res = await fetch(`${serverApiBase()}${path}?${params.toString()}`, {
-      next: { revalidate: REVALIDATE_SECONDS, tags: [`site:${tenantSlug}`] },
+      ...(draft
+        ? { cache: 'no-store' as const }
+        : { next: { revalidate: REVALIDATE_SECONDS, tags: [`site:${tenantSlug}`] } }),
       headers: { Accept: 'application/json' },
     })
-    if (!res.ok) return null
+    if (!res.ok) {
+      const json = (await res.json().catch(() => null)) as { error?: { code?: string } } | null
+      return UNAVAILABLE_CODES[json?.error?.code ?? ''] ?? 'ERROR'
+    }
     const json = (await res.json()) as { data: PublicContentItem[] }
     return json.data
   } catch (error) {
     console.error('[publicContents] request failed', { path, error })
-    return null
+    return 'ERROR'
   }
 }

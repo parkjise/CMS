@@ -5,16 +5,20 @@
 - 유형 · 카테고리 · 태그는 id 로 저장한다 — 이름 · 키를 바꿔도 연결이 끊기지 않는다
 - 비운 유형은 허용 — 홈페이지는 섹션을 그리지 않는다
 - 사용 위치: 유형을 보여 주는 섹션, 항목은 그 섹션의 카테고리 · 태그 조건에 맞을 때
+- 저장 전 미리보기(T-261)는 초안도 함께 — 미리보기 토큰이 그 사업체 것일 때만
+- 못 보여 주는 이유(스위치 꺼짐 · 유형 없음)를 구분해 돌려준다
+  — 홈페이지가 관리자에게만 안내 (T-261)
 """
 
 import re
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.content import (
+    STATUS_DRAFT,
     STATUS_PUBLISHED,
     ContentCategory,
     ContentItem,
@@ -40,6 +44,10 @@ COUNT_FIELD = "item_count"
 DISPLAY_FIELD = "display_mode"
 EMPTY_TEXT_FIELD = "empty_text"
 TITLE_FIELD = "section_title"
+
+# 공개 콘텐츠를 못 보여 주는 이유 (T-261) — 공개 API 의 에러 코드
+UNAVAILABLE_FEATURE_OFF = "CONTENT_FEATURE_OFF"
+UNAVAILABLE_TYPE_MISSING = "CONTENT_TYPE_MISSING"
 
 COUNT_MIN = 3
 COUNT_MAX = 24
@@ -326,10 +334,14 @@ async def public_items(
     category_id: UUID | None,
     tag_id: UUID | None,
     with_body: bool,
-) -> list[dict] | None:
-    """공개 콘텐츠 — 스위치가 꺼졌거나 유형이 없으면 None."""
+    include_drafts: bool = False,
+) -> list[dict] | str:
+    """공개 콘텐츠 — 못 보여 주면 이유(`UNAVAILABLE_*`).
+
+    include_drafts: 저장 전 미리보기 — 초안도 함께, 항목마다 `is_draft`.
+    """
     if not await feature_service.is_enabled(db, tenant.id, FEATURE_KEY):
-        return None
+        return UNAVAILABLE_FEATURE_OFF
     content_type = (
         await db.execute(
             select(ContentType).where(
@@ -340,12 +352,15 @@ async def public_items(
         )
     ).scalar_one_or_none()
     if content_type is None:
-        return None
+        return UNAVAILABLE_TYPE_MISSING
+    statuses = [STATUS_PUBLISHED]
+    if include_drafts:
+        statuses.append(STATUS_DRAFT)
     conditions: list[Any] = [
         ContentItem.tenant_id == tenant.id,
         ContentItem.type_id == type_id,
         ContentItem.deleted_at.is_(None),
-        ContentItem.status == STATUS_PUBLISHED,
+        ContentItem.status.in_(statuses),
     ]
     if category_id is not None:
         children = select(ContentCategory.id).where(
@@ -363,7 +378,11 @@ async def public_items(
             )
         )
     orders: dict[str, list[Any]] = {
-        "latest": [ContentItem.published_at.desc(), ContentItem.created_at.desc()],
+        # 초안(공개 시각 없음)은 만든 시각으로 — 미리보기에서만 섞인다
+        "latest": [
+            func.coalesce(ContentItem.published_at, ContentItem.created_at).desc(),
+            ContentItem.created_at.desc(),
+        ],
         "title": [ContentItem.title, ContentItem.created_at],
     }
     order = orders.get(sort, [ContentItem.display_order, ContentItem.created_at])
@@ -395,6 +414,7 @@ async def public_items(
             "body": (item.body or []) if with_body else None,
             "fields": _public_fields(fields, item.data or {}),
             "published_at": item.published_at,
+            "is_draft": item.status == STATUS_DRAFT,
         }
         for item in items
     ]

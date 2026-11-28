@@ -15,9 +15,11 @@ import { isMobileHidden } from '@/lib/mobileSettings'
 interface SectionRendererProps extends SectionProps {
   /** 사이트의 운영 중인 게시판 — 최신 글 섹션이 고른 게시판을 찾는다 (T-185) */
   boards?: PublicBoard[] | null
+  /** 저장 전 미리보기 토큰 — 콘텐츠 연결 섹션이 초안도 함께 보여 준다 (T-261) */
+  draftToken?: string
 }
 
-function SectionInner({ section, tenantSlug, boards }: SectionRendererProps) {
+function SectionInner({ section, tenantSlug, boards, draftToken }: SectionRendererProps) {
   switch (section.section_type) {
     case 'HERO_BANNER':
       return <HeroBanner section={section} tenantSlug={tenantSlug} />
@@ -34,14 +36,14 @@ function SectionInner({ section, tenantSlug, boards }: SectionRendererProps) {
     case 'BOARD_LATEST':
       return <BoardLatest section={section} tenantSlug={tenantSlug} boards={boards} />
     case 'CONTENT_LIST':
-      return <ContentList section={section} tenantSlug={tenantSlug} />
+      return <ContentList section={section} tenantSlug={tenantSlug} draftToken={draftToken} />
     default:
       // RESERVATION, PORTFOLIO, TEAM, FAQ는 추후 페이즈에서 구현
       return null
   }
 }
 
-export function SectionRenderer({ section, tenantSlug, boards }: SectionRendererProps) {
+export function SectionRenderer({ section, tenantSlug, boards, draftToken }: SectionRendererProps) {
   // 미지원 섹션 타입(RESERVATION 등)은 wrapper 없이 통과
   if (!isThemeRenderable(section)) return null
 
@@ -58,7 +60,7 @@ export function SectionRenderer({ section, tenantSlug, boards }: SectionRenderer
         label={section.label}
         mobileHidden={isMobileHidden(section)}
       />
-      <SectionInner section={section} tenantSlug={tenantSlug} boards={boards} />
+      <SectionInner section={section} tenantSlug={tenantSlug} boards={boards} draftToken={draftToken} />
     </div>
   )
 }

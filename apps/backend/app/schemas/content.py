@@ -363,6 +363,8 @@ class PublicContentItem(BaseModel):
     body: list[dict[str, Any]] | None = None
     fields: list[PublicContentField]
     published_at: datetime | None
+    # 저장 전 미리보기에서만 true (T-261)
+    is_draft: bool = False
 
 
 # ── 공통 블록 (T-260, CM-04) ──────────────────────────────────────────────

@@ -1,10 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { cleanup, render, screen } from '@testing-library/react'
-import type { PublicContentItem } from '@cms/types'
+import type { PublicContentItem, User } from '@cms/types'
 import { ContentList } from '@/components/sections/ContentList'
 import { contentOptions } from '@/lib/publicContents'
 import type { PublicSection } from '@/lib/publicSite.types'
 import { isThemeRenderable } from '@/lib/themeSections'
+import { useClientAuthStore } from '@/lib/authStore'
 
 // 테마형 콘텐츠 연결 섹션 (T-258, 콘텐츠 관리 기획서 5장)
 
@@ -40,6 +41,17 @@ const item = (over: Partial<PublicContentItem>): PublicContentItem => ({
   fields: [],
   published_at: '2026-11-20T00:00:00Z',
   ...over,
+})
+
+const admin = (role: User['role']): User => ({
+  id: 'u1',
+  tenant_id: 'tenant-1',
+  email: 'a@example.com',
+  role,
+  last_login_at: null,
+  is_active: true,
+  created_at: '2026-11-01T00:00:00Z',
+  updated_at: '2026-11-01T00:00:00Z',
 })
 
 const renderSection = async (values: Record<string, string>) => {
@@ -147,8 +159,63 @@ describe('ContentList', () => {
     expect(screen.getByText('곧 소개할게요')).toBeInTheDocument()
   })
 
-  it('스위치가 꺼졌거나 유형이 없으면(null) 그리지 않는다', async () => {
-    fetchContentItems.mockResolvedValue(null)
+  it('사업체가 없거나 요청이 실패하면 그리지 않는다', async () => {
+    fetchContentItems.mockResolvedValue('ERROR')
     expect(await renderSection({ content_type: 't1', empty_text: '문구' })).toBeNull()
+  })
+})
+
+// T-261 — 스위치 꺼짐 · 유형 없음은 관리자에게만 안내, 미리보기는 초안도 함께
+describe('ContentList 관리자 안내 · 초안 미리보기', () => {
+  afterEach(() => useClientAuthStore.setState({ user: null, isLoggedIn: false, siteTenantId: null }))
+
+  it('방문자에게는 안내도 그리지 않는다', async () => {
+    fetchContentItems.mockResolvedValue('FEATURE_OFF')
+    await renderSection({ content_type: 't1' })
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
+  it.each([
+    ['FEATURE_OFF', '콘텐츠 관리 기능이 꺼져 있어'],
+    ['TYPE_MISSING', '연결한 콘텐츠 유형을 찾을 수 없어'],
+  ] as const)('관리자에게는 %s 이유를 보여 준다', async (reason, text) => {
+    useClientAuthStore.setState({ isLoggedIn: true, user: admin('TENANT_ADMIN') })
+    fetchContentItems.mockResolvedValue(reason)
+    await renderSection({ content_type: 't1' })
+    expect(screen.getByRole('note')).toHaveTextContent(text)
+    expect(screen.getByRole('note')).toHaveTextContent('관리자에게만 보이는 안내')
+  })
+
+  it('보기 전용 계정 · 다른 사업체 관리자에게는 안내하지 않는다', async () => {
+    fetchContentItems.mockResolvedValue('FEATURE_OFF')
+    useClientAuthStore.setState({ isLoggedIn: true, user: admin('TENANT_VIEWER') })
+    await renderSection({ content_type: 't1' })
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+    cleanup()
+    useClientAuthStore.setState({
+      isLoggedIn: true,
+      user: admin('TENANT_ADMIN'),
+      siteTenantId: 'other-tenant',
+    })
+    await renderSection({ content_type: 't1' })
+    expect(screen.queryByRole('note')).not.toBeInTheDocument()
+  })
+
+  it('미리보기 토큰을 보내고 초안에 표시를 붙인다', async () => {
+    fetchContentItems.mockResolvedValue([
+      item({ title: '공개 항목' }),
+      item({ id: 'i2', title: '초안 항목', is_draft: true, published_at: null }),
+    ])
+    const ui = await ContentList({ section: section({ content_type: 't1' }), tenantSlug: 'demo', draftToken: 'tok' })
+    render(ui!)
+    expect(fetchContentItems.mock.calls[0][2]).toMatchObject({ draft: 'tok' })
+    expect(screen.getAllByText('초안')).toHaveLength(1)
+    expect(screen.getByText('초안 항목').closest('h3')).toHaveTextContent('초안')
+  })
+
+  it('미리보기가 아니면 토큰을 보내지 않는다', async () => {
+    fetchContentItems.mockResolvedValue([item({})])
+    await renderSection({ content_type: 't1' })
+    expect(fetchContentItems.mock.calls[0][2]).not.toHaveProperty('draft')
   })
 })

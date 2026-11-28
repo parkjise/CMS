@@ -12,4 +12,6 @@ export interface PublicContentItem {
   /** 유형의 추가 칸 — 값이 있는 칸만, 고르기 칸은 이름으로 */
   fields: PublicFieldValue[]
   published_at: string | null
+  /** 저장 전 미리보기에서만 true (T-261) */
+  is_draft?: boolean
 }
