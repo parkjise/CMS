@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **12** | **11** | **92%** |
-| **합계** | **308** | **307** | **99%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **12** | **12** | **100%** |
+| **합계** | **308** | **308** | **100%** |
 
 ---
 
@@ -4798,9 +4798,11 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - [x] hospital-a `components/sub/ContentList.tsx` + `styles/sub/_content-list.scss` — 카드 = 게시판 갤러리형(`board-gallery`), 목록 = 웹진형(`board-webzine`), FAQ = FAQ형(`board-faq`) 스타일 그대로, 연혁 · 로고 줄 · 요약 · 초안 표시만 새 BEM. 제목(`section_title`) 인라인 편집, 미리보기 토큰(`draftToken`: 미리보기 → `CodeTemplateRenderer` → 템플릿) · 관리자 안내(T-261)
 - **테스트:** client 9 (hospital-a 7 — 유형 없음 · 카드 클래스 · 조건 · FAQ · 연혁 · 로고 · 목록 · 빈 문구 · 초안 토큰 · 관리자 안내/실패, 자리 끼우기 2). 전체 client 964
 
-### T-264: 코드형 연결 섹션 ③ — hospital-a '게시판 연결'
+### T-264: 코드형 연결 섹션 ③ — hospital-a '게시판 연결' ✅ (Claude, 2026-11-28)
 
-- [ ] hospital-a `BoardLatest`(카드 · 목록 · 연혁 등 테마형과 같은 보여 주는 방식) BEM + SCSS, 글 링크는 그 게시판 페이지로
+- [x] hospital-a `components/sub/BoardConnect.tsx` — 목록 = 공지 목록(`board-list`, 날짜 · '전체 보기'), 카드 = 갤러리형, FAQ = FAQ형, 연혁 = 콘텐츠 연결과 같은 `content-list` 연혁. 글 · 전체 보기 링크는 그 게시판 페이지(`b/{slug}`)로 — 미리보기 · 고객 도메인 주소를 템플릿이 맞춤. 회원 전용 · 없는 게시판은 그리지 않음
+- [x] 매니페스트 `sections` 에 `BOARD_LATEST`, `_content-list.scss` 에 '전체 보기'
+- **테스트:** client 5 (게시판 없음 · 회원 전용, 목록 링크 · 날짜 · 전체 보기 · 조건, 카드 · FAQ 본문, 연혁 연도 · 공개일, 빈 문구 · 요청 실패). 전체 client 969, Node 22 관련 71
 
 ---
 

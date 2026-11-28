@@ -24,6 +24,7 @@ import { VideoPlaylist } from './components/sections/VideoPlaylist'
 import { AreaRows } from './components/sub/AreaRows'
 import { BannerSplit } from './components/sub/BannerSplit'
 import { ConsultLinks } from './components/sub/ConsultLinks'
+import { BoardConnect } from './components/sub/BoardConnect'
 import { ContentList } from './components/sub/ContentList'
 import { CriteriaCards } from './components/sub/CriteriaCards'
 import { HistoryTimeline } from './components/sub/HistoryTimeline'
@@ -320,6 +321,14 @@ export default function HospitalATemplate({
         return renderBoard(props)
       case 'CONTENT_LIST':
         return <ContentList {...props} draftToken={draftToken} />
+      case 'BOARD_LATEST':
+        return (
+          <BoardConnect
+            {...props}
+            boards={boards}
+            hrefFor={(key, id) => pageHref(tenantSlug, key, previewQuery, { id, noSlug })}
+          />
+        )
       default:
         return null
     }
