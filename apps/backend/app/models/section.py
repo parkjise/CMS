@@ -28,6 +28,10 @@ class Section(Base, TimestampMixin, SoftDeleteMixin):
         String(50), nullable=False, default="home", server_default="home"
     )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # 공통 블록(참조형)으로 쓰는 섹션 (T-260) — 블록을 고치면 값이 함께 바뀐다
+    block_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("content_blocks.id"), nullable=True
+    )
 
     tenant: Mapped["Tenant"] = relationship(
         "Tenant", back_populates="sections", lazy="noload"

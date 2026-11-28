@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **7** | **88%** |
-| **합계** | **304** | **303** | **99%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **8** | **100%** |
+| **합계** | **304** | **304** | **100%** |
 
 ---
 
@@ -4758,9 +4758,15 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **테스트:** backend 6 (다듬기 자르기 · 빈 답, 태그 있는 것 먼저 · 지금 태그 빼기 · 빈 답, 스위치 403, 입력 검사 4, 다듬기 보내는 값 · 말투 · 한도, 태그에 있는 태그 · 지금 태그 보냄), admin 5 (본문 글자 뽑기, 버튼 숨김 · 막힘, 다듬기 보내는 값 · 고른 것만, 태그 미리 고름 · 고른 것만). 전체 admin 990 (Node 25 · 22)
 - **남은 확인:** 실제 모델 답은 OpenAI(또는 개발용 Gemini) 키로 한 번 확인
 
-### T-260: 공통 블록 (CM-04) — ⚠️ 머지 전 확인 (DB)
+### T-260: 공통 블록 (CM-04) ✅ (Claude, 2026-11-28) — ⚠️ 머지 전 확인 (DB)
 
-- [ ] 0065 `content_blocks` · `sections.block_id` — 참조형(고치면 모두 바뀜) · 복사형, 블록 목록 · 사용 위치 · 사용 중 지우기 막음, 섹션 편집 화면 안내 · [연결 끊기]
+- [x] 마이그레이션 0065: `content_blocks`(이름 · 섹션 종류 · 칸 값 목록, RLS · 소프트 삭제, PURGE 목록 — sections 다음) + `sections.block_id`(블록을 지우면 SET NULL)
+- [x] 참조형은 값을 복사해 두고 같게 맞춘다 — 이어진 섹션을 관리자 저장(`PATCH /sections/{id}`) · 인라인 편집(`/edit/batch-save`)으로 고치면 블록 · 다른 이어진 섹션이 같은 값으로(`content_block.sync_from_section`). 홈페이지 · 미리보기 · 인라인 편집 코드는 바꾸지 않음
+- [x] API `/contents/blocks` — 목록(쓰는 섹션) · 만들기(섹션 값으로, 그 섹션은 참조형으로 이어짐 · 이미 이어졌으면 409) · 이름 · 지우기(쓰는 섹션이 있으면 409) · `POST /contents/blocks/{id}/sections`(page_key · mode reference/copy — 한도 422 · 그릴 수 없는 종류 400 · 없는 페이지 404, 섹션 추가와 같은 규칙) · `POST /contents/blocks/unlink`
+- [x] 관리자: 섹션 편집 화면 위 '공통 블록 … 다른 N곳에서도 쓰고 있어요' · [연결 끊고 이 섹션만 고치기] / [공통 블록으로 저장](이름), 섹션 추가 창 '공통 블록에서'(그 페이지가 그릴 수 있는 종류만 · 함께 쓰기/복사해서 쓰기), `/admin/contents/blocks` 목록(쓰는 곳 링크 · 이름 · 쓰는 블록은 지우기 대신 안내), 메뉴 '공통 블록'
+- **코드:** backend `alembic/versions/0065_content_blocks.py` · `models/content.py`(`ContentBlock`) · `models/section.py`(`block_id`) · `schemas/section.py` · `schemas/content.py` · `services/content_block.py` · `api/v1/endpoints/contents.py` · `sections.py` · `edit.py` · `services/tenant_purge.py`, admin `hooks/useContentBlocks.ts` · `components/contents/SectionBlockBar.tsx` · `components/content/AddSectionModal.tsx` · `pages/ContentBlocksPage.tsx` · `pages/SectionEditorPage.tsx` · `navigation.ts` · `router.tsx`
+- **테스트:** backend 7 (스위치 · 만들기 · 이어짐 · 다시 만들기 409, 참조형은 관리자 저장 · 인라인 편집 모두 따라가고 복사형은 그대로 · 블록 값, 연결 끊기 뒤 따로 · 두 번 끊기 409, 쓰는 블록 지우기 409, 이름 · 그릴 수 없는 종류 400 · 없는 블록 404 · FREE 422, 다른 사업체 404) + 해지 파기 표 목록, admin 6 (이어진 안내 · 끊기, 블록으로 저장, 스위치 꺼짐, 추가 창 종류 거르기 · 복사형, 목록 쓰는 곳 · 지우기 막힘/지우기). 테스트 DB 0065 올리기 · 내리기 · 다시 올리기. 전체 admin 996 (Node 25 · 22)
+- **머지 뒤 할 일:** 개발 · 운영 DB `alembic upgrade head`
 
 ---
 

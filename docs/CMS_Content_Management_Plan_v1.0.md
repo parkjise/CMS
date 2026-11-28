@@ -144,6 +144,8 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 - 블록 목록: 이름 · 섹션 종류 · 사용 위치. 사용 중이면 지우기 막음(사용 위치 안내)
 - 템플릿이 그릴 수 없는 종류의 블록은 고를 수 없음
 
+**구현 (T-260):** 참조형은 섹션이 블록 값을 복사해 가진다 — 이어진 섹션을 관리자 저장 · 인라인 편집으로 고치면 블록과 다른 이어진 섹션 값을 같게 맞춘다(그래서 홈페이지 · 미리보기 코드는 그대로). 블록으로 섹션 더하기는 섹션 추가와 같은 한도 · 종류 규칙. API: `/contents/blocks`(목록 · 만들기 · 이름 · 지우기) · `POST /contents/blocks/{id}/sections`(page_key · mode) · `POST /contents/blocks/unlink`.
+
 ## 6. API (`/api/v1`, 공통 응답 규격, 모두 `CONTENT_MANAGE` 스위치 · `get_db_with_rls`)
 
 | 메서드 | 경로 | 내용 |

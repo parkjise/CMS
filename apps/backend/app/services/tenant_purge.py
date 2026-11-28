@@ -54,6 +54,8 @@ PURGE_TABLES = (
     "gallery_items",
     "section_settings",
     "sections",
+    # 섹션이 가리키는 공통 블록 (T-260) — 섹션 다음
+    "content_blocks",
     # 페이지 (T-237)
     "page_redirects",
     "pages",

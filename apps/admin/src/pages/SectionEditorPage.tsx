@@ -13,6 +13,7 @@ import { buildSectionDraftUrl } from '@/lib/previewUrl'
 import { pickErrorMessage } from '@/lib/errorMessages'
 import { useAuthStore } from '@/stores/authStore'
 import { sampleKeys } from '@/lib/sampleContent'
+import { SectionBlockBar } from '@/components/contents/SectionBlockBar'
 
 type SubTab = 'desktop' | 'mobile'
 
@@ -139,6 +140,8 @@ export function SectionEditorPage() {
           홈페이지에서 어떻게 보이는지 확인할 수 있어요.
         </p>
       </div>
+
+      <SectionBlockBar section={section} />
 
       {samples.length > 0 && (
         <div

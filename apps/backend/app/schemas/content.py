@@ -363,3 +363,55 @@ class PublicContentItem(BaseModel):
     body: list[dict[str, Any]] | None = None
     fields: list[PublicContentField]
     published_at: datetime | None
+
+
+# ── 공통 블록 (T-260, CM-04) ──────────────────────────────────────────────
+
+BlockName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=40)
+]
+
+
+class ContentBlockUsage(BaseModel):
+    section_id: uuid.UUID
+    label: str
+    page_key: str
+    is_active: bool
+
+
+class ContentBlockResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    section_type: str
+    type_label: str
+    usage: list[ContentBlockUsage]
+    updated_at: datetime
+
+
+class ContentBlockCreate(BaseModel):
+    """이 섹션 값으로 블록을 만들고 섹션을 참조형으로 잇는다."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    section_id: uuid.UUID
+    name: BlockName
+
+
+class ContentBlockRename(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: BlockName
+
+
+class ContentBlockAddSection(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    page_key: str = Field(default="home", min_length=1, max_length=50)
+    # reference: 블록을 고치면 함께 바뀜 · copy: 값만 복사
+    mode: Literal["reference", "copy"] = "reference"
+
+
+class ContentBlockUnlink(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    section_id: uuid.UUID

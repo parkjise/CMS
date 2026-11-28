@@ -22,9 +22,9 @@ from app.schemas.section import (
     SectionResponse,
     SectionUpdate,
 )
+from app.services import content_block, section_draft, section_manage, site_cache
 from app.services import feature as feature_service
 from app.services import section as section_service
-from app.services import section_draft, section_manage, site_cache
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -174,8 +174,11 @@ async def update_section(
     if not section:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="NOT_FOUND")
 
+    response = SectionResponse.model_validate(section)
+    # 공통 블록(참조형)이면 블록 · 다른 이어진 섹션도 같은 값으로 (T-260)
+    await content_block.sync_from_section(db, tenant_id, section_id)
     await site_cache.purge_site(db, tenant_id)
-    return ApiResponse.ok(SectionResponse.model_validate(section))
+    return ApiResponse.ok(response)
 
 
 @router.post(
