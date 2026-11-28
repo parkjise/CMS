@@ -1154,7 +1154,7 @@ async def bulk_update_posts(
 # ── 공개 ──────────────────────────────────────────────────────────────────
 
 
-async def _open_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant | None:
+async def open_public_tenant(db: AsyncSession, tenant_slug: str) -> Tenant | None:
     """주소의 사업체를 찾고 그 사업체로 RLS 를 건다. 없거나 중단이면 None."""
     await set_super_admin_context(db)
     tenant = (
@@ -1175,7 +1175,7 @@ async def open_public_board(
     db: AsyncSession, tenant_slug: str, board_slug: str
 ) -> Board | None:
     """주소의 사업체 · 게시판을 찾는다. 없거나 중단이면 None."""
-    tenant = await _open_public_tenant(db, tenant_slug)
+    tenant = await open_public_tenant(db, tenant_slug)
     if tenant is None:
         return None
     result = await db.execute(
@@ -1196,7 +1196,7 @@ async def public_post_location(
 
     사용 중인 게시판(새 게시판 · 공지)의 공개 글만. 제목 같은 내용은 돌려주지 않는다.
     """
-    tenant = await _open_public_tenant(db, tenant_slug)
+    tenant = await open_public_tenant(db, tenant_slug)
     if tenant is None:
         return None
     row = (
@@ -1307,7 +1307,7 @@ async def _public_boards(
 
 async def list_sitemap_posts(db: AsyncSession, tenant_slug: str) -> list[dict] | None:
     """사이트맵용 공개 글, 최근 수정 순. 사업체가 없으면 None."""
-    tenant = await _open_public_tenant(db, tenant_slug)
+    tenant = await open_public_tenant(db, tenant_slug)
     if tenant is None:
         return None
     result = await db.execute(

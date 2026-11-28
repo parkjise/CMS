@@ -13,6 +13,7 @@ import {
   Image as ImageIcon,
   Images,
   Layout,
+  Library,
   MapPin,
   Newspaper,
   Phone,
@@ -36,6 +37,7 @@ const SECTION_ICONS: Record<string, LucideIcon> = {
   TEAM: Users,
   FAQ: HelpCircle,
   BOARD_LATEST: Newspaper,
+  CONTENT_LIST: Library,
 }
 
 const SECTION_TYPE_LABELS: Record<string, string> = {
@@ -50,6 +52,7 @@ const SECTION_TYPE_LABELS: Record<string, string> = {
   TEAM: '팀 소개',
   FAQ: 'FAQ',
   BOARD_LATEST: '게시판 연결',
+  CONTENT_LIST: '콘텐츠 연결',
 }
 
 interface SectionListItemProps {

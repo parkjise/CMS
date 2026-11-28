@@ -19,7 +19,7 @@ import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { Link, useNavigate, useSearchParams } from 'react-router'
 import { Copy, GripVertical, Layers, Plus, RotateCcw, Trash2 } from 'lucide-react'
-import { Button, toast } from '@cms/ui'
+import { Button, Modal, toast } from '@cms/ui'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type ContentBulkAction,
@@ -31,6 +31,7 @@ import {
   useContentCategories,
   useContentItems,
   useContentTags,
+  useContentUsage,
   useDeleteContentItem,
   useDuplicateContentItem,
   useReorderContentItems,
@@ -39,6 +40,7 @@ import {
 } from '@/hooks/useContentItems'
 import { useContentTypes } from '@/hooks/useContentTypes'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { UsageList } from '@/components/contents/UsageList'
 
 const PAGE_SIZE = 20
 // 끌어서 순서를 바꿀 때는 한 유형의 항목을 한 화면에 모두 불러온다
@@ -444,6 +446,8 @@ function ItemRow({ item, sortable, editable, trash, checked, onToggle }: ItemRow
   const update = useUpdateContentItem()
   const duplicate = useDuplicateContentItem()
   const remove = useDeleteContentItem()
+  const [confirming, setConfirming] = useState(false)
+  const usage = useContentUsage('items', confirming ? item.id : null).data ?? []
   const restore = useRestoreContentItem()
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: item.id,
@@ -560,12 +564,7 @@ function ItemRow({ item, sortable, editable, trash, checked, onToggle }: ItemRow
                 type="button"
                 className="rounded p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                 aria-label={`${item.title} 휴지통으로`}
-                onClick={() =>
-                  remove.mutate(item.id, {
-                    onSuccess: () => toast.success('휴지통으로 옮겼어요.'),
-                    onError: fail('휴지통으로 옮기지 못했어요.'),
-                  })
-                }
+                onClick={() => setConfirming(true)}
               >
                 <Trash2 className="h-4 w-4" />
               </button>
@@ -573,6 +572,41 @@ function ItemRow({ item, sortable, editable, trash, checked, onToggle }: ItemRow
           )}
         </div>
       )}
+      <Modal open={confirming} onClose={() => setConfirming(false)} title="휴지통으로 옮길까요?" size="sm">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            <strong className="text-slate-900">{item.title}</strong>을(를) 휴지통으로 옮기면
+            홈페이지에서 바로 빠져요. 휴지통에서 되살릴 수 있어요.
+          </p>
+          {usage.length > 0 && (
+            <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="note">
+              <p>이 콘텐츠가 보이는 곳</p>
+              <UsageList usage={usage} />
+            </div>
+          )}
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setConfirming(false)}>
+              취소
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              loading={remove.isPending}
+              onClick={() =>
+                remove.mutate(item.id, {
+                  onSuccess: () => {
+                    toast.success('휴지통으로 옮겼어요.')
+                    setConfirming(false)
+                  },
+                  onError: fail('휴지통으로 옮기지 못했어요.'),
+                })
+              }
+            >
+              휴지통으로
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </li>
   )
 }

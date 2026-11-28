@@ -330,3 +330,36 @@ class ContentTagMerge(BaseModel):
 
     source_ids: list[uuid.UUID] = Field(min_length=1, max_length=100)
     target_id: uuid.UUID
+
+
+# ── 콘텐츠 연결 섹션 (T-258) ──────────────────────────────────────────────
+
+
+class ContentUsage(BaseModel):
+    """이 유형 · 항목을 보여 주는 섹션."""
+
+    section_id: uuid.UUID
+    label: str
+    page_key: str
+    page_title: str
+    is_active: bool
+
+
+class PublicContentField(BaseModel):
+    """게시판 공개 칸(PublicFieldValue)과 같은 모양 — 고르기 칸 값은 이름으로."""
+
+    key: str
+    label: str
+    field_type: str
+    value: Any
+
+
+class PublicContentItem(BaseModel):
+    id: uuid.UUID
+    title: str
+    summary: str
+    thumbnail: str | None
+    # FAQ 로 보여 줄 때만
+    body: list[dict[str, Any]] | None = None
+    fields: list[PublicContentField]
+    published_at: datetime | None

@@ -1,6 +1,7 @@
 import type { PublicBoard } from '@cms/types'
 import { SectionControls } from '@/components/edit/SectionControls'
 import { BoardLatest } from './BoardLatest'
+import { ContentList } from './ContentList'
 import { ContactForm } from './ContactForm'
 import { Gallery } from './Gallery'
 import { HeroBanner } from './HeroBanner'
@@ -32,6 +33,8 @@ function SectionInner({ section, tenantSlug, boards }: SectionRendererProps) {
       return <MapLoader section={section} tenantSlug={tenantSlug} />
     case 'BOARD_LATEST':
       return <BoardLatest section={section} tenantSlug={tenantSlug} boards={boards} />
+    case 'CONTENT_LIST':
+      return <ContentList section={section} tenantSlug={tenantSlug} />
     default:
       // RESERVATION, PORTFOLIO, TEAM, FAQ는 추후 페이즈에서 구현
       return null

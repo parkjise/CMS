@@ -15,6 +15,7 @@ export const THEME_SECTION_TYPES: readonly string[] = [
   'CONTACT',
   'MAP',
   'BOARD_LATEST',
+  'CONTENT_LIST',
 ]
 
 export const isThemeRenderable = (section: PublicSection): boolean =>
@@ -41,6 +42,17 @@ const THEME_FIELDS: Record<string, readonly string[]> = {
     'display_mode',
     'category_id',
     'sort',
+    'empty_text',
+  ],
+  // 콘텐츠 연결 (T-258)
+  CONTENT_LIST: [
+    'section_title',
+    'content_type',
+    'category_id',
+    'tag_id',
+    'sort',
+    'item_count',
+    'display_mode',
     'empty_text',
   ],
 }

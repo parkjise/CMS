@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.redis import get_redis
 from app.schemas.public_site import PublicSettingItem, PublicSiteResponse
 from app.schemas.section import SectionSettingUpdate
-from app.services import board_latest
+from app.services import board_latest, content_section
 from app.services import section as section_service
 
 DRAFT_TTL_SECONDS = 600
@@ -46,6 +46,10 @@ async def create_draft(
             settings,
             section_type=section.section_type,
             current=current,
+        )
+    if section.section_type == content_section.CONTENT_LIST:
+        await content_section.validate_settings(
+            db, tenant_id, settings, current=current
         )
 
     payload = {

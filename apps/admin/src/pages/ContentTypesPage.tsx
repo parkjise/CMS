@@ -31,6 +31,8 @@ import {
   useRestoreContentType,
 } from '@/hooks/useContentTypes'
 import { pickErrorMessage } from '@/lib/errorMessages'
+import { UsageList } from '@/components/contents/UsageList'
+import { useContentUsage } from '@/hooks/useContentItems'
 
 type Tab = 'types' | 'trash'
 
@@ -321,7 +323,9 @@ function TrashList({ types, canRestore }: { types: ContentType[]; canRestore: bo
 
 function DeleteTypeDialog({ type, onClose }: { type: ContentType | null; onClose: () => void }) {
   const remove = useDeleteContentType()
+  const usage = useContentUsage('types', type?.id).data ?? []
   const hasItems = (type?.item_count ?? 0) > 0
+  const blocked = hasItems || usage.length > 0
   return (
     <Modal open={type !== null} onClose={onClose} title="유형을 휴지통으로 옮길까요?" size="sm">
       {type && (
@@ -331,6 +335,11 @@ function DeleteTypeDialog({ type, onClose }: { type: ContentType | null; onClose
               <strong>{type.name}</strong> 유형에 콘텐츠가 {type.item_count}개 남아 있어요.
               콘텐츠를 먼저 휴지통으로 옮겨야 유형을 지울 수 있어요.
             </p>
+          ) : usage.length > 0 ? (
+            <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800" role="note">
+              <p>홈페이지 섹션이 이 유형을 보여 주고 있어요. 섹션에서 연결을 먼저 바꿔 주세요.</p>
+              <UsageList usage={usage} />
+            </div>
           ) : (
             <p className="text-sm text-slate-600">
               <strong className="text-slate-900">{type.name}</strong> 유형과 칸 설정이 휴지통으로
@@ -339,9 +348,9 @@ function DeleteTypeDialog({ type, onClose }: { type: ContentType | null; onClose
           )}
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={onClose}>
-              {hasItems ? '닫기' : '취소'}
+              {blocked ? '닫기' : '취소'}
             </Button>
-            {!hasItems && (
+            {!blocked && (
               <Button
                 type="button"
                 variant="danger"

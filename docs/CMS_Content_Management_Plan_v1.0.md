@@ -128,10 +128,12 @@ sections.block_id FK NULL            -- 참조형 연결 (복사형은 값만 �
 ### 콘텐츠 연결 섹션 (T-258)
 - 섹션 추가 목록에 '콘텐츠 연결'(`CONTENT_LIST`, 테마형 템플릿). 설정: 유형 · 카테고리 · 태그 · 정렬(정해 둔 순서 · 최신 공개순 · 제목순) · 개수(3~24) · 보여 주는 방식(카드 · 목록 · FAQ 아코디언 · 연혁 · 로고 줄) · 빈 결과 문구
 - 칸 매핑: 카드 제목 ← 제목, 설명 ← 요약, 사진 ← 대표 사진, 보조 글 ← 고른 유형 칸 1개 (연혁은 연도 칸)
-- 공개 API `GET /api/public/site/{slug}/contents/{type_key}?category=&tag=&sort=&limit=` — 공개 항목만, 유형 없음 · 지움 404
+- 공개 API `GET /api/public/site/{slug}/content-types/{type_id}/items?category=&tag=&sort=&limit=` — 공개 항목만, 유형 없음 · 지움 · 스위치 꺼짐 404
 - 항목 상세 페이지는 만들지 않는다 (콘텐츠는 섹션으로만 보임). 카드 링크는 항목의 '링크' 칸이 있을 때만
 - 사용 위치 `GET /contents/types/{id}/usage` · `GET /contents/items/{id}/usage` — 유형 · 카테고리 · 태그로 걸리는 섹션
 - 미리보기: 섹션 [미리보기]는 초안 항목도 보여 줌(관리자만, T-244 미리보기 토큰)
+
+**구현 (T-258):** 공개 API 는 `GET /api/public/site/{slug}/content-types/{type_id}/items` — 섹션이 유형 id 를 저장하므로 키 대신 id. 칸 값은 게시판 공개 칸과 같은 모양(`field_type`, 고르기 칸은 이름). 사용 위치는 콘텐츠 목록 칸 대신 휴지통 확인 창 · 편집 화면 아래에. 섹션이 쓰는 유형은 지울 수 없다(409). 미리보기의 초안 콘텐츠는 아직 — 미리보기도 공개 콘텐츠만.
 
 ### CM-04. 공통 블록 (T-260)
 - 섹션 하나의 설정을 '공통 블록'으로 저장 → 다른 페이지에서 섹션 추가 시 [공통 블록에서]

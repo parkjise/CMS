@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **5** | **63%** |
-| **합계** | **304** | **301** | **99%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **6** | **75%** |
+| **합계** | **304** | **302** | **99%** |
 
 ---
 
@@ -4738,9 +4738,16 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **코드:** admin `pages/ContentTaxonomyPage.tsx`, `hooks/useContentItems.ts`(카테고리 · 태그 쓰기 훅), `components/layout/navigation.ts` · `router.tsx`
 - **테스트:** admin 7 (맨 위 옮기기 · 하위 함께, 하위로 내리기/막힘 · 맨 위로, 새 카테고리 위치 · 같은 이름 안내, 지우며 옮기기 · 자기 하위 빼기, 태그 합치기 · 남길 태그, 이름 바꾸기, 보기 전용). 전체 admin 981 (Node 25 · 22), 빌드
 
-### T-258: 홈페이지 — '콘텐츠 연결' 섹션 · 공개 API · 사용 위치
+### T-258: 홈페이지 — '콘텐츠 연결' 섹션 · 공개 API · 사용 위치 ✅ (Claude, 2026-11-28)
 
-- [ ] 테마형 섹션 `CONTENT_LIST`(유형 · 카테고리 · 태그 · 정렬 · 개수 · 카드/목록/FAQ/연혁/로고 · 빈 문구) · `GET /api/public/site/{slug}/contents/{type_key}`(공개 항목만) · 사용 위치 · 미리보기는 초안 포함 · 공개 바꾸면 사이트 캐시 비움
+- [x] 테마형 섹션 `CONTENT_LIST` '콘텐츠 연결' — 섹션 추가 목록에는 `CONTENT_MANAGE` 가 켜진 사업체만. 칸: 유형 · 카테고리(그 유형 것만, 카테고리만 바꿔도 저장된 유형으로 검사) · 태그 · 정렬(정해 둔 순서 · 최근 공개 · 제목) · 개수 3~24 · 카드/목록/FAQ/연혁/로고 줄 · 빈 결과 문구 (`services/content_section.py`, 섹션 저장 · 미리보기 저장 모두 검사)
+- [x] 공개 API `GET /api/public/site/{slug}/content-types/{type_id}/items?limit=&sort=&category=&tag=&body=` — 공개 항목만, 맨 위 카테고리는 하위 포함, 칸은 게시판 공개 칸과 같은 모양(고르기 칸은 이름). 스위치 꺼짐 · 없는 유형 · 없는 사업체 404 → 홈페이지는 섹션을 그리지 않음
+- [x] 사용 위치 `GET /contents/types/{id}/usage` · `/contents/items/{id}/usage`(섹션의 카테고리 · 태그 조건에 맞을 때) — 유형 지우기는 섹션이 쓰면 409(지운 섹션은 빼고), 화면은 유형 지우기 창 · 콘텐츠 휴지통 확인 창 · 콘텐츠 편집 화면 아래 '홈페이지에서 보이는 곳'(누르면 그 섹션 편집)
+- [x] 콘텐츠 · 카테고리 · 태그를 바꾸면 사이트 캐시 비움(`site_cache.purge_site`)
+- [x] 관리자 섹션 폼 `ContentListForm`(지운 유형 안내 · 유형을 바꾸면 카테고리 비움), 섹션 목록 아이콘 · 이름. 홈페이지 `components/sections/ContentList.tsx` — 카드(링크 칸이 있으면 새 창) · 목록 · FAQ(본문, 없으면 요약) · 연혁(연도.월) · 로고 줄
+- **기획서와 다르게 한 것:** 공개 API 주소는 유형 키 대신 id — 섹션이 id 를 저장하므로 키를 바꿔도 이어진다. 콘텐츠 목록의 '사용 위치' 칸 대신 휴지통 확인 창 · 편집 화면에서 보여 줌(목록마다 섹션 조건을 계산하지 않으려고). **미리보기에서 초안 콘텐츠 보이기는 하지 않음** — 미리보기도 공개 콘텐츠만(점검 때 남은 차이로)
+- **코드:** backend `services/content_section.py` · `section_manage.py` · `theme_content.py` · `section.py` · `section_draft.py` · `content_item.py` · `content_taxonomy.py` · `content_type.py`(사용 중이면 지우기 막음) · `board.py`(`open_public_tenant`) · `board_field.py`(`public_value`) · `api/v1/endpoints/contents.py` · `main.py`, admin `components/content/forms/ContentListForm.tsx` · `SectionListItem.tsx` · `components/contents/UsageList.tsx` · `pages/ContentTypesPage.tsx` · `ContentItemsPage.tsx` · `ContentItemEditPage.tsx`, client `components/sections/ContentList.tsx` · `lib/publicContents.ts` · `lib/themeSections.ts` · `SectionRenderer.tsx`, types `content.ts`
+- **테스트:** backend 15 (추가 목록 스위치, 저장 · 잘못된 값 7 · 카테고리는 저장된 유형 기준, 공개 항목만 · 칸 모양 · 하위 카테고리 · 태그 · 본문 · 정렬/개수, 404 3가지, 캐시 비움, 유형/항목 사용 위치 · 조건, 사용 중 유형 지우기 409 · 지운 섹션 제외), admin 4 (폼 저장 값 · 유형 바꾸면 카테고리 비움 · 지운 유형 안내) + 휴지통 확인 창, client 9 (조건 · 기본값 · 카드 · FAQ · 연혁 · 로고 · 빈 문구 · null). 전체 admin 985 · client 949 (Node 25 · 22)
 
 ### T-259: AI — 문장 다듬기 · 태그 추천
 
