@@ -322,7 +322,7 @@ async def resolve_custom_data(
     return merged
 
 
-def _public_value(field: BoardField, value: Any) -> Any:
+def public_value(field: BoardField, value: Any) -> Any:
     """내부 선택지 값 → 이름. 정의에서 사라진 선택지는 보여 주지 않는다."""
     labels = {
         choice["value"]: choice["label"]
@@ -341,7 +341,7 @@ def field_values(fields: list[BoardField], values: dict[str, Any]) -> list[dict]
     for field in fields:
         if not field.is_visible or field.field_key not in values:
             continue
-        value = _public_value(field, values[field.field_key])
+        value = public_value(field, values[field.field_key])
         if is_empty(value):
             continue
         shown.append(

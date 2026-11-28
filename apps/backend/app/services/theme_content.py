@@ -48,6 +48,19 @@ THEME_FIELDS: dict[str, frozenset[str]] = {
             "empty_text",
         }
     ),
+    # 콘텐츠 연결 (T-258) — 유형 · 카테고리 · 태그 · 정렬 · 개수 · 보여 주는 방식
+    "CONTENT_LIST": frozenset(
+        {
+            "section_title",
+            "content_type",
+            "category_id",
+            "tag_id",
+            "sort",
+            "item_count",
+            "display_mode",
+            "empty_text",
+        }
+    ),
 }
 
 # 값이 없어도 화면이 그려지는 섹션 — 문의 폼은 제목이 없으면 기본 제목으로 나온다

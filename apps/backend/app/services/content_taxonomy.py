@@ -22,6 +22,7 @@ from app.models.content import (
     ContentItemTag,
     ContentTag,
 )
+from app.services import content_section
 
 MAX_CATEGORIES = 200
 
@@ -216,6 +217,7 @@ async def rename_category(
     )
     row.name = name
     await db.commit()
+    await content_section.purge(db, tenant_id)
     await db.refresh(row)
     return row
 
@@ -243,6 +245,7 @@ async def save_tree(
         rows[node_id].display_order = order.get(parent_id, 0)
         order[parent_id] = order.get(parent_id, 0) + 1
     await db.commit()
+    await content_section.purge(db, tenant_id)
 
 
 async def delete_category(
@@ -269,6 +272,7 @@ async def delete_category(
         if r.id in removed:
             r.deleted_at = now
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return int(getattr(moved, "rowcount", 0) or 0)
 
 
@@ -354,6 +358,7 @@ async def rename_tag(
         raise _conflict(MSG_TAG_TAKEN)
     row.name = name
     await db.commit()
+    await content_section.purge(db, tenant_id)
     await db.refresh(row)
     return row
 
@@ -364,6 +369,7 @@ async def delete_tag(db: AsyncSession, tenant_id: UUID, tag_id: UUID) -> None:
     await db.execute(delete(ContentItemTag).where(ContentItemTag.tag_id == row.id))
     row.deleted_at = _now()
     await db.commit()
+    await content_section.purge(db, tenant_id)
 
 
 async def merge_tags(
@@ -401,6 +407,7 @@ async def merge_tags(
     for source in sources:
         source.deleted_at = now
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return moved
 
 

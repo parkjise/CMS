@@ -10,6 +10,7 @@ import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
 import { TagInput } from '@/components/contents/TagInput'
 import { LeaveGuard } from '@/components/site/LeaveGuard'
+import { UsageList } from '@/components/contents/UsageList'
 import { useCanEdit } from '@/hooks/useCanEdit'
 import {
   type ContentItem,
@@ -19,6 +20,7 @@ import {
   useContentCategories,
   useContentItem,
   useContentTags,
+  useContentUsage,
   useCreateContentItem,
   useUpdateContentItem,
 } from '@/hooks/useContentItems'
@@ -163,6 +165,7 @@ function ContentForm({ type, item }: ContentFormProps) {
   const fields = useMemo(() => asBoardFields(type), [type])
   const categories = flattenCategories(useContentCategories(type.id).data ?? [])
   const tagNames = (useContentTags().data ?? []).map((t) => t.name)
+  const usage = useContentUsage('items', item?.id).data ?? []
 
   const [title, setTitle] = useState(item?.title ?? '')
   const [summary, setSummary] = useState(item?.summary ?? '')
@@ -433,6 +436,25 @@ function ContentForm({ type, item }: ContentFormProps) {
           />
         </div>
       </fieldset>
+
+      {item && (
+        <section className="rounded-lg border border-slate-200 bg-white p-5 text-sm">
+          <h2 className="font-semibold text-slate-900">홈페이지에서 보이는 곳</h2>
+          {usage.length === 0 ? (
+            <p className="mt-1 text-slate-500">
+              아직 이 콘텐츠를 보여 주는 섹션이 없어요. 페이지에 &lsquo;콘텐츠 연결&rsquo; 섹션을
+              넣고 이 유형을 골라 주세요.
+            </p>
+          ) : (
+            <div className="mt-1 text-slate-600">
+              <UsageList usage={usage} />
+              {item.status !== 'PUBLISHED' && (
+                <p className="mt-2 text-xs text-amber-700">초안이라 아직 홈페이지에는 안 보여요.</p>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       <LeaveGuard dirty={dirty} onSave={() => save(item?.status ?? 'DRAFT')} />
     </>

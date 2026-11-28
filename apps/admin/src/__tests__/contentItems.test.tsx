@@ -170,6 +170,14 @@ beforeEach(() => {
       await record(request)
       return HttpResponse.json({ success: true, data: item('copy') }, { status: 201 })
     }),
+    http.get(`${BASE}/v1/contents/:kind/:id/usage`, () =>
+      HttpResponse.json({
+        success: true,
+        data: [
+          { section_id: 's1', label: '의료진', page_key: 'about', page_title: '회사소개', is_active: true },
+        ],
+      })
+    ),
     http.delete(`${BASE}/v1/contents/items/:id`, async ({ request }) => {
       await record(request)
       return HttpResponse.json({ success: true, data: null })
@@ -240,6 +248,7 @@ describe('ContentItemsPage', () => {
     renderAt('/admin/contents')
     await user.click(await screen.findByRole('button', { name: '이실장 복제' }))
     await user.click(screen.getByRole('button', { name: '이실장 휴지통으로' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: '휴지통으로' }))
     await waitFor(() =>
       expect(requests.filter((r) => r.method !== 'GET').map((r) => `${r.method} ${r.url}`)).toEqual([
         'POST /api/v1/contents/items/이실장/duplicate',

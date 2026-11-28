@@ -26,7 +26,7 @@ from app.models.content import (
 )
 from app.models.user import User
 from app.schemas.content import ContentItemCreate, ContentItemUpdate
-from app.services import board_field
+from app.services import board_field, content_section
 from app.services import content_taxonomy as taxonomy
 
 COPY_SUFFIX = " (복사본)"
@@ -149,6 +149,11 @@ async def _get(
     if row is None:
         raise _not_found()
     return row
+
+
+async def get_item(db: AsyncSession, tenant_id: UUID, item_id: UUID) -> ContentItem:
+    """휴지통 밖 항목 — 없으면 404 (사용 위치 API 가 쓴다)."""
+    return await _get(db, tenant_id, item_id)
 
 
 async def _views(db: AsyncSession, rows: list[ContentItem]) -> list[dict]:
@@ -360,6 +365,7 @@ async def create_item(
     tags = await taxonomy.resolve_tags(db, tenant_id, body.tags)
     await taxonomy.set_item_tags(db, tenant_id, item.id, tags)
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return await get_item_view(db, tenant_id, item.id)
 
 
@@ -396,6 +402,7 @@ async def update_item(
         tags = await taxonomy.resolve_tags(db, tenant_id, body.tags)
         await taxonomy.set_item_tags(db, tenant_id, item.id, tags)
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return await get_item_view(db, tenant_id, item.id)
 
 
@@ -403,6 +410,7 @@ async def delete_item(db: AsyncSession, tenant_id: UUID, item_id: UUID) -> None:
     item = await _get(db, tenant_id, item_id)
     item.deleted_at = _now()
     await db.commit()
+    await content_section.purge(db, tenant_id)
 
 
 async def restore_item(db: AsyncSession, tenant_id: UUID, item_id: UUID) -> dict:
@@ -416,6 +424,8 @@ async def restore_item(db: AsyncSession, tenant_id: UUID, item_id: UUID) -> dict
             )
         item.deleted_at = None
         await db.commit()
+        await content_section.purge(db, tenant_id)
+    await content_section.purge(db, tenant_id)
     return await get_item_view(db, tenant_id, item.id)
 
 
@@ -446,6 +456,7 @@ async def duplicate_item(
     for tag in tag_ids:
         db.add(ContentItemTag(tenant_id=tenant_id, item_id=copy.id, tag_id=tag["id"]))
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return await get_item_view(db, tenant_id, copy.id)
 
 
@@ -503,6 +514,7 @@ async def bulk_update(
         item.updated_by = user.id
         changed += 1
     await db.commit()
+    await content_section.purge(db, tenant_id)
     return {"changed": changed, "skipped": skipped}
 
 
@@ -523,3 +535,4 @@ async def reorder_items(
     for order, item_id in enumerate(ids):
         rows[item_id].display_order = order
     await db.commit()
+    await content_section.purge(db, tenant_id)

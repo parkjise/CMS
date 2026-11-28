@@ -7,11 +7,12 @@
 from typing import Literal
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.deps import (
     get_current_user,
+    get_db,
     get_db_with_rls,
     get_tenant_id,
     require_feature,
@@ -39,14 +40,21 @@ from app.schemas.content import (
     ContentTypeOrderUpdate,
     ContentTypeResponse,
     ContentTypeUpdate,
+    ContentUsage,
+    PublicContentItem,
 )
+from app.services import board as board_service
 from app.services import content_item as item_service
+from app.services import content_section
 from app.services import content_taxonomy as taxonomy
 from app.services import content_type as type_service
 
 router = APIRouter(prefix="/contents", tags=["contents"])
+public_router = APIRouter(tags=["public"])
 
 _feature = [Depends(require_feature(type_service.FEATURE_KEY))]
+
+MSG_PUBLIC_NOT_FOUND = "콘텐츠를 찾을 수 없습니다."
 
 
 @router.get("/types", response_model=ApiResponse[ContentTypeListResponse])
@@ -503,3 +511,77 @@ async def delete_tag(
     """태그는 휴지통으로, 항목 연결은 끊는다."""
     await taxonomy.delete_tag(db, tenant_id, tag_id)
     return ApiResponse.ok(None)
+
+
+# ── 사용 위치 · 공개 (T-258) ──────────────────────────────────────────────
+
+
+@router.get(
+    "/types/{type_id}/usage",
+    response_model=ApiResponse[list[ContentUsage]],
+    dependencies=_feature,
+)
+async def type_usage(
+    type_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """이 유형을 보여 주는 섹션."""
+    await type_service.get_type(db, tenant_id, type_id)
+    usage = await content_section.type_usage(db, tenant_id, type_id)
+    return ApiResponse.ok([ContentUsage.model_validate(u) for u in usage])
+
+
+@router.get(
+    "/items/{item_id}/usage",
+    response_model=ApiResponse[list[ContentUsage]],
+    dependencies=_feature,
+)
+async def item_usage(
+    item_id: UUID,
+    db: AsyncSession = Depends(get_db_with_rls),
+    tenant_id: UUID = Depends(get_tenant_id),
+):
+    """이 항목이 걸리는 섹션 — 섹션의 카테고리 · 태그 조건에 맞을 때."""
+    item = await item_service.get_item(db, tenant_id, item_id)
+    usage = await content_section.item_usage(db, tenant_id, item)
+    return ApiResponse.ok([ContentUsage.model_validate(u) for u in usage])
+
+
+@public_router.get(
+    "/site/{tenant_slug}/content-types/{type_id}/items",
+    response_model=ApiResponse[list[PublicContentItem]],
+)
+async def list_public_items(
+    tenant_slug: str,
+    type_id: UUID,
+    limit: int = Query(
+        default=content_section.DEFAULT_COUNT, ge=1, le=content_section.COUNT_MAX
+    ),
+    sort: Literal["order", "latest", "title"] = "order",
+    category: UUID | None = None,
+    tag: UUID | None = None,
+    body: bool = False,
+    db: AsyncSession = Depends(get_db),
+):
+    """콘텐츠 연결 섹션 (T-258) — 공개 콘텐츠만, 스위치가 꺼졌거나 유형이 없으면 404."""
+    tenant = await board_service.open_public_tenant(db, tenant_slug)
+    items = (
+        await content_section.public_items(
+            db,
+            tenant,
+            type_id,
+            limit=limit,
+            sort=sort,
+            category_id=category,
+            tag_id=tag,
+            with_body=body,
+        )
+        if tenant is not None
+        else None
+    )
+    if items is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail=MSG_PUBLIC_NOT_FOUND
+        )
+    return ApiResponse.ok([PublicContentItem.model_validate(i) for i in items])

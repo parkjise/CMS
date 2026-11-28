@@ -340,3 +340,27 @@ export function useMergeContentTags() {
     onSuccess: invalidate,
   })
 }
+
+// ── 사용 위치 (T-258) ───────────────────────────────────────────────────────
+
+/** 이 유형 · 항목을 보여 주는 홈페이지 섹션 */
+export interface ContentUsage {
+  section_id: string
+  label: string
+  page_key: string
+  page_title: string
+  is_active: boolean
+}
+
+export function useContentUsage(kind: 'types' | 'items', id: string | null | undefined) {
+  return useQuery({
+    queryKey: ['content-usage', kind, id],
+    enabled: Boolean(id),
+    queryFn: async (): Promise<ContentUsage[]> => {
+      const { data } = await api.get(`/v1/contents/${kind}/${id}/usage`)
+      return data.data
+    },
+    staleTime: 0,
+    meta: { suppressGlobalError: true },
+  })
+}

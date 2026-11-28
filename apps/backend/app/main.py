@@ -15,6 +15,7 @@ from app.api.public.member_social import router as member_social_router
 from app.api.super.router import super_router
 from app.api.v1.endpoints.analytics import public_router as analytics_public_router
 from app.api.v1.endpoints.boards import public_router as board_public_router
+from app.api.v1.endpoints.contents import public_router as content_public_router
 from app.api.v1.endpoints.inquiries import public_router as inquiry_public_router
 from app.api.v1.endpoints.public import router as public_site_router
 from app.api.v1.endpoints.seo import public_router as seo_public_router
@@ -100,6 +101,7 @@ app.include_router(inquiry_public_router, prefix="/api/public")
 app.include_router(seo_public_router, prefix="/api/public")
 app.include_router(public_site_router, prefix="/api/public")
 app.include_router(board_public_router, prefix="/api/public")
+app.include_router(content_public_router, prefix="/api/public")
 app.include_router(template_public_router, prefix="/api/public")
 app.include_router(member_auth_router, prefix="/api/public")
 app.include_router(member_options_router, prefix="/api/public")

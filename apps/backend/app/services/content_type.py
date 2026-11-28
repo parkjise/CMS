@@ -30,7 +30,7 @@ from app.schemas.content import (
     ContentTypeCreate,
     ContentTypeUpdate,
 )
-from app.services import board_field
+from app.services import board_field, content_section
 from app.services import feature as feature_service
 from app.services.content_presets import CONTENT_PRESETS, preset_options
 
@@ -87,6 +87,9 @@ MSG_KEY_TRASH = "휴지통에 있는 유형이 쓰는 키예요."
 MSG_NAME_REQUIRED = "유형 이름을 입력해 주세요."
 MSG_UNKNOWN_PRESET = "없는 시작용 유형입니다."
 MSG_HAS_ITEMS = "콘텐츠가 남아 있는 유형은 지울 수 없어요. 콘텐츠를 먼저 지워 주세요."
+MSG_IN_USE = (
+    "홈페이지 섹션이 이 유형을 보여 주고 있어요. 섹션에서 연결을 먼저 바꿔 주세요."
+)
 MSG_ORDER_MISMATCH = "유형 목록이 바뀌었습니다. 화면을 새로 고쳐 주세요."
 MSG_TOO_MANY_FIELDS = f"칸은 유형당 {MAX_FIELDS}개까지 만들 수 있습니다."
 MSG_UNKNOWN_FIELD = "없는 칸입니다. 화면을 새로 고쳐 주세요."
@@ -409,6 +412,8 @@ async def delete_type(
     total, _ = (await _item_counts(db, tenant_id)).get(row.id, (0, 0))
     if total:
         raise _conflict(MSG_HAS_ITEMS)
+    if await content_section.type_usage(db, tenant_id, row.id):
+        raise _conflict(MSG_IN_USE)
     row.deleted_at = _now()
     await db.commit()
     await db.refresh(row)

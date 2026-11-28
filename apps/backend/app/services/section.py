@@ -8,7 +8,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.section import Section, SectionSetting
 from app.schemas.section import SectionOrderItem, SectionSettingUpdate, SectionUpdate
-from app.services import board_latest
+from app.services import board_latest, content_section
 from app.services.gallery_settings import (
     GALLERY_FIELD,
     GALLERY_VALUE_TYPE,
@@ -100,6 +100,10 @@ async def update_section_settings(
                 data.settings,
                 section_type=section.section_type,
                 current=current,
+            )
+        if section.section_type == content_section.CONTENT_LIST:
+            await content_section.validate_settings(
+                db, tenant_id, data.settings, current=current
             )
         for s in data.settings:
             existing_result = await db.execute(

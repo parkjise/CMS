@@ -49,6 +49,8 @@ THEME_SECTION_TYPES: dict[str, str] = {
     "MAP": "지도",
     # 게시판 최신 글 (T-185) — 템플릿 기본 섹션이 아니라 테마 전환 때 만들지 않는다
     "BOARD_LATEST": "게시판 연결",
+    # 독립 콘텐츠 (T-258) — CONTENT_MANAGE 가 켜진 사업체만 추가할 수 있다
+    "CONTENT_LIST": "콘텐츠 연결",
 }
 
 # 새 섹션이 빈 화면이 되지 않도록 넣는 시작 문구 — '샘플' 표시가 붙어 바꾸도록 안내된다
@@ -64,6 +66,8 @@ STARTER_SETTINGS: dict[str, dict[str, str]] = {
     "MAP": {"address": "주소를 입력하세요"},
     # 게시판은 고객이 고른다 — 고르기 전에는 홈페이지에 보이지 않는다
     "BOARD_LATEST": {"section_title": "최신 글"},
+    # 유형은 고객이 고른다 — 고르기 전에는 홈페이지에 보이지 않는다
+    "CONTENT_LIST": {"section_title": "콘텐츠"},
 }
 
 PLAN_FIXED_MESSAGE = (
@@ -293,6 +297,7 @@ async def get_limits(
     count = await _page_count(db, tenant_id, page_key)
     limit = SECTION_LIMITS.get(plan, SECTION_LIMITS["BASIC"])
     gallery_on = await feature_service.is_enabled(db, tenant_id, "GALLERY_SECTION")
+    contents_on = await feature_service.is_enabled(db, tenant_id, "CONTENT_MANAGE")
     if custom and code is not None:
         types = [
             {
@@ -306,7 +311,7 @@ async def get_limits(
         types = [
             {"section_type": t, "label": label}
             for t, label in THEME_SECTION_TYPES.items()
-            if t != "GALLERY" or gallery_on
+            if (t != "GALLERY" or gallery_on) and (t != "CONTENT_LIST" or contents_on)
         ]
 
     # 코드형 템플릿 기본 페이지는 정해진 구성 — 직접 만든 페이지만 추가 · 삭제
