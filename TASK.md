@@ -39,8 +39,8 @@
 | **Phase 20: 사이트 관리** | **6** | **6** | **100%** |
 | **Phase 21: 관리자 화면 개선 · AI 보조** | **16** | **16** | **100%** |
 | **Phase 22: 페이지 관리 · 콘텐츠 연결** | **13** | **13** | **100%** |
-| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **6** | **75%** |
-| **합계** | **304** | **302** | **99%** |
+| **Phase 23: 콘텐츠 관리 (독립)** | **8** | **7** | **88%** |
+| **합계** | **304** | **303** | **99%** |
 
 ---
 
@@ -4749,9 +4749,14 @@ TASK.md에서 T-016을 [x]로 업데이트하고,
 - **코드:** backend `services/content_section.py` · `section_manage.py` · `theme_content.py` · `section.py` · `section_draft.py` · `content_item.py` · `content_taxonomy.py` · `content_type.py`(사용 중이면 지우기 막음) · `board.py`(`open_public_tenant`) · `board_field.py`(`public_value`) · `api/v1/endpoints/contents.py` · `main.py`, admin `components/content/forms/ContentListForm.tsx` · `SectionListItem.tsx` · `components/contents/UsageList.tsx` · `pages/ContentTypesPage.tsx` · `ContentItemsPage.tsx` · `ContentItemEditPage.tsx`, client `components/sections/ContentList.tsx` · `lib/publicContents.ts` · `lib/themeSections.ts` · `SectionRenderer.tsx`, types `content.ts`
 - **테스트:** backend 15 (추가 목록 스위치, 저장 · 잘못된 값 7 · 카테고리는 저장된 유형 기준, 공개 항목만 · 칸 모양 · 하위 카테고리 · 태그 · 본문 · 정렬/개수, 404 3가지, 캐시 비움, 유형/항목 사용 위치 · 조건, 사용 중 유형 지우기 409 · 지운 섹션 제외), admin 4 (폼 저장 값 · 유형 바꾸면 카테고리 비움 · 지운 유형 안내) + 휴지통 확인 창, client 9 (조건 · 기본값 · 카드 · FAQ · 연혁 · 로고 · 빈 문구 · null). 전체 admin 985 · client 949 (Node 25 · 22)
 
-### T-259: AI — 문장 다듬기 · 태그 추천
+### T-259: AI — 문장 다듬기 · 태그 추천 ✅ (Claude, 2026-11-28)
 
-- [ ] `/ai/assist/content_polish` · `content_tags` (기존 AI 보조 스위치 · 한도 · 캐시 · `ai_usage_log`), 서랍에서 고른 것만 채움
+- [x] `POST /ai/assist/content_polish` · `content_tags` — `AI_SITE_ASSIST` 와 `CONTENT_MANAGE` 둘 다 켜져야(아니면 403), 문구 추천 한도 · 1시간 캐시 · `ai_usage_log`(`assist_content_polish` · `assist_content_tags`)는 다른 AI 보조와 같다. 보내는 값: 유형 id(필수) · 제목(필수) · 요약 · 본문 글자(화면이 Tiptap 에서 뽑음, 3000자) · 지금 태그. 다듬기는 말투를 받고 요약 · 본문 중 하나는 있어야(400 `summary`)
+- [x] 다듬기 결과: 요약 300자 + 본문(문단 · 목록, 글 초안과 같은 칸). 태그 결과: 8개까지, 있는 태그는 그 표기로 `existing: true` · 먼저, 지금 붙인 태그 · 겹치는 이름(띄어쓰기 · 대소문자 무시) · `#` 은 서버가 뺌
+- [x] 콘텐츠 작성 화면 위 [✨ 문장 다듬기] · [✨ 태그 추천] → 서랍에서 고른 것만 채움(요약 · 본문 따로, 본문은 편집기를 그 내용으로), 저장은 [초안 저장] · [공개]. 스위치 꺼짐 · 보기 전용은 버튼 없음, 제목 · 내용이 없으면 누를 수 없음
+- **코드:** backend `schemas/ai_assist.py`(`ContentPolishResult` · `ContentTagsResult`) · `services/ai_assist.py`(`build_content_context` · `_polish_result` · `_tags_result`) · `services/ai_prompts.py`, admin `components/ai/ContentAiAssist.tsx` · `lib/aiAssist.ts` · `lib/aiAssistPreview.ts` · `lib/richBody.ts`(`bodyToText`) · `pages/ContentItemEditPage.tsx`
+- **테스트:** backend 6 (다듬기 자르기 · 빈 답, 태그 있는 것 먼저 · 지금 태그 빼기 · 빈 답, 스위치 403, 입력 검사 4, 다듬기 보내는 값 · 말투 · 한도, 태그에 있는 태그 · 지금 태그 보냄), admin 5 (본문 글자 뽑기, 버튼 숨김 · 막힘, 다듬기 보내는 값 · 고른 것만, 태그 미리 고름 · 고른 것만). 전체 admin 990 (Node 25 · 22)
+- **남은 확인:** 실제 모델 답은 OpenAI(또는 개발용 Gemini) 키로 한 번 확인
 
 ### T-260: 공통 블록 (CM-04) — ⚠️ 머지 전 확인 (DB)
 

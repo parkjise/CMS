@@ -161,6 +161,20 @@ const POLICY_SUMMARY: AssistResults['policy_summary'] = {
   summary: '개인정보 보관 기간 조항을 고쳤습니다.\n바뀐 내용은 시행일부터 적용됩니다.',
 }
 
+const CONTENT_POLISH: AssistResults['content_polish'] = {
+  summary: '건물 지하 주차장을 진료 시간 동안 2시간 무료로 쓰실 수 있어요.',
+  body: [
+    { type: 'p', text: '병원 건물 지하 1~2층 주차장을 이용해 주세요.' },
+    { type: 'ul', items: ['진료 시 2시간 무료', '접수대에서 주차 등록'] },
+  ],
+}
+const CONTENT_TAGS: AssistResults['content_tags'] = {
+  tags: [
+    { name: '주차', existing: true },
+    { name: '이용 안내', existing: false },
+  ],
+}
+
 let used = 3
 
 export async function previewAssist<K extends AssistKind>(
@@ -178,6 +192,10 @@ export async function previewAssist<K extends AssistKind>(
           ? POLICY_SUMMARY
           : kind === 'page_seo'
             ? PAGE_SEO
+            : kind === 'content_polish'
+              ? CONTENT_POLISH
+              : kind === 'content_tags'
+                ? CONTENT_TAGS
             : (kind === 'seo' ? SEO : GEO)[(input as AssistInputs['seo']).tone]
   ) as AssistResponse<K>['result']
   return { result, usage: { used, limit: 20, remaining: Math.max(20 - used, 0) } }

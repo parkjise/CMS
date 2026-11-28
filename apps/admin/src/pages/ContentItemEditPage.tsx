@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react'
 import type { BoardField, BodyNode } from '@cms/types'
 import { Button, Input, Textarea, toast } from '@cms/ui'
 import { RichTextEditor } from '@/components/boards/RichTextEditor'
+import { ContentPolishAssist, ContentTagAssist } from '@/components/ai/ContentAiAssist'
 import { CustomFieldInputs } from '@/components/boards/CustomFieldInputs'
 import { ImageUploadField } from '@/components/content/forms/ImageUploadField'
 import { TagInput } from '@/components/contents/TagInput'
@@ -360,6 +361,40 @@ function ContentForm({ type, item }: ContentFormProps) {
       )}
 
       <fieldset disabled={!canEdit} className="space-y-5 rounded-lg border border-slate-200 bg-white p-5">
+        {canEdit && (
+          <div className="-mb-2 flex flex-wrap justify-end gap-1" aria-label="AI 보조">
+            <ContentPolishAssist
+              typeId={type.id}
+              title={title}
+              summary={summary}
+              body={body}
+              onApply={(picked) => {
+                if (picked.summary !== undefined) setSummary(picked.summary.slice(0, SUMMARY_MAX))
+                if (picked.body) {
+                  setBody(picked.body)
+                  setEditorInitial(picked.body)
+                  setEditorKey((k) => k + 1)
+                }
+                setDirty(true)
+              }}
+            />
+            <ContentTagAssist
+              typeId={type.id}
+              title={title}
+              summary={summary}
+              body={body}
+              tags={tags}
+              onApply={(names) => {
+                const have = new Set(tags.map((t) => t.replace(/\s+/g, '').toLowerCase()))
+                setTags([
+                  ...tags,
+                  ...names.filter((n) => !have.has(n.replace(/\s+/g, '').toLowerCase())),
+                ].slice(0, 20))
+                setDirty(true)
+              }}
+            />
+          </div>
+        )}
         <Input
           label="제목"
           value={title}

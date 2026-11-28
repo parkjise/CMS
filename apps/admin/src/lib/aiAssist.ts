@@ -10,7 +10,15 @@ import type { BoardOperation, BoardPermissions, BoardType, FieldType } from '@cm
 export const AI_SITE_ASSIST = 'AI_SITE_ASSIST'
 export const AI_BOARD_ASSIST = 'AI_BOARD_ASSIST'
 
-export type AssistKind = 'seo' | 'geo' | 'board' | 'post' | 'policy_summary' | 'page_seo'
+export type AssistKind =
+  | 'seo'
+  | 'geo'
+  | 'board'
+  | 'post'
+  | 'policy_summary'
+  | 'page_seo'
+  | 'content_polish'
+  | 'content_tags'
 
 export type AssistTone = 'trust' | 'friendly' | 'expert'
 
@@ -61,6 +69,10 @@ export interface AssistResults {
   policy_summary: { summary: string }
   /** 페이지 검색 문구 — 페이지 설정 칸 이름 그대로 (PM-02, T-248) */
   page_seo: { seo_title: string; seo_description: string }
+  /** 콘텐츠 문장 다듬기 (T-259) — 요약 300자 · 본문은 글 초안과 같은 칸 */
+  content_polish: { summary: string; body: DraftBlock[] }
+  /** 콘텐츠 태그 추천 (T-259) — 있는 태그가 먼저, existing 이면 그 이름 그대로 */
+  content_tags: { tags: { name: string; existing: boolean }[] }
 }
 
 /** kind 마다 화면이 보내는 값 — 나머지(사이트 정보 · 업종 · 있는 게시판)는 서버가 직접 읽는다 */
@@ -75,6 +87,22 @@ export interface AssistInputs {
   policy_summary: { kind: 'terms' | 'privacy'; body: string }
   /** 페이지 이름 · 그 페이지 섹션 제목은 서버가 page_id 로 읽는다 (홈은 사이트 SEO) */
   page_seo: { tone: AssistTone; page_id: string }
+  /** 편집 중인 제목 · 요약 · 본문(글자만) — 유형 이름은 서버가 읽는다 */
+  content_polish: {
+    tone: AssistTone
+    content_type_id: string
+    title: string
+    summary: string
+    text: string
+  }
+  content_tags: {
+    content_type_id: string
+    title: string
+    summary: string
+    text: string
+    /** 지금 붙인 태그 — 추천에서 뺀다 */
+    tags: string[]
+  }
 }
 
 export const PURPOSE_MAX = 200

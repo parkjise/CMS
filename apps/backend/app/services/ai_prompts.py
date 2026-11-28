@@ -115,6 +115,7 @@ def build_copy_messages(
 # - assist-v1 policy_summary (2026-11): 약관 변경 요약 (T-234-B)
 # - assist-v1 page_seo (2026-11): 페이지 하나의 검색 제목 · 설명 (T-248)
 # - assist-v1 board (2026-11): 카테고리에 '전체' 넣지 않기 (T-252)
+# - assist-v1 content_polish · content_tags (2026-11): 콘텐츠 문장 · 태그 (T-259)
 
 ASSIST_PROMPT_VERSION = "assist-v1"
 
@@ -202,6 +203,23 @@ _ASSIST_FORMATS["page_seo"] = (
     "- '사이트 검색 제목'과 같은 문장을 그대로 쓰지 않는다"
 )
 
+_ASSIST_FORMATS["content_polish"] = (
+    '{{"summary": "카드 · 목록에 보일 요약, {summary_max}자 이내",'
+    ' "body": [{{"type": "p", "text": "문단"}},'
+    ' {{"type": "ul", "items": ["목록 한 줄"]}}]}}\n'
+    "- 사이트 정보의 '제목' · '요약' · '본문'을 읽기 쉽게 다듬는다. 뜻 · 사실은 바꾸지 "
+    "않고, 없는 내용을 더하지 않는다\n"
+    "- body 는 문단(p)과 글머리 목록(ul)만, 최대 {blocks_max}칸. HTML 태그 · 마크다운 "
+    "기호(**, #, -)는 쓰지 않는다. 본문이 비어 있으면 body 는 빈 목록"
+)
+
+_ASSIST_FORMATS["content_tags"] = (
+    '{{"tags": ["태그, 각 {tag_len}자 이내, 최대 {tags_max}개"]}}\n'
+    "- '있는 태그' 중 맞는 것을 먼저 그대로 쓰고, 꼭 필요할 때만 새 태그를 만든다\n"
+    "- '지금 태그'에 있는 이름은 넣지 않는다\n"
+    "- # 기호 없이 짧은 명사로"
+)
+
 _ASSIST_TARGETS = {
     "seo": "검색엔진 노출 문구(SEO)",
     "geo": "AI 답변용 기업 소개(GEO)",
@@ -210,6 +228,8 @@ _ASSIST_TARGETS = {
     "post_faq": "자주 묻는 질문(FAQ)의 질문 · 답변 초안",
     "policy_summary": "이용약관 · 개인정보처리방침의 변경 내용 요약",
     "page_seo": "홈페이지 한 페이지의 검색엔진 노출 문구(SEO)",
+    "content_polish": "홈페이지 콘텐츠(서비스 · FAQ · 연혁 등)의 요약 · 본문 다듬기",
+    "content_tags": "홈페이지 콘텐츠의 태그",
 }
 
 
