@@ -85,6 +85,8 @@ class SectionLimitsResponse(BaseModel):
     can_delete: bool
     reason: str | None
     addable_types: list[AddableSectionType]
+    # 지울 수 있는 종류 — null 이면 모두. 코드형 기본 페이지는 연결 섹션만 (T-262)
+    deletable_types: list[str] | None = None
 
 
 class SectionOrderItem(BaseModel):

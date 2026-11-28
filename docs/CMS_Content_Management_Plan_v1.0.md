@@ -33,7 +33,7 @@ Phase 22 는 기획서 v3.1 대로 콘텐츠 관리를 **게시판 위에** 만�
 | 칸 종류 | 게시판 추가 칸 12가지(`schemas/board.py` `FieldType`), 값 검사 `board_field` · `field_convert` | **같은 칸 종류 · 검사 함수를 함께 쓴다** (게시판 전용 `RATING` 은 제외) |
 | 본문 | Tiptap 노드 JSON (`rich_text`) | 그대로 |
 | 사진 | 업로드 API · 안 쓰는 사진 정리 | 콘텐츠 사진도 정리 대상에서 제외 목록에 넣음 |
-| 섹션 연결 | 테마형 `BOARD_LATEST`(게시판 연결, T-243) | 새 섹션 `CONTENT_LIST`(콘텐츠 연결). 테마형부터, 코드형은 후속(T-243 과 같음) |
+| 섹션 연결 | 테마형 `BOARD_LATEST`(게시판 연결, T-243) | 새 섹션 `CONTENT_LIST`(콘텐츠 연결). 테마형부터 — 코드형(hospital-a)은 T-262 ~ T-264 에서 기본 페이지 · 직접 페이지 모두 |
 | 삭제 | 소프트 삭제 원칙, 실제 삭제 예외 3개 | 휴지통(복구)만, **실제 삭제 없음** — 예외 목록에 더하지 않는다 |
 | AI | 화면 안 버튼 → 서랍, `AI_SITE_ASSIST` 스위치 · 한도 · `ai_usage_log` | 같은 방식 (T-259) |
 | 권한 | `TENANT_ADMIN` · `TENANT_VIEWER` | 보기 전용은 읽기만 |

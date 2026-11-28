@@ -12,6 +12,7 @@ from sqlalchemy import text
 
 from app.core.security import create_access_token
 from tests.conftest import _TestSession  # type: ignore
+from tests.test_content_types import _disable, _enable
 
 _URL = "/api/v1/sections"
 
@@ -154,18 +155,52 @@ class TestLimits:
         assert data["limit"] is None
         assert data["can_add"] is True
 
-    async def test_code_template_cannot_add_or_delete(
+    async def test_code_template_page_adds_linked_sections_only(
         self,
         client: AsyncClient,
         auth_headers: dict,
         test_tenant: dict,
         code_template: str,
     ):
+        """코드형 기본 페이지 — 정해진 구성 그대로, 연결 섹션만 더하고 지운다 (T-262)"""
         await _set_plan(test_tenant["id"], "PREMIUM")
+        data = (await client.get(f"{_URL}/limits", headers=auth_headers)).json()["data"]
+        assert data["can_add"] is True
+        assert data["can_delete"] is True
+        # 콘텐츠 관리 스위치가 꺼져 있으면 게시판 연결만
+        assert [t["section_type"] for t in data["addable_types"]] == ["BOARD_LATEST"]
+        assert data["deletable_types"] == ["BOARD_LATEST", "CONTENT_LIST"]
+        await _enable(test_tenant["id"])
+        try:
+            data = (await client.get(f"{_URL}/limits", headers=auth_headers)).json()[
+                "data"
+            ]
+            assert [t["section_type"] for t in data["addable_types"]] == [
+                "BOARD_LATEST",
+                "CONTENT_LIST",
+            ]
+        finally:
+            await _disable(test_tenant["id"])
+
+    async def test_code_template_fixed_plan(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        test_tenant: dict,
+        code_template: str,
+    ):
+        await _set_plan(test_tenant["id"], "BASIC")
         data = (await client.get(f"{_URL}/limits", headers=auth_headers)).json()["data"]
         assert data["can_add"] is False
         assert data["can_delete"] is False
-        assert "숨겨" in data["reason"]
+        assert "STANDARD" in data["reason"]
+
+    async def test_theme_template_deletes_any_type(
+        self, client: AsyncClient, auth_headers: dict, test_tenant: dict
+    ):
+        await _set_plan(test_tenant["id"], "STANDARD")
+        data = (await client.get(f"{_URL}/limits", headers=auth_headers)).json()["data"]
+        assert data["deletable_types"] is None
 
 
 class TestCreate:
@@ -246,11 +281,46 @@ class TestCreate:
         test_tenant: dict,
         code_template: str,
     ):
+        """코드형 기본 페이지에 템플릿 섹션은 더할 수 없다 — 연결 섹션만 (T-262)"""
         await _set_plan(test_tenant["id"], "PREMIUM")
         resp = await client.post(
             _URL, headers=auth_headers, json={"section_type": "INTRO"}
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 400
+        resp = await client.post(
+            _URL, headers=auth_headers, json={"section_type": "CONTENT_LIST"}
+        )
+        assert resp.status_code == 400
+
+    async def test_code_template_linked_section_add_and_delete(
+        self,
+        client: AsyncClient,
+        auth_headers: dict,
+        test_tenant: dict,
+        test_section: dict,
+        code_template: str,
+    ):
+        """연결 섹션은 맨 뒤에 붙고 지울 수 있다 · 기본 섹션은 못 지운다 (T-262)"""
+        await _set_plan(test_tenant["id"], "PREMIUM")
+        resp = await client.post(
+            _URL, headers=auth_headers, json={"section_type": "BOARD_LATEST"}
+        )
+        assert resp.status_code == 201, resp.text
+        added = resp.json()["data"]["id"]
+        sections = await _list(client, auth_headers)
+        assert sections[-1]["id"] == added
+        assert sections[-1]["section_type"] == "BOARD_LATEST"
+        # 테마형 시작 문구 그대로 (코드형 샘플 값이 없는 종류)
+        values = {s["field_key"]: s["field_value"] for s in sections[-1]["settings"]}
+        assert values.get("section_title") == "최신 글"
+
+        blocked = await client.delete(
+            f"{_URL}/{test_section['id']}", headers=auth_headers
+        )
+        assert blocked.status_code == 422
+        assert "기본 섹션" in blocked.json()["error"]["message"]
+        ok = await client.delete(f"{_URL}/{added}", headers=auth_headers)
+        assert ok.status_code == 200, ok.text
 
     async def test_other_page_sections_not_counted(
         self, client: AsyncClient, auth_headers: dict, test_tenant: dict

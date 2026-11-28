@@ -191,6 +191,20 @@ describe('섹션 삭제', () => {
     expect(deletedId).toBeNull()
     expect(screen.getByRole('button', { name: '소개 삭제' })).toBeInTheDocument()
   })
+
+  it('코드형 기본 페이지는 더한 연결 섹션만 지울 수 있다 (T-262)', async () => {
+    sections = [
+      section('s-1', '소개', 0),
+      { ...section('s-2', '최신 글', 1), section_type: 'BOARD_LATEST' },
+    ]
+    currentLimits = limits({
+      addable_types: [{ section_type: 'BOARD_LATEST', label: '게시판 연결', variant: null }],
+      deletable_types: ['BOARD_LATEST', 'CONTENT_LIST'],
+    })
+    renderPage()
+    expect(await screen.findByRole('button', { name: '최신 글 삭제' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: '소개 삭제' })).toBeNull()
+  })
 })
 
 describe('공통 설정은 사이트 관리로 (T-125-F → T-221)', () => {

@@ -154,6 +154,7 @@
 
 - 고를 수 있는 섹션은 **현재 템플릿이 그릴 수 있는 종류만**. (T-241 구현) 코드형은 매니페스트에 목록을 따로 두지 않고 백엔드가 템플릿 샘플 콘텐츠의 서브 페이지 섹션(메인 전용 · 게시판 제외)을 뽑는다 — 사진+글은 배치(layout)마다 하나, 샘플 값을 그대로 넣는다.
 - 테마형 템플릿은 기존 테마 섹션(HERO_BANNER · INTRO · SERVICES · GALLERY · FAQ …)을, 코드형은 SUB_HERO · CONTENT_BLOCK · HISTORY_TIMELINE 등을 고른다.
+- (T-262) 코드형은 **기본 페이지 · 직접 만든 페이지 모두**에 연결 섹션 '게시판 연결'(`BOARD_LATEST`) · '콘텐츠 연결'(`CONTENT_LIST`, `CONTENT_MANAGE` 켜졌을 때)을 더할 수 있다. 기본 페이지의 정해진 구성은 더하기 · 지우기 불가 — 한도 응답 `deletable_types` 가 지울 수 있는 종류(연결 섹션만)를 알려 준다.
 - 추가한 섹션은 샘플 문구(`is_sample=true`)로 채워 바로 모양이 보이게 한다.
 - 저장은 기존 `sections` · `section_settings` 그대로 (`page_key` 만 새 페이지 키).
 

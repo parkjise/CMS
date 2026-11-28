@@ -74,10 +74,16 @@ PLAN_FIXED_MESSAGE = (
     "현재 요금제에서는 섹션 구성이 고정되어 있습니다. "
     "STANDARD 이상에서 섹션을 추가 · 삭제할 수 있어요."
 )
-CODE_TEMPLATE_MESSAGE = (
-    "이 템플릿은 정해진 구성으로 만들어져 섹션을 추가 · 삭제할 수 없습니다. "
-    "필요 없는 섹션은 숨겨 주세요."
+CODE_FIXED_SECTION_MESSAGE = (
+    "템플릿 기본 섹션은 지울 수 없습니다. 필요 없는 섹션은 숨겨 주세요."
 )
+
+# 코드형 템플릿 어느 페이지에나 더할 수 있는 연결 섹션 (T-262) — 기본 페이지는
+# 정해진 구성 뒤에 붙고, 이 섹션만 더하고 지울 수 있다
+LINKED_SECTION_TYPES: dict[str, str] = {
+    "BOARD_LATEST": "게시판 연결",
+    "CONTENT_LIST": "콘텐츠 연결",
+}
 
 
 class SectionLimitError(Exception):
@@ -108,6 +114,8 @@ class SectionLimits:
     can_delete: bool
     reason: str | None
     addable_types: list[dict] = field(default_factory=list)
+    # 지울 수 있는 섹션 종류 — None 이면 모두 (코드형 기본 페이지는 연결 섹션만, T-262)
+    deletable_types: list[str] | None = None
 
 
 async def _plan_type(db: AsyncSession, tenant_id: UUID) -> str:
@@ -298,7 +306,17 @@ async def get_limits(
     limit = SECTION_LIMITS.get(plan, SECTION_LIMITS["BASIC"])
     gallery_on = await feature_service.is_enabled(db, tenant_id, "GALLERY_SECTION")
     contents_on = await feature_service.is_enabled(db, tenant_id, "CONTENT_MANAGE")
-    if custom and code is not None:
+    linked = [
+        {"section_type": t, "label": label, "variant": None}
+        for t, label in LINKED_SECTION_TYPES.items()
+        if t != "CONTENT_LIST" or contents_on
+    ]
+    deletable: list[str] | None = None
+    if code is not None and not custom:
+        # 코드형 기본 페이지 — 정해진 구성은 그대로, 연결 섹션만 더하고 지운다 (T-262)
+        types = linked
+        deletable = list(LINKED_SECTION_TYPES)
+    elif code is not None:
         types = [
             {
                 "section_type": k["section_type"],
@@ -306,7 +324,7 @@ async def get_limits(
                 "variant": k["variant"],
             }
             for k in code_page_kinds(code)
-        ]
+        ] + linked
     else:
         types = [
             {"section_type": t, "label": label}
@@ -314,9 +332,6 @@ async def get_limits(
             if (t != "GALLERY" or gallery_on) and (t != "CONTENT_LIST" or contents_on)
         ]
 
-    # 코드형 템플릿 기본 페이지는 정해진 구성 — 직접 만든 페이지만 추가 · 삭제
-    if code is not None and not custom:
-        return SectionLimits(plan, count, limit, False, False, CODE_TEMPLATE_MESSAGE)
     if plan in FIXED_PLANS or plan not in SECTION_LIMITS:
         return SectionLimits(plan, count, limit, False, False, PLAN_FIXED_MESSAGE)
     if limit is not None and count >= limit:
@@ -324,8 +339,8 @@ async def get_limits(
             f"현재 요금제는 섹션을 {limit}개까지 쓸 수 있습니다. "
             "섹션을 지우거나 PREMIUM 으로 올리면 더 추가할 수 있어요."
         )
-        return SectionLimits(plan, count, limit, False, True, reason, types)
-    return SectionLimits(plan, count, limit, True, True, None, types)
+        return SectionLimits(plan, count, limit, False, True, reason, types, deletable)
+    return SectionLimits(plan, count, limit, True, True, None, types, deletable)
 
 
 async def next_home_order(
@@ -424,7 +439,7 @@ async def add_section(
 
     code = await _code_template(db, tenant_id)
     settings = None
-    if code is not None:
+    if code is not None and section_type not in LINKED_SECTION_TYPES:
         settings = next(
             k["settings"]
             for k in code_page_kinds(code)
@@ -464,6 +479,11 @@ async def delete_section(db: AsyncSession, tenant_id: UUID, section_id: UUID) ->
         raise SectionLimitError(PLAN_FIXED_MESSAGE) from None
     if not limits.can_delete:
         raise SectionLimitError(limits.reason or "PLAN_LIMIT_EXCEEDED")
+    if (
+        limits.deletable_types is not None
+        and section.section_type not in limits.deletable_types
+    ):
+        raise SectionLimitError(CODE_FIXED_SECTION_MESSAGE)
 
     now = datetime.now(UTC)
     section.deleted_at = now

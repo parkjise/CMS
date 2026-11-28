@@ -132,6 +132,8 @@ export interface SectionLimits {
   reason: string | null
   /** variant — 코드형 직접 페이지의 사진+글 배치 (T-241), 추가할 때 그대로 보낸다 */
   addable_types: Array<{ section_type: string; label: string; variant?: string | null }>
+  /** 지울 수 있는 종류 — null 이면 모두. 코드형 기본 페이지는 연결 섹션만 (T-262) */
+  deletable_types?: string[] | null
 }
 
 /** 요금제 판단은 서버가 한다 — 화면은 can_add · can_delete · reason 만 따른다. 페이지마다 (T-241) */
